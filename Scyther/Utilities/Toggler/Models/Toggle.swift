@@ -13,8 +13,8 @@ internal struct Toggle {
      
      - Parameters:
         - name: The name of the feature/toggle that is being
-        - abValue: d
-     
+        - abValue: The conditional value that is used for this flag/toggle. Takes precedence over `localValue`.
+
      - Complexity: O(1)
      */
     public init(name: String, remoteValue: Bool, abValue: String? = nil) {

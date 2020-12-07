@@ -3,10 +3,12 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CA9871D4257E57BE00957357 /* DTTableViewManager in Frameworks */ = {isa = PBXBuildFile; productRef = CA9871D3257E57BE00957357 /* DTTableViewManager */; };
+		CA9871D9257E57DB00957357 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = CA9871D8257E57DB00957357 /* SnapKit */; };
 		CADC973D257908FA005C7C2C /* Scyther.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CADC9733257908FA005C7C2C /* Scyther.framework */; };
 		CADC9742257908FA005C7C2C /* ScytherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADC9741257908FA005C7C2C /* ScytherTests.swift */; };
 		CADC9744257908FA005C7C2C /* Scyther.h in Headers */ = {isa = PBXBuildFile; fileRef = CADC9736257908FA005C7C2C /* Scyther.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -56,6 +58,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CA9871D4257E57BE00957357 /* DTTableViewManager in Frameworks */,
+				CA9871D9257E57DB00957357 /* SnapKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -200,6 +204,10 @@
 			dependencies = (
 			);
 			name = Scyther;
+			packageProductDependencies = (
+				CA9871D3257E57BE00957357 /* DTTableViewManager */,
+				CA9871D8257E57DB00957357 /* SnapKit */,
+			);
 			productName = Scyther;
 			productReference = CADC9733257908FA005C7C2C /* Scyther.framework */;
 			productType = "com.apple.product-type.framework";
@@ -249,6 +257,10 @@
 				Base,
 			);
 			mainGroup = CADC9729257908FA005C7C2C;
+			packageReferences = (
+				CA9871D2257E57BE00957357 /* XCRemoteSwiftPackageReference "DTTableViewManager" */,
+				CA9871D7257E57DB00957357 /* XCRemoteSwiftPackageReference "SnapKit" */,
+			);
 			productRefGroup = CADC9734257908FA005C7C2C /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -555,6 +567,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CA9871D2257E57BE00957357 /* XCRemoteSwiftPackageReference "DTTableViewManager" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/DenTelezhkin/DTTableViewManager";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
+		CA9871D7257E57DB00957357 /* XCRemoteSwiftPackageReference "SnapKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SnapKit/SnapKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CA9871D3257E57BE00957357 /* DTTableViewManager */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA9871D2257E57BE00957357 /* XCRemoteSwiftPackageReference "DTTableViewManager" */;
+			productName = DTTableViewManager;
+		};
+		CA9871D8257E57DB00957357 /* SnapKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA9871D7257E57DB00957357 /* XCRemoteSwiftPackageReference "SnapKit" */;
+			productName = SnapKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CADC972A257908FA005C7C2C /* Project object */;
 }

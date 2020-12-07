@@ -8,9 +8,8 @@
 import Foundation
 
 public class Toggler {
-    /// Private Init to Stop Re-Initialisation and allow singleton creation.
+    /// Private Init to Stop re-initialisation and allow singleton creation.
     private init() { }
-
 
     /// An initialised, shared instance of the `Toggler` class.
     static let instance = Toggler()
