@@ -13,14 +13,16 @@ public class Scyther {
     private init() { }
 
     /// An initialised, shared instance of the `Scyther` class.
-    static let instance = Scyther()
+    public static let instance = Scyther()
     
     /// `Toggler` utlity class. Used for local toggle/feature flag overrides.
-    static let toggler: Toggler = Toggler.instance
+    public static let toggler: Toggler = Toggler.instance
 
-    static func presentMenu(from viewController: UIViewController? = nil) {
+    public static func presentMenu(from viewController: UIViewController? = nil) {
         /// Construct our `MenuViewController` wrapped inside a `UINavigationController`.
+        let viewModel = MenuViewModel(networkController: nil, featureFlagController: FeatureFlagsViewController())
         let menuViewController: MenuViewController = MenuViewController()
+        menuViewController.configure(with: viewModel)
         let navigationController: UINavigationController = UINavigationController(rootViewController: menuViewController)
         
         /// Check for a presenter (`UIViewController`) otherwise use the `presentingViewController` to present it within a `UINavigationController`.
