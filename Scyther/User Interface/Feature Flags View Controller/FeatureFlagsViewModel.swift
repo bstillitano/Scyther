@@ -50,7 +50,7 @@ internal class FeatureFlagsViewModel {
             // Setup Switch
             switch self {
             case .globalSettings: return [enableOverrrides]
-            case .toggles: return Toggler.instance.toggles.sorted(by: { $0.name < $1.name })
+            case .toggles: return Toggler.instance.toggles.sorted(by: { $0.name.lowercased() < $1.name.lowercased() })
                 .map( { toggleSwitch(for: $0.name) } )
             }
         }
