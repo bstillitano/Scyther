@@ -32,9 +32,6 @@ internal class MenuViewController: UIViewController {
 
         //Register Table View Cells
         tableView.register(DefaultCell.self, forCellReuseIdentifier: "default")
-        tableView.register(DeviceTableViewCell.self, forCellReuseIdentifier: "deviceHeader")
-        tableView.register(ActionTableViewCell.self, forCellReuseIdentifier: "action")
-        tableView.register(SubtitleTableViewCell.self, forCellReuseIdentifier: "subtitle")
 
         view.addSubview(tableView)
 
@@ -82,85 +79,6 @@ internal class MenuViewController: UIViewController {
     private func dismissMenu() {
         navigationController?.dismiss(animated: true, completion: nil)
     }
-
-    @objc
-    private func warnAboutDeviceLogs(sender: UIView?) {
-
-        // If they've previously told us not to ask again, go straight to the share sheet
-        if UserDefaults.standard.bool(forKey: "dontWarnForLogExport") == true {
-            shareDeviceLogs(sender: sender)
-            return
-        }
-
-        let alertController = UIAlertController(title: "⚠️ WARNING ⚠️", message: "Please be aware that no effort has been made to mask content captured. \n\nThis may include but not limited to: Email adresses, Passwords, Authentication details, Payment details and more..", preferredStyle: .alert)
-        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-
-        // "Continue" action
-        alertController.addAction(UIAlertAction(title: "Continue", style: .destructive, handler: { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.shareDeviceLogs(sender: sender)
-            }
-        }))
-
-        // "Don't ask again" action
-        alertController.addAction(UIAlertAction(title: "Don't ask again", style: .default, handler: { [weak self] _ in
-            UserDefaults.standard.set(true, forKey: "dontWarnForLogExport")
-
-            DispatchQueue.main.async {
-                self?.shareDeviceLogs(sender: sender)
-            }
-        }))
-
-        present(alertController, animated: true, completion: nil)
-    }
-
-    private func shareDiagnosticsBundle(sender: UIView?) {
-//        DiagnosticsBundle.generate { result in
-//            switch result {
-//                case .success(let bundle):
-//                    guard let exportedURL = bundle.export(using: InternalMenu.default.diagnosticsConfig) else { return }
-//                    DispatchQueue.main.async { [weak self] in
-//                        self?.presentActivityController(items: [exportedURL], sender: sender)
-//                    }
-//
-//                case .failure: break
-//            }
-//        }
-    }
-
-    private func presentActivityController(items: [Any], sender: UIView?) {
-        // If we have nothing to share, exit early
-        guard items.count > 0 else { return }
-
-        var applicationActivities: [UIActivity]?
-//        #if targetEnvironment(simulator)
-//        applicationActivities = [SaveToDesktopActivity(title: "Save to desktop") { (sharedItems) in
-//            guard let sharedStrings = sharedItems as? [String] else { return }
-//
-//            let today = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: "/", with: ":")
-//            let filename = "\(UIApplication.shared.name)_\(today).log"
-//            for string in sharedStrings {
-//                let homeUser = NSString(string: "~").expandingTildeInPath.split(separator: "/").dropFirst().first ?? "-"
-//                let path = "Users/\(homeUser)/Desktop/\(filename)"
-//                FileManager.default.createFile(atPath: path, contents: string.data(using: .utf8, allowLossyConversion: true), attributes: nil)
-//            }
-//        }]
-//        #endif
-
-        let activityController = UIActivityViewController(activityItems: items, applicationActivities: applicationActivities)
-
-        // This is required on iPads
-        if let sender = sender {
-            activityController.popoverPresentationController?.sourceView = sender
-        }
-
-        present(activityController, animated: true)
-    }
-
-    private func shareDeviceLogs(sender: UIView?) {
-
-    }
-
 }
 
 extension MenuViewController: UITableViewDataSource {

@@ -10,7 +10,7 @@ import UIKit
 internal class FeatureFlagsViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
-    private var viewModel: FFViewModel?
+    private var viewModel: FeatureFlagsViewModel?
 
     // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -58,7 +58,7 @@ internal class FeatureFlagsViewController: UIViewController {
     }
 
     // MARK: - Configure
-    internal func configure(with viewModel: FFViewModel) {
+    internal func configure(with viewModel: FeatureFlagsViewModel) {
         self.viewModel = viewModel
 
         title = viewModel.title

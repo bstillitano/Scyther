@@ -91,7 +91,7 @@ internal struct MenuViewModel {
         var detailActionController: UIViewController? {
             switch self {
             case .envFeatureFlags:
-                let viewModel: FFViewModel = FFViewModel()
+                let viewModel: FeatureFlagsViewModel = FeatureFlagsViewModel()
                 let viewController: FeatureFlagsViewController = FeatureFlagsViewController()
                 viewController.configure(with: viewModel)
                 return viewController
