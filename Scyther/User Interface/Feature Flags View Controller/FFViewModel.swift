@@ -7,19 +7,26 @@
 
 import UIKit
 
-internal class FFViewModel {
+internal class FeatureFlagsViewModel {
     static var enableOverrrides: SwitchAccessoryRow {
         var row: SwitchAccessoryRow = SwitchAccessoryRow()
         row.text = "Enable overrides"
         row.switchView.isOn = Toggler.instance.localOverridesEnabled
-        row.switchView.addTarget(nil, action: #selector(switchAction(_:)), for: .valueChanged)
+        row.switchView.actionBlock = {
+            Toggler.instance.localOverridesEnabled = row.switchView.isOn
+        }
+        row.switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         return row
     }
     
     static func toggleSwitch(for name: String) -> SwitchAccessoryRow {
         var row: SwitchAccessoryRow = SwitchAccessoryRow()
         row.text = name
-        row.switchView.addTarget(nil, action: #selector(switchAction(_:)), for: .valueChanged)
+        row.switchView.isOn = Toggler.instance.localValue(forToggle: name)
+        row.switchView.actionBlock = {
+            Toggler.instance.setLocalValue(value: row.switchView.isOn, forToggleWithName: name)
+        }
+        row.switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         return row
     }
     
@@ -41,12 +48,15 @@ internal class FFViewModel {
             // Setup Switch
             switch self {
             case .globalSettings: return [enableOverrrides]
-            case .toggles: return Toggler.instance.toggles.map( { toggleSwitch(for: $0.name) } )
+            case .toggles: return Toggler.instance.toggles.sorted(by: { $0.name < $1.name })
+                .map( { toggleSwitch(for: $0.name) } )
             }
         }
     }
+}
 
-    // MARK: - Public data accessors
+// MARK: - Public data accessors
+extension FeatureFlagsViewModel {
     var title: String {
         return "Feature Flags"
     }
@@ -88,9 +98,9 @@ internal class FFViewModel {
     }
 }
 
-extension FFViewModel {
+extension FeatureFlagsViewModel {
     @objc
-    func switchAction(_ sender: UISwitch) {
-        Toggler.instance.setLocalValue(value: sender.isOn, forToggleWithName: sender.title ?? "")
+    static func switchToggled(_ sender: UIActionSwitch?) {
+        sender?.actionBlock?()
     }
 }

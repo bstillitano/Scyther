@@ -1,97 +1,108 @@
 //
-//  FeatureFlagsViewController.swift
+//  FFViewModel.swift
 //  Scyther
 //
-//  Created by Brandon Stillitano on 8/12/20.
+//  Created by Brandon Stillitano on 10/12/20.
 //
 
-import DTTableViewManager
 import UIKit
 
-protocol FeatureFlagsViewModelProtocol: class {
-    func viewModelShouldRefreshView(viewModel: FeatureFlagsViewModel?)
+internal class FeatureFlagsViewModel {
+    /// Global overrides switch object. Controls whether overrides are respected or not.
+    static var enableOverrrides: SwitchAccessoryRow {
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = "Enable overrides"
+        row.switchView.isOn = Toggler.instance.localOverridesEnabled
+        row.switchView.actionBlock = {
+            Toggler.instance.localOverridesEnabled = row.switchView.isOn
+        }
+        row.switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        return row
+    }
+    
+    /// Single toggle override switch object. Controls what value should be returned by the override.
+    static func toggleSwitch(for name: String) -> SwitchAccessoryRow {
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = name
+        row.switchView.isOn = Toggler.instance.localValue(forToggle: name)
+        row.switchView.actionBlock = {
+            Toggler.instance.setLocalValue(value: row.switchView.isOn, forToggleWithName: name)
+        }
+        row.switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        return row
+    }
+    
+    /// Enum which defines each section of the ViewModel. Contains title and row data.
+    enum Section: Int, CaseIterable {
+        case globalSettings
+        case toggles
+
+        /// String representation of the section that acts as a very short descriptor.
+        var title: String? {
+            switch self {
+            case .globalSettings: return "Global Settings"
+            case .toggles: return "Toggles"
+            }
+        }
+
+        /// Row definitions for each section of the ViewModel.
+        var rows: [SwitchAccessoryRow] {
+            // Setup Switch
+            switch self {
+            case .globalSettings: return [enableOverrrides]
+            case .toggles: return Toggler.instance.toggles.sorted(by: { $0.name.lowercased() < $1.name.lowercased() })
+                .map( { toggleSwitch(for: $0.name) } )
+            }
+        }
+    }
 }
 
-class FeatureFlagsViewModel: NSObject {
-    // MARK: Data
-    var objects: [Any] = []
-
-    // MARK: Delegate
-    weak var delegate: FeatureFlagsViewModelProtocol?
-
-    override public init() {
-        super.init()
-
-        /// Prepare Cell Objects
-        prepareObjects()
+// MARK: - Public data accessors
+extension FeatureFlagsViewModel {
+    var title: String {
+        return "Feature Flags"
     }
 
-    private var masterOverrideHeader: SectionHeaderConfigObject {
-        let value: SectionHeaderConfigObject = SectionHeaderConfigObject()
-        value.text = "GLOBAL SETTINGS"
-        value.customInsets = .globalMargin
-        return value
+    var numberOfSections: Int {
+        return Section.allCases.count
     }
 
-    private var masterOverrideSwitch: LabelSwitchConfigObject {
-        let value: LabelSwitchConfigObject = LabelSwitchConfigObject()
-        value.text = "Enable toggle overrides"
-        value.switchIsOn = Toggler.instance.localOverridesEnabled
-        value.actionBlock = {
-            Toggler.instance.localOverridesEnabled = !Toggler.instance.localOverridesEnabled
-        }
-        value.customInsets = .top0Left2Bottom2Right2
-        return value
+    func title(forSection index: Int) -> String? {
+        return Section(rawValue: index)?.title
     }
 
-    private var togglesHeader: SectionHeaderConfigObject {
-        let value: SectionHeaderConfigObject = SectionHeaderConfigObject()
-        value.text = "FEATURE FLAGS"
-        value.customInsets = .globalMargin
-        return value
+    func numbeOfRows(inSection index: Int) -> Int {
+        return rows(inSection: index)?.count ?? 0
     }
 
-    private func toggleSwitch(toggle: Toggle) -> LabelSwitchConfigObject {
-        let value: LabelSwitchConfigObject = LabelSwitchConfigObject()
-        value.text = toggle.name
-        value.switchIsOn = toggle.localValue
-        value.actionBlock = {
-            Toggler.instance.setLocalValue(value: !Toggler.instance.value(forToggle: toggle.name),
-                                           forToggleWithName: toggle.name)
-        }
-        value.customInsets = .top0Left2Bottom2Right2
-        return value
+    internal func row(at indexPath: IndexPath) -> SwitchAccessoryRow? {
+        guard let rows = rows(inSection: indexPath.section) else { return nil }
+        guard rows.indices.contains(indexPath.row) else { return nil }
+        return rows[indexPath.row]
     }
 
-    private func prepareObjects() {
-        //Clear Data
-        objects.removeAll()
+    func title(for row: SwitchAccessoryRow, indexPath: IndexPath) -> String? {
+        return row.text
+    }
 
-        //Setup Master Override
-        objects.append(masterOverrideHeader)
-        objects.append(masterOverrideSwitch)
+    func performAction(for row: SwitchAccessoryRow, indexPath: IndexPath) {
+        row.actionBlock?()
+    }
 
-        //Setup Flag Overrides
-        objects.append(togglesHeader)
-        for toggle: Toggle in Toggler.instance.toggles {
-            objects.append(toggleSwitch(toggle: toggle))
-        }
-        //Check Data
-//        guard order != nil else {
-//            self.delegate?.viewModel(viewModel: self, shouldShowError: nil)
-//            return
-//        }
-//
-//        //Add Values
-//        objects.append(supplierHeader)
-//        objects.append(sorryLabel)
-//        for reason in ReportReason.allCases {
-//            objects.append(reasonCheckbox(reason: reason.rawValue))
-//        }
-//        objects.append(textField)
-//        objects.append(submitButton)
-//
-        //Call Delegate
-        self.delegate?.viewModelShouldRefreshView(viewModel: self)
+    // MARK: - Private data accessors
+    private func section(for index: Int) -> Section? {
+        return Section(rawValue: index)
+    }
+
+    private func rows(inSection index: Int) -> [SwitchAccessoryRow]? {
+        guard let section = section(for: index) else { return nil }
+        return section.rows.filter { !$0.isHidden }
+    }
+}
+
+extension FeatureFlagsViewModel {
+    @objc
+    static func switchToggled(_ sender: UIActionSwitch?) {
+        sender?.actionBlock?()
     }
 }
