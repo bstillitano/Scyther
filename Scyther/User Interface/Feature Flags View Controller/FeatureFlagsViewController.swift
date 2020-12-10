@@ -33,7 +33,15 @@ internal class FeatureFlagsViewController: UIViewController {
         //Register Table View Cells
         tableView.register(SwitchCell.self, forCellReuseIdentifier: SwitchAccessoryRow().cellReuseIdentifer)
 
+        //Add Table View
         view.addSubview(tableView)
+        
+        //Setup Restore Button
+        let barButton: UIBarButtonItem = UIBarButtonItem(title: "Restore",
+                                                         style: .done,
+                                                         target: self,
+                                                         action: #selector(restoreDefaults))
+        navigationItem.rightBarButtonItem = barButton
     }
 
     private func setupConstraints() {
@@ -104,5 +112,15 @@ extension FeatureFlagsViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         /// Deselect Cell
         tableView.deselectRow(at: indexPath, animated: true)
+    }
+}
+
+extension FeatureFlagsViewController {
+    @objc
+    func restoreDefaults() {
+        for toggle: Toggle in Toggler.instance.toggles {
+            Toggler.instance.setLocalValue(value: toggle.remoteValue, forToggleWithName: toggle.name)
+            self.tableView.reloadData()
+        }
     }
 }
