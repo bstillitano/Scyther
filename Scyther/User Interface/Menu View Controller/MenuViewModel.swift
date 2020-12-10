@@ -16,16 +16,16 @@ internal struct MenuViewModel {
         /// String representation of the section that acts as a very short descriptor.
         var title: String? {
             switch self {
-            case .sectionOne: return "Section One"
-            case .sectionTwo: return "Section Two"
+            case .sectionOne: return "Environment"
+            case .sectionTwo: return "Security"
             }
         }
 
         /// Row definitions for each section of the ViewModel.
         var rows: [Row] {
             switch self {
-            case .sectionOne: return [.envFeatureFlags, .envKeychain, .envServerConfig]
-            case .sectionTwo: return [.envUserDefaults]
+            case .sectionOne: return [.envFeatureFlags, .envUserDefaults, .envServerConfig]
+            case .sectionTwo: return [.envKeychain]
             }
         }
     }
