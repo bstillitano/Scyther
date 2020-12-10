@@ -3,34 +3,30 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 50;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		CA9871D4257E57BE00957357 /* DTTableViewManager in Frameworks */ = {isa = PBXBuildFile; productRef = CA9871D3257E57BE00957357 /* DTTableViewManager */; };
-		CA9871D9257E57DB00957357 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = CA9871D8257E57DB00957357 /* SnapKit */; };
 		CA98722E257EF6AE00957357 /* ActionTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA98722A257EF6AD00957357 /* ActionTableViewCell.swift */; };
 		CA98722F257EF6AE00957357 /* DeviceTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA98722B257EF6AD00957357 /* DeviceTableViewCell.swift */; };
 		CA987230257EF6AE00957357 /* ValueTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA98722C257EF6AE00957357 /* ValueTableViewCell.swift */; };
 		CA987231257EF6AE00957357 /* SubtitleTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA98722D257EF6AE00957357 /* SubtitleTableViewCell.swift */; };
-		CAC46FDD257F1E95008E1DCD /* FeatureFlagsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC46FDC257F1E95008E1DCD /* FeatureFlagsViewModel.swift */; };
-		CAC46FE7257F2B75008E1DCD /* SectionHeadeConfigObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC46FE6257F2B75008E1DCD /* SectionHeadeConfigObject.swift */; };
+		CA9F57C22582014200E72987 /* SwitchAccessoryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */; };
 		CAC46FEC257F2BC3008E1DCD /* Spacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC46FEB257F2BC3008E1DCD /* Spacing.swift */; };
 		CAC46FF0257F2C0B008E1DCD /* ActionBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC46FEF257F2C0B008E1DCD /* ActionBlock.swift */; };
-		CAC46FF4257F2C50008E1DCD /* SectionHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC46FF3257F2C50008E1DCD /* SectionHeaderView.swift */; };
-		CAC46FFA257F2D10008E1DCD /* SectionHeaderCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC46FF9257F2D10008E1DCD /* SectionHeaderCell.swift */; };
 		CAC47000257F2E7F008E1DCD /* FeatureFlagsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC46FFF257F2E7F008E1DCD /* FeatureFlagsViewController.swift */; };
-		CAC4700C257F312D008E1DCD /* LabelSwitchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC4700B257F312D008E1DCD /* LabelSwitchView.swift */; };
-		CAC47012257F3137008E1DCD /* LabelSwitchConfigObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC47011257F3137008E1DCD /* LabelSwitchConfigObject.swift */; };
-		CAC47016257F3141008E1DCD /* LabelSwitchCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC47015257F3141008E1DCD /* LabelSwitchCell.swift */; };
+		CAC68D9E2581020500B0DE50 /* MenuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC68D9D2581020500B0DE50 /* MenuViewController.swift */; };
+		CAC68DA22581022100B0DE50 /* MenuViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC68DA12581022100B0DE50 /* MenuViewModel.swift */; };
+		CAC68DA6258106F600B0DE50 /* DefaultCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC68DA5258106F600B0DE50 /* DefaultCell.swift */; };
+		CAC68DB025810B9000B0DE50 /* FFViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC68DAF25810B9000B0DE50 /* FFViewModel.swift */; };
+		CAD66EFA2581B844009E6A57 /* Row.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD66EF92581B844009E6A57 /* Row.swift */; };
+		CAD66F082581E483009E6A57 /* SwitchCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD66F072581E483009E6A57 /* SwitchCell.swift */; };
 		CADC973D257908FA005C7C2C /* Scyther.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CADC9733257908FA005C7C2C /* Scyther.framework */; };
 		CADC9742257908FA005C7C2C /* ScytherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADC9741257908FA005C7C2C /* ScytherTests.swift */; };
 		CADC9744257908FA005C7C2C /* Scyther.h in Headers */ = {isa = PBXBuildFile; fileRef = CADC9736257908FA005C7C2C /* Scyther.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		CADC975225790923005C7C2C /* MenuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADC975125790923005C7C2C /* MenuViewController.swift */; };
 		CADC97572579097E005C7C2C /* Toggler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADC97562579097E005C7C2C /* Toggler.swift */; };
 		CADC975E25790A32005C7C2C /* Toggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADC975D25790A32005C7C2C /* Toggle.swift */; };
 		CADC976425790E32005C7C2C /* Scyther.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADC976325790E32005C7C2C /* Scyther.swift */; };
-		CADC976B25791012005C7C2C /* MenuViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADC976A2579100F005C7C2C /* MenuViewModel.swift */; };
 		CAE731B02579E79900D3761B /* ShuntingYardResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE731AF2579E79900D3761B /* ShuntingYardResolver.swift */; };
 		CAE731B72579E8E700D3761B /* Stack.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE731B42579E8E700D3761B /* Stack.swift */; };
 		CAE731B82579E8E700D3761B /* LinkedList.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE731B52579E8E700D3761B /* LinkedList.swift */; };
@@ -53,27 +49,25 @@
 		CA98722B257EF6AD00957357 /* DeviceTableViewCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceTableViewCell.swift; sourceTree = "<group>"; };
 		CA98722C257EF6AE00957357 /* ValueTableViewCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ValueTableViewCell.swift; sourceTree = "<group>"; };
 		CA98722D257EF6AE00957357 /* SubtitleTableViewCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SubtitleTableViewCell.swift; sourceTree = "<group>"; };
-		CAC46FDC257F1E95008E1DCD /* FeatureFlagsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureFlagsViewModel.swift; sourceTree = "<group>"; };
-		CAC46FE6257F2B75008E1DCD /* SectionHeadeConfigObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionHeadeConfigObject.swift; sourceTree = "<group>"; };
+		CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchAccessoryRow.swift; sourceTree = "<group>"; };
 		CAC46FEB257F2BC3008E1DCD /* Spacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spacing.swift; sourceTree = "<group>"; };
 		CAC46FEF257F2C0B008E1DCD /* ActionBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionBlock.swift; sourceTree = "<group>"; };
-		CAC46FF3257F2C50008E1DCD /* SectionHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionHeaderView.swift; sourceTree = "<group>"; };
-		CAC46FF9257F2D10008E1DCD /* SectionHeaderCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionHeaderCell.swift; sourceTree = "<group>"; };
 		CAC46FFF257F2E7F008E1DCD /* FeatureFlagsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureFlagsViewController.swift; sourceTree = "<group>"; };
-		CAC4700B257F312D008E1DCD /* LabelSwitchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelSwitchView.swift; sourceTree = "<group>"; };
-		CAC47011257F3137008E1DCD /* LabelSwitchConfigObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelSwitchConfigObject.swift; sourceTree = "<group>"; };
-		CAC47015257F3141008E1DCD /* LabelSwitchCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelSwitchCell.swift; sourceTree = "<group>"; };
+		CAC68D9D2581020500B0DE50 /* MenuViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuViewController.swift; sourceTree = "<group>"; };
+		CAC68DA12581022100B0DE50 /* MenuViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuViewModel.swift; sourceTree = "<group>"; };
+		CAC68DA5258106F600B0DE50 /* DefaultCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultCell.swift; sourceTree = "<group>"; };
+		CAC68DAF25810B9000B0DE50 /* FFViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFViewModel.swift; sourceTree = "<group>"; };
+		CAD66EF92581B844009E6A57 /* Row.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Row.swift; sourceTree = "<group>"; };
+		CAD66F072581E483009E6A57 /* SwitchCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchCell.swift; sourceTree = "<group>"; };
 		CADC9733257908FA005C7C2C /* Scyther.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Scyther.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		CADC9736257908FA005C7C2C /* Scyther.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Scyther.h; sourceTree = "<group>"; };
 		CADC9737257908FA005C7C2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CADC973C257908FA005C7C2C /* ScytherTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScytherTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CADC9741257908FA005C7C2C /* ScytherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScytherTests.swift; sourceTree = "<group>"; };
 		CADC9743257908FA005C7C2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		CADC975125790923005C7C2C /* MenuViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuViewController.swift; sourceTree = "<group>"; };
 		CADC97562579097E005C7C2C /* Toggler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toggler.swift; sourceTree = "<group>"; };
 		CADC975D25790A32005C7C2C /* Toggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toggle.swift; sourceTree = "<group>"; };
 		CADC976325790E32005C7C2C /* Scyther.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scyther.swift; sourceTree = "<group>"; };
-		CADC976A2579100F005C7C2C /* MenuViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuViewModel.swift; sourceTree = "<group>"; };
 		CAE731AF2579E79900D3761B /* ShuntingYardResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuntingYardResolver.swift; sourceTree = "<group>"; };
 		CAE731B42579E8E700D3761B /* Stack.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Stack.swift; sourceTree = "<group>"; };
 		CAE731B52579E8E700D3761B /* LinkedList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LinkedList.swift; sourceTree = "<group>"; };
@@ -86,8 +80,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CA9871D4257E57BE00957357 /* DTTableViewManager in Frameworks */,
-				CA9871D9257E57DB00957357 /* SnapKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -129,10 +121,13 @@
 		CA987229257EF64A00957357 /* Cells */ = {
 			isa = PBXGroup;
 			children = (
+				CAD66F042581E02F009E6A57 /* Models */,
 				CA98722A257EF6AD00957357 /* ActionTableViewCell.swift */,
 				CA98722B257EF6AD00957357 /* DeviceTableViewCell.swift */,
 				CA98722D257EF6AE00957357 /* SubtitleTableViewCell.swift */,
 				CA98722C257EF6AE00957357 /* ValueTableViewCell.swift */,
+				CAC68DA5258106F600B0DE50 /* DefaultCell.swift */,
+				CAD66F072581E483009E6A57 /* SwitchCell.swift */,
 			);
 			path = Cells;
 			sourceTree = "<group>";
@@ -140,19 +135,10 @@
 		CAC46FE0257F1E9A008E1DCD /* Feature Flags View Controller */ = {
 			isa = PBXGroup;
 			children = (
-				CAC46FDC257F1E95008E1DCD /* FeatureFlagsViewModel.swift */,
 				CAC46FFF257F2E7F008E1DCD /* FeatureFlagsViewController.swift */,
+				CAC68DAF25810B9000B0DE50 /* FFViewModel.swift */,
 			);
 			path = "Feature Flags View Controller";
-			sourceTree = "<group>";
-		};
-		CAC46FE5257F2A40008E1DCD /* Components */ = {
-			isa = PBXGroup;
-			children = (
-				CAC4700A257F3116008E1DCD /* Label Switch View */,
-				CAC47007257F310D008E1DCD /* Section Header View */,
-			);
-			path = Components;
 			sourceTree = "<group>";
 		};
 		CAC46FEA257F2BBB008E1DCD /* Models */ = {
@@ -164,24 +150,13 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
-		CAC47007257F310D008E1DCD /* Section Header View */ = {
+		CAD66F042581E02F009E6A57 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				CAC46FE6257F2B75008E1DCD /* SectionHeadeConfigObject.swift */,
-				CAC46FF3257F2C50008E1DCD /* SectionHeaderView.swift */,
-				CAC46FF9257F2D10008E1DCD /* SectionHeaderCell.swift */,
+				CAD66EF92581B844009E6A57 /* Row.swift */,
+				CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */,
 			);
-			path = "Section Header View";
-			sourceTree = "<group>";
-		};
-		CAC4700A257F3116008E1DCD /* Label Switch View */ = {
-			isa = PBXGroup;
-			children = (
-				CAC4700B257F312D008E1DCD /* LabelSwitchView.swift */,
-				CAC47011257F3137008E1DCD /* LabelSwitchConfigObject.swift */,
-				CAC47015257F3141008E1DCD /* LabelSwitchCell.swift */,
-			);
-			path = "Label Switch View";
+			path = Models;
 			sourceTree = "<group>";
 		};
 		CADC9729257908FA005C7C2C = {
@@ -228,7 +203,6 @@
 		CADC97502579090D005C7C2C /* User Interface */ = {
 			isa = PBXGroup;
 			children = (
-				CAC46FE5257F2A40008E1DCD /* Components */,
 				CA987229257EF64A00957357 /* Cells */,
 				CADC976725790FF3005C7C2C /* Menu View Controller */,
 				CAC46FE0257F1E9A008E1DCD /* Feature Flags View Controller */,
@@ -249,8 +223,8 @@
 		CADC976725790FF3005C7C2C /* Menu View Controller */ = {
 			isa = PBXGroup;
 			children = (
-				CADC975125790923005C7C2C /* MenuViewController.swift */,
-				CADC976A2579100F005C7C2C /* MenuViewModel.swift */,
+				CAC68D9D2581020500B0DE50 /* MenuViewController.swift */,
+				CAC68DA12581022100B0DE50 /* MenuViewModel.swift */,
 			);
 			path = "Menu View Controller";
 			sourceTree = "<group>";
@@ -303,8 +277,6 @@
 			);
 			name = Scyther;
 			packageProductDependencies = (
-				CA9871D3257E57BE00957357 /* DTTableViewManager */,
-				CA9871D8257E57DB00957357 /* SnapKit */,
 			);
 			productName = Scyther;
 			productReference = CADC9733257908FA005C7C2C /* Scyther.framework */;
@@ -356,8 +328,6 @@
 			);
 			mainGroup = CADC9729257908FA005C7C2C;
 			packageReferences = (
-				CA9871D2257E57BE00957357 /* XCRemoteSwiftPackageReference "DTTableViewManager" */,
-				CA9871D7257E57DB00957357 /* XCRemoteSwiftPackageReference "SnapKit" */,
 			);
 			productRefGroup = CADC9734257908FA005C7C2C /* Products */;
 			projectDirPath = "";
@@ -392,28 +362,26 @@
 			buildActionMask = 2147483647;
 			files = (
 				CAE731B82579E8E700D3761B /* LinkedList.swift in Sources */,
+				CAC68D9E2581020500B0DE50 /* MenuViewController.swift in Sources */,
 				CAE731C22579EB6100D3761B /* String+Extensions.swift in Sources */,
-				CAC46FE7257F2B75008E1DCD /* SectionHeadeConfigObject.swift in Sources */,
 				CADC975E25790A32005C7C2C /* Toggle.swift in Sources */,
 				CAC46FEC257F2BC3008E1DCD /* Spacing.swift in Sources */,
 				CA987231257EF6AE00957357 /* SubtitleTableViewCell.swift in Sources */,
 				CAE731C82579ED9200D3761B /* UIDevice+Extensions.swift in Sources */,
-				CAC46FF4257F2C50008E1DCD /* SectionHeaderView.swift in Sources */,
 				CAE731B02579E79900D3761B /* ShuntingYardResolver.swift in Sources */,
+				CAD66F082581E483009E6A57 /* SwitchCell.swift in Sources */,
 				CADC97572579097E005C7C2C /* Toggler.swift in Sources */,
-				CAC47016257F3141008E1DCD /* LabelSwitchCell.swift in Sources */,
+				CA9F57C22582014200E72987 /* SwitchAccessoryRow.swift in Sources */,
 				CADC976425790E32005C7C2C /* Scyther.swift in Sources */,
-				CAC4700C257F312D008E1DCD /* LabelSwitchView.swift in Sources */,
+				CAC68DA22581022100B0DE50 /* MenuViewModel.swift in Sources */,
 				CAC47000257F2E7F008E1DCD /* FeatureFlagsViewController.swift in Sources */,
 				CA987230257EF6AE00957357 /* ValueTableViewCell.swift in Sources */,
 				CA98722F257EF6AE00957357 /* DeviceTableViewCell.swift in Sources */,
 				CAE731B72579E8E700D3761B /* Stack.swift in Sources */,
-				CAC46FDD257F1E95008E1DCD /* FeatureFlagsViewModel.swift in Sources */,
-				CADC976B25791012005C7C2C /* MenuViewModel.swift in Sources */,
-				CAC46FFA257F2D10008E1DCD /* SectionHeaderCell.swift in Sources */,
-				CAC47012257F3137008E1DCD /* LabelSwitchConfigObject.swift in Sources */,
+				CAD66EFA2581B844009E6A57 /* Row.swift in Sources */,
+				CAC68DA6258106F600B0DE50 /* DefaultCell.swift in Sources */,
+				CAC68DB025810B9000B0DE50 /* FFViewModel.swift in Sources */,
 				CA98722E257EF6AE00957357 /* ActionTableViewCell.swift in Sources */,
-				CADC975225790923005C7C2C /* MenuViewController.swift in Sources */,
 				CAC46FF0257F2C0B008E1DCD /* ActionBlock.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -679,38 +647,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		CA9871D2257E57BE00957357 /* XCRemoteSwiftPackageReference "DTTableViewManager" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/DenTelezhkin/DTTableViewManager";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 8.0.0;
-			};
-		};
-		CA9871D7257E57DB00957357 /* XCRemoteSwiftPackageReference "SnapKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/SnapKit/SnapKit";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 5.0.1;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		CA9871D3257E57BE00957357 /* DTTableViewManager */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CA9871D2257E57BE00957357 /* XCRemoteSwiftPackageReference "DTTableViewManager" */;
-			productName = DTTableViewManager;
-		};
-		CA9871D8257E57DB00957357 /* SnapKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CA9871D7257E57DB00957357 /* XCRemoteSwiftPackageReference "SnapKit" */;
-			productName = SnapKit;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CADC972A257908FA005C7C2C /* Project object */;
 }

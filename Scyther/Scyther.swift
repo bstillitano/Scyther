@@ -20,7 +20,7 @@ public class Scyther {
 
     public static func presentMenu(from viewController: UIViewController? = nil) {
         /// Construct our `MenuViewController` wrapped inside a `UINavigationController`.
-        let viewModel = MenuViewModel(networkController: nil, featureFlagController: FeatureFlagsViewController())
+        let viewModel = MenuViewModel()
         let menuViewController: MenuViewController = MenuViewController()
         menuViewController.configure(with: viewModel)
         let navigationController: UINavigationController = UINavigationController(rootViewController: menuViewController)

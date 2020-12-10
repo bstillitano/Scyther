@@ -1,38 +1,37 @@
 //
-//  MenuViewController.swift
+//  MVVMController.swift
 //  Scyther
 //
-//  Created by Brandon Stillitano on 3/12/20.
+//  Created by Brandon Stillitano on 10/12/20.
 //
 
 import UIKit
-import Foundation
 
 internal class MenuViewController: UIViewController {
-
+    // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
     private var viewModel: MenuViewModel?
 
-    // MARK: Init
-
+    // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
 
-        buildView()
-        buildLayout()
+        setupUI()
+        setupConstraints()
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    // MARK: - Private setup
-
-    private func buildView() {
+    // MARK: - Setup
+    private func setupUI() {
+        //Setup Table View
         tableView.delegate = self
         tableView.dataSource = self
 
-        tableView.register(ValueTableViewCell.self, forCellReuseIdentifier: "default")
+        //Register Table View Cells
+        tableView.register(DefaultCell.self, forCellReuseIdentifier: "default")
         tableView.register(DeviceTableViewCell.self, forCellReuseIdentifier: "deviceHeader")
         tableView.register(ActionTableViewCell.self, forCellReuseIdentifier: "action")
         tableView.register(SubtitleTableViewCell.self, forCellReuseIdentifier: "subtitle")
@@ -47,14 +46,19 @@ internal class MenuViewController: UIViewController {
         }
     }
 
-    private func buildLayout() {
+    private func setupConstraints() {
         tableView.translatesAutoresizingMaskIntoConstraints = false
-        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:|-0-[subview]-0-|", options: .directionLeadingToTrailing, metrics: nil, views: ["subview": tableView]))
-        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|-0-[subview]-0-|", options: .directionLeadingToTrailing, metrics: nil, views: ["subview": tableView]))
+        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:|-0-[subview]-0-|",
+                                                           options: .directionLeadingToTrailing,
+                                                           metrics: nil,
+                                                           views: ["subview": tableView]))
+        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|-0-[subview]-0-|",
+                                                           options: .directionLeadingToTrailing,
+                                                           metrics: nil,
+                                                           views: ["subview": tableView]))
     }
 
     // MARK: - Lifecycle
-
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
 
@@ -64,7 +68,6 @@ internal class MenuViewController: UIViewController {
     }
 
     // MARK: - Configure
-
     internal func configure(with viewModel: MenuViewModel) {
         self.viewModel = viewModel
 
@@ -155,7 +158,7 @@ internal class MenuViewController: UIViewController {
     }
 
     private func shareDeviceLogs(sender: UIView?) {
-        
+
     }
 
 }
@@ -196,25 +199,24 @@ extension MenuViewController: UITableViewDataSource {
 }
 
 extension MenuViewController: UITableViewDelegate {
-
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        defer { tableView.deselectRow(at: indexPath, animated: true) }
-        guard let row = viewModel?.row(at: indexPath) else { return }
-
+        /// Deselect Cell
+        defer {
+            tableView.deselectRow(at: indexPath,
+                                  animated: true)
+        }
+        
+        /// Perform Row Action
+        guard let row = viewModel?.row(at: indexPath) else {
+            return
+        }
         viewModel?.performAction(for: row, indexPath: indexPath)
 
-        if case .envFeatureFlags = row, let featureFlagController = viewModel?.featureFlagController {
-            self.navigationController?.pushViewController(featureFlagController, animated: true)
-        } else if case .envServerConfig = row, let networkController = viewModel?.networkController {
-            self.navigationController?.pushViewController(networkController, animated: true)
-        } else if case .supportExportLogs = row {
-            warnAboutDeviceLogs(sender: tableView.cellForRow(at: indexPath))
-        } else if let detailController = row.detailActionController {
+        /// Open Detail Controller
+        if let detailController = row.detailActionController {
             self.navigationController?.pushViewController(detailController, animated: true)
         }
     }
-
-
 
     func tableView(_ tableView: UITableView, shouldShowMenuForRowAt indexPath: IndexPath) -> Bool {
         guard let row = viewModel?.row(at: indexPath) else { return false }

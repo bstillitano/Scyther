@@ -17,7 +17,7 @@ public class Toggler {
     /**
      Array of `Toggle` objects representing the flags/toggles that have been set by the client instantiating the `Scyther` library.
      */
-    private var toggles: [Toggle] = []
+    internal var toggles: [Toggle] = []
 
     /**
      The `UserDefaults` key that `Toggler` uses to determine whether or not values should be overriden/intercepted.

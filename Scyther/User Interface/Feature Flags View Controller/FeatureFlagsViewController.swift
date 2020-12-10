@@ -5,72 +5,104 @@
 //  Created by Brandon Stillitano on 8/12/20.
 //
 
-import DTTableViewManager
 import UIKit
 
-class FeatureFlagsViewController: UIViewController, DTTableViewManageable {
-    // MARK: UI Elements
-    internal var tableView: UITableView!
+internal class FeatureFlagsViewController: UIViewController {
+    // MARK: - Data
+    private let tableView = UITableView(frame: .zero, style: .insetGrouped)
+    private var viewModel: FFViewModel?
 
-    // MARK: Data
-    var model: FeatureFlagsViewModel = FeatureFlagsViewModel()
+    // MARK: - Init
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
 
-    deinit {
-        tableView.delegate = nil
-    }
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        //Setup Interfcae
-        self.view.backgroundColor = .systemBackground
-        self.title = "Feature Flags"
         setupUI()
-
-        //Setup Data
-        model.delegate = self
-        setupManager()
-        loadData()
+        setupConstraints()
     }
 
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // MARK: - Setup
     private func setupUI() {
-        //Setup TableView
-        tableView = UITableView()
-        tableView.backgroundColor = .clear
-        tableView.rowHeight = UITableView.automaticDimension
-        tableView.separatorStyle = .none
-        self.view.addSubview(tableView)
+        //Setup Table View
+        tableView.delegate = self
+        tableView.dataSource = self
 
-        //Setup TableView Constraints
-        tableView.snp.makeConstraints { (make) in
-            make.edges.equalToSuperview()
-        }
+        //Register Table View Cells
+        tableView.register(SwitchCell.self, forCellReuseIdentifier: SwitchAccessoryRow().cellReuseIdentifer)
+
+        view.addSubview(tableView)
     }
 
-    private func setupManager() {
-        //Start Manager (Required here as we are programatically instantiating the UITableView)
-        manager.startManaging(withDelegate: self)
-
-        //Register Cells
-        manager.register(SectionHeaderCell.self)
+    private func setupConstraints() {
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:|-0-[subview]-0-|",
+                                                           options: .directionLeadingToTrailing,
+                                                           metrics: nil,
+                                                           views: ["subview": tableView]))
+        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|-0-[subview]-0-|",
+                                                           options: .directionLeadingToTrailing,
+                                                           metrics: nil,
+                                                           views: ["subview": tableView]))
     }
 
-    private func loadData() {
-        //Update Cells
-        manager.memoryStorage.updateWithoutAnimations {
-            manager.memoryStorage.removeAllItems()
-            manager.memoryStorage.addItems(model.objects)
-        }
+    // MARK: - Lifecycle
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
 
-        //Update UI
-        DispatchQueue.main.async {
-            self.tableView.reloadData()
-        }
+        UIView.setAnimationsEnabled(false)
+        UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
+        UIView.setAnimationsEnabled(true)
+    }
+
+    // MARK: - Configure
+    internal func configure(with viewModel: FFViewModel) {
+        self.viewModel = viewModel
+
+        title = viewModel.title
+        navigationItem.title = viewModel.title
+
+        tableView.reloadData()
     }
 }
 
-extension FeatureFlagsViewController: FeatureFlagsViewModelProtocol {
-    func viewModelShouldRefreshView(viewModel: FeatureFlagsViewModel?) {
-        self.loadData()
+extension FeatureFlagsViewController: UITableViewDataSource {
+
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return viewModel?.numberOfSections ?? 0
+    }
+
+    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        return viewModel?.title(forSection: section) ?? nil
+    }
+
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return viewModel?.numbeOfRows(inSection: section) ?? 0
+    }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        // Check for Cell
+        guard let row = viewModel?.row(at: indexPath) else {
+            return UITableViewCell()
+        }
+
+        // Setup Cell
+        let cell = tableView.dequeueReusableCell(withIdentifier: row.cellReuseIdentifer,
+                                                 for: indexPath)
+        cell.textLabel?.text = viewModel?.title(for: row, indexPath: indexPath)
+        cell.detailTextLabel?.text = row.detailText
+        cell.accessoryView = row.switchView
+        
+        return cell
+    }
+
+}
+
+extension FeatureFlagsViewController: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        /// Deselect Cell
+        tableView.deselectRow(at: indexPath, animated: true)
     }
 }
