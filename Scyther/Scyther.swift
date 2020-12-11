@@ -5,7 +5,6 @@
 //  Created by Brandon Stillitano on 3/12/20.
 //
 
-import SnapKit
 import UIKit
 
 public class Scyther {

@@ -18,7 +18,6 @@ internal class FeatureFlagsViewModel {
         let switchView = UIActionSwitch()
         switchView.isOn = Toggler.instance.localOverridesEnabled
         switchView.actionBlock = {
-            print("ACTIONSENT")
             Toggler.instance.localOverridesEnabled = switchView.isOn
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
@@ -50,10 +49,12 @@ internal class FeatureFlagsViewModel {
         let switchView = UIActionSwitch()
         switchView.isOn = Toggler.instance.localValue(forToggle: name)
         switchView.actionBlock = {
-            print("ACTIONSENT")
+            print("")
             Toggler.instance.setLocalValue(value: switchView.isOn, forToggleWithName: name)
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        row.accessoryView = switchView
+        
         return row
     }
     

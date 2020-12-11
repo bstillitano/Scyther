@@ -111,13 +111,6 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
-		CA987228257EEEBB00957357 /* Environment Switcher */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = "Environment Switcher";
-			sourceTree = "<group>";
-		};
 		CA987229257EF64A00957357 /* Cells */ = {
 			isa = PBXGroup;
 			children = (
@@ -219,7 +212,6 @@
 		CADC975C25790A1D005C7C2C /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				CA987228257EEEBB00957357 /* Environment Switcher */,
 				CA9871CC257E338100957357 /* Toggler */,
 				CAE731BB2579E8F300D3761B /* ShuntingYardResolver */,
 			);
