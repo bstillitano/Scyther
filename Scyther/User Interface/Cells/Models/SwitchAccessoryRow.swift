@@ -7,11 +7,14 @@
 
 import UIKit
 
-internal struct SwitchAccessoryRow {
-    internal var cellReuseIdentifer: String = "switchAccessoryResuseIdentifier"
-    internal var text: String?
-    internal var detailText: String?
-    internal var switchView: UIActionSwitch = UIActionSwitch()
-    internal var actionBlock: ActionBlock?
-    internal var isHidden: Bool = false
+internal struct SwitchAccessoryRow: Row {
+    public init() {}
+    
+    var text: String?
+    var detailText: String?
+    var style: RowStyle = .switchAccessory
+    var detailActionViewController: UIViewController?
+    var actionBlock: ActionBlock?
+    var isHidden: Bool = false
+    var accessoryView: UIView? = UIActionSwitch()
 }

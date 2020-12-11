@@ -31,17 +31,11 @@ internal class FeatureFlagsViewController: UIViewController {
         tableView.dataSource = self
 
         //Register Table View Cells
-        tableView.register(SwitchCell.self, forCellReuseIdentifier: SwitchAccessoryRow().cellReuseIdentifer)
+        tableView.register(SwitchCell.self, forCellReuseIdentifier: RowStyle.switchAccessory.rawValue)
+        tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
 
         //Add Table View
         view.addSubview(tableView)
-        
-        //Setup Restore Button
-        let barButton: UIBarButtonItem = UIBarButtonItem(title: "Restore",
-                                                         style: .done,
-                                                         target: self,
-                                                         action: #selector(restoreDefaults))
-        navigationItem.rightBarButtonItem = barButton
     }
 
     private func setupConstraints() {
@@ -97,11 +91,11 @@ extension FeatureFlagsViewController: UITableViewDataSource {
         }
 
         // Setup Cell
-        let cell = tableView.dequeueReusableCell(withIdentifier: row.cellReuseIdentifer,
+        let cell = tableView.dequeueReusableCell(withIdentifier: row.cellReuseIdentifier,
                                                  for: indexPath)
         cell.textLabel?.text = viewModel?.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
-        cell.accessoryView = row.switchView
+        cell.accessoryView = row.accessoryView
         
         return cell
     }
@@ -110,17 +104,20 @@ extension FeatureFlagsViewController: UITableViewDataSource {
 
 extension FeatureFlagsViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        /// Deselect Cell
-        tableView.deselectRow(at: indexPath, animated: true)
-    }
-}
-
-extension FeatureFlagsViewController {
-    @objc
-    func restoreDefaults() {
-        for toggle: Toggle in Toggler.instance.toggles {
-            Toggler.instance.setLocalValue(value: toggle.remoteValue, forToggleWithName: toggle.name)
-            self.tableView.reloadData()
+        // Deselect Cell
+        defer { tableView.deselectRow(at: indexPath, animated: true) }
+        
+        // Check for Cell
+        guard let row = viewModel?.row(at: indexPath) else {
+            return
+        }
+        
+        // Check Cell Style
+        switch row.style {
+        case .button:
+            row.actionBlock?()
+        default:
+            break
         }
     }
 }

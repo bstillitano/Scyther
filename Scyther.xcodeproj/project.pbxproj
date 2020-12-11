@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		CA1E7E902582478400E6AC76 /* UIImageView+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1E7E8F2582478400E6AC76 /* UIImageView+Extensions.swift */; };
+		CA3480EE2582D42B00EF3C33 /* Row.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3480ED2582D42B00EF3C33 /* Row.swift */; };
+		CA3480F62582DB8200EF3C33 /* ButtonRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3480F52582DB8200EF3C33 /* ButtonRow.swift */; };
+		CA3480FA2582EC5800EF3C33 /* ButtonCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3480F92582EC5800EF3C33 /* ButtonCell.swift */; };
+		CA3480FE2582EC8A00EF3C33 /* UIFont+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3480FD2582EC8A00EF3C33 /* UIFont+Extensions.swift */; };
 		CA9F57C22582014200E72987 /* SwitchAccessoryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */; };
 		CA9F57D02582466700E72987 /* UIActionSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F57CF2582466700E72987 /* UIActionSwitch.swift */; };
 		CAC46FF0257F2C0B008E1DCD /* ActionBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC46FEF257F2C0B008E1DCD /* ActionBlock.swift */; };
@@ -16,7 +20,6 @@
 		CAC68DA22581022100B0DE50 /* MenuViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC68DA12581022100B0DE50 /* MenuViewModel.swift */; };
 		CAC68DA6258106F600B0DE50 /* DefaultCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC68DA5258106F600B0DE50 /* DefaultCell.swift */; };
 		CAC68DB025810B9000B0DE50 /* FeatureFlagsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC68DAF25810B9000B0DE50 /* FeatureFlagsViewModel.swift */; };
-		CAD66EFA2581B844009E6A57 /* Row.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD66EF92581B844009E6A57 /* Row.swift */; };
 		CAD66F082581E483009E6A57 /* SwitchCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD66F072581E483009E6A57 /* SwitchCell.swift */; };
 		CADC973D257908FA005C7C2C /* Scyther.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CADC9733257908FA005C7C2C /* Scyther.framework */; };
 		CADC9742257908FA005C7C2C /* ScytherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADC9741257908FA005C7C2C /* ScytherTests.swift */; };
@@ -43,6 +46,10 @@
 
 /* Begin PBXFileReference section */
 		CA1E7E8F2582478400E6AC76 /* UIImageView+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImageView+Extensions.swift"; sourceTree = "<group>"; };
+		CA3480ED2582D42B00EF3C33 /* Row.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Row.swift; sourceTree = "<group>"; };
+		CA3480F52582DB8200EF3C33 /* ButtonRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonRow.swift; sourceTree = "<group>"; };
+		CA3480F92582EC5800EF3C33 /* ButtonCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonCell.swift; sourceTree = "<group>"; };
+		CA3480FD2582EC8A00EF3C33 /* UIFont+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIFont+Extensions.swift"; sourceTree = "<group>"; };
 		CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchAccessoryRow.swift; sourceTree = "<group>"; };
 		CA9F57CF2582466700E72987 /* UIActionSwitch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIActionSwitch.swift; sourceTree = "<group>"; };
 		CAC46FEF257F2C0B008E1DCD /* ActionBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionBlock.swift; sourceTree = "<group>"; };
@@ -51,7 +58,6 @@
 		CAC68DA12581022100B0DE50 /* MenuViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuViewModel.swift; sourceTree = "<group>"; };
 		CAC68DA5258106F600B0DE50 /* DefaultCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultCell.swift; sourceTree = "<group>"; };
 		CAC68DAF25810B9000B0DE50 /* FeatureFlagsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureFlagsViewModel.swift; sourceTree = "<group>"; };
-		CAD66EF92581B844009E6A57 /* Row.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Row.swift; sourceTree = "<group>"; };
 		CAD66F072581E483009E6A57 /* SwitchCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchCell.swift; sourceTree = "<group>"; };
 		CADC9733257908FA005C7C2C /* Scyther.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Scyther.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		CADC9736257908FA005C7C2C /* Scyther.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Scyther.h; sourceTree = "<group>"; };
@@ -117,6 +123,7 @@
 			children = (
 				CAD66F042581E02F009E6A57 /* Models */,
 				CAC68DA5258106F600B0DE50 /* DefaultCell.swift */,
+				CA3480F92582EC5800EF3C33 /* ButtonCell.swift */,
 				CAD66F072581E483009E6A57 /* SwitchCell.swift */,
 			);
 			path = Cells;
@@ -150,8 +157,9 @@
 		CAD66F042581E02F009E6A57 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				CAD66EF92581B844009E6A57 /* Row.swift */,
+				CA3480ED2582D42B00EF3C33 /* Row.swift */,
 				CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */,
+				CA3480F52582DB8200EF3C33 /* ButtonRow.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -241,6 +249,7 @@
 			isa = PBXGroup;
 			children = (
 				CAE731C12579EB6100D3761B /* String+Extensions.swift */,
+				CA3480FD2582EC8A00EF3C33 /* UIFont+Extensions.swift */,
 				CAE731C72579ED9200D3761B /* UIDevice+Extensions.swift */,
 				CA1E7E8F2582478400E6AC76 /* UIImageView+Extensions.swift */,
 			);
@@ -368,17 +377,20 @@
 				CA1E7E902582478400E6AC76 /* UIImageView+Extensions.swift in Sources */,
 				CAE731C82579ED9200D3761B /* UIDevice+Extensions.swift in Sources */,
 				CAE731B02579E79900D3761B /* ShuntingYardResolver.swift in Sources */,
+				CA3480EE2582D42B00EF3C33 /* Row.swift in Sources */,
 				CAD66F082581E483009E6A57 /* SwitchCell.swift in Sources */,
 				CADC97572579097E005C7C2C /* Toggler.swift in Sources */,
 				CA9F57C22582014200E72987 /* SwitchAccessoryRow.swift in Sources */,
+				CA3480FE2582EC8A00EF3C33 /* UIFont+Extensions.swift in Sources */,
 				CADC976425790E32005C7C2C /* Scyther.swift in Sources */,
 				CAC68DA22581022100B0DE50 /* MenuViewModel.swift in Sources */,
+				CA3480F62582DB8200EF3C33 /* ButtonRow.swift in Sources */,
 				CAC47000257F2E7F008E1DCD /* FeatureFlagsViewController.swift in Sources */,
 				CAE731B72579E8E700D3761B /* Stack.swift in Sources */,
-				CAD66EFA2581B844009E6A57 /* Row.swift in Sources */,
 				CAC68DA6258106F600B0DE50 /* DefaultCell.swift in Sources */,
 				CAC68DB025810B9000B0DE50 /* FeatureFlagsViewModel.swift in Sources */,
 				CAC46FF0257F2C0B008E1DCD /* ActionBlock.swift in Sources */,
+				CA3480FA2582EC5800EF3C33 /* ButtonCell.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

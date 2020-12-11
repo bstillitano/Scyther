@@ -110,6 +110,7 @@ public class Toggler {
     }
 
     public func setLocalValue(value: Bool, forToggleWithName name: String) {
+        print("RERRERE")
         /// Check for toggle in local array
         guard var toggle = toggles.first(where: { $0.name == name }) else {
             return
