@@ -95,6 +95,11 @@ internal struct MenuViewModel {
                 let viewController: FeatureFlagsViewController = FeatureFlagsViewController()
                 viewController.configure(with: viewModel)
                 return viewController
+            case .envServerConfig:
+                let viewModel: ServerConfigurationViewModel = ServerConfigurationViewModel()
+                let viewController: ServerConfigurationViewController = ServerConfigurationViewController()
+                viewController.configure(with: viewModel)
+                return viewController
             default: return nil
             }
         }

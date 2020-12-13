@@ -71,11 +71,11 @@ public class Toggler {
     }
     
     /**
-     Getter for a given `Toggle` object's `localvalue`. Must use this getter as `name` is marked `internal` for API purposes.
+     Getter for a given `Toggle` object's `localValue`. Must use this getter as `name` is marked `internal` for API purposes.
      
-     - Returns: A bool value representing whether or not the local value should be used when accessing this `Toggle`.
+     - Returns: A bool value representing the local value for this `Toggle`.
      
-     - Parameter name: The name of the toggle that the caller is attempting to access the `value` of.
+     - Parameter name: The name of the toggle that the caller is attempting to access the `localValue` of.
      
      - Complexity: O(*n*) where *n* is the first index of `name` in the array of toggles.
      */
@@ -88,7 +88,25 @@ public class Toggler {
         /// Check for local value
         return toggle.localValue
     }
-
+    
+    /**
+     Getter for a given `Toggle` object's `remoteValue`. Must use this getter as `name` is marked `internal` for API purposes.
+     
+     - Returns: A bool value representing the local value for this `Toggle`.
+     
+     - Parameter name: The name of the toggle that the caller is attempting to access the `localValue` of.
+     
+     - Complexity: O(*n*) where *n* is the first index of `name` in the array of toggles.
+     */
+    internal func remoteValue(forToggle name: String) -> Bool {
+        /// Check for toggle in local array
+        guard let toggle = toggles.first(where: { $0.name == name }) else {
+            return false
+        }
+        
+        /// Check for local value
+        return toggle.remoteValue
+    }
 
     /**
      Setter for a given `Toggle` object's `value`. Must use this setter as `Toggler.init()` is marked `internal` for API purposes. Calling this function will remove all duplicate `Toggle` objects based on the `name` that is passed in.
@@ -109,6 +127,15 @@ public class Toggler {
         toggles.append(toggle)
     }
 
+    /**
+     Setter for a given `Toggle` object's `localValue`. Must use this setter as `Toggler.init()` is marked `internal` for API purposes.
+     
+     - Parameters:
+        - name: The name of the toggle that the caller is attempting to set the `value` of.
+        - value: The value that the should be set locally for this toggle.
+     
+     - Complexity: O(*n*) where *n* is the number of `Toggle` objects inside the `toggles` array that have  the `name`
+     */
     public func setLocalValue(value: Bool, forToggleWithName name: String) {
         /// Check for toggle in local array
         guard var toggle = toggles.first(where: { $0.name == name }) else {

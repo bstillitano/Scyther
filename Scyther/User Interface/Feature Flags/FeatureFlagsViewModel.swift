@@ -44,12 +44,11 @@ internal class FeatureFlagsViewModel {
         //Setup Row
         var row: SwitchAccessoryRow = SwitchAccessoryRow()
         row.text = name
-        
+        row.detailText = "Remote value: \(Toggler.instance.remoteValue(forToggle: name).stringValue)"
         // Setup Accessory
         let switchView = UIActionSwitch()
         switchView.isOn = Toggler.instance.localValue(forToggle: name)
         switchView.actionBlock = {
-            print("")
             Toggler.instance.setLocalValue(value: switchView.isOn, forToggleWithName: name)
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)

@@ -1,16 +1,16 @@
 //
-//  FeatureFlagsViewController.swift
+//  ServerConfigurationViewController.swift
 //  Scyther
 //
-//  Created by Brandon Stillitano on 8/12/20.
+//  Created by Brandon Stillitano on 11/12/20.
 //
 
 import UIKit
 
-internal class FeatureFlagsViewController: UIViewController {
+internal class ServerConfigurationViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
-    private var viewModel: FeatureFlagsViewModel?
+    private var viewModel: ServerConfigurationViewModel?
 
     // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -31,8 +31,8 @@ internal class FeatureFlagsViewController: UIViewController {
         tableView.dataSource = self
 
         //Register Table View Cells
-        tableView.register(SwitchCell.self, forCellReuseIdentifier: RowStyle.switchAccessory.rawValue)
-        tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
+        tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
+        tableView.register(CheckmarkCell.self, forCellReuseIdentifier: RowStyle.checkmarkAccessory.rawValue)
 
         //Add Table View
         view.addSubview(tableView)
@@ -60,7 +60,7 @@ internal class FeatureFlagsViewController: UIViewController {
     }
 
     // MARK: - Configure
-    internal func configure(with viewModel: FeatureFlagsViewModel) {
+    internal func configure(with viewModel: ServerConfigurationViewModel) {
         self.viewModel = viewModel
 
         title = viewModel.title
@@ -70,7 +70,7 @@ internal class FeatureFlagsViewController: UIViewController {
     }
 }
 
-extension FeatureFlagsViewController: UITableViewDataSource {
+extension ServerConfigurationViewController: UITableViewDataSource {
 
     func numberOfSections(in tableView: UITableView) -> Int {
         return viewModel?.numberOfSections ?? 0
@@ -97,12 +97,23 @@ extension FeatureFlagsViewController: UITableViewDataSource {
         cell.detailTextLabel?.text = row.detailText
         cell.accessoryView = row.accessoryView
         
+        // Setup Accessory
+        switch row.style {
+        case .checkmarkAccessory:
+            guard let checkRow: CheckmarkRow = row as? CheckmarkRow else {
+                break
+            }
+            cell.accessoryType = checkRow.checked ? .checkmark : .none
+        default:
+            break
+        }
+        
         return cell
     }
 
 }
 
-extension FeatureFlagsViewController: UITableViewDelegate {
+extension ServerConfigurationViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         // Deselect Cell
         defer { tableView.deselectRow(at: indexPath, animated: true) }
@@ -111,13 +122,9 @@ extension FeatureFlagsViewController: UITableViewDelegate {
         guard let row = viewModel?.row(at: indexPath) else {
             return
         }
+        row.actionBlock?()
         
-        // Check Cell Style
-        switch row.style {
-        case .button:
-            row.actionBlock?()
-        default:
-            break
-        }
+        //Reload Table View
+        self.tableView.reloadData()
     }
 }

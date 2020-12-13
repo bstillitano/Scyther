@@ -11,10 +11,12 @@ import UIKit
 final internal class SwitchCell: UITableViewCell {
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: .value1, reuseIdentifier: reuseIdentifier)
+        super.init(style: .subtitle, reuseIdentifier: reuseIdentifier)
         
         textLabel?.numberOfLines = 0
         textLabel?.adjustsFontSizeToFitWidth = true
+        detailTextLabel?.numberOfLines = 0
+        detailTextLabel?.adjustsFontSizeToFitWidth = true
     }
 
     required init?(coder: NSCoder) {
@@ -25,6 +27,7 @@ final internal class SwitchCell: UITableViewCell {
         super.prepareForReuse()
         accessoryType = .none
         textLabel?.text = nil
+        detailTextLabel?.text = nil
     }
 }
 #endif

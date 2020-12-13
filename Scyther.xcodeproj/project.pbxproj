@@ -12,6 +12,14 @@
 		CA3480F62582DB8200EF3C33 /* ButtonRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3480F52582DB8200EF3C33 /* ButtonRow.swift */; };
 		CA3480FA2582EC5800EF3C33 /* ButtonCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3480F92582EC5800EF3C33 /* ButtonCell.swift */; };
 		CA3480FE2582EC8A00EF3C33 /* UIFont+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3480FD2582EC8A00EF3C33 /* UIFont+Extensions.swift */; };
+		CA34810F25830C9500EF3C33 /* ServerConfigurationViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA34810E25830C9500EF3C33 /* ServerConfigurationViewController.swift */; };
+		CA34811325830C9D00EF3C33 /* ServerConfigurationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA34811225830C9D00EF3C33 /* ServerConfigurationViewModel.swift */; };
+		CA34811725830DD100EF3C33 /* Bool+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA34811625830DD100EF3C33 /* Bool+Extensions.swift */; };
+		CA34811B25831D2C00EF3C33 /* CheckmarkRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA34811A25831D2C00EF3C33 /* CheckmarkRow.swift */; };
+		CA34812025831E4D00EF3C33 /* ConfigurationSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA34811F25831E4D00EF3C33 /* ConfigurationSwitcher.swift */; };
+		CA34812625831F0300EF3C33 /* ServerConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA34812525831F0300EF3C33 /* ServerConfiguration.swift */; };
+		CA34812C25863CF400EF3C33 /* DefaultRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA34812B25863CF400EF3C33 /* DefaultRow.swift */; };
+		CA3481322586400200EF3C33 /* CheckmarkCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3481312586400200EF3C33 /* CheckmarkCell.swift */; };
 		CA9F57C22582014200E72987 /* SwitchAccessoryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */; };
 		CA9F57D02582466700E72987 /* UIActionSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F57CF2582466700E72987 /* UIActionSwitch.swift */; };
 		CAC46FF0257F2C0B008E1DCD /* ActionBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC46FEF257F2C0B008E1DCD /* ActionBlock.swift */; };
@@ -50,6 +58,14 @@
 		CA3480F52582DB8200EF3C33 /* ButtonRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonRow.swift; sourceTree = "<group>"; };
 		CA3480F92582EC5800EF3C33 /* ButtonCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonCell.swift; sourceTree = "<group>"; };
 		CA3480FD2582EC8A00EF3C33 /* UIFont+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIFont+Extensions.swift"; sourceTree = "<group>"; };
+		CA34810E25830C9500EF3C33 /* ServerConfigurationViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerConfigurationViewController.swift; sourceTree = "<group>"; };
+		CA34811225830C9D00EF3C33 /* ServerConfigurationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerConfigurationViewModel.swift; sourceTree = "<group>"; };
+		CA34811625830DD100EF3C33 /* Bool+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bool+Extensions.swift"; sourceTree = "<group>"; };
+		CA34811A25831D2C00EF3C33 /* CheckmarkRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckmarkRow.swift; sourceTree = "<group>"; };
+		CA34811F25831E4D00EF3C33 /* ConfigurationSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationSwitcher.swift; sourceTree = "<group>"; };
+		CA34812525831F0300EF3C33 /* ServerConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerConfiguration.swift; sourceTree = "<group>"; };
+		CA34812B25863CF400EF3C33 /* DefaultRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultRow.swift; sourceTree = "<group>"; };
+		CA3481312586400200EF3C33 /* CheckmarkCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckmarkCell.swift; sourceTree = "<group>"; };
 		CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchAccessoryRow.swift; sourceTree = "<group>"; };
 		CA9F57CF2582466700E72987 /* UIActionSwitch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIActionSwitch.swift; sourceTree = "<group>"; };
 		CAC46FEF257F2C0B008E1DCD /* ActionBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionBlock.swift; sourceTree = "<group>"; };
@@ -94,21 +110,31 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CA34810D25830C7400EF3C33 /* Server Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				CA34810E25830C9500EF3C33 /* ServerConfigurationViewController.swift */,
+				CA34811225830C9D00EF3C33 /* ServerConfigurationViewModel.swift */,
+			);
+			path = "Server Configuration";
+			sourceTree = "<group>";
+		};
+		CA34811E25831E3B00EF3C33 /* Configuration Switcher */ = {
+			isa = PBXGroup;
+			children = (
+				CA34811F25831E4D00EF3C33 /* ConfigurationSwitcher.swift */,
+				CA34812525831F0300EF3C33 /* ServerConfiguration.swift */,
+			);
+			path = "Configuration Switcher";
+			sourceTree = "<group>";
+		};
 		CA9871CC257E338100957357 /* Toggler */ = {
 			isa = PBXGroup;
 			children = (
 				CADC97562579097E005C7C2C /* Toggler.swift */,
-				CA9871CD257E338F00957357 /* Models */,
-			);
-			path = Toggler;
-			sourceTree = "<group>";
-		};
-		CA9871CD257E338F00957357 /* Models */ = {
-			isa = PBXGroup;
-			children = (
 				CADC975D25790A32005C7C2C /* Toggle.swift */,
 			);
-			path = Models;
+			path = Toggler;
 			sourceTree = "<group>";
 		};
 		CA987229257EF64A00957357 /* Cells */ = {
@@ -116,6 +142,7 @@
 			children = (
 				CAD66F042581E02F009E6A57 /* Models */,
 				CAC68DA5258106F600B0DE50 /* DefaultCell.swift */,
+				CA3481312586400200EF3C33 /* CheckmarkCell.swift */,
 				CA3480F92582EC5800EF3C33 /* ButtonCell.swift */,
 				CAD66F072581E483009E6A57 /* SwitchCell.swift */,
 			);
@@ -125,18 +152,19 @@
 		CA9F57D32582466B00E72987 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				CA987229257EF64A00957357 /* Cells */,
 				CA9F57CF2582466700E72987 /* UIActionSwitch.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
 		};
-		CAC46FE0257F1E9A008E1DCD /* Feature Flags View Controller */ = {
+		CAC46FE0257F1E9A008E1DCD /* Feature Flags */ = {
 			isa = PBXGroup;
 			children = (
 				CAC46FFF257F2E7F008E1DCD /* FeatureFlagsViewController.swift */,
 				CAC68DAF25810B9000B0DE50 /* FeatureFlagsViewModel.swift */,
 			);
-			path = "Feature Flags View Controller";
+			path = "Feature Flags";
 			sourceTree = "<group>";
 		};
 		CAC46FEA257F2BBB008E1DCD /* Models */ = {
@@ -151,8 +179,10 @@
 			isa = PBXGroup;
 			children = (
 				CA3480ED2582D42B00EF3C33 /* Row.swift */,
+				CA34812B25863CF400EF3C33 /* DefaultRow.swift */,
 				CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */,
 				CA3480F52582DB8200EF3C33 /* ButtonRow.swift */,
+				CA34811A25831D2C00EF3C33 /* CheckmarkRow.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -202,9 +232,9 @@
 		CADC97502579090D005C7C2C /* User Interface */ = {
 			isa = PBXGroup;
 			children = (
-				CA987229257EF64A00957357 /* Cells */,
-				CADC976725790FF3005C7C2C /* Menu View Controller */,
-				CAC46FE0257F1E9A008E1DCD /* Feature Flags View Controller */,
+				CADC976725790FF3005C7C2C /* Menu */,
+				CAC46FE0257F1E9A008E1DCD /* Feature Flags */,
+				CA34810D25830C7400EF3C33 /* Server Configuration */,
 			);
 			path = "User Interface";
 			sourceTree = "<group>";
@@ -212,19 +242,20 @@
 		CADC975C25790A1D005C7C2C /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				CA9871CC257E338100957357 /* Toggler */,
 				CAE731BB2579E8F300D3761B /* ShuntingYardResolver */,
+				CA34811E25831E3B00EF3C33 /* Configuration Switcher */,
+				CA9871CC257E338100957357 /* Toggler */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
 		};
-		CADC976725790FF3005C7C2C /* Menu View Controller */ = {
+		CADC976725790FF3005C7C2C /* Menu */ = {
 			isa = PBXGroup;
 			children = (
 				CAC68D9D2581020500B0DE50 /* MenuViewController.swift */,
 				CAC68DA12581022100B0DE50 /* MenuViewModel.swift */,
 			);
-			path = "Menu View Controller";
+			path = Menu;
 			sourceTree = "<group>";
 		};
 		CAE731BB2579E8F300D3761B /* ShuntingYardResolver */ = {
@@ -242,6 +273,7 @@
 			children = (
 				CAE731C12579EB6100D3761B /* String+Extensions.swift */,
 				CA3480FD2582EC8A00EF3C33 /* UIFont+Extensions.swift */,
+				CA34811625830DD100EF3C33 /* Bool+Extensions.swift */,
 				CAE731C72579ED9200D3761B /* UIDevice+Extensions.swift */,
 				CA1E7E8F2582478400E6AC76 /* UIImageView+Extensions.swift */,
 			);
@@ -361,21 +393,28 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CA34812025831E4D00EF3C33 /* ConfigurationSwitcher.swift in Sources */,
+				CA3481322586400200EF3C33 /* CheckmarkCell.swift in Sources */,
 				CAE731B82579E8E700D3761B /* LinkedList.swift in Sources */,
 				CA9F57D02582466700E72987 /* UIActionSwitch.swift in Sources */,
 				CAC68D9E2581020500B0DE50 /* MenuViewController.swift in Sources */,
 				CAE731C22579EB6100D3761B /* String+Extensions.swift in Sources */,
 				CADC975E25790A32005C7C2C /* Toggle.swift in Sources */,
 				CA1E7E902582478400E6AC76 /* UIImageView+Extensions.swift in Sources */,
+				CA34812C25863CF400EF3C33 /* DefaultRow.swift in Sources */,
+				CA34810F25830C9500EF3C33 /* ServerConfigurationViewController.swift in Sources */,
 				CAE731C82579ED9200D3761B /* UIDevice+Extensions.swift in Sources */,
 				CAE731B02579E79900D3761B /* ShuntingYardResolver.swift in Sources */,
 				CA3480EE2582D42B00EF3C33 /* Row.swift in Sources */,
+				CA34811B25831D2C00EF3C33 /* CheckmarkRow.swift in Sources */,
 				CAD66F082581E483009E6A57 /* SwitchCell.swift in Sources */,
 				CADC97572579097E005C7C2C /* Toggler.swift in Sources */,
 				CA9F57C22582014200E72987 /* SwitchAccessoryRow.swift in Sources */,
+				CA34811725830DD100EF3C33 /* Bool+Extensions.swift in Sources */,
 				CA3480FE2582EC8A00EF3C33 /* UIFont+Extensions.swift in Sources */,
 				CADC976425790E32005C7C2C /* Scyther.swift in Sources */,
 				CAC68DA22581022100B0DE50 /* MenuViewModel.swift in Sources */,
+				CA34811325830C9D00EF3C33 /* ServerConfigurationViewModel.swift in Sources */,
 				CA3480F62582DB8200EF3C33 /* ButtonRow.swift in Sources */,
 				CAC47000257F2E7F008E1DCD /* FeatureFlagsViewController.swift in Sources */,
 				CAE731B72579E8E700D3761B /* Stack.swift in Sources */,
@@ -383,6 +422,7 @@
 				CAC68DB025810B9000B0DE50 /* FeatureFlagsViewModel.swift in Sources */,
 				CAC46FF0257F2C0B008E1DCD /* ActionBlock.swift in Sources */,
 				CA3480FA2582EC5800EF3C33 /* ButtonCell.swift in Sources */,
+				CA34812625831F0300EF3C33 /* ServerConfiguration.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

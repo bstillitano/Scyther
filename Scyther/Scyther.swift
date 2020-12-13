@@ -16,6 +16,9 @@ public class Scyther {
     
     /// `Toggler` utlity class. Used for local toggle/feature flag overrides.
     public static let toggler: Toggler = Toggler.instance
+    
+    /// `ConfigurationSwitcher` utlity class. Used for local toggle/feature flag overrides.
+    public static let configSwitcher: ConfigurationSwitcher = ConfigurationSwitcher.instance
 
     public static func presentMenu(from viewController: UIViewController? = nil) {
         /// Construct our `MenuViewController` wrapped inside a `UINavigationController`.

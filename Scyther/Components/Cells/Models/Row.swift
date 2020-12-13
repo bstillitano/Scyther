@@ -14,6 +14,7 @@ enum RowStyle: String {
     case deviceHeader
     case button
     case switchAccessory
+    case checkmarkAccessory
 }
 
 internal protocol Row {
