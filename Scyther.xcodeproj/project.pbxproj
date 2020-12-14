@@ -20,6 +20,7 @@
 		CA34812625831F0300EF3C33 /* ServerConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA34812525831F0300EF3C33 /* ServerConfiguration.swift */; };
 		CA34812C25863CF400EF3C33 /* DefaultRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA34812B25863CF400EF3C33 /* DefaultRow.swift */; };
 		CA3481322586400200EF3C33 /* CheckmarkCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3481312586400200EF3C33 /* CheckmarkCell.swift */; };
+		CA3481362587730500EF3C33 /* Section.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3481352587730500EF3C33 /* Section.swift */; };
 		CA9F57C22582014200E72987 /* SwitchAccessoryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */; };
 		CA9F57D02582466700E72987 /* UIActionSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F57CF2582466700E72987 /* UIActionSwitch.swift */; };
 		CAC46FF0257F2C0B008E1DCD /* ActionBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC46FEF257F2C0B008E1DCD /* ActionBlock.swift */; };
@@ -66,6 +67,7 @@
 		CA34812525831F0300EF3C33 /* ServerConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerConfiguration.swift; sourceTree = "<group>"; };
 		CA34812B25863CF400EF3C33 /* DefaultRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultRow.swift; sourceTree = "<group>"; };
 		CA3481312586400200EF3C33 /* CheckmarkCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckmarkCell.swift; sourceTree = "<group>"; };
+		CA3481352587730500EF3C33 /* Section.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Section.swift; sourceTree = "<group>"; };
 		CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchAccessoryRow.swift; sourceTree = "<group>"; };
 		CA9F57CF2582466700E72987 /* UIActionSwitch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIActionSwitch.swift; sourceTree = "<group>"; };
 		CAC46FEF257F2C0B008E1DCD /* ActionBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionBlock.swift; sourceTree = "<group>"; };
@@ -170,7 +172,9 @@
 		CAC46FEA257F2BBB008E1DCD /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				CA3480ED2582D42B00EF3C33 /* Row.swift */,
 				CAC46FEF257F2C0B008E1DCD /* ActionBlock.swift */,
+				CA3481352587730500EF3C33 /* Section.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -178,7 +182,6 @@
 		CAD66F042581E02F009E6A57 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				CA3480ED2582D42B00EF3C33 /* Row.swift */,
 				CA34812B25863CF400EF3C33 /* DefaultRow.swift */,
 				CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */,
 				CA3480F52582DB8200EF3C33 /* ButtonRow.swift */,
@@ -402,6 +405,7 @@
 				CADC975E25790A32005C7C2C /* Toggle.swift in Sources */,
 				CA1E7E902582478400E6AC76 /* UIImageView+Extensions.swift in Sources */,
 				CA34812C25863CF400EF3C33 /* DefaultRow.swift in Sources */,
+				CA3481362587730500EF3C33 /* Section.swift in Sources */,
 				CA34810F25830C9500EF3C33 /* ServerConfigurationViewController.swift in Sources */,
 				CAE731C82579ED9200D3761B /* UIDevice+Extensions.swift in Sources */,
 				CAE731B02579E79900D3761B /* ShuntingYardResolver.swift in Sources */,

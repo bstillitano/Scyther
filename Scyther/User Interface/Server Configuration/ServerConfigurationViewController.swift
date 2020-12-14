@@ -62,11 +62,11 @@ internal class ServerConfigurationViewController: UIViewController {
     // MARK: - Configure
     internal func configure(with viewModel: ServerConfigurationViewModel) {
         self.viewModel = viewModel
+        self.viewModel?.delegate = self
+        self.viewModel?.prepareObjects()
 
         title = viewModel.title
         navigationItem.title = viewModel.title
-
-        tableView.reloadData()
     }
 }
 
@@ -96,7 +96,7 @@ extension ServerConfigurationViewController: UITableViewDataSource {
         cell.textLabel?.text = viewModel?.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
         cell.accessoryView = row.accessoryView
-        
+
         // Setup Accessory
         switch row.style {
         case .checkmarkAccessory:
@@ -107,7 +107,7 @@ extension ServerConfigurationViewController: UITableViewDataSource {
         default:
             break
         }
-        
+
         return cell
     }
 
@@ -117,14 +117,17 @@ extension ServerConfigurationViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         // Deselect Cell
         defer { tableView.deselectRow(at: indexPath, animated: true) }
-        
+
         // Check for Cell
         guard let row = viewModel?.row(at: indexPath) else {
             return
         }
         row.actionBlock?()
-        
-        //Reload Table View
+    }
+}
+
+extension ServerConfigurationViewController: ServerConfigurationViewModelProtocol {
+    func viewModelShouldReloadData() {
         self.tableView.reloadData()
     }
 }
