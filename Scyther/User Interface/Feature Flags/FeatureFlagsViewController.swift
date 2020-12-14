@@ -62,6 +62,8 @@ internal class FeatureFlagsViewController: UIViewController {
     // MARK: - Configure
     internal func configure(with viewModel: FeatureFlagsViewModel) {
         self.viewModel = viewModel
+        self.viewModel?.delegate = self
+        self.viewModel?.prepareObjects()
 
         title = viewModel.title
         navigationItem.title = viewModel.title
@@ -106,11 +108,17 @@ extension FeatureFlagsViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         // Deselect Cell
         defer { tableView.deselectRow(at: indexPath, animated: true) }
-        
+
         // Check for Cell
         guard let row = viewModel?.row(at: indexPath) else {
             return
         }
         row.actionBlock?()
+    }
+}
+
+extension FeatureFlagsViewController: FeatureFlagsViewModelProtocol {
+    func viewModelShouldReloadData() {
+        self.tableView.reloadData()
     }
 }

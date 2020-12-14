@@ -7,7 +7,7 @@
 
 import UIKit
 
-protocol ServerConfigurationViewModelProtocol: class {
+internal protocol ServerConfigurationViewModelProtocol: class {
     func viewModelShouldReloadData()
 }
 

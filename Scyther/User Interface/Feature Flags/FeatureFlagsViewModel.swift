@@ -7,13 +7,23 @@
 
 import UIKit
 
+internal protocol FeatureFlagsViewModelProtocol: class {
+    func viewModelShouldReloadData()
+}
+
 internal class FeatureFlagsViewModel {
+    // MARK: - Data
+    private var sections: [Section] = []
+
+    // MARK: - Delegate
+    weak var delegate: FeatureFlagsViewModelProtocol?
+
     /// Global overrides switch object. Controls whether overrides are respected or not.
-    static var enableOverrrides: SwitchAccessoryRow {
+    var enableOverrrides: SwitchAccessoryRow {
         //Setup Row
         var row: SwitchAccessoryRow = SwitchAccessoryRow()
         row.text = "Enable overrides"
-        
+
         //Setup Accessory
         let switchView = UIActionSwitch()
         switchView.isOn = Toggler.instance.localOverridesEnabled
@@ -22,25 +32,26 @@ internal class FeatureFlagsViewModel {
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
-        
+
         return row
     }
-    
+
     /// Button item that allows the caller to restore all `Toggle` values to their remote value
-    static var restoreDefaults: ButtonRow {
+    var restoreDefaults: ButtonRow {
         //Setup Row
         var row: ButtonRow = ButtonRow()
         row.text = "Restore remote values"
-        row.actionBlock = {
+        row.actionBlock = {[weak self] in
             for toggle: Toggle in Toggler.instance.toggles {
                 Toggler.instance.setLocalValue(value: toggle.remoteValue, forToggleWithName: toggle.name)
             }
+            self?.prepareObjects()
         }
         return row
     }
-    
+
     /// Single toggle override switch object. Controls what value should be returned by the override.
-    static func toggleSwitch(for name: String) -> SwitchAccessoryRow {
+    func toggleSwitch(for name: String) -> SwitchAccessoryRow {
         //Setup Row
         var row: SwitchAccessoryRow = SwitchAccessoryRow()
         row.text = name
@@ -53,32 +64,31 @@ internal class FeatureFlagsViewModel {
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
-        
+
         return row
     }
-    
-    /// Enum which defines each section of the ViewModel. Contains title and row data.
-    enum Section: Int, CaseIterable {
-        case globalSettings
-        case toggles
 
-        /// String representation of the section that acts as a very short descriptor.
-        var title: String? {
-            switch self {
-            case .globalSettings: return "Global Settings"
-            case .toggles: return "Toggles"
-            }
-        }
+    func prepareObjects() {
+        //Clear Data
+        sections.removeAll()
 
-        /// Row definitions for each section of the ViewModel.
-        var rows: [Row] {
-            // Setup Switch
-            switch self {
-            case .globalSettings: return [enableOverrrides, restoreDefaults]
-            case .toggles: return Toggler.instance.toggles.sorted(by: { $0.name.lowercased() < $1.name.lowercased() })
-                .map( { toggleSwitch(for: $0.name) } )
-            }
-        }
+        //Setup Global Section
+        var globalSection: Section = Section()
+        globalSection.title = "Global Settings"
+        globalSection.rows = [enableOverrrides, restoreDefaults]
+
+        //Setup Toggles Section
+        var togglesSection: Section = Section()
+        togglesSection.title = "Toggles"
+        togglesSection.rows = Toggler.instance.toggles.sorted(by: { $0.name.lowercased() < $1.name.lowercased() })
+            .map({ toggleSwitch(for: $0.name) })
+
+        //Setup Data
+        sections.append(globalSection)
+        sections.append(togglesSection)
+
+        //Call Delegate
+        delegate?.viewModelShouldReloadData()
     }
 }
 
@@ -89,11 +99,11 @@ extension FeatureFlagsViewModel {
     }
 
     var numberOfSections: Int {
-        return Section.allCases.count
+        return sections.count
     }
 
     func title(forSection index: Int) -> String? {
-        return Section(rawValue: index)?.title
+        return sections[index].title
     }
 
     func numbeOfRows(inSection index: Int) -> Int {
@@ -113,10 +123,12 @@ extension FeatureFlagsViewModel {
     func performAction(for row: Row, indexPath: IndexPath) {
         row.actionBlock?()
     }
+}
 
-    // MARK: - Private data accessors
+// MARK: - Private data accessors
+extension FeatureFlagsViewModel {
     private func section(for index: Int) -> Section? {
-        return Section(rawValue: index)
+        return sections[index]
     }
 
     private func rows(inSection index: Int) -> [Row]? {
@@ -125,9 +137,10 @@ extension FeatureFlagsViewModel {
     }
 }
 
+
 extension FeatureFlagsViewModel {
     @objc
-    static func switchToggled(_ sender: UIActionSwitch?) {
+    func switchToggled(_ sender: UIActionSwitch?) {
         sender?.actionBlock?()
     }
 }
