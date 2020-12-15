@@ -17,4 +17,7 @@ internal struct SwitchAccessoryRow: Row {
     var actionBlock: ActionBlock?
     var isHidden: Bool = false
     var accessoryView: UIView? = UIActionSwitch()
+    var image: UIImage?
+    var imageURL: URL?
+    var accessoryType: UITableViewCell.AccessoryType?
 }

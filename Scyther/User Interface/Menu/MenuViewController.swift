@@ -1,5 +1,5 @@
 //
-//  MVVMController.swift
+//  MenuViewController.swift
 //  Scyther
 //
 //  Created by Brandon Stillitano on 10/12/20.
@@ -67,11 +67,11 @@ internal class MenuViewController: UIViewController {
     // MARK: - Configure
     internal func configure(with viewModel: MenuViewModel) {
         self.viewModel = viewModel
+        self.viewModel?.delegate = self
+        self.viewModel?.prepareObjects()
 
         title = viewModel.title
         navigationItem.title = viewModel.title
-
-        tableView.reloadData()
     }
 
     // MARK: - Actions
@@ -99,15 +99,15 @@ extension MenuViewController: UITableViewDataSource {
         guard let row = viewModel?.row(at: indexPath) else { return UITableViewCell() }
 
         let cell = tableView.dequeueReusableCell(withIdentifier: row.style.rawValue, for: indexPath)
-        cell.accessoryType = (row.detailActionController != nil) ? .disclosureIndicator : .none
+        cell.accessoryType = row.accessoryType ?? .none
         cell.textLabel?.text = viewModel?.title(for: row, indexPath: indexPath)
-        cell.detailTextLabel?.text = row.detailTitle
+        cell.detailTextLabel?.text = row.detailText
 
-        if let url = row.iconURL {
+        if let url = row.imageURL {
             cell.imageView?.downloadImageFrom(url, contentMode: .scaleAspectFit, {
                 cell.setNeedsLayout()
             })
-        } else if #available(iOS 13.0, *), let icon = row.icon {
+        } else if #available(iOS 13.0, *), let icon = row.image {
             cell.imageView?.image = icon
         }
 
@@ -129,33 +129,18 @@ extension MenuViewController: UITableViewDelegate {
             return
         }
         viewModel?.performAction(for: row, indexPath: indexPath)
+    }
+}
 
-        /// Open Detail Controller
-        if let detailController = row.detailActionController {
-            self.navigationController?.pushViewController(detailController, animated: true)
+extension MenuViewController: MenuViewModelProtocol {
+    func viewModelShouldReloadData() {
+        self.tableView.reloadData()
+    }
+    
+    func viewModel(viewModel: MenuViewModel?, shouldShowViewController viewController: UIViewController?) {
+        guard let viewController = viewController else {
+            return
         }
+        self.navigationController?.pushViewController(viewController, animated: true)
     }
-
-    func tableView(_ tableView: UITableView, shouldShowMenuForRowAt indexPath: IndexPath) -> Bool {
-        guard let row = viewModel?.row(at: indexPath) else { return false }
-        return row.style == .subtitle || (row.style == .default && row.detailActionController == nil)
-    }
-
-    func tableView(_ tableView: UITableView, canPerformAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) -> Bool {
-        action == #selector(copy(_:))
-    }
-
-    func tableView(_ tableView: UITableView, performAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) {
-        guard let cell = tableView.cellForRow(at: indexPath), let key = cell.textLabel?.text else { return }
-
-        // Currently supports only copy action
-        if action == #selector(copy(_:)) {
-            if let value = cell.detailTextLabel?.text, value != "null" {
-                UIPasteboard.general.string = "\(key): \(value)"
-            } else {
-                UIPasteboard.general.string = key
-            }
-        }
-    }
-
 }

@@ -215,10 +215,11 @@
 				CADC9737257908FA005C7C2C /* Info.plist */,
 				CADC976325790E32005C7C2C /* Scyther.swift */,
 				CA9F57D32582466B00E72987 /* Components */,
-				CAC46FEA257F2BBB008E1DCD /* Models */,
 				CAE731C02579EAD500D3761B /* Extensions */,
-				CADC975C25790A1D005C7C2C /* Utilities */,
+				CAC46FEA257F2BBB008E1DCD /* Models */,
+				CAFA0BF82587951D00C1CEC8 /* Resources */,
 				CADC97502579090D005C7C2C /* User Interface */,
+				CADC975C25790A1D005C7C2C /* Utilities */,
 			);
 			path = Scyther;
 			sourceTree = "<group>";
@@ -281,6 +282,13 @@
 				CA1E7E8F2582478400E6AC76 /* UIImageView+Extensions.swift */,
 			);
 			path = Extensions;
+			sourceTree = "<group>";
+		};
+		CAFA0BF82587951D00C1CEC8 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

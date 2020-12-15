@@ -19,4 +19,7 @@ internal struct CheckmarkRow: Row {
     var switchView: UIActionSwitch = UIActionSwitch()
     var accessoryView: UIView?
     var checked: Bool = false
+    var image: UIImage?
+    var imageURL: URL?
+    var accessoryType: UITableViewCell.AccessoryType?
 }

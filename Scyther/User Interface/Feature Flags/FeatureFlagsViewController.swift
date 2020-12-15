@@ -10,7 +10,7 @@ import UIKit
 internal class FeatureFlagsViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
-    private var viewModel: FeatureFlagsViewModel?
+    private var viewModel: FeatureFlagsViewModel = FeatureFlagsViewModel()
 
     // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -18,6 +18,7 @@ internal class FeatureFlagsViewController: UIViewController {
 
         setupUI()
         setupConstraints()
+        setupData()
     }
 
     required init?(coder: NSCoder) {
@@ -49,6 +50,14 @@ internal class FeatureFlagsViewController: UIViewController {
                                                            metrics: nil,
                                                            views: ["subview": tableView]))
     }
+    
+    private func setupData() {
+        self.viewModel.delegate = self
+        self.viewModel.prepareObjects()
+
+        title = viewModel.title
+        navigationItem.title = viewModel.title
+    }
 
     // MARK: - Lifecycle
     override func viewDidAppear(_ animated: Bool) {
@@ -58,44 +67,32 @@ internal class FeatureFlagsViewController: UIViewController {
         UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
         UIView.setAnimationsEnabled(true)
     }
-
-    // MARK: - Configure
-    internal func configure(with viewModel: FeatureFlagsViewModel) {
-        self.viewModel = viewModel
-        self.viewModel?.delegate = self
-        self.viewModel?.prepareObjects()
-
-        title = viewModel.title
-        navigationItem.title = viewModel.title
-
-        tableView.reloadData()
-    }
 }
 
 extension FeatureFlagsViewController: UITableViewDataSource {
 
     func numberOfSections(in tableView: UITableView) -> Int {
-        return viewModel?.numberOfSections ?? 0
+        return viewModel.numberOfSections
     }
 
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        return viewModel?.title(forSection: section) ?? nil
+        return viewModel.title(forSection: section)
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel?.numbeOfRows(inSection: section) ?? 0
+        return viewModel.numbeOfRows(inSection: section)
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         // Check for Cell
-        guard let row = viewModel?.row(at: indexPath) else {
+        guard let row = viewModel.row(at: indexPath) else {
             return UITableViewCell()
         }
 
         // Setup Cell
         let cell = tableView.dequeueReusableCell(withIdentifier: row.cellReuseIdentifier,
                                                  for: indexPath)
-        cell.textLabel?.text = viewModel?.title(for: row, indexPath: indexPath)
+        cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
         cell.accessoryView = row.accessoryView
         
@@ -110,7 +107,7 @@ extension FeatureFlagsViewController: UITableViewDelegate {
         defer { tableView.deselectRow(at: indexPath, animated: true) }
 
         // Check for Cell
-        guard let row = viewModel?.row(at: indexPath) else {
+        guard let row = viewModel.row(at: indexPath) else {
             return
         }
         row.actionBlock?()

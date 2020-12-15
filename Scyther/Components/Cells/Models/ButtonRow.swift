@@ -18,4 +18,7 @@ internal struct ButtonRow: Row {
     var detailText: String?
     var switchView: UIActionSwitch = UIActionSwitch()
     var accessoryView: UIView?
+    var image: UIImage?
+    var imageURL: URL?
+    var accessoryType: UITableViewCell.AccessoryType?
 }

@@ -1,5 +1,5 @@
 //
-//  MVVMViewModel.swift
+//  MenuViewModel.swift
 //  Scyther
 //
 //  Created by Brandon Stillitano on 10/12/20.
@@ -7,130 +7,69 @@
 
 import UIKit
 
-internal struct MenuViewModel {
-    /// Enum which defines each section of the ViewModel. Contains title and row data.
-    enum Section: Int, CaseIterable {
-        case sectionOne
-        case sectionTwo
+internal protocol MenuViewModelProtocol: class {
+    func viewModelShouldReloadData()
+    func viewModel(viewModel: MenuViewModel?, shouldShowViewController viewController: UIViewController?)
+}
 
-        /// String representation of the section that acts as a very short descriptor.
-        var title: String? {
-            switch self {
-            case .sectionOne: return "Environment"
-            case .sectionTwo: return "Security"
-            }
-        }
+internal class MenuViewModel {
+    // MARK: - Data
+    private var sections: [Section] = []
 
-        /// Row definitions for each section of the ViewModel.
-        var rows: [Row] {
-            switch self {
-            case .sectionOne: return [.envFeatureFlags, .envUserDefaults, .envServerConfig]
-            case .sectionTwo: return [.envKeychain]
-            }
+    // MARK: - Delegate
+    weak var delegate: MenuViewModelProtocol?
+
+    func actionRow(name: String, icon: UIImage?, actionController: UIViewController?) -> DefaultRow {
+        let row: DefaultRow = DefaultRow()
+        row.text = name
+        row.image = icon
+        row.style = .default
+        row.accessoryType = actionController == nil ? UITableViewCell.AccessoryType.none : .disclosureIndicator
+        row.actionBlock = { [weak self] in
+            self?.delegate?.viewModel(viewModel: self, shouldShowViewController: actionController)
         }
+        return row
     }
 
-    /// Enum which defines all the possible different row styles for the ViewModel.
-    enum RowStyle: String {
-        case `default`
-        case subtitle
-        case deviceHeader
-        case action
+    func prepareObjects() {
+        //Clear Data
+        sections.removeAll()
+
+        //Setup Environment Section
+        var environmentSection: Section = Section()
+        environmentSection.title = "Environment"
+        environmentSection.rows.append(actionRow(name: "Feature Flags",
+                                                 icon: UIImage(systemName: "flag.fill"),
+                                                 actionController: FeatureFlagsViewController()))
+        environmentSection.rows.append(actionRow(name: "Server Configuration",
+                                                 icon: UIImage(systemName: "icloud.fill"),
+                                                 actionController: ServerConfigurationViewController()))
+
+        //Setup Toggles Section
+        var togglesSection: Section = Section()
+        togglesSection.title = "Security"
+
+        //Setup Data
+        sections.append(environmentSection)
+        sections.append(togglesSection)
+
+        //Call Delegate
+        delegate?.viewModelShouldReloadData()
     }
+}
 
-    /// Enum which defines all the rows for the ViewModel.
-    enum Row: Int, CaseIterable {
-        case envServerConfig
-        case envFeatureFlags
-        case envUserDefaults
-        case envKeychain
-
-        /// String representation of the section that acts as a very short descriptor.
-        var title: String {
-            switch self {
-            case .envServerConfig: return "Server Configuration"
-            case .envFeatureFlags: return "Feature Flags"
-            case .envUserDefaults: return "User defaults"
-            case .envKeychain: return "Keychain"
-            }
-        }
-
-        /// String representation of the section that acts as a long descriptor.
-        var detailTitle: String? {
-            switch self {
-            default: return nil
-            }
-        }
-
-        /// Remote image URL that acts as an accessory for the row. Takes priority over `icon`.
-        var iconURL: URL? {
-            switch self {
-            default: return nil
-            }
-        }
-
-        /// Local image file that acts as an icon for the row
-        @available(iOS 13.0, *)
-        var icon: UIImage? {
-            switch self {
-            case .envUserDefaults: return UIImage(systemName: "gear")
-            case .envKeychain: return UIImage(systemName: "key")
-            case .envFeatureFlags: return UIImage(systemName: "switch.2")
-            case .envServerConfig: return UIImage(systemName: "externaldrive.badge.wifi")
-            }
-        }
-
-        /// Determines the visual display style of the row
-        var style: RowStyle {
-            switch self {
-            default: return .default
-            }
-        }
-
-        /// Determines the ViewController that will be presented/pushed when the row is touched/tapped.
-        var detailActionController: UIViewController? {
-            switch self {
-            case .envFeatureFlags:
-                let viewModel: FeatureFlagsViewModel = FeatureFlagsViewModel()
-                let viewController: FeatureFlagsViewController = FeatureFlagsViewController()
-                viewController.configure(with: viewModel)
-                return viewController
-            case .envServerConfig:
-                let viewModel: ServerConfigurationViewModel = ServerConfigurationViewModel()
-                let viewController: ServerConfigurationViewController = ServerConfigurationViewController()
-                viewController.configure(with: viewModel)
-                return viewController
-            default: return nil
-            }
-        }
-
-        /// Action block for the row.
-        func performAction() {
-            switch self {
-//            case .devClearLaunchCache: UIApplication.shared.clearLaunchScreenCache()
-            default: break
-            }
-        }
-
-        /// Boolean value that can be used to hide certain rows. Useful for conditionally showing items.
-        var isHidden: Bool {
-            switch self {
-            default: return false
-            }
-        }
-    }
-
-    // MARK: - Public data accessors
+// MARK: - Public data accessors
+extension MenuViewModel {
     var title: String {
         return "Scyther"
     }
 
     var numberOfSections: Int {
-        return Section.allCases.count
+        return sections.count
     }
 
     func title(forSection index: Int) -> String? {
-        return Section(rawValue: index)?.title
+        return sections[index].title
     }
 
     func numbeOfRows(inSection index: Int) -> Int {
@@ -144,16 +83,18 @@ internal struct MenuViewModel {
     }
 
     func title(for row: Row, indexPath: IndexPath) -> String? {
-        return row.title
+        return row.text
     }
 
     func performAction(for row: Row, indexPath: IndexPath) {
-        row.performAction()
+        row.actionBlock?()
     }
+}
 
-    // MARK: - Private data accessors
+// MARK: - Private data accessors
+extension MenuViewModel {
     private func section(for index: Int) -> Section? {
-        return Section(rawValue: index)
+        return sections[index]
     }
 
     private func rows(inSection index: Int) -> [Row]? {

@@ -18,13 +18,15 @@ enum RowStyle: String {
 }
 
 internal protocol Row {
-    var text: String? {get set}
-    var detailText: String? {get set}
-    var accessoryView: UIView? {get set}
-    var style: RowStyle {get set}
-    var detailActionViewController: UIViewController? {get set}
-    var actionBlock: ActionBlock? {get set}
-    var isHidden: Bool {get set}
+    var text: String? { get set }
+    var detailText: String? { get set }
+    var accessoryView: UIView? { get set }
+    var style: RowStyle { get set }
+    var actionBlock: ActionBlock? { get set }
+    var isHidden: Bool { get set }
+    var image: UIImage? { get set }
+    var imageURL: URL? { get set }
+    var accessoryType: UITableViewCell.AccessoryType? { get set }
 }
 
 extension Row {
