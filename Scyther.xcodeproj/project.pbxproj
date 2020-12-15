@@ -41,6 +41,11 @@
 		CAE731B82579E8E700D3761B /* LinkedList.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE731B52579E8E700D3761B /* LinkedList.swift */; };
 		CAE731C22579EB6100D3761B /* String+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE731C12579EB6100D3761B /* String+Extensions.swift */; };
 		CAE731C82579ED9200D3761B /* UIDevice+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE731C72579ED9200D3761B /* UIDevice+Extensions.swift */; };
+		CAFA0C022588C3F800C1CEC8 /* Bundle+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFA0C012588C3F800C1CEC8 /* Bundle+Extensions.swift */; };
+		CAFA0C092588C57B00C1CEC8 /* EnvironmentReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFA0C082588C57B00C1CEC8 /* EnvironmentReader.swift */; };
+		CAFA0C0D2588C72F00C1CEC8 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFA0C0C2588C72F00C1CEC8 /* Date+Extensions.swift */; };
+		CAFA0C132588E8E500C1CEC8 /* SubtitleCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFA0C122588E8E500C1CEC8 /* SubtitleCell.swift */; };
+		CAFA0C172588E91C00C1CEC8 /* SubtitleRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFA0C162588E91C00C1CEC8 /* SubtitleRow.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -91,6 +96,11 @@
 		CAE731B52579E8E700D3761B /* LinkedList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LinkedList.swift; sourceTree = "<group>"; };
 		CAE731C12579EB6100D3761B /* String+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "String+Extensions.swift"; sourceTree = "<group>"; };
 		CAE731C72579ED9200D3761B /* UIDevice+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIDevice+Extensions.swift"; sourceTree = "<group>"; };
+		CAFA0C012588C3F800C1CEC8 /* Bundle+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+Extensions.swift"; sourceTree = "<group>"; };
+		CAFA0C082588C57B00C1CEC8 /* EnvironmentReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentReader.swift; sourceTree = "<group>"; };
+		CAFA0C0C2588C72F00C1CEC8 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
+		CAFA0C122588E8E500C1CEC8 /* SubtitleCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleCell.swift; sourceTree = "<group>"; };
+		CAFA0C162588E91C00C1CEC8 /* SubtitleRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleRow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -133,8 +143,8 @@
 		CA9871CC257E338100957357 /* Toggler */ = {
 			isa = PBXGroup;
 			children = (
-				CADC97562579097E005C7C2C /* Toggler.swift */,
 				CADC975D25790A32005C7C2C /* Toggle.swift */,
+				CADC97562579097E005C7C2C /* Toggler.swift */,
 			);
 			path = Toggler;
 			sourceTree = "<group>";
@@ -144,6 +154,7 @@
 			children = (
 				CAD66F042581E02F009E6A57 /* Models */,
 				CAC68DA5258106F600B0DE50 /* DefaultCell.swift */,
+				CAFA0C122588E8E500C1CEC8 /* SubtitleCell.swift */,
 				CA3481312586400200EF3C33 /* CheckmarkCell.swift */,
 				CA3480F92582EC5800EF3C33 /* ButtonCell.swift */,
 				CAD66F072581E483009E6A57 /* SwitchCell.swift */,
@@ -183,6 +194,7 @@
 			isa = PBXGroup;
 			children = (
 				CA34812B25863CF400EF3C33 /* DefaultRow.swift */,
+				CAFA0C162588E91C00C1CEC8 /* SubtitleRow.swift */,
 				CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */,
 				CA3480F52582DB8200EF3C33 /* ButtonRow.swift */,
 				CA34811A25831D2C00EF3C33 /* CheckmarkRow.swift */,
@@ -217,7 +229,6 @@
 				CA9F57D32582466B00E72987 /* Components */,
 				CAE731C02579EAD500D3761B /* Extensions */,
 				CAC46FEA257F2BBB008E1DCD /* Models */,
-				CAFA0BF82587951D00C1CEC8 /* Resources */,
 				CADC97502579090D005C7C2C /* User Interface */,
 				CADC975C25790A1D005C7C2C /* Utilities */,
 			);
@@ -246,8 +257,9 @@
 		CADC975C25790A1D005C7C2C /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				CAE731BB2579E8F300D3761B /* ShuntingYardResolver */,
 				CA34811E25831E3B00EF3C33 /* Configuration Switcher */,
+				CAFA0C072588C56D00C1CEC8 /* EnvironmentReader */,
+				CAE731BB2579E8F300D3761B /* ShuntingYardResolver */,
 				CA9871CC257E338100957357 /* Toggler */,
 			);
 			path = Utilities;
@@ -265,8 +277,8 @@
 		CAE731BB2579E8F300D3761B /* ShuntingYardResolver */ = {
 			isa = PBXGroup;
 			children = (
-				CAE731AF2579E79900D3761B /* ShuntingYardResolver.swift */,
 				CAE731B52579E8E700D3761B /* LinkedList.swift */,
+				CAE731AF2579E79900D3761B /* ShuntingYardResolver.swift */,
 				CAE731B42579E8E700D3761B /* Stack.swift */,
 			);
 			path = ShuntingYardResolver;
@@ -275,20 +287,23 @@
 		CAE731C02579EAD500D3761B /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
-				CAE731C12579EB6100D3761B /* String+Extensions.swift */,
-				CA3480FD2582EC8A00EF3C33 /* UIFont+Extensions.swift */,
 				CA34811625830DD100EF3C33 /* Bool+Extensions.swift */,
+				CAFA0C012588C3F800C1CEC8 /* Bundle+Extensions.swift */,
+				CAFA0C0C2588C72F00C1CEC8 /* Date+Extensions.swift */,
+				CAE731C12579EB6100D3761B /* String+Extensions.swift */,
 				CAE731C72579ED9200D3761B /* UIDevice+Extensions.swift */,
+				CA3480FD2582EC8A00EF3C33 /* UIFont+Extensions.swift */,
 				CA1E7E8F2582478400E6AC76 /* UIImageView+Extensions.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
 		};
-		CAFA0BF82587951D00C1CEC8 /* Resources */ = {
+		CAFA0C072588C56D00C1CEC8 /* EnvironmentReader */ = {
 			isa = PBXGroup;
 			children = (
+				CAFA0C082588C57B00C1CEC8 /* EnvironmentReader.swift */,
 			);
-			path = Resources;
+			path = EnvironmentReader;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -409,14 +424,19 @@
 				CAE731B82579E8E700D3761B /* LinkedList.swift in Sources */,
 				CA9F57D02582466700E72987 /* UIActionSwitch.swift in Sources */,
 				CAC68D9E2581020500B0DE50 /* MenuViewController.swift in Sources */,
+				CAFA0C132588E8E500C1CEC8 /* SubtitleCell.swift in Sources */,
 				CAE731C22579EB6100D3761B /* String+Extensions.swift in Sources */,
 				CADC975E25790A32005C7C2C /* Toggle.swift in Sources */,
+				CAFA0C172588E91C00C1CEC8 /* SubtitleRow.swift in Sources */,
+				CAFA0C022588C3F800C1CEC8 /* Bundle+Extensions.swift in Sources */,
+				CAFA0C0D2588C72F00C1CEC8 /* Date+Extensions.swift in Sources */,
 				CA1E7E902582478400E6AC76 /* UIImageView+Extensions.swift in Sources */,
 				CA34812C25863CF400EF3C33 /* DefaultRow.swift in Sources */,
 				CA3481362587730500EF3C33 /* Section.swift in Sources */,
 				CA34810F25830C9500EF3C33 /* ServerConfigurationViewController.swift in Sources */,
 				CAE731C82579ED9200D3761B /* UIDevice+Extensions.swift in Sources */,
 				CAE731B02579E79900D3761B /* ShuntingYardResolver.swift in Sources */,
+				CAFA0C092588C57B00C1CEC8 /* EnvironmentReader.swift in Sources */,
 				CA3480EE2582D42B00EF3C33 /* Row.swift in Sources */,
 				CA34811B25831D2C00EF3C33 /* CheckmarkRow.swift in Sources */,
 				CAD66F082581E483009E6A57 /* SwitchCell.swift in Sources */,

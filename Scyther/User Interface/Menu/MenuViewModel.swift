@@ -31,27 +31,96 @@ internal class MenuViewModel {
         return row
     }
 
+    func subtitleRow(name: String, value: String?, icon: UIImage?) -> SubtitleRow {
+        let row: SubtitleRow = SubtitleRow()
+        row.text = name
+        row.detailText = value
+        row.image = icon
+        row.style = .subtitle
+        row.accessoryType = UITableViewCell.AccessoryType.none
+        return row
+    }
+
+    func valueRow(name: String, value: String?, icon: UIImage?) -> DefaultRow {
+        let row: DefaultRow = DefaultRow()
+        row.text = name
+        row.detailText = value
+        row.image = icon
+        row.style = .default
+        row.accessoryType = UITableViewCell.AccessoryType.none
+        return row
+    }
+
     func prepareObjects() {
         //Clear Data
         sections.removeAll()
+
+        //Setup Device Section
+        var deviceSection: Section = Section()
+        deviceSection.title = "Device"
+        deviceSection.rows.append(subtitleRow(name: UIDevice.current.name,
+                                              value: UIDevice.current.model,
+                                              icon: nil))
+        deviceSection.rows.append(valueRow(name: "Version",
+                                           value: UIDevice.current.systemVersion,
+                                           icon: nil))
+        deviceSection.rows.append(valueRow(name: "Hardware",
+                                           value: UIDevice.current.modelName,
+                                           icon: nil))
+        //Setup Application Section
+        var applicationSection: Section = Section()
+        applicationSection.title = "Application"
+        applicationSection.rows.append(valueRow(name: "Bundle Identifier",
+                                                value: Bundle.main.bundleIdentifier,
+                                                icon: nil))
+        applicationSection.rows.append(valueRow(name: "Version",
+                                                value: Bundle.main.versionNumber,
+                                                icon: nil))
+        applicationSection.rows.append(valueRow(name: "Build Number",
+                                                value: Bundle.main.buildNumber,
+                                                icon: nil))
+        applicationSection.rows.append(valueRow(name: "Process ID",
+                                                value: String(getpid()),
+                                                icon: nil))
+        applicationSection.rows.append(valueRow(name: "Release Type",
+                                                value: EnvironmentReader.configuration().rawValue,
+                                                icon: nil))
+        applicationSection.rows.append(valueRow(name: "Build Date",
+                                                value: Bundle.main.buildDate.formatted(),
+                                                icon: nil))
 
         //Setup Environment Section
         var environmentSection: Section = Section()
         environmentSection.title = "Environment"
         environmentSection.rows.append(actionRow(name: "Feature Flags",
-                                                 icon: UIImage(systemName: "flag.fill"),
+                                                 icon: UIImage(systemName: "flag"),
                                                  actionController: FeatureFlagsViewController()))
         environmentSection.rows.append(actionRow(name: "Server Configuration",
-                                                 icon: UIImage(systemName: "icloud.fill"),
+                                                 icon: UIImage(systemName: "externaldrive.badge.icloud"),
+                                                 actionController: ServerConfigurationViewController()))
+        environmentSection.rows.append(actionRow(name: "User Defaults",
+                                                 icon: UIImage(systemName: "face.dashed"),
                                                  actionController: ServerConfigurationViewController()))
 
-        //Setup Toggles Section
-        var togglesSection: Section = Section()
-        togglesSection.title = "Security"
+        //Setup Security Section
+        var securitySection: Section = Section()
+        securitySection.title = "Security"
+
+        //Setup Support Section
+        var supportSection: Section = Section()
+        supportSection.title = "Support"
+
+        //Setup Development Section
+        var developmentSection: Section = Section()
+        developmentSection.title = "Development Tools"
 
         //Setup Data
+        sections.append(deviceSection)
+        sections.append(applicationSection)
         sections.append(environmentSection)
-        sections.append(togglesSection)
+        sections.append(securitySection)
+        sections.append(supportSection)
+        sections.append(developmentSection)
 
         //Call Delegate
         delegate?.viewModelShouldReloadData()

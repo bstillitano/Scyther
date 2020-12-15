@@ -56,7 +56,7 @@ internal class ServerConfigurationViewModel {
         //Setup Data
         sections.append(environmentSection)
         sections.append(variablesSection)
-        
+
         //Call Delegate
         delegate?.viewModelShouldReloadData()
     }
