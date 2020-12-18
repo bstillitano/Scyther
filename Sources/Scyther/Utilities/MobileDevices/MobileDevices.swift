@@ -17,11 +17,10 @@ class MobileDevices {
 
     // MARK: - Init
     private init?() {
-        /// Parse `plistDataString` into a `Data` object
+        /// Parse `plistData` into a `Data` object
         guard let data = Data(base64Encoded: MobileDevices.plistData) else {
             print("RETURN NIL")
             print("-----------")
-            print(plistDataString)
             return nil
         }
 
