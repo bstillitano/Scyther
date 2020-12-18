@@ -94,7 +94,11 @@ class MobileDevices {
 
     /// Device remote icon URL
     var iconURL: URL? {
-        guard let fileName = iconFileName else { return nil }
+        guard let fileName = iconFileName else {
+            print("RETURN NIL FILE NAME")
+            return nil
+        }
+        print(fileName)
         return URL(string: "https://github.com/Yoshimi-Robotics/MobileDevices/raw/master/Resources/\(fileName)")
     }
 
