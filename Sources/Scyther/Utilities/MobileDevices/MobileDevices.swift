@@ -25,7 +25,10 @@ class MobileDevices {
         }
 
         // We need to be able to transform this data into a Plist
-        guard let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any] else { return nil }
+        guard let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any] else {
+            print("RETURN NIL 2")
+            return nil
+        }
 
         // Map exported type declartions into memory
         let exportedTypeDeclarations = plist["UTExportedTypeDeclarations"] as? [[String: Any]] ?? []
