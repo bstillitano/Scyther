@@ -57,4 +57,9 @@ public extension UIDevice {
          */
         return (Float(value) ?? 0) + 2007
     }
+    
+    /// Gets a `URL` for an icon file that represents the current running device
+    var deviceIconURL: URL? {
+        return MobileDevices.instance?.iconURL
+    }
 }

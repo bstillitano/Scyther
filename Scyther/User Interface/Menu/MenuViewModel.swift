@@ -31,12 +31,12 @@ internal class MenuViewModel {
         return row
     }
 
-    func subtitleRow(name: String, value: String?, icon: UIImage?) -> SubtitleRow {
-        let row: SubtitleRow = SubtitleRow()
+    func headerRow(name: String, value: String?, iconURL: URL? = nil) -> DeviceRow {
+        let row: DeviceRow = DeviceRow()
         row.text = name
         row.detailText = value
-        row.image = icon
-        row.style = .subtitle
+        row.imageURL = iconURL
+        row.style = .deviceHeader
         row.accessoryType = UITableViewCell.AccessoryType.none
         return row
     }
@@ -58,9 +58,10 @@ internal class MenuViewModel {
         //Setup Device Section
         var deviceSection: Section = Section()
         deviceSection.title = "Device"
-        deviceSection.rows.append(subtitleRow(name: UIDevice.current.name,
-                                              value: UIDevice.current.model,
-                                              icon: nil))
+        deviceSection.rows.append(headerRow(name: UIDevice.current.name,
+                                            value: UIDevice.current.model,
+                                            iconURL: UIDevice.current.deviceIconURL))
+        print("DEVICE URL: \(UIDevice.current.deviceIconURL)")
         deviceSection.rows.append(valueRow(name: "Version",
                                            value: UIDevice.current.systemVersion,
                                            icon: nil))

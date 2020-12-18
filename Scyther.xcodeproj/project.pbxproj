@@ -46,6 +46,10 @@
 		CAFA0C0D2588C72F00C1CEC8 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFA0C0C2588C72F00C1CEC8 /* Date+Extensions.swift */; };
 		CAFA0C132588E8E500C1CEC8 /* SubtitleCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFA0C122588E8E500C1CEC8 /* SubtitleCell.swift */; };
 		CAFA0C172588E91C00C1CEC8 /* SubtitleRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFA0C162588E91C00C1CEC8 /* SubtitleRow.swift */; };
+		CAFA0C232588F22300C1CEC8 /* DeviceCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFA0C222588F22300C1CEC8 /* DeviceCell.swift */; };
+		CAFA0C272588F27C00C1CEC8 /* DeviceRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFA0C262588F27C00C1CEC8 /* DeviceRow.swift */; };
+		CAFA0C2E2588F59500C1CEC8 /* MobileDevices.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFA0C2D2588F59500C1CEC8 /* MobileDevices.swift */; };
+		CAFA0C332588F75D00C1CEC8 /* MobileDevicesPlist.txt in Resources */ = {isa = PBXBuildFile; fileRef = CAFA0C322588F75D00C1CEC8 /* MobileDevicesPlist.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -101,6 +105,10 @@
 		CAFA0C0C2588C72F00C1CEC8 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		CAFA0C122588E8E500C1CEC8 /* SubtitleCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleCell.swift; sourceTree = "<group>"; };
 		CAFA0C162588E91C00C1CEC8 /* SubtitleRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleRow.swift; sourceTree = "<group>"; };
+		CAFA0C222588F22300C1CEC8 /* DeviceCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCell.swift; sourceTree = "<group>"; };
+		CAFA0C262588F27C00C1CEC8 /* DeviceRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceRow.swift; sourceTree = "<group>"; };
+		CAFA0C2D2588F59500C1CEC8 /* MobileDevices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileDevices.swift; sourceTree = "<group>"; };
+		CAFA0C322588F75D00C1CEC8 /* MobileDevicesPlist.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = MobileDevicesPlist.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -153,10 +161,11 @@
 			isa = PBXGroup;
 			children = (
 				CAD66F042581E02F009E6A57 /* Models */,
-				CAC68DA5258106F600B0DE50 /* DefaultCell.swift */,
-				CAFA0C122588E8E500C1CEC8 /* SubtitleCell.swift */,
-				CA3481312586400200EF3C33 /* CheckmarkCell.swift */,
 				CA3480F92582EC5800EF3C33 /* ButtonCell.swift */,
+				CA3481312586400200EF3C33 /* CheckmarkCell.swift */,
+				CAC68DA5258106F600B0DE50 /* DefaultCell.swift */,
+				CAFA0C222588F22300C1CEC8 /* DeviceCell.swift */,
+				CAFA0C122588E8E500C1CEC8 /* SubtitleCell.swift */,
 				CAD66F072581E483009E6A57 /* SwitchCell.swift */,
 			);
 			path = Cells;
@@ -193,11 +202,12 @@
 		CAD66F042581E02F009E6A57 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				CA34812B25863CF400EF3C33 /* DefaultRow.swift */,
-				CAFA0C162588E91C00C1CEC8 /* SubtitleRow.swift */,
-				CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */,
 				CA3480F52582DB8200EF3C33 /* ButtonRow.swift */,
 				CA34811A25831D2C00EF3C33 /* CheckmarkRow.swift */,
+				CA34812B25863CF400EF3C33 /* DefaultRow.swift */,
+				CAFA0C262588F27C00C1CEC8 /* DeviceRow.swift */,
+				CAFA0C162588E91C00C1CEC8 /* SubtitleRow.swift */,
+				CA9F57C12582014200E72987 /* SwitchAccessoryRow.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -229,6 +239,7 @@
 				CA9F57D32582466B00E72987 /* Components */,
 				CAE731C02579EAD500D3761B /* Extensions */,
 				CAC46FEA257F2BBB008E1DCD /* Models */,
+				CAFA0C2C2588F58600C1CEC8 /* Resources */,
 				CADC97502579090D005C7C2C /* User Interface */,
 				CADC975C25790A1D005C7C2C /* Utilities */,
 			);
@@ -257,6 +268,7 @@
 		CADC975C25790A1D005C7C2C /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				CAFA0C312588F60B00C1CEC8 /* MobileDevices */,
 				CA34811E25831E3B00EF3C33 /* Configuration Switcher */,
 				CAFA0C072588C56D00C1CEC8 /* EnvironmentReader */,
 				CAE731BB2579E8F300D3761B /* ShuntingYardResolver */,
@@ -304,6 +316,22 @@
 				CAFA0C082588C57B00C1CEC8 /* EnvironmentReader.swift */,
 			);
 			path = EnvironmentReader;
+			sourceTree = "<group>";
+		};
+		CAFA0C2C2588F58600C1CEC8 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		CAFA0C312588F60B00C1CEC8 /* MobileDevices */ = {
+			isa = PBXGroup;
+			children = (
+				CAFA0C2D2588F59500C1CEC8 /* MobileDevices.swift */,
+				CAFA0C322588F75D00C1CEC8 /* MobileDevicesPlist.txt */,
+			);
+			path = MobileDevices;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -402,6 +430,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CAFA0C332588F75D00C1CEC8 /* MobileDevicesPlist.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -423,6 +452,7 @@
 				CA3481322586400200EF3C33 /* CheckmarkCell.swift in Sources */,
 				CAE731B82579E8E700D3761B /* LinkedList.swift in Sources */,
 				CA9F57D02582466700E72987 /* UIActionSwitch.swift in Sources */,
+				CAFA0C272588F27C00C1CEC8 /* DeviceRow.swift in Sources */,
 				CAC68D9E2581020500B0DE50 /* MenuViewController.swift in Sources */,
 				CAFA0C132588E8E500C1CEC8 /* SubtitleCell.swift in Sources */,
 				CAE731C22579EB6100D3761B /* String+Extensions.swift in Sources */,
@@ -441,12 +471,14 @@
 				CA34811B25831D2C00EF3C33 /* CheckmarkRow.swift in Sources */,
 				CAD66F082581E483009E6A57 /* SwitchCell.swift in Sources */,
 				CADC97572579097E005C7C2C /* Toggler.swift in Sources */,
+				CAFA0C232588F22300C1CEC8 /* DeviceCell.swift in Sources */,
 				CA9F57C22582014200E72987 /* SwitchAccessoryRow.swift in Sources */,
 				CA34811725830DD100EF3C33 /* Bool+Extensions.swift in Sources */,
 				CA3480FE2582EC8A00EF3C33 /* UIFont+Extensions.swift in Sources */,
 				CADC976425790E32005C7C2C /* Scyther.swift in Sources */,
 				CAC68DA22581022100B0DE50 /* MenuViewModel.swift in Sources */,
 				CA34811325830C9D00EF3C33 /* ServerConfigurationViewModel.swift in Sources */,
+				CAFA0C2E2588F59500C1CEC8 /* MobileDevices.swift in Sources */,
 				CA3480F62582DB8200EF3C33 /* ButtonRow.swift in Sources */,
 				CAC47000257F2E7F008E1DCD /* FeatureFlagsViewController.swift in Sources */,
 				CAE731B72579E8E700D3761B /* Stack.swift in Sources */,

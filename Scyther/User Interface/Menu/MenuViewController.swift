@@ -32,7 +32,7 @@ internal class MenuViewController: UIViewController {
 
         //Register Table View Cells
         tableView.register(DefaultCell.self, forCellReuseIdentifier: "default")
-        tableView.register(SubtitleCell.self, forCellReuseIdentifier: "subtitle")
+        tableView.register(DeviceTableViewCell.self, forCellReuseIdentifier: "deviceHeader")
 
         view.addSubview(tableView)
 

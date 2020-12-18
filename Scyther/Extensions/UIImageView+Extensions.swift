@@ -10,7 +10,6 @@ import UIKit
 extension UIImageView {
 
     func downloadImageFrom(_ url: URL, contentMode: UIView.ContentMode, _ completion: (() -> Void)? = nil) {
-
         // Check for cached device image
         let cachePath = FileManager.default.temporaryDirectory.appendingPathComponent("scyther.device.cache.png")
         if FileManager.default.fileExists(atPath: cachePath.path) {
@@ -19,6 +18,7 @@ extension UIImageView {
             return
         }
 
+        // Cacehe Image
         URLSession.shared.dataTask( with: url, completionHandler: { [weak self] (data, response, error) -> Void in
             DispatchQueue.main.async {
                 self?.contentMode =  contentMode
