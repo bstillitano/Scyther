@@ -17,13 +17,8 @@ class MobileDevices {
 
     // MARK: - Init
     private init?() {
-        /// Get device data string from txt file
-        guard let plistDataString: String = MobileDevices.plistData else {
-            return nil
-        }
-        
         /// Parse `plistDataString` into a `Data` object
-        guard let data = Data(base64Encoded: plistDataString) else {
+        guard let data = Data(base64Encoded: MobileDevices.plistData) else {
             print("RETURN NIL")
             print("-----------")
             print(plistDataString)
