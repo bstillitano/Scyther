@@ -6,8 +6,8 @@
 //
 
 #if !os(macOS)
-import UIKit
 import SDWebImage
+import UIKit
 
 internal class MenuViewController: UIViewController {
     // MARK: - Data
@@ -28,17 +28,16 @@ internal class MenuViewController: UIViewController {
 
     // MARK: - Setup
     private func setupUI() {
-        //Setup Table View
+        /// Setup Table View
         tableView.delegate = self
         tableView.dataSource = self
+        view.addSubview(tableView)
 
-        //Register Table View Cells
+        /// Register Table View Cells
         tableView.register(DefaultCell.self, forCellReuseIdentifier: "default")
         tableView.register(DeviceTableViewCell.self, forCellReuseIdentifier: "deviceHeader")
 
-        view.addSubview(tableView)
-
-        // Close button
+        /// Setup Close button
         if #available(iOS 13.0, *) {
             navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(dismissMenu))
         } else {
@@ -99,13 +98,18 @@ extension MenuViewController: UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let row = viewModel?.row(at: indexPath) else { return UITableViewCell() }
+        /// Check ViewModel for cell/row data
+        guard let row = viewModel?.row(at: indexPath) else {
+            return UITableViewCell()
+        }
 
+        /// Configure cell
         let cell = tableView.dequeueReusableCell(withIdentifier: row.style.rawValue, for: indexPath)
         cell.accessoryType = row.accessoryType ?? .none
         cell.textLabel?.text = viewModel?.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
 
+        /// Set image
         if let url = row.imageURL {
             cell.imageView?.sd_setImage(with: url, completed: { (_, _, _, _) in
                 cell.setNeedsLayout()
@@ -123,10 +127,9 @@ extension MenuViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         /// Deselect Cell
         defer {
-            tableView.deselectRow(at: indexPath,
-                                  animated: true)
+            tableView.deselectRow(at: indexPath, animated: true)
         }
-        
+
         /// Perform Row Action
         guard let row = viewModel?.row(at: indexPath) else {
             return
@@ -139,7 +142,7 @@ extension MenuViewController: MenuViewModelProtocol {
     func viewModelShouldReloadData() {
         self.tableView.reloadData()
     }
-    
+
     func viewModel(viewModel: MenuViewModel?, shouldShowViewController viewController: UIViewController?) {
         guard let viewController = viewController else {
             return

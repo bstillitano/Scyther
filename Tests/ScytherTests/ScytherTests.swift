@@ -7,6 +7,7 @@ final class ScytherTests: XCTestCase {
         // Use XCTAssert and related functions to verify your tests produce the correct
         // results.
 //        XCTAssertEqual(Scyther().text, "Hello, World!")
+        XCTAssertFalse(MobileDevices.plistData?.isEmpty ?? true)
     }
 
     static var allTests = [
