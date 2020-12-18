@@ -101,7 +101,7 @@ internal class MenuViewModel {
                                                  actionController: ServerConfigurationViewController()))
         environmentSection.rows.append(actionRow(name: "User Defaults",
                                                  icon: UIImage(systemName: "face.dashed"),
-                                                 actionController: ServerConfigurationViewController()))
+                                                 actionController: UserDefaultsViewController()))
 
         //Setup Security Section
         var securitySection: Section = Section()
