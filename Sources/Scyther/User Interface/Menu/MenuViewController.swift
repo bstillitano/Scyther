@@ -7,6 +7,7 @@
 
 #if !os(macOS)
 import UIKit
+import SDWebImage
 
 internal class MenuViewController: UIViewController {
     // MARK: - Data
@@ -106,10 +107,9 @@ extension MenuViewController: UITableViewDataSource {
         cell.detailTextLabel?.text = row.detailText
 
         if let url = row.imageURL {
-//            let image = UIImage(data: Data()
-//            cell.imageView?.downloadImageFrom(url, contentMode: .scaleAspectFit, {
-//                cell.setNeedsLayout()
-//            })
+            cell.imageView?.sd_setImage(with: url, completed: { (_, _, _, _) in
+                cell.setNeedsLayout()
+            })
         } else if #available(iOS 13.0, *), let icon = row.image {
             cell.imageView?.image = icon
         }
