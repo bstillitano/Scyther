@@ -33,10 +33,10 @@ internal class UserDefaultsViewModel {
         sections.removeAll()
 
         //Setup KeyValues Section
-        let keyValues: [String: Any] = UserDefaults.standard.dictionaryRepresentation()
+        let keyValues: [String: String] = UserDefaults.standard.stringStringDictionaryRepresentation
         var keyValuesSection: Section = Section()
         keyValuesSection.title = "Key/Values"
-        keyValuesSection.rows = keyValues.compactMap( { defaultRow(name: $0.key, value: $0.value as? String) })
+        keyValuesSection.rows = keyValues.compactMap( { defaultRow(name: $0.key, value: $0.value) })
 
         //Setup Data
         sections.append(keyValuesSection)
