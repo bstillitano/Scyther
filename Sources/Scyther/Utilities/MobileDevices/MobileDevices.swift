@@ -34,6 +34,7 @@ class MobileDevices {
         let exportedTypeDeclarations = plist["UTExportedTypeDeclarations"] as? [[String: Any]] ?? []
 
         devices = exportedTypeDeclarations.compactMap { MobileDevice(from: $0) }
+        print("DEVICE COUNT == \(devices.count)")
     }
 
     // MARK: - Helper functions
