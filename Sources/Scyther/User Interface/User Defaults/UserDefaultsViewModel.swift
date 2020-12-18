@@ -33,7 +33,7 @@ internal class UserDefaultsViewModel {
         sections.removeAll()
 
         //Setup KeyValues Section
-        let keyValues = UserDefaults.standard.stringStringDictionaryRepresentation.sorted(by: { $0.key < $1.key })
+        let keyValues = UserDefaults.standard.stringStringDictionaryRepresentation.sorted(by: { $0.key.lowercased() < $1.key.lowercased() })
         var keyValuesSection: Section = Section()
         keyValuesSection.title = "Key/Values"
         keyValuesSection.rows = keyValues.compactMap( { defaultRow(name: $0.key, value: $0.value) })
