@@ -17,7 +17,18 @@ public class ConfigurationSwitcher {
     /**
      Array of `ServerConfiguration` objects representing the environments that have been set by the client instantiating the `Scyther` library.
      */
-    internal var configurations: [ServerConfiguration] = []
+    internal var configurations: [ServerConfiguration] = [] {
+        didSet {
+            /// Set default value
+            guard !configuration.isEmpty else {
+                return
+            }
+            guard let newConfig = configurations.first else {
+                return
+            }
+            configuration = newConfig.identifier
+        }
+    }
     
     /**
      The `UserDefaults` key that `ConfigurationSwitcher` uses to determine what environment identifier is the current one.
