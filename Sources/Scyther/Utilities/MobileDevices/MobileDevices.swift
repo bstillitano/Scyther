@@ -19,14 +19,11 @@ class MobileDevices {
     private init?() {
         /// Parse `plistData` into a `Data` object
         guard let data = Data(base64Encoded: MobileDevices.plistData) else {
-            print("RETURN NIL")
-            print("-----------")
             return nil
         }
 
         // We need to be able to transform this data into a Plist
         guard let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any] else {
-            print("RETURN NIL 2")
             return nil
         }
 
@@ -34,7 +31,6 @@ class MobileDevices {
         let exportedTypeDeclarations = plist["UTExportedTypeDeclarations"] as? [[String: Any]] ?? []
 
         devices = exportedTypeDeclarations.compactMap { MobileDevice(from: $0) }
-        print("DEVICE COUNT == \(devices.count)")
     }
 
     // MARK: - Helper functions
@@ -73,13 +69,11 @@ class MobileDevices {
             self.bestMatchForCurrentDevice = .iOSSimulator
         #endif
 
+        /// Return best match based on color
         if let device = bestMatchForCurrentDevice {
             return device
         } else {
-            // Attempt to find the best match for the current device, This is also used as a partial
-            // caching mechinism
             self.bestMatchForCurrentDevice = findBestMatchForCurrentDevice()
-
             return bestMatchForCurrentDevice
         }
     }
@@ -96,10 +90,8 @@ class MobileDevices {
     /// Device remote icon URL
     var iconURL: URL? {
         guard let fileName = iconFileName else {
-            print("RETURN NIL FILE NAME")
             return nil
         }
-        print("FILENAME = \(fileName)")
         return URL(string: "https://github.com/Yoshimi-Robotics/MobileDevices/raw/master/Resources/\(fileName)")
     }
 
