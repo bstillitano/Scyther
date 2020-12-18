@@ -98,7 +98,7 @@ class MobileDevices {
             print("RETURN NIL FILE NAME")
             return nil
         }
-        print(fileName)
+        print("FILENAME = \(fileName)")
         return URL(string: "https://github.com/Yoshimi-Robotics/MobileDevices/raw/master/Resources/\(fileName)")
     }
 
