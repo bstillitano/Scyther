@@ -10,7 +10,7 @@ import UIKit
 
 internal class UserDefaultsViewController: UIViewController {
     // MARK: - Data
-    private let tableView = UITableView(frame: .zero, style: .insetGrouped)
+    private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
     private var viewModel: UserDefaultsViewModel = UserDefaultsViewModel()
 
     // MARK: - Init

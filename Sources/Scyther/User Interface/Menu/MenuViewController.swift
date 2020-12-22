@@ -11,7 +11,7 @@ import UIKit
 
 internal class MenuViewController: UIViewController {
     // MARK: - Data
-    private let tableView = UITableView(frame: .zero, style: .insetGrouped)
+    private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
     private var viewModel: MenuViewModel?
 
     // MARK: - Init

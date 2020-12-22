@@ -40,26 +40,18 @@ public class Scyther {
 extension Scyther {
     /// Determines the top most view controller within the running application and returns it as a usable `UIViewController` reference.
     fileprivate var presentingViewController: UIViewController? {
-        /// Get the `keyWindow` for the running application
-        guard let keyWindow = UIApplication.shared.connectedScenes
-                .filter({$0.activationState == .foregroundActive})
-                .map({$0 as? UIWindowScene})
-                .compactMap({$0})
-                .first?.windows
-                .filter({$0.isKeyWindow}).first else {
+        if var topController = UIApplication.shared.keyWindow?.rootViewController {
+            while let presentedViewController = topController.presentedViewController {
+                topController = presentedViewController
+            }
+            return topController
+            
+        } else {
             #if DEBUG
             print("🐛🐛🐛🐛🐛🐛🐛🐛🐛🐛\n\nCould not find a keyWindow to anchor to. The menu will not be shown. This is expected.\n\n🐛🐛🐛🐛🐛🐛🐛🐛🐛🐛")
             #endif
             return nil
         }
-        
-        /// Get the `rootViewController` for the running application and itterate over it's `presentedViewController` objects to determine the top most view controller.
-        var rootViewController = keyWindow.rootViewController
-        while let controller = rootViewController?.presentedViewController {
-            rootViewController = controller
-        }
-        
-        return rootViewController
     }
 }
 #endif

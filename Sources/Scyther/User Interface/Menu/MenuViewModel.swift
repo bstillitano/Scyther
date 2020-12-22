@@ -94,13 +94,13 @@ internal class MenuViewModel {
         var environmentSection: Section = Section()
         environmentSection.title = "Environment"
         environmentSection.rows.append(actionRow(name: "Feature Flags",
-                                                 icon: UIImage(systemName: "flag"),
+                                                 icon: UIImage(systemImage: "flag"),
                                                  actionController: FeatureFlagsViewController()))
         environmentSection.rows.append(actionRow(name: "Server Configuration",
-                                                 icon: UIImage(systemName: "externaldrive.badge.icloud"),
+                                                 icon: UIImage(systemImage: "externaldrive.badge.icloud"),
                                                  actionController: ServerConfigurationViewController()))
         environmentSection.rows.append(actionRow(name: "User Defaults",
-                                                 icon: UIImage(systemName: "face.dashed"),
+                                                 icon: UIImage(systemImage: "face.dashed"),
                                                  actionController: UserDefaultsViewController()))
 
         //Setup Security Section

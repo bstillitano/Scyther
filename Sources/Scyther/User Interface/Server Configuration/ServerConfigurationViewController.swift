@@ -10,7 +10,7 @@ import UIKit
 
 internal class ServerConfigurationViewController: UIViewController {
     // MARK: - Data
-    private let tableView = UITableView(frame: .zero, style: .insetGrouped)
+    private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
     private var viewModel: ServerConfigurationViewModel = ServerConfigurationViewModel()
 
     // MARK: - Init
