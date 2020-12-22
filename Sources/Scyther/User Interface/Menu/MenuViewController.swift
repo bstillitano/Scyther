@@ -80,6 +80,7 @@ internal class MenuViewController: UIViewController {
     @objc
     private func dismissMenu() {
         navigationController?.dismiss(animated: true, completion: nil)
+        Scyther.instance.presented = false
     }
 }
 

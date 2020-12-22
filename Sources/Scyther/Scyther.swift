@@ -15,18 +15,41 @@ public class Scyther {
     /// An initialised, shared instance of the `Scyther` class.
     public static let instance = Scyther()
     
+    /// Indicates whether or not Scyther has been initialised by the client implementing the framework.
+    fileprivate var started: Bool = true
+    
+    /// Indicates whether the Scyther menu is currently being presented or not.
+    internal var presented: Bool = false
+    
+    /// The gesture that is to be used to invoke the Scyther menu. Defaults to `shake`.
+    internal var selectedGesture: ScytherGesture = .shake
+    
     /// `Toggler` utlity class. Used for local toggle/feature flag overrides.
     public static let toggler: Toggler = Toggler.instance
     
     /// `ConfigurationSwitcher` utlity class. Used for local toggle/feature flag overrides.
     public static let configSwitcher: ConfigurationSwitcher = ConfigurationSwitcher.instance
 
+    /// Convenience function for manually showing the Scyther menu. Would be used when no gesture is wanted to invoke the menu.
     public static func presentMenu(from viewController: UIViewController? = nil) {
+        /// Check if Scyther has been started. If not, don't execute any code.
+        guard Scyther.instance.started else {
+            return
+        }
+        
+        /// Check if Scyther is already showing the menu. If so, don't re-show the menu.
+        guard !Scyther.instance.presented else {
+            return
+        }
+        
         /// Construct our `MenuViewController` wrapped inside a `UINavigationController`.
         let viewModel = MenuViewModel()
         let menuViewController: MenuViewController = MenuViewController()
         menuViewController.configure(with: viewModel)
         let navigationController: UINavigationController = UINavigationController(rootViewController: menuViewController)
+        
+        /// Set Data
+        Scyther.instance.presented = true
         
         /// Check for a presenter (`UIViewController`) otherwise use the `presentingViewController` to present it within a `UINavigationController`.
         guard viewController == nil else {
