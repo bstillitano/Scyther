@@ -65,6 +65,12 @@ internal class MenuViewController: UIViewController {
         UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
         UIView.setAnimationsEnabled(true)
     }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        
+        Scyther.instance.presented = false
+    }
 
     // MARK: - Configure
     internal func configure(with viewModel: MenuViewModel) {

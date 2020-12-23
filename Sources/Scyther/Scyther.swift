@@ -16,7 +16,7 @@ public class Scyther {
     public static let instance = Scyther()
     
     /// Indicates whether or not Scyther has been initialised by the client implementing the framework.
-    fileprivate var started: Bool = true
+    fileprivate var started: Bool = false
     
     /// Indicates whether the Scyther menu is currently being presented or not.
     internal var presented: Bool = false
@@ -29,6 +29,14 @@ public class Scyther {
     
     /// `ConfigurationSwitcher` utlity class. Used for local toggle/feature flag overrides.
     public static let configSwitcher: ConfigurationSwitcher = ConfigurationSwitcher.instance
+    
+    public func start() {
+        /// Set data
+        self.started = true
+        
+        /// Register `URLProtocol` class
+        URLProtocol.registerClass(NFXProtocol.self)
+    }
 
     /// Convenience function for manually showing the Scyther menu. Would be used when no gesture is wanted to invoke the menu.
     public static func presentMenu(from viewController: UIViewController? = nil) {
@@ -48,7 +56,7 @@ public class Scyther {
         menuViewController.configure(with: viewModel)
         let navigationController: UINavigationController = UINavigationController(rootViewController: menuViewController)
         
-        /// Set Data
+        /// Set data
         Scyther.instance.presented = true
         
         /// Check for a presenter (`UIViewController`) otherwise use the `presentingViewController` to present it within a `UINavigationController`.
@@ -75,6 +83,11 @@ extension Scyther {
             #endif
             return nil
         }
+    }
+    
+    /// Convenience for logging a message to the console.
+    fileprivate func logMessage(_ msg: String) {
+        print("Scyther - [https://github.com/bstillitano/scyther]: \(msg)")
     }
 }
 #endif
