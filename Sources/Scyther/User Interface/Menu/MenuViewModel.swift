@@ -90,15 +90,22 @@ internal class MenuViewModel {
                                                 value: Bundle.main.buildDate.formatted(),
                                                 icon: nil))
 
+        /// Setup Networking Section
+        var networkSection: Section = Section()
+        networkSection.title = "Networking"
+        networkSection.rows.append(actionRow(name: "Network Logs",
+                                             icon: UIImage(systemImage: "doc.append"),
+                                             actionController: NetworkLoggerViewController()))
+        networkSection.rows.append(actionRow(name: "Feature Flags",
+                                             icon: UIImage(systemImage: "flag"),
+                                             actionController: FeatureFlagsViewController()))
+        networkSection.rows.append(actionRow(name: "Server Configuration",
+                                             icon: UIImage(systemImage: "externaldrive.badge.icloud"),
+                                             actionController: ServerConfigurationViewController()))
+
         //Setup Environment Section
         var environmentSection: Section = Section()
         environmentSection.title = "Environment"
-        environmentSection.rows.append(actionRow(name: "Feature Flags",
-                                                 icon: UIImage(systemImage: "flag"),
-                                                 actionController: FeatureFlagsViewController()))
-        environmentSection.rows.append(actionRow(name: "Server Configuration",
-                                                 icon: UIImage(systemImage: "externaldrive.badge.icloud"),
-                                                 actionController: ServerConfigurationViewController()))
         environmentSection.rows.append(actionRow(name: "User Defaults",
                                                  icon: UIImage(systemImage: "face.dashed"),
                                                  actionController: UserDefaultsViewController()))
@@ -118,6 +125,7 @@ internal class MenuViewModel {
         //Setup Data
         sections.append(deviceSection)
         sections.append(applicationSection)
+        sections.append(networkSection)
         sections.append(environmentSection)
         sections.append(securitySection)
         sections.append(supportSection)

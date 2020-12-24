@@ -8,15 +8,13 @@
 import Foundation
 
 public class ConfigurationSwitcher {
-    // Private Init to Stop re-initialisation and allow singleton creation.
+    /// Private Init to Stop re-initialisation and allow singleton creation.
     private init() { }
 
     /// An initialised, shared instance of the `ConfigurationSwitcher` class.
     static let instance = ConfigurationSwitcher()
 
-    /**
-     Array of `ServerConfiguration` objects representing the environments that have been set by the client instantiating the `Scyther` library.
-     */
+    /// Array of `ServerConfiguration` objects representing the environments that have been set by the client instantiating the `Scyther` library.
     internal var configurations: [ServerConfiguration] = [] {
         didSet {
             /// Set default value
