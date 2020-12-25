@@ -43,6 +43,11 @@ internal class MenuViewController: UIViewController {
         } else {
             navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(dismissMenu))
         }
+        
+        /// Disable interactive dismissal
+        if #available(iOS 13.0, *) {
+            isModalInPresentation = true
+        }
     }
 
     private func setupConstraints() {
@@ -64,12 +69,6 @@ internal class MenuViewController: UIViewController {
         UIView.setAnimationsEnabled(false)
         UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
         UIView.setAnimationsEnabled(true)
-    }
-    
-    override func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
-        
-        Scyther.instance.presented = false
     }
 
     // MARK: - Configure
