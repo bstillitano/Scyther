@@ -38,7 +38,7 @@ internal class NetworkLoggerViewModel {
         case ..<100:
             return .systemBlue
         case ..<200:
-            return .systemYellow
+            return .systemOrange
         case ..<300:
             return.systemGreen
         case ..<400:

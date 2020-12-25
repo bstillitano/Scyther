@@ -120,7 +120,7 @@ extension NetworkLoggerViewController: UITableViewDataSource {
             /// Configure cell
             networkCell.textLabel?.text = nil
             networkCell.detailTextLabel?.text = nil
-            networkCell.configure(with: networkRow)
+            networkCell.configureWithRow(networkRow)
             return networkCell
         default:
             break
