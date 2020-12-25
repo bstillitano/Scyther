@@ -16,6 +16,7 @@ enum RowStyle: String {
     case button
     case switchAccessory
     case checkmarkAccessory
+    case networkLog
 }
 
 internal protocol Row {

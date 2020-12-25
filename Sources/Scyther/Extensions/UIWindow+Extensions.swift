@@ -6,12 +6,9 @@
 //
 
 #if os(iOS)
-
 import UIKit
 
-#if swift(>=4.2)
 public typealias UIEventSubtype = UIEvent.EventSubtype
-#endif
 
 extension UIWindow {
     override open func motionEnded(_ motion: UIEventSubtype, with event: UIEvent?) {

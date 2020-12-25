@@ -20,7 +20,7 @@ internal class NetworkLoggerViewModel {
     weak var delegate: NetworkLoggerViewModelProtocol?
 
     /// Single checkable row value representing a single environment
-    func checkmarkRow(identifier: String) -> CheckmarkRow {
+    func networkRow(identifier: String) -> CheckmarkRow {
         var row: CheckmarkRow = CheckmarkRow()
         row.text = identifier
         row.checked = ConfigurationSwitcher.instance.configuration == identifier
@@ -31,34 +31,19 @@ internal class NetworkLoggerViewModel {
         return row
     }
 
-    /// Single row representing a single environment variable
-    func environmentVariable(name: String, value: String) -> DefaultRow {
-        let row: DefaultRow = DefaultRow()
-        row.text = name
-        row.detailText = value
-
-        return row
-    }
-
     func prepareObjects() {
-        //Clear Data
+        /// Clear Data
         sections.removeAll()
 
-        //Setup Environments Section
-        var environmentSection: Section = Section()
-        environmentSection.title = "Environment"
-        environmentSection.rows = ConfigurationSwitcher.instance.configurations.sorted(by: { $0.identifier < $1.identifier }).map({ checkmarkRow(identifier: $0.identifier) })
+        /// Setup Logs Section
+        var logsSection: Section = Section()
+        logsSection.title = nil
+//        logsSection.rows = ConfigurationSwitcher.instance.configurations.sorted(by: { $0.identifier < $1.identifier }).map({ checkmarkRow(identifier: $0.identifier) })
 
-        //Setup Variables Section
-        var variablesSection: Section = Section()
-        variablesSection.title = "Variables"
-        variablesSection.rows = ConfigurationSwitcher.instance.environmentVariables.map({ environmentVariable(name: $0.key, value: $0.value) })
+        /// Setup Data
+        sections.append(logsSection)
 
-        //Setup Data
-        sections.append(environmentSection)
-        sections.append(variablesSection)
-
-        //Call Delegate
+        /// Call Delegate
         delegate?.viewModelShouldReloadData()
     }
 }
