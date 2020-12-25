@@ -95,7 +95,7 @@ internal class MenuViewModel {
         networkSection.title = "Networking"
         networkSection.rows.append(valueRow(name: "IP Address",
                                             value: Scyther.logger.ipAddress,
-                                            icon: UIImage(systemName: "network")))
+                                            icon: UIImage(systemImage: "network")))
         networkSection.rows.append(actionRow(name: "Network Logs",
                                              icon: UIImage(systemImage: "doc.append"),
                                              actionController: NetworkLoggerViewController()))
