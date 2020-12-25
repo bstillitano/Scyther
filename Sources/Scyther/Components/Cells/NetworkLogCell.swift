@@ -15,7 +15,6 @@ class NetworkLogCell: UITableViewCell {
     var statusView: UIView = UIView(frame: CGRect.zero)
     var requestTimeLabel: UILabel = UILabel(frame: CGRect.zero)
     var timeIntervalLabel: UILabel = UILabel(frame: CGRect.zero)
-    var typeLabel: UILabel = UILabel(frame: CGRect.zero)
     var methodLabel: UILabel = UILabel(frame: CGRect.zero)
     var leftSeparator: UIView = UIView(frame: CGRect.zero)
     var rightSeparator: UIView = UIView(frame: CGRect.zero)
@@ -47,10 +46,6 @@ class NetworkLogCell: UITableViewCell {
         self.methodLabel.font = .systemFont(ofSize: 12)
         contentView.addSubview(self.methodLabel)
 
-        self.typeLabel.textColor = .systemGray
-        self.typeLabel.font = .systemFont(ofSize: 12)
-        contentView.addSubview(self.typeLabel)
-
         self.circleView.backgroundColor = .systemGray
         self.circleView.layer.cornerRadius = 4
         self.circleView.alpha = 0.2
@@ -81,8 +76,6 @@ class NetworkLogCell: UITableViewCell {
 
         self.methodLabel.frame = CGRect(x: statusView.frame.maxX + padding, y: urlLabel.frame.maxY - 2, width: 40, height: frame.height - urlLabel.frame.maxY - 2)
 
-        self.typeLabel.frame = CGRect(x: methodLabel.frame.maxX + padding, y: urlLabel.frame.maxY - 2, width: 180, height: frame.height - urlLabel.frame.maxY - 2)
-
         self.circleView.frame = CGRect(x: self.urlLabel.frame.maxX + 5, y: 17, width: 8, height: 8)
 
         self.leftSeparator.frame = CGRect(x: 0, y: frame.height - 1, width: self.statusView.frame.width, height: 1)
@@ -90,21 +83,24 @@ class NetworkLogCell: UITableViewCell {
     }
 
     func isNew() {
-        self.circleView.isHidden = false
-    }
-
-    func isOld() {
+        //TODO - Set Back to false
         self.circleView.isHidden = true
     }
 
-    func configForObject(_ obj: ScytherHTTPModel) {
-        setURL(obj.requestURL ?? "-")
-        setStatus(obj.responseStatus ?? 999)
-        setTimeInterval(obj.timeInterval ?? 999)
-        setRequestTime(obj.requestTime ?? "-")
-        setType(obj.responseType ?? "-")
-        setMethod(obj.requestMethod ?? "-")
-        isNewBasedOnDate(obj.responseDate as Date? ?? Date())
+    func isOld() {
+        //TODO - Set Back to true
+        self.circleView.isHidden = false
+    }
+
+    func configureWithRow(_ row: NetworkLogRow) {
+        setURL(row.httpRequestURL ?? "-")
+        setStatus(row.httpStatusCode ?? 999)
+        // TODO - Set time intercal
+//        setTimeInterval(obj.timeInterval ?? 999)
+        setRequestTime(row.httpRequestTime ?? "-")
+        setMethod(row.httpMethod ?? "-")
+        
+        isNewBasedOnDate(Date(timeIntervalSinceNow: 100) as Date? ?? Date())
     }
 
     func setURL(_ url: String) {
@@ -136,10 +132,6 @@ class NetworkLogCell: UITableViewCell {
         } else {
             self.timeIntervalLabel.text = NSString(format: "%.2f", timeInterval) as String
         }
-    }
-
-    func setType(_ type: String) {
-        self.typeLabel.text = type
     }
 
     func setMethod(_ method: String) {

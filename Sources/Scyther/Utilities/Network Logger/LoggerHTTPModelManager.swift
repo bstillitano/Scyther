@@ -11,10 +11,10 @@ private let _sharedInstance = LoggerHTTPModelManager()
 
 final class LoggerHTTPModelManager: NSObject {
     static let sharedInstance = LoggerHTTPModelManager()
-    fileprivate var models = [ScytherHTTPModel]()
+    fileprivate var models = [LoggerHTTPModel]()
     private let syncQueue = DispatchQueue(label: "LoggerSyncQueue")
     
-    func add(_ obj: ScytherHTTPModel) {
+    func add(_ obj: LoggerHTTPModel) {
         syncQueue.async {
             self.models.insert(obj, at: 0)
             NotificationCenter.default.post(name: NSNotification.Name.NFXAddedModel, object: obj)
@@ -28,7 +28,7 @@ final class LoggerHTTPModelManager: NSObject {
         }
     }
     
-    func getModels() -> [ScytherHTTPModel] {
+    func getModels() -> [LoggerHTTPModel] {
         var predicates = [NSPredicate]()
         
         let filterValues = Logger.instance.cachedFilters
@@ -49,6 +49,6 @@ final class LoggerHTTPModelManager: NSObject {
         
         let array = (self.models as NSArray).filtered(using: searchPredicate)
         
-        return array as? [ScytherHTTPModel] ?? []
+        return array as? [LoggerHTTPModel] ?? []
     }
 }

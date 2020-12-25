@@ -19,16 +19,35 @@ internal class NetworkLoggerViewModel {
     // MARK: - Delegate
     weak var delegate: NetworkLoggerViewModelProtocol?
 
-    /// Single checkable row value representing a single environment
-    func networkRow(identifier: String) -> CheckmarkRow {
-        var row: CheckmarkRow = CheckmarkRow()
-        row.text = identifier
-        row.checked = ConfigurationSwitcher.instance.configuration == identifier
-        row.actionBlock = { [weak self] in
-            ConfigurationSwitcher.instance.configuration = identifier
-            self?.prepareObjects()
-        }
+    /// Single row representing a network request
+    func networkRow(httpModel: LoggerHTTPModel) -> NetworkLogRow {
+        let row: NetworkLogRow = NetworkLogRow()
+        row.httpMethod = httpModel.requestMethod
+        row.httpStatusCode = httpModel.responseStatus
+        row.httpRequestTime = httpModel.requestTime
+        row.httpStatusColor = httpStatusColor(for: httpModel.responseStatus ?? 0)
+        row.httpRequestURL = httpModel.requestURL
         return row
+    }
+    
+    /// Returns a `UIColor` representing the response code from the remote. Uses https://developer.mozilla.org/en-US/docs/Web/HTTP/Status as a reference.
+    private func httpStatusColor(for responseCode: Int) -> UIColor {
+        switch responseCode {
+        case ..<1:
+            return .systemGray
+        case ..<100:
+            return .systemBlue
+        case ..<200:
+            return .systemYellow
+        case ..<300:
+            return.systemGreen
+        case ..<400:
+            return .systemPurple
+        case ..<600:
+            return .systemRed
+        default:
+            return .systemGray
+        }
     }
 
     func prepareObjects() {
@@ -39,9 +58,8 @@ internal class NetworkLoggerViewModel {
         var logsSection: Section = Section()
         logsSection.title = nil
         for log in LoggerHTTPModelManager.sharedInstance.getModels() {
-            logsSection.rows.append(networkRow(identifier: log.requestURL ?? ""))
+            logsSection.rows.append(networkRow(httpModel: log))
         }
-//        logsSection.rows = ConfigurationSwitcher.instance.configurations.sorted(by: { $0.identifier < $1.identifier }).map({ checkmarkRow(identifier: $0.identifier) })
 
         /// Setup Data
         sections.append(logsSection)

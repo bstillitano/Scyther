@@ -1,6 +1,6 @@
 //
 //  NetworkLoggerViewController.swift
-//  
+//
 //
 //  Created by Brandon Stillitano on 24/12/20.
 //
@@ -190,20 +190,19 @@ internal class NetworkLoggerViewController: UIViewController {
         view.addSubview(tableView)
 
         //Register Table View Cells
-        tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
-        tableView.register(CheckmarkCell.self, forCellReuseIdentifier: RowStyle.checkmarkAccessory.rawValue)
+        tableView.register(NetworkLogCell.self, forCellReuseIdentifier: RowStyle.networkLog.rawValue)
     }
 
     private func setupConstraints() {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:|-0-[subview]-0-|",
-                                                           options: .directionLeadingToTrailing,
-                                                           metrics: nil,
-                                                           views: ["subview": tableView]))
+            options: .directionLeadingToTrailing,
+            metrics: nil,
+            views: ["subview": tableView]))
         view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|-0-[subview]-0-|",
-                                                           options: .directionLeadingToTrailing,
-                                                           metrics: nil,
-                                                           views: ["subview": tableView]))
+            options: .directionLeadingToTrailing,
+            metrics: nil,
+            views: ["subview": tableView]))
     }
 
     private func setupData() {
@@ -239,25 +238,34 @@ extension NetworkLoggerViewController: UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        // Check for Cell
+        /// Check for Cell
         guard let row = viewModel.row(at: indexPath) else {
             return UITableViewCell()
         }
 
-        // Setup Cell
+        /// Setup Cell
         let cell = tableView.dequeueReusableCell(withIdentifier: row.cellReuseIdentifier,
-                                                 for: indexPath)
+            for: indexPath)
         cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
         cell.accessoryView = row.accessoryView
 
-        // Setup Accessory
+        /// Setup Accessory
         switch row.style {
-        case .checkmarkAccessory:
-            guard let checkRow: CheckmarkRow = row as? CheckmarkRow else {
+        case .networkLog:
+            /// Check if we can cast our objects to the right class. Configure network cell.
+            guard let networkRow: NetworkLogRow = row as? NetworkLogRow else {
                 break
             }
-            cell.accessoryType = checkRow.checked ? .checkmark : .none
+            guard let networkCell: NetworkLogCell = cell as? NetworkLogCell else {
+                break
+            }
+
+            /// Configure cell
+            networkCell.textLabel?.text = nil
+            networkCell.detailTextLabel?.text = nil
+            networkCell.configureWithRow(networkRow)
+            return networkCell
         default:
             break
         }

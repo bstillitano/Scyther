@@ -19,7 +19,7 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
 }
 
 /// Object Model representing a HTTP request
-@objc public class ScytherHTTPModel: NSObject {
+@objc public class LoggerHTTPModel: NSObject {
     @objc public var requestURL: String?
     @objc public var requestURLComponents: URLComponents?
     @objc public var requestURLQueryItems: [URLQueryItem]?

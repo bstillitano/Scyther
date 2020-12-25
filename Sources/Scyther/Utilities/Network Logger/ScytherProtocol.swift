@@ -17,7 +17,7 @@ open class ScytherProtocol: URLProtocol {
                           delegateQueue: nil)
     }()
 
-    private let model: ScytherHTTPModel = ScytherHTTPModel()
+    private let model: LoggerHTTPModel = LoggerHTTPModel()
     private var response: URLResponse?
     private var responseData: NSMutableData?
 
