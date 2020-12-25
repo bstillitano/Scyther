@@ -40,7 +40,7 @@ public class Logger {
 
 extension Logger {
     /// Retrieves the current IP Address of the device asynchronously
-    class func getIPAddress(_ completion: @escaping (_ result: String) -> Void) {
+    internal class func getIPAddress(_ completion: @escaping (_ result: String) -> Void) {
         /// Construct API URL
         guard let url: URL = URL(string: "https://api.ipify.org/?format=json") else {
             completion("0.0.0.0")

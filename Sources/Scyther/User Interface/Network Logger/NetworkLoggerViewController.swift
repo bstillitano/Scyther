@@ -69,6 +69,12 @@ class NetworkLoggerViewController: UIViewController, UITableViewDelegate, UITabl
 
             self.navigationItem.titleView = searchView
         }
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(reloadTableViewData),
+            name: NSNotification.Name.NFXReloadData,
+            object: nil)
     }
     
     override func viewWillAppear(_ animated: Bool) {
