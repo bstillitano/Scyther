@@ -32,7 +32,7 @@ class NetworkLoggerViewController: UIViewController, UITableViewDelegate, UITabl
         self.tableView.dataSource = self
         self.view.addSubview(self.tableView)
         
-        self.tableView.register(NetworkLoggerViewController.self, forCellReuseIdentifier: NSStringFromClass(NetworkLogCell.self))
+        self.tableView.register(NetworkLogCell.self, forCellReuseIdentifier: NSStringFromClass(NetworkLogCell.self))
 
 //        let rightButtons = [
 //            UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: #selector(NFXListController_iOS.trashButtonPressed)),
