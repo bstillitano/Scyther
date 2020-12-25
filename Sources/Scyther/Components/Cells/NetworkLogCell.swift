@@ -18,9 +18,7 @@ class NetworkLogCell: UITableViewCell {
 
     override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-        backgroundColor = UIColor.white
-        selectionStyle = .none
-
+    
         contentView.addSubview(self.statusView)
 
         urlLabel.textColor = .black
@@ -28,8 +26,7 @@ class NetworkLogCell: UITableViewCell {
         urlLabel.numberOfLines = 0
         contentView.addSubview(self.urlLabel)
 
-        methodLabel.textAlignment = .left
-        methodLabel.textColor = .systemGray
+        methodLabel.textAlignment = .center
         methodLabel.font = .boldSystemFont(ofSize: 16)
         contentView.addSubview(self.methodLabel)
     }
@@ -41,8 +38,8 @@ class NetworkLogCell: UITableViewCell {
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        statusView.frame = CGRect(x: 0, y: 0, width: 48, height: frame.height - 1)
-        methodLabel.frame = CGRect(x: 64, y: 16, width: 50, height: 20)
+        statusView.frame = CGRect(x: 0, y: 0, width: 16, height: frame.height - 1)
+        methodLabel.frame = CGRect(x: 24, y: 8, width: 48, height: 24)
     }
 
     func configureWithRow(_ row: NetworkLogRow) {
