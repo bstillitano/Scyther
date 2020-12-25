@@ -5,146 +5,167 @@
 //  Created by Brandon Stillitano on 25/12/20.
 //
 
-#if os(iOS)
 import UIKit
 
 class NetworkLogCell: UITableViewCell {
-    // MARK: - UI Elements
-    let padding: CGFloat = 5
-    var urlLabel: UILabel = UILabel(frame: CGRect.zero)
-    var statusView: UIView = UIView(frame: CGRect.zero)
-    var requestTimeLabel: UILabel = UILabel(frame: CGRect.zero)
-    var timeIntervalLabel: UILabel = UILabel(frame: CGRect.zero)
-    var methodLabel: UILabel = UILabel(frame: CGRect.zero)
-    var leftSeparator: UIView = UIView(frame: CGRect.zero)
-    var rightSeparator: UIView = UIView(frame: CGRect.zero)
-    var circleView: UIView = UIView(frame: CGRect.zero)
 
-    override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
+    private let stackView = UIStackView()
+    private let sidebarStackView = UIStackView()
+
+    private let ribbonView = UIView()
+
+    private let methodLabel = UILabel()
+    private let statusCodeLabel = UILabel()
+    private let activityIndicator = UIActivityIndicatorView()
+    private let durationLabel = UILabel()
+
+    private let urlLabel = UILabel()
+
+    private var timer: Timer?
+
+    // MARK: - Init
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-        backgroundColor = UIColor.white
-        selectionStyle = .none
-
-        contentView.addSubview(self.statusView)
-
-        self.requestTimeLabel.textAlignment = .center
-        self.requestTimeLabel.textColor = UIColor.white
-        self.requestTimeLabel.font = .boldSystemFont(ofSize: 13)
-        contentView.addSubview(self.requestTimeLabel)
-
-        self.timeIntervalLabel.textAlignment = .center
-        self.timeIntervalLabel.font = .systemFont(ofSize: 12)
-        contentView.addSubview(self.timeIntervalLabel)
-
-        self.urlLabel.textColor = .black
-        self.urlLabel.font = .systemFont(ofSize: 12)
-        self.urlLabel.numberOfLines = 2
-        contentView.addSubview(self.urlLabel)
-
-        self.methodLabel.textAlignment = .left
-        self.methodLabel.textColor = .systemGray
-        self.methodLabel.font = .systemFont(ofSize: 12)
-        contentView.addSubview(self.methodLabel)
-
-        self.circleView.backgroundColor = .systemGray
-        self.circleView.layer.cornerRadius = 4
-        self.circleView.alpha = 0.2
-        contentView.addSubview(self.circleView)
-
-        self.leftSeparator.backgroundColor = UIColor.white
-        contentView.addSubview(self.leftSeparator)
-
-        self.rightSeparator.backgroundColor = .lightGray
-        contentView.addSubview(self.rightSeparator)
+        
+        buildView()
+        buildLayout()
     }
 
-    required init(coder aDecoder: NSCoder) {
+    required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func layoutSubviews() {
-        super.layoutSubviews()
+    // MARK: - Private setup
+    private func buildView() {
+        backgroundColor = .clear
 
-        self.statusView.frame = CGRect(x: 0, y: 0, width: 50, height: frame.height - 1)
+        stackView.spacing = 4
+        stackView.axis = .horizontal
+        stackView.distribution = .fill
+        stackView.alignment = .fill
+        stackView.layoutMargins = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 8)
+        stackView.isLayoutMarginsRelativeArrangement = true
+        contentView.addSubview(stackView)
 
-        self.requestTimeLabel.frame = CGRect(x: 0, y: 13, width: statusView.frame.width, height: 14)
+        ribbonView.backgroundColor = .systemRed
+        stackView.addArrangedSubview(ribbonView)
 
-        self.timeIntervalLabel.frame = CGRect(x: 0, y: requestTimeLabel.frame.maxY + 5, width: statusView.frame.width, height: 14)
+        // Sidebar width = 80
+        methodLabel.textAlignment = .center
+        methodLabel.font = UIFont.preferredFont(forTextStyle: .headline)
+        sidebarStackView.addArrangedSubview(methodLabel)
 
-        self.urlLabel.frame = CGRect(x: statusView.frame.maxX + padding, y: 0, width: frame.width - urlLabel.frame.minX - 25 - padding, height: 40)
-        self.urlLabel.autoresizingMask = .flexibleWidth
+        activityIndicator.hidesWhenStopped = true
+        sidebarStackView.addArrangedSubview(activityIndicator)
 
-        self.methodLabel.frame = CGRect(x: statusView.frame.maxX + padding, y: urlLabel.frame.maxY - 2, width: 40, height: frame.height - urlLabel.frame.maxY - 2)
+        statusCodeLabel.textAlignment = .center
+        statusCodeLabel.font = UIFont.preferredFont(forTextStyle: .body)
+        sidebarStackView.addArrangedSubview(statusCodeLabel)
 
-        self.circleView.frame = CGRect(x: self.urlLabel.frame.maxX + 5, y: 17, width: 8, height: 8)
+        durationLabel.textAlignment = .center
+        durationLabel.font = UIFont.preferredFont(forTextStyle: .footnote)
+        sidebarStackView.addArrangedSubview(durationLabel)
 
-        self.leftSeparator.frame = CGRect(x: 0, y: frame.height - 1, width: self.statusView.frame.width, height: 1)
-        self.rightSeparator.frame = CGRect(x: self.leftSeparator.frame.maxX, y: frame.height - 1, width: frame.width - self.leftSeparator.frame.maxX, height: 1)
+        sidebarStackView.spacing = 4
+        sidebarStackView.axis = .vertical
+        sidebarStackView.distribution = .fillEqually
+        sidebarStackView.alignment = .fill
+        sidebarStackView.layoutMargins = UIEdgeInsets(top: 8, left: 0, bottom: 8, right: 0)
+        sidebarStackView.isLayoutMarginsRelativeArrangement = true
+        stackView.addArrangedSubview(sidebarStackView)
+
+        urlLabel.minimumScaleFactor = 0.4
+        urlLabel.font = UIFont.preferredFont(forTextStyle: .body)
+        urlLabel.numberOfLines = 0
+        urlLabel.lineBreakMode = .byCharWrapping
+        urlLabel.adjustsFontSizeToFitWidth = true
+        stackView.addArrangedSubview(urlLabel)
+
+        contentView.translatesAutoresizingMaskIntoConstraints = false
     }
 
-    func isNew() {
-        //TODO - Set Back to false
-        self.circleView.isHidden = true
+    private func buildLayout() {
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:|-0-[subview]-8-|", options: .directionLeadingToTrailing, metrics: nil, views: ["subview": stackView]))
+        contentView.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|-0-[subview]-0-|", options: .directionLeadingToTrailing, metrics: nil, views: ["subview": stackView]))
+
+        // Ribbon width
+        NSLayoutConstraint(item: ribbonView, attribute: .width, relatedBy: .equal, toItem: .none, attribute: .notAnAttribute, multiplier: 1, constant: 6).isActive = true
+
+        /// Sidebar width
+        NSLayoutConstraint(item: sidebarStackView, attribute: .width, relatedBy: .equal, toItem: .none, attribute: .notAnAttribute, multiplier: 1, constant: 60).isActive = true
     }
 
-    func isOld() {
-        //TODO - Set Back to true
-        self.circleView.isHidden = false
-    }
-
-    func configureWithRow(_ row: NetworkLogRow) {
-        setURL(row.httpRequestURL ?? "-")
-        setStatus(row.httpStatusCode ?? 999)
-        // TODO - Set time intercal
-//        setTimeInterval(obj.timeInterval ?? 999)
-        setRequestTime(row.httpRequestTime ?? "-")
-        setMethod(row.httpMethod ?? "-")
-        
-        isNewBasedOnDate(Date(timeIntervalSinceNow: 100) as Date? ?? Date())
-    }
-
-    func setURL(_ url: String) {
-        self.urlLabel.text = url
-    }
-
-    func setStatus(_ status: Int) {
-        if status == 999 {
-            self.statusView.backgroundColor = .systemGray
-            self.timeIntervalLabel.textColor = UIColor.white
-
-        } else if status < 400 {
-            self.statusView.backgroundColor = .systemGreen
-            self.timeIntervalLabel.textColor = .green
-
-        } else {
-            self.statusView.backgroundColor = .systemRed
-            self.timeIntervalLabel.textColor = .red
+    // MARK: - Lifecycle
+    override var isHighlighted: Bool {
+        didSet {
+//            contentView.backgroundColor = (isHighlighted) ? .secondarySystemBackground : .systemBackground
         }
     }
 
-    func setRequestTime(_ requestTime: String) {
-        self.requestTimeLabel.text = requestTime
+    private lazy var width: NSLayoutConstraint = {
+        let width = contentView.widthAnchor.constraint(equalToConstant: bounds.size.width)
+        width.isActive = true
+        return width
+    }()
+
+    override func systemLayoutSizeFitting(_ targetSize: CGSize, withHorizontalFittingPriority horizontalFittingPriority: UILayoutPriority, verticalFittingPriority: UILayoutPriority) -> CGSize {
+        width.constant = bounds.size.width
+        return contentView.systemLayoutSizeFitting(CGSize(width: targetSize.width, height: 1))
     }
 
-    func setTimeInterval(_ timeInterval: Float) {
-        if timeInterval == 999 {
-            self.timeIntervalLabel.text = "-"
-        } else {
-            self.timeIntervalLabel.text = NSString(format: "%.2f", timeInterval) as String
+    override func prepareForReuse() {
+        super.prepareForReuse()
+
+        ribbonView.backgroundColor = .clear
+        durationLabel.text = nil
+        statusCodeLabel.text = nil
+        statusCodeLabel.isHidden = false
+        statusCodeLabel.textColor = .black
+        methodLabel.text = nil
+        urlLabel.text = nil
+
+        timer?.invalidate()
+        timer = nil
+    }
+
+    // MARK: - Configure
+    func configure(with request: NetworkLogRow?) {
+        guard let request = request else { return }
+
+        methodLabel.text = request.httpMethod?.uppercased()
+        statusCodeLabel.text = (request.httpStatusCode ?? 0 > 0) ? "\(request.httpStatusCode ?? 0)" : "---"
+        statusCodeLabel.isHidden = (request.httpStatusCode ?? 0 < 1)
+        urlLabel.text = request.httpRequestURL
+//        durationLabel.text = (request.duration > 0) ? request.duration.formattedMilliseconds() : "-"
+
+        var statusColor: UIColor = .black
+        switch request.httpStatusCode ?? 0 {
+        case 100..<200: statusColor = .systemBlue // 1×× Informational
+        case 200..<300: statusColor = .systemGreen // 2×× Success
+        case 300..<400: statusColor = .systemPurple // 3×× Redirection
+        case 400..<500: statusColor = .systemOrange // 4×× Client Error
+        case 500..<600: statusColor = .systemRed // 5×× Server Error
+        default: break
         }
-    }
 
-    func setMethod(_ method: String) {
-        self.methodLabel.text = method
-    }
+        ribbonView.backgroundColor = statusColor
+        statusCodeLabel.textColor = statusColor
 
-    func isNewBasedOnDate(_ responseDate: Date) {
-        //TODO - Implement ???? why??????
-        if responseDate.isGreaterThanDate(Date()) {
-            self.isNew()
+        if request.httpStatusCode ?? 0 > 0 {
+            activityIndicator.stopAnimating()
+
+            timer?.invalidate()
+            timer = nil
         } else {
-            self.isOld()
+            activityIndicator.startAnimating()
+
+            // If we don't already have a duration timer running, start one
+            if timer == nil {
+                timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true, block: { [weak self] timer in
+//                    self?.durationLabel.text = (Date().timeIntervalSince(request.date) * 1000).formattedMilliseconds()
+                })
+            }
         }
     }
 }
-#endif
