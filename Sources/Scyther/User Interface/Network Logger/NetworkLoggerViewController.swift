@@ -302,7 +302,9 @@ extension NetworkLoggerViewController: UITableViewDelegate {
 
 extension NetworkLoggerViewController: NetworkLoggerViewModelProtocol {
     func viewModelShouldReloadData() {
-        self.tableView.reloadData()
+        DispatchQueue.main.async {
+            self.tableView.reloadData()
+        }
     }
 }
 #endif
