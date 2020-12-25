@@ -38,6 +38,9 @@ internal class NetworkLoggerViewModel {
         /// Setup Logs Section
         var logsSection: Section = Section()
         logsSection.title = nil
+        for log in LoggerHTTPModelManager.sharedInstance.getModels() {
+            logsSection.rows.append(networkRow(identifier: log.requestURL ?? ""))
+        }
 //        logsSection.rows = ConfigurationSwitcher.instance.configurations.sorted(by: { $0.identifier < $1.identifier }).map({ checkmarkRow(identifier: $0.identifier) })
 
         /// Setup Data
