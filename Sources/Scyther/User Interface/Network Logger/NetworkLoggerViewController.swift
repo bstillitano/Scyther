@@ -180,7 +180,7 @@ internal class NetworkLoggerViewController: UIViewController {
         
         /// Start listening to notifications
         NotificationCenter.default.addObserver(self,
-                                               selector: #selector(viewModel.prepareObjects),
+                                               selector: #selector(prepareObjects),
                                                name: NSNotification.Name.NFXReloadData,
                                                object: nil)
     }
@@ -213,11 +213,16 @@ internal class NetworkLoggerViewController: UIViewController {
     }
 
     private func setupData() {
-        self.viewModel.delegate = self
-        self.viewModel.prepareObjects()
+        viewModel.delegate = self
+        viewModel.prepareObjects()
 
         title = viewModel.title
         navigationItem.title = viewModel.title
+    }
+    
+    @objc
+    private func prepareObjects() {
+        viewModel.prepareObjects()
     }
 
     // MARK: - Lifecycle
