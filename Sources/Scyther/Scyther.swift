@@ -40,6 +40,11 @@ public class Scyther {
         
         /// Register `URLProtocol` class for network logging to intercept requests
         URLProtocol.registerClass(ScytherProtocol.self)
+        
+        /// Get IP Address
+        Logger.getIPAddress { (ipAddress) in
+            Scyther.logger.ipAddress = ipAddress
+        }
     }
 
     /// Convenience function for manually showing the Scyther menu. Would be used when no gesture is wanted to invoke the menu.

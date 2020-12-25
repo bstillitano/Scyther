@@ -93,36 +93,39 @@ internal class MenuViewModel {
         /// Setup Networking Section
         var networkSection: Section = Section()
         networkSection.title = "Networking"
+        networkSection.rows.append(valueRow(name: "IP Address",
+                                            value: Scyther.logger.ipAddress,
+                                            icon: nil))
         networkSection.rows.append(actionRow(name: "Network Logs",
                                              icon: UIImage(systemImage: "doc.append"),
                                              actionController: NetworkLoggerViewController()))
-        networkSection.rows.append(actionRow(name: "Feature Flags",
-                                             icon: UIImage(systemImage: "flag"),
-                                             actionController: FeatureFlagsViewController()))
         networkSection.rows.append(actionRow(name: "Server Configuration",
                                              icon: UIImage(systemImage: "externaldrive.badge.icloud"),
                                              actionController: ServerConfigurationViewController()))
 
-        //Setup Environment Section
+        /// Setup Environment Section
         var environmentSection: Section = Section()
         environmentSection.title = "Environment"
+        environmentSection.rows.append(actionRow(name: "Feature Flags",
+                                                 icon: UIImage(systemImage: "flag"),
+                                                 actionController: FeatureFlagsViewController()))
         environmentSection.rows.append(actionRow(name: "User Defaults",
                                                  icon: UIImage(systemImage: "face.dashed"),
                                                  actionController: UserDefaultsViewController()))
 
-        //Setup Security Section
+        /// Setup Security Section
         var securitySection: Section = Section()
         securitySection.title = "Security"
 
-        //Setup Support Section
+        /// Setup Support Section
         var supportSection: Section = Section()
         supportSection.title = "Support"
 
-        //Setup Development Section
+        /// Setup Development Section
         var developmentSection: Section = Section()
         developmentSection.title = "Development Tools"
 
-        //Setup Data
+        /// Setup Data
         sections.append(deviceSection)
         sections.append(applicationSection)
         sections.append(networkSection)
@@ -131,7 +134,7 @@ internal class MenuViewModel {
         sections.append(supportSection)
         sections.append(developmentSection)
 
-        //Call Delegate
+        /// Call Delegate
         delegate?.viewModelShouldReloadData()
     }
 }

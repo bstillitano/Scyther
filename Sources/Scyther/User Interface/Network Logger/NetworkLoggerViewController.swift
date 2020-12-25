@@ -10,7 +10,7 @@ import UIKit
 
 internal class NetworkLoggerViewController: UIViewController {
     // MARK: - Data
-    private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
+    private let tableView = UITableView(frame: .zero, style: .plain)
     private var viewModel: NetworkLoggerViewModel = NetworkLoggerViewModel()
 
     // MARK: - Init

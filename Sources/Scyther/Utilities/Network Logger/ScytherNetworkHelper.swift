@@ -138,32 +138,6 @@ extension Date {
     }
 }
 
-class NFXDebugInfo {
-    class func getNFXIP(_ completion: @escaping (_ result: String) -> Void)
-    {
-        var req: NSMutableURLRequest
-        req = NSMutableURLRequest(url: URL(string: "https://api.ipify.org/?format=json")!)
-        URLProtocol.setProperty("1", forKey: "NFXInternal", in: req)
-
-        let session = URLSession.shared
-        session.dataTask(with: req as URLRequest, completionHandler: { (data, response, error) in
-            do {
-                let rawJsonData = try JSONSerialization.jsonObject(with: data!, options: [.allowFragments])
-                if let ipAddress = (rawJsonData as AnyObject).value(forKey: "ip") {
-                    completion(ipAddress as! String)
-                } else {
-                    completion("-")
-                }
-            } catch {
-                completion("-")
-            }
-
-        }) .resume()
-    }
-
-}
-
-
 extension String {
     func appendToFile(filePath: String) {
         let contentToAppend = self

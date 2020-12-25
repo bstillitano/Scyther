@@ -9,10 +9,7 @@
 import UIKit
 
 public extension UIDevice {
-    /**
-     Determines the machine identifier for the running device.
-     https://gist.github.com/adamawolf/3048717
-     */
+    /// Determines the machine identifier for the running device. - https://gist.github.com/adamawolf/3048717
     var modelName: String {
         //Get System Info
         var systemInfo = utsname()
@@ -30,9 +27,7 @@ public extension UIDevice {
         return identifier
     }
 
-    /**
-     Determines the type of device that this code is running on. Returns one of the following: `phone` or `tablet`
-     */
+    /// Determines the type of device that this code is running on. Returns one of the following: `phone` or `tablet`
     var deviceType: String {
         //Check Type
         if UIDevice.current.userInterfaceIdiom == .pad {
@@ -42,9 +37,7 @@ public extension UIDevice {
         return "phone"
     }
 
-    /**
-     Determines the generation of the running device.
-     */
+    /// Determines the generation of the running device.
     var generation: Float {
         //Setup Data
         var value: String = UIDevice.current.modelName
