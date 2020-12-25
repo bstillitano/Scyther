@@ -65,6 +65,8 @@ open class ScytherProtocol: URLProtocol {
         }
         URLProtocol.setProperty(true, forKey: ScytherProtocol.scytherInternalKey, in: mutableRequest)
         session.dataTask(with: mutableRequest as URLRequest).resume()
+        
+        NotificationCenter.default.post(name: .NFXReloadData, object: nil)
     }
 
     override open func stopLoading() {
