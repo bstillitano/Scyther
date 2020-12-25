@@ -130,7 +130,7 @@ class NetworkLoggerViewController: UIViewController, UITableViewDelegate, UITabl
         return UIView.init(frame: CGRect.zero)
     }
     
-    func reloadTableViewData() {
+    @objc func reloadTableViewData() {
         DispatchQueue.main.async { () -> Void in
             self.tableView.reloadData()
             self.tableView.setNeedsDisplay()
