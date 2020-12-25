@@ -50,7 +50,7 @@ internal class NetworkLoggerViewModel {
         }
     }
 
-    func prepareObjects() {
+    @objc func prepareObjects() {
         /// Clear Data
         sections.removeAll()
 

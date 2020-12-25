@@ -173,9 +173,16 @@ internal class NetworkLoggerViewController: UIViewController {
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
 
+        /// Setup Interface
         setupUI()
         setupConstraints()
         setupData()
+        
+        /// Start listening to notifications
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(viewModel.prepareObjects),
+                                               name: NSNotification.Name.NFXReloadData,
+                                               object: nil)
     }
 
     required init?(coder: NSCoder) {
