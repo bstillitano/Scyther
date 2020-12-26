@@ -38,8 +38,28 @@ class NetworkLogCell: UITableViewCell {
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        statusView.frame = CGRect(x: 0, y: 0, width: 8, height: frame.height - 1)
-        methodLabel.frame = CGRect(x: 16, y: 8, width: 48, height: 16)
+        /// Setup `statusView` constraints
+        statusView.snp.makeConstraints { (make) in
+            make.top.equalToSuperview()
+            make.bottom.equalToSuperview()
+            make.left.equalToSuperview()
+            make.width.equalTo(8)
+        }
+        
+        /// Setup `methodLabel` constraints
+        methodLabel.snp.makeConstraints { (make) in
+            make.top.equalToSuperview().inset(8)
+            make.left.equalTo(statusView.snp.right).offset(8)
+            make.width.equalTo(48)
+        }
+        
+        /// Setup `urlLabel` constraints
+        urlLabel.snp.makeConstraints { (make) in
+            make.top.equalToSuperview()
+            make.bottom.equalToSuperview()
+            make.left.equalTo(methodLabel.snp.right).offset(16)
+            make.right.equalToSuperview().inset(16)
+        }
     }
 
     func configureWithRow(_ row: NetworkLogRow) {
