@@ -27,6 +27,7 @@ internal class NetworkLoggerViewModel {
         row.httpRequestTime = httpModel.requestTime
         row.httpStatusColor = httpStatusColor(for: httpModel.responseStatus ?? 0)
         row.httpRequestURL = httpModel.requestURL
+        row.accessoryType = .disclosureIndicator
         return row
     }
     
@@ -105,11 +106,16 @@ extension NetworkLoggerViewModel {
 // MARK: - Private data accessors
 extension NetworkLoggerViewModel {
     private func section(for index: Int) -> Section? {
+        guard sections.indices.contains(index) else {
+            return nil
+        }
         return sections[index]
     }
 
     private func rows(inSection index: Int) -> [Row]? {
-        guard let section = section(for: index) else { return nil }
+        guard let section = section(for: index) else {
+            return nil
+        }
         return section.rows.filter { !$0.isHidden }
     }
 }

@@ -17,14 +17,14 @@ final class LoggerHTTPModelManager: NSObject {
     func add(_ obj: LoggerHTTPModel) {
         syncQueue.async {
             self.models.insert(obj, at: 0)
-            NotificationCenter.default.post(name: NSNotification.Name.NFXAddedModel, object: obj)
+            NotificationCenter.default.post(name: NSNotification.Name.LoggerAddedModel, object: obj)
         }
     }
     
     func clear() {
         syncQueue.async {
             self.models.removeAll()
-            NotificationCenter.default.post(name: NSNotification.Name.NFXClearedModels, object: nil)
+            NotificationCenter.default.post(name: NSNotification.Name.LoggerClearedModels, object: nil)
         }
     }
     

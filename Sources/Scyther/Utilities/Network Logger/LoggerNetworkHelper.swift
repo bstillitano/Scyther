@@ -160,15 +160,15 @@ extension String {
 @objc private extension URLSessionConfiguration {
     private static var firstOccurrence = true
 
-    static func implementNetfox() {
+    static func implementLogger() {
         guard firstOccurrence else { return }
         firstOccurrence = false
 
         // First let's make sure setter: URLSessionConfiguration.protocolClasses is de-duped
-        // This ensures NFXProtocol won't be added twice
+        // This ensures ScytherProtocol won't be added twice
         swizzleProtocolSetter()
 
-        // Now, let's make sure NFXProtocol is always included in the default and ephemeral configuration(s)
+        // Now, let's make sure ScytherProtocol is always included in the default and ephemeral configuration(s)
         // Adding it twice won't be an issue anymore, because we've de-duped the setter
         swizzleDefault()
         swizzleEphemeral()
@@ -239,7 +239,7 @@ extension String {
         get {
             let config = URLSessionConfiguration.default_swizzled
 
-            // Let's go ahead and add in NFXProtocol, since it's safe to do so.
+            // Let's go ahead and add in ScytherProtocol, since it's safe to do so.
             config.protocolClasses?.insert(ScytherProtocol.self, at: 0)
 
             return config
@@ -250,7 +250,7 @@ extension String {
         get {
             let config = URLSessionConfiguration.ephemeral_swizzled
 
-            // Let's go ahead and add in NFXProtocol, since it's safe to do so.
+            // Let's go ahead and add in ScytherProtocol, since it's safe to do so.
             config.protocolClasses?.insert(ScytherProtocol.self, at: 0)
 
             return config
@@ -259,8 +259,8 @@ extension String {
 }
 
 public extension NSNotification.Name {
-    static let NFXDeactivateSearch = Notification.Name("NFXDeactivateSearch")
-    static let NFXReloadData = Notification.Name("NFXReloadData")
-    static let NFXAddedModel = Notification.Name("NFXAddedModel")
-    static let NFXClearedModels = Notification.Name("NFXClearedModels")
+    static let LoggerDeactivateSearch = Notification.Name("LoggerDeactivateSearch")
+    static let LoggerReloadData = Notification.Name("LoggerReloadData")
+    static let LoggerAddedModel = Notification.Name("LoggerAddedModel")
+    static let LoggerClearedModels = Notification.Name("LoggerClearedModels")
 }

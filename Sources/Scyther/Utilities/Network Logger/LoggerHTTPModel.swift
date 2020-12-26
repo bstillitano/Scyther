@@ -161,7 +161,7 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
     }
 
     @objc public func getRequestBodyFilename() -> String {
-        return String("nfx_request_body_") + "\(self.requestTime!)_\(getRandomHash() as String)"
+        return String("logger_request_body_") + "\(self.requestTime!)_\(getRandomHash() as String)"
     }
 
     @objc public func getResponseBodyFilepath() -> String {
@@ -170,7 +170,7 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
     }
 
     @objc public func getResponseBodyFilename() -> String {
-        return String("nfx_response_body_") + "\(self.requestTime!)_\(getRandomHash() as String)"
+        return String("logger_response_body_") + "\(self.requestTime!)_\(getRandomHash() as String)"
     }
 
     @objc public func getDocumentsPath() -> String {

@@ -19,25 +19,35 @@ class NetworkLogCell: UITableViewCell {
     override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
     
-        contentView.addSubview(self.statusView)
-
-        urlLabel.font = .systemFont(ofSize: 12)
-        urlLabel.numberOfLines = 0
-        contentView.addSubview(self.urlLabel)
-
-        methodLabel.textAlignment = .center
-        methodLabel.font = .boldSystemFont(ofSize: 16)
-        contentView.addSubview(self.methodLabel)
-        
-        responseLabel.textAlignment = .center
-        contentView.addSubview(responseLabel)
-        
-        timeLabel.textAlignment = .center
-        contentView.addSubview(timeLabel)
+        /// Setup UI
+        setupUI()
     }
 
     required init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    private func setupUI() {
+        /// Setup `statusView`
+        contentView.addSubview(self.statusView)
+
+        /// Setup `urlLabel`
+        urlLabel.font = .systemFont(ofSize: 14)
+        urlLabel.numberOfLines = 0
+        contentView.addSubview(self.urlLabel)
+
+        /// Setup `methodLabel`
+        methodLabel.textAlignment = .center
+        methodLabel.font = .boldSystemFont(ofSize: 16)
+        contentView.addSubview(self.methodLabel)
+        
+        /// Setup `responseLabel`
+        responseLabel.textAlignment = .center
+        contentView.addSubview(responseLabel)
+        
+        /// Setup `timeLabel`
+        timeLabel.textAlignment = .center
+        contentView.addSubview(timeLabel)
     }
 
     override func layoutSubviews() {
@@ -83,29 +93,18 @@ class NetworkLogCell: UITableViewCell {
     }
 
     func configureWithRow(_ row: NetworkLogRow) {
-        setURL(row.httpRequestURL ?? "-")
-        setStatus(row.httpStatusColor)
-        // TODO - Set time intercal
-//        setTimeInterval(obj.timeInterval ?? 999)
-        setRequestTime(row.httpRequestTime ?? "-")
-        setMethod(row.httpMethod ?? "-")
+        /// Set text
         responseLabel.text = "\(row.httpStatusCode ?? 0)"
-        responseLabel.textColor = row.httpStatusColor
         timeLabel.text = row.httpRequestTime
+        urlLabel.text = row.httpRequestURL
+        methodLabel.text = row.httpMethod
+        
+        /// Set Colors
+        responseLabel.textColor = row.httpStatusColor
+        statusView.backgroundColor = row.httpStatusColor
+        
         //TODO - SET ISNEW
         isNewBasedOnDate(Date(timeIntervalSinceNow: 100) as Date? ?? Date())
-    }
-
-    func setURL(_ url: String) {
-        self.urlLabel.text = url
-    }
-
-    func setStatus(_ color: UIColor) {
-        self.statusView.backgroundColor = color
-    }
-
-    func setRequestTime(_ requestTime: String) {
-//        self.requestTimeLabel.text = requestTime
     }
 
     func setTimeInterval(_ timeInterval: Float) {
@@ -114,10 +113,6 @@ class NetworkLogCell: UITableViewCell {
         } else {
 //            self.timeIntervalLabel.text = NSString(format: "%.2f", timeInterval) as String
         }
-    }
-
-    func setMethod(_ method: String) {
-        self.methodLabel.text = method
     }
 
     func isNewBasedOnDate(_ responseDate: Date) {

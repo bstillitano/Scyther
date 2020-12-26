@@ -105,7 +105,7 @@ extension ScytherProtocol: URLSessionDataDelegate {
         }
 
         guard let request = task.originalRequest else {
-            NotificationCenter.default.post(name: .NFXReloadData, object: nil)
+            NotificationCenter.default.post(name: .LoggerReloadData, object: nil)
             return
         }
 
@@ -120,7 +120,7 @@ extension ScytherProtocol: URLSessionDataDelegate {
         }
 
         LoggerHTTPModelManager.sharedInstance.add(model)
-        NotificationCenter.default.post(name: .NFXReloadData, object: nil)
+        NotificationCenter.default.post(name: .LoggerReloadData, object: nil)
     }
 
     public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {

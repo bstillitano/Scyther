@@ -25,7 +25,7 @@ internal class NetworkLoggerViewController: UIViewController {
         /// Start listening to notifications
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(prepareObjects),
-                                               name: NSNotification.Name.NFXReloadData,
+                                               name: NSNotification.Name.LoggerReloadData,
                                                object: nil)
     }
 
