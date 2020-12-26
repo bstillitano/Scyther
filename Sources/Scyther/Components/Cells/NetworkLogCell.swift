@@ -29,6 +29,9 @@ class NetworkLogCell: UITableViewCell {
         methodLabel.textAlignment = .center
         methodLabel.font = .boldSystemFont(ofSize: 16)
         contentView.addSubview(self.methodLabel)
+        
+        contentView.addSubview(responseLabel)
+        contentView.addSubview(timeLabel)
     }
 
     required init(coder aDecoder: NSCoder) {
@@ -86,7 +89,7 @@ class NetworkLogCell: UITableViewCell {
         setMethod(row.httpMethod ?? "-")
         responseLabel.text = "\(row.httpStatusCode ?? 0)"
         responseLabel.textColor = row.httpStatusColor
-        
+        timeLabel.text = row.httpRequestTime
         //TODO - SET ISNEW
         isNewBasedOnDate(Date(timeIntervalSinceNow: 100) as Date? ?? Date())
     }
