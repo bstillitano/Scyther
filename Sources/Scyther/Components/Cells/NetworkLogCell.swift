@@ -53,6 +53,21 @@ class NetworkLogCell: UITableViewCell {
             make.width.equalTo(48)
         }
         
+        /// Setup `responseLabel` constraints
+        responseLabel.snp.makeConstraints { (make) in
+            make.top.greaterThanOrEqualTo(methodLabel.snp.bottom).offset(16)
+            make.left.equalTo(statusView.snp.right).offset(8)
+            make.width.equalTo(48)
+        }
+        
+        /// Setup `timeLabel` constraints
+        timeLabel.snp.makeConstraints { (make) in
+            make.top.greaterThanOrEqualTo(responseLabel.snp.bottom).offset(16)
+            make.left.equalTo(statusView.snp.right).offset(8)
+            make.width.equalTo(48)
+            make.bottom.equalToSuperview().inset(8)
+        }
+        
         /// Setup `urlLabel` constraints
         urlLabel.snp.makeConstraints { (make) in
             make.top.equalToSuperview()
@@ -69,6 +84,8 @@ class NetworkLogCell: UITableViewCell {
 //        setTimeInterval(obj.timeInterval ?? 999)
         setRequestTime(row.httpRequestTime ?? "-")
         setMethod(row.httpMethod ?? "-")
+        responseLabel.text = "\(row.httpStatusCode ?? 0)"
+        responseLabel.textColor = row.httpStatusColor
         
         //TODO - SET ISNEW
         isNewBasedOnDate(Date(timeIntervalSinceNow: 100) as Date? ?? Date())
