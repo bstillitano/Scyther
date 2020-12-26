@@ -104,6 +104,7 @@ extension NetworkLoggerViewController: UITableViewDataSource {
             for: indexPath)
         cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
+        cell.accessoryType = row.accessoryType ?? .none
         cell.accessoryView = row.accessoryView
 
         /// Setup Accessory
