@@ -21,7 +21,6 @@ class NetworkLogCell: UITableViewCell {
     
         contentView.addSubview(self.statusView)
 
-        urlLabel.textColor = .black
         urlLabel.font = .systemFont(ofSize: 12)
         urlLabel.numberOfLines = 0
         contentView.addSubview(self.urlLabel)
@@ -30,7 +29,10 @@ class NetworkLogCell: UITableViewCell {
         methodLabel.font = .boldSystemFont(ofSize: 16)
         contentView.addSubview(self.methodLabel)
         
+        responseLabel.textAlignment = .center
         contentView.addSubview(responseLabel)
+        
+        timeLabel.textAlignment = .center
         contentView.addSubview(timeLabel)
     }
 
@@ -58,14 +60,14 @@ class NetworkLogCell: UITableViewCell {
         
         /// Setup `responseLabel` constraints
         responseLabel.snp.makeConstraints { (make) in
-            make.top.greaterThanOrEqualTo(methodLabel.snp.bottom).offset(16)
+            make.top.greaterThanOrEqualTo(methodLabel.snp.bottom).offset(8)
             make.left.equalTo(statusView.snp.right).offset(8)
             make.width.equalTo(48)
         }
         
         /// Setup `timeLabel` constraints
         timeLabel.snp.makeConstraints { (make) in
-            make.top.greaterThanOrEqualTo(responseLabel.snp.bottom).offset(16)
+            make.top.greaterThanOrEqualTo(responseLabel.snp.bottom).offset(8)
             make.left.equalTo(statusView.snp.right).offset(8)
             make.width.equalTo(48)
             make.bottom.equalToSuperview().inset(8)
