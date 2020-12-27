@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 22/12/20.
 //
 
+#if !os(macOS)
 import UIKit
 
 extension UIImage {
@@ -17,3 +18,4 @@ extension UIImage {
         }
     }
 }
+#endif
