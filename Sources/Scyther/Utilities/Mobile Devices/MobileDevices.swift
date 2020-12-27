@@ -9,13 +9,14 @@
 import UIKit
 
 class MobileDevices {
-
+    /// An initialised, shared instance of the `MobileDevices` class.
     static let instance = MobileDevices()
 
     private let devices: [MobileDevice]
     private var bestMatchForCurrentDevice: MobileDevice?
 
     // MARK: - Init
+    /// Private Init to Stop re-initialisation and allow singleton creation.
     private init?() {
         /// Parse `plistData` into a `Data` object
         guard let data = Data(base64Encoded: MobileDevices.plistData) else {
