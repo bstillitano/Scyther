@@ -22,8 +22,9 @@ class TextReaderViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        /// Update navigation bar translucensy to avoid cropping content
-        navigationController?.navigationBar.isTranslucent = false
+        /// Setup interface
+        setupUI()
+        setupConstraints()
     }
     
     private func setupUI() {
