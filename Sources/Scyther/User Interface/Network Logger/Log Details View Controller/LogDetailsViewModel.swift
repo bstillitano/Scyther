@@ -36,6 +36,7 @@ internal class LogDetailsViewModel {
     func emptyRow(text: String) -> EmptyRow {
         var row: EmptyRow = EmptyRow()
         row.text = text
+
         return row
     }
 
