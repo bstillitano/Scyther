@@ -33,6 +33,17 @@ final internal class DefaultCell: UITableViewCell {
     override func layoutSubviews() {
         super.layoutSubviews()
         
+        /// Update text label constraints
+        guard textLabel?.superview != nil else {
+            return
+        }
+        textLabel?.snp.remakeConstraints({ (make) in
+            make.top.equalToSuperview().inset(8)
+            make.bottom.equalToSuperview().inset(8)
+            make.left.equalToSuperview().inset(16)
+            make.width.lessThanOrEqualTo(160)
+        })
+        
         /// Update detail text label constraints
         guard detailTextLabel?.superview != nil else {
             return
