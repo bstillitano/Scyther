@@ -74,8 +74,8 @@ internal class LogDetailsViewModel {
         //Setup Response Headers Section
         var responseHeadersSection: Section = Section()
         responseHeadersSection.title = "Response Headers"
-        if httpModel?.requestHeaders?.isEmpty ?? true {
-            requestHeadersSection.rows.append(emptyRow(text: "No headers received"))
+        if httpModel?.responseHeaders?.isEmpty ?? true {
+            responseHeadersSection.rows.append(emptyRow(text: "No headers received"))
         } else {
             for header in httpModel?.responseHeaders ?? [:] {
                 responseHeadersSection.rows.append(defaultRow(name: header.key as? String ?? "",
