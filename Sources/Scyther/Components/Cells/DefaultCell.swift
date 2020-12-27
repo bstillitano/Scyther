@@ -14,10 +14,10 @@ final internal class DefaultCell: UITableViewCell {
         super.init(style: .value1, reuseIdentifier: reuseIdentifier)
 
         textLabel?.numberOfLines = 0
-        textLabel?.adjustsFontSizeToFitWidth = false
+        textLabel?.adjustsFontSizeToFitWidth = true
         detailTextLabel?.adjustsFontSizeToFitWidth = true
-        detailTextLabel?.numberOfLines = 0
         detailTextLabel?.minimumScaleFactor = 2
+        detailTextLabel?.numberOfLines = 2
     }
 
     required init?(coder: NSCoder) {
