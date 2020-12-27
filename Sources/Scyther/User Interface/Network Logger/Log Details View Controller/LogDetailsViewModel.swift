@@ -132,7 +132,7 @@ internal class LogDetailsViewModel {
         if String(httpModel?.getResponseBody() ?? "").isEmpty {
             responseBodySection.rows.append(emptyRow(text: "No data received"))
         } else {
-            requestBodySection.rows.append(viewResponseButtonRow)
+            responseBodySection.rows.append(viewResponseButtonRow)
         }
         
         /// Setup Developer Section
