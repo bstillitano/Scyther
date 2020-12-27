@@ -31,6 +31,7 @@ class TextReaderViewController: UIViewController {
         shareButton = UIBarButtonItem(barButtonSystemItem: .action,
                                       target: self,
                                       action: #selector(shareText))
+        navigationItem.setRightBarButton(shareButton, animated: true)
     }
     
     private func setupUI() {
