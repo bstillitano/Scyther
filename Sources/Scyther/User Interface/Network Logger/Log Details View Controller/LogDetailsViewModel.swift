@@ -23,6 +23,22 @@ internal class LogDetailsViewModel {
     }
     // MARK: - Delegate
     weak var delegate: LogDetailsViewModelProtocol?
+    
+    /// Single row with an action block for viewing the entire request URL
+    func urlRow(url: String?) -> DefaultRow {
+        let row: DefaultRow = DefaultRow()
+        row.text = "URL"
+        row.detailText = url
+        row.accessoryType = .disclosureIndicator
+        row.actionBlock = { [weak self] in
+            let viewController: TextReaderViewController = TextReaderViewController()
+            viewController.title = "Request URL"
+            viewController.text = url
+            self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
+        }
+
+        return row
+    }
 
     /// Single row representing a single value and key
     func defaultRow(name: String, value: String?) -> DefaultRow {
@@ -90,8 +106,7 @@ internal class LogDetailsViewModel {
         /// Setup Overview Section
         var overviewSection: Section = Section()
         overviewSection.title = "Overview"
-        overviewSection.rows.append(defaultRow(name: "URL",
-                                               value: httpModel?.requestURL))
+        overviewSection.rows.append(urlRow(url: httpModel?.requestURL ?? ""))
         overviewSection.rows.append(defaultRow(name: "Method",
                                                value: httpModel?.requestMethod))
         overviewSection.rows.append(defaultRow(name: "Response Code",
