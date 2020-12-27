@@ -35,5 +35,8 @@ class NetworkLogRow: Row {
     
     /// String value representing the url that the request was sent to
     var httpRequestURL: String?
+    
+    /// The `HTTPModel` that represents this request
+    var httpModel: LoggerHTTPModel?
 }
 #endif

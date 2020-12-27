@@ -47,6 +47,7 @@ class NetworkLogCell: UITableViewCell {
         
         /// Setup `timeLabel`
         timeLabel.textAlignment = .center
+        timeLabel.font = .systemFont(ofSize: 11)
         contentView.addSubview(timeLabel)
     }
 
@@ -105,14 +106,6 @@ class NetworkLogCell: UITableViewCell {
         
         //TODO - SET ISNEW
         isNewBasedOnDate(Date(timeIntervalSinceNow: 100) as Date? ?? Date())
-    }
-
-    func setTimeInterval(_ timeInterval: Float) {
-        if timeInterval == 999 {
-//            self.timeIntervalLabel.text = "-"
-        } else {
-//            self.timeIntervalLabel.text = NSString(format: "%.2f", timeInterval) as String
-        }
     }
 
     func isNewBasedOnDate(_ responseDate: Date) {

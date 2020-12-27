@@ -40,10 +40,10 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
     /// Cache policy used to fetch/store the request and its corresponding response
     @objc public var requestCachePolicy: String?
     
-    /// The date/time that the request was executed
+    /// The date that the request was executed
     @objc public var requestDate: Date?
     
-    /// The time that the request took to execute, from sending the payload/request to receiving a response
+    /// The time that the request was executed
     @objc public var requestTime: String?
     
     /// The timeout of the response
@@ -58,22 +58,37 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
     /// The type of the request that was made eg: `application/x-protobuf`
     @objc public var requestType: String?
     
-    ///
+    /// A `String` representation of this request formatted as a cURL request
     @objc public var requestCurl: String?
 
+    /// The response code returned from the server for this request
     public var responseStatus: Int?
+    
+    /// The type of the response that was sent eg: `application/x-protobuf`
     @objc public var responseType: String?
+    
+    /// The date that the response was received
     @objc public var responseDate: Date?
+    
+    /// The time that the response was received
     @objc public var responseTime: String?
+    
+    /// The headers that were received with the response
     @objc public var responseHeaders: [AnyHashable: Any]?
+    
+    /// The length of the body that was sent with the request
     public var responseBodyLength: Int?
 
-    public var timeInterval: Float?
+    /// The time that the request took to execute, from sending the payload/request to receiving a response
+    public var requestDuration: Float?
 
+    /// A random hash value representing the request
     @objc public var randomHash: NSString?
 
-    @objc public var shortType: NSString = HTTPModelShortType.OTHER.rawValue as NSString
+    /// The short type of the response represented as a string value
+    @objc public var shortType: String = HTTPModelShortType.OTHER.rawValue
 
+    /// A `Bool` value representing whether or not the request hung/finalised with no response
     @objc public var noResponse: Bool = true
 
     func saveRequest(_ request: URLRequest) {
@@ -114,10 +129,10 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
 
         if let contentType = headers["Content-Type"] as? String {
             self.responseType = contentType.components(separatedBy: ";")[0]
-            self.shortType = getShortTypeFrom(self.responseType!).rawValue as NSString
+            self.shortType = getShortTypeFrom(self.responseType ?? "").rawValue
         }
 
-        self.timeInterval = Float(self.responseDate!.timeIntervalSince(self.requestDate!))
+        self.requestDuration = Float(self.responseDate!.timeIntervalSince(self.requestDate!))
 
         saveResponseBodyData(data)
         formattedResponseLogEntry().appendToFile(filePath: LoggerFilePath.SessionLog)
