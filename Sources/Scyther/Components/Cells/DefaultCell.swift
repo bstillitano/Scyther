@@ -14,9 +14,9 @@ final internal class DefaultCell: UITableViewCell {
         super.init(style: .value1, reuseIdentifier: reuseIdentifier)
 
         textLabel?.numberOfLines = 0
-        textLabel?.adjustsFontSizeToFitWidth = true
-        textLabel?.minimumScaleFactor = 2
+        textLabel?.adjustsFontSizeToFitWidth = false
         detailTextLabel?.adjustsFontSizeToFitWidth = true
+        detailTextLabel?.minimumScaleFactor = 2
     }
 
     required init?(coder: NSCoder) {
@@ -45,7 +45,7 @@ final internal class DefaultCell: UITableViewCell {
             
             /// Set conditional constraints
             if imageView?.image != nil {
-                make.left.equalTo(imageView?.snp.right ?? 0).inset(16)
+                make.left.equalTo(imageView?.snp.right ?? 0).offset(16)
             } else {
                 make.left.equalToSuperview().inset(16)
             }
