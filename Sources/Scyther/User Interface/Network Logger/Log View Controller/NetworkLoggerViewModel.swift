@@ -67,7 +67,7 @@ internal class NetworkLoggerViewModel {
         
         /// Check for Filtered Data
         if searchString != nil && !(searchString?.isEmpty ?? true) {
-            for log in LoggerHTTPModelManager.sharedInstance.getModels().filter( { ($0.requestURL?.contains(searchString ?? "") ?? false) } ) {
+            for log in LoggerHTTPModelManager.sharedInstance.getModels().filter( { ($0.requestURL?.lowercased().contains(searchString?.lowercased() ?? "") ?? false) } ) {
                 logsSection.rows.append(networkRow(httpModel: log))
             }
         } else {
