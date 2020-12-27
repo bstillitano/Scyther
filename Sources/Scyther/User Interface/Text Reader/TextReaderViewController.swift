@@ -28,7 +28,7 @@ class TextReaderViewController: UIViewController {
         setupConstraints()
         
         /// Setup Share Button
-        shareButton = UIBarButtonItem(barButtonSystemItem: .actions,
+        shareButton = UIBarButtonItem(barButtonSystemItem: .action,
                                       target: self,
                                       action: #selector(shareText))
     }
@@ -49,7 +49,7 @@ class TextReaderViewController: UIViewController {
     
     @objc
     private func shareText() {
-        let viewController = UIActivityViewController(activityItems: [text ""],
+        let viewController = UIActivityViewController(activityItems: [text ?? ""],
                                                       applicationActivities: nil)
         self.present(viewController, animated: true)
     }
