@@ -40,6 +40,7 @@ internal class LogDetailsViewController: UIViewController {
 
         //Register Table View Cells
         tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
+        tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
     }
 
     private func setupConstraints() {

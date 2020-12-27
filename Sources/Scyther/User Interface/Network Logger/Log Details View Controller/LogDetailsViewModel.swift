@@ -31,6 +31,13 @@ internal class LogDetailsViewModel {
 
         return row
     }
+    
+    /// Empty row that contains text in a 'disabled' style
+    func emptyRow(text: String) -> EmptyRow {
+        var row: EmptyRow = EmptyRow()
+        row.text = text
+        return row
+    }
 
     func prepareObjects() {
         //Clear Data
@@ -55,17 +62,25 @@ internal class LogDetailsViewModel {
         //Setup Request Headers Section
         var requestHeadersSection: Section = Section()
         requestHeadersSection.title = "Request Headers"
-        for header in httpModel?.requestHeaders ?? [:] {
-            requestHeadersSection.rows.append(defaultRow(name: header.key as? String ?? "",
-                                                         value: header.value as? String))
+        if httpModel?.requestHeaders?.isEmpty ?? true {
+            requestHeadersSection.rows.append(emptyRow(text: "No headers sent"))
+        } else {
+            for header in httpModel?.requestHeaders ?? [:] {
+                requestHeadersSection.rows.append(defaultRow(name: header.key as? String ?? "",
+                                                             value: header.value as? String))
+            }
         }
         
         //Setup Response Headers Section
         var responseHeadersSection: Section = Section()
         responseHeadersSection.title = "Response Headers"
-        for header in httpModel?.responseHeaders ?? [:] {
-            responseHeadersSection.rows.append(defaultRow(name: header.key as? String ?? "",
-                                                          value: header.value as? String))
+        if httpModel?.requestHeaders?.isEmpty ?? true {
+            requestHeadersSection.rows.append(emptyRow(text: "No headers received"))
+        } else {
+            for header in httpModel?.responseHeaders ?? [:] {
+                responseHeadersSection.rows.append(defaultRow(name: header.key as? String ?? "",
+                                                              value: header.value as? String))
+            }
         }
         
         //Setup Data

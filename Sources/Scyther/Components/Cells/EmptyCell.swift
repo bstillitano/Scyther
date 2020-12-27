@@ -1,20 +1,20 @@
 //
-//  ButtonCell.swift
-//  Scyther
+//  EmptyCell.swift
+//  
 //
-//  Created by Brandon Stillitano on 11/12/20.
+//  Created by Brandon Stillitano on 27/12/20.
 //
 
 #if !os(macOS)
 import UIKit
 
-final internal class ButtonCell: UITableViewCell {
+final internal class EmptyCell: UITableViewCell {
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: .default, reuseIdentifier: reuseIdentifier)
 
         textLabel?.textAlignment = .center
-        textLabel?.textColor = UIColor.systemBlue
+        textLabel?.textColor = UIColor.systemGray
     }
 
     required init?(coder: NSCoder) {
@@ -25,7 +25,7 @@ final internal class ButtonCell: UITableViewCell {
         super.layoutSubviews()
 
         textLabel?.textAlignment = .center
-        textLabel?.textColor = UIColor.systemBlue
+        textLabel?.textColor = UIColor.systemGray
         textLabel?.font = textLabel?.font.bold
         textLabel?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: bounds.height)
     }
