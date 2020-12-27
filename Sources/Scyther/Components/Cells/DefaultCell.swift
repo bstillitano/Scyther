@@ -34,6 +34,9 @@ final internal class DefaultCell: UITableViewCell {
         super.layoutSubviews()
         
         /// Update detail text label constraints
+        guard detailTextLabel?.superview != nil else {
+            return
+        }
         detailTextLabel?.snp.remakeConstraints({ (make) in
             make.top.equalToSuperview().inset(8)
             make.bottom.equalToSuperview().inset(8)
