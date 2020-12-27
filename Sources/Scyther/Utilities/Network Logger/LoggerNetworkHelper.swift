@@ -88,13 +88,12 @@ extension URLRequest {
             commands.append("-H \u{22}\(key): \(value)\u{22}")
         }
 
-        /// Append Body
-        guard let requestBody: Data = body else {
+        /// Append Conditional Body
+        guard let requestBody: Data = body,
+            let body = String(data: requestBody, encoding: .utf8) else {
             return commands.joined(separator: " ")
         }
-        if let body = String(data: requestBody, encoding: .utf8) {
-            commands.append("-d \u{22}\(body)\u{22}")
-        }
+        commands.append("-d \u{22}\(body)\u{22}")
 
         return commands.joined(separator: " ")
     }

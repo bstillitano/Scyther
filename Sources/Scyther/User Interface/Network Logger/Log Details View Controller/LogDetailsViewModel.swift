@@ -43,6 +43,28 @@ internal class LogDetailsViewModel {
         return row
     }
     
+    /// Button item for opening a view controller that contains a UILabel with the request body set
+    var viewRequestButtonRow: ButtonRow {
+        var row: ButtonRow = ButtonRow()
+        row.text = "View request body"
+        row.actionBlock = { [weak self] in
+            UIPasteboard.general.string = self?.httpModel?.requestCurl
+        }
+
+        return row
+    }
+    
+    /// Button item for opening a view controller that contains a UILabel with the response body set
+    var viewResponseButtonRow: ButtonRow {
+        var row: ButtonRow = ButtonRow()
+        row.text = "View reponse body"
+        row.actionBlock = { [weak self] in
+            UIPasteboard.general.string = self?.httpModel?.requestCurl
+        }
+
+        return row
+    }
+    
     /// Empty row that contains text in a 'disabled' style
     func emptyRow(text: String) -> EmptyRow {
         var row: EmptyRow = EmptyRow()
