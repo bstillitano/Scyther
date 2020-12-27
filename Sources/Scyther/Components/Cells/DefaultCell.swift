@@ -15,6 +15,7 @@ final internal class DefaultCell: UITableViewCell {
 
         textLabel?.numberOfLines = 0
         textLabel?.adjustsFontSizeToFitWidth = true
+        textLabel?.minimumScaleFactor = 2
         detailTextLabel?.adjustsFontSizeToFitWidth = true
     }
 
@@ -40,8 +41,14 @@ final internal class DefaultCell: UITableViewCell {
         textLabel?.snp.remakeConstraints({ (make) in
             make.top.equalToSuperview().inset(8)
             make.bottom.equalToSuperview().inset(8)
-            make.left.equalToSuperview().inset(16)
             make.width.lessThanOrEqualTo(160)
+            
+            /// Set conditional constraints
+            if imageView?.image != nil {
+                make.left.equalTo(imageView?.snp.right ?? 0).inset(16)
+            } else {
+                make.left.equalToSuperview().inset(16)
+            }
         })
         
         /// Update detail text label constraints
