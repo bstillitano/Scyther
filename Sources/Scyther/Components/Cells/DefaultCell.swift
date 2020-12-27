@@ -16,8 +16,6 @@ final internal class DefaultCell: UITableViewCell {
         textLabel?.numberOfLines = 0
         textLabel?.adjustsFontSizeToFitWidth = true
         detailTextLabel?.adjustsFontSizeToFitWidth = true
-        detailTextLabel?.minimumScaleFactor = 2
-        detailTextLabel?.numberOfLines = 2
     }
 
     required init?(coder: NSCoder) {
