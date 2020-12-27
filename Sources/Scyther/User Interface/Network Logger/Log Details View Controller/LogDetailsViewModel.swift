@@ -53,6 +53,7 @@ internal class LogDetailsViewModel {
         row.text = "View request body"
         row.actionBlock = { [weak self] in
             let viewController: TextReaderViewController = TextReaderViewController()
+            viewController.title = "Request body"
             viewController.text = self?.httpModel?.getRequestBody() as String?
             self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
         }
@@ -66,6 +67,7 @@ internal class LogDetailsViewModel {
         row.text = "View reponse body"
         row.actionBlock = { [weak self] in
             let viewController: TextReaderViewController = TextReaderViewController()
+            viewController.title = "Response body"
             viewController.text = self?.httpModel?.getResponseBody() as String?
             self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
         }
