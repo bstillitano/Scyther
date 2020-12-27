@@ -91,6 +91,8 @@ extension LogDetailsViewController: UITableViewDataSource {
         cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
         cell.accessoryView = row.accessoryView
+        cell.detailTextLabel?.adjustsFontSizeToFitWidth = true
+        cell.detailTextLabel?.numberOfLines = 0
 
         return cell
     }

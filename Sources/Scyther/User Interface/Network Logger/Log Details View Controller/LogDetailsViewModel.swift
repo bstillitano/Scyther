@@ -52,9 +52,28 @@ internal class LogDetailsViewModel {
         overviewSection.rows.append(defaultRow(name: "Duration",
                                                value: String(format: "%.2fs", httpModel?.requestDuration ?? 0)))
 
+        //Setup Request Headers Section
+        var requestHeadersSection: Section = Section()
+        requestHeadersSection.title = "Request Headers"
+        for header in httpModel?.requestHeaders ?? [:] {
+            requestHeadersSection.rows.append(defaultRow(name: header.key as? String ?? "",
+                                                         value: header.value as? String))
+        }
+        
+        //Setup Response Headers Section
+        var responseHeadersSection: Section = Section()
+        responseHeadersSection.title = "Response Headers"
+        for header in httpModel?.responseHeaders ?? [:] {
+            responseHeadersSection.rows.append(defaultRow(name: header.key as? String ?? "",
+                                                          value: header.value as? String))
+        }
+        
         //Setup Data
         sections.append(overviewSection)
-
+        sections.append(requestHeadersSection)
+        // TODO - Request Body
+        sections.append(responseHeadersSection)
+        
         //Call Delegate
         delegate?.viewModelShouldReloadData()
     }
