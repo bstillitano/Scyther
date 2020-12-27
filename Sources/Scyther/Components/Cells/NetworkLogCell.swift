@@ -86,8 +86,8 @@ class NetworkLogCell: UITableViewCell {
         
         /// Setup `urlLabel` constraints
         urlLabel.snp.makeConstraints { (make) in
-            make.top.equalToSuperview()
-            make.bottom.equalToSuperview()
+            make.top.equalToSuperview().inset(8)
+            make.bottom.equalToSuperview().inset(8)
             make.left.equalTo(methodLabel.snp.right).offset(16)
             make.right.equalToSuperview().inset(16)
         }

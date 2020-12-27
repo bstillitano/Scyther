@@ -38,7 +38,7 @@ internal class NetworkLoggerViewController: UIViewController {
         //Setup Table View
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.translatesAutoresizingMaskIntoConstraints = false
+        tableView.tableFooterView = UIView()
         view.addSubview(tableView)
 
         //Register Table View Cells
