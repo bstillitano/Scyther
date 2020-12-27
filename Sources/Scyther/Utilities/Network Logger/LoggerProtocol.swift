@@ -8,7 +8,7 @@
 import Foundation
 
 @objc
-open class ScytherProtocol: URLProtocol {
+open class LoggerProtocol: URLProtocol {
     private static let scytherInternalKey = "io.stillitano.ScytherInternal"
 
     private lazy var session: URLSession = { [unowned self] in
@@ -37,7 +37,7 @@ open class ScytherProtocol: URLProtocol {
         }
 
         /// Verify that the URL being requested is not a URL that is from our internal  `ScytherProtocol`
-        guard URLProtocol.property(forKey: ScytherProtocol.scytherInternalKey, in: request) == nil else {
+        guard URLProtocol.property(forKey: LoggerProtocol.scytherInternalKey, in: request) == nil else {
             return false
         }
 
@@ -63,7 +63,7 @@ open class ScytherProtocol: URLProtocol {
         guard let mutableRequest = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest else {
             return
         }
-        URLProtocol.setProperty(true, forKey: ScytherProtocol.scytherInternalKey, in: mutableRequest)
+        URLProtocol.setProperty(true, forKey: LoggerProtocol.scytherInternalKey, in: mutableRequest)
         session.dataTask(with: mutableRequest as URLRequest).resume()
     }
 
@@ -78,7 +78,7 @@ open class ScytherProtocol: URLProtocol {
     }
 }
 
-extension ScytherProtocol: URLSessionDataDelegate {
+extension LoggerProtocol: URLSessionDataDelegate {
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         responseData?.append(data)
 
@@ -126,9 +126,9 @@ extension ScytherProtocol: URLSessionDataDelegate {
     public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
 
         let updatedRequest: URLRequest
-        if URLProtocol.property(forKey: ScytherProtocol.scytherInternalKey, in: request) != nil {
+        if URLProtocol.property(forKey: LoggerProtocol.scytherInternalKey, in: request) != nil {
             let mutableRequest = (request as NSURLRequest).mutableCopy() as! NSMutableURLRequest
-            URLProtocol.removeProperty(forKey: ScytherProtocol.scytherInternalKey, in: mutableRequest)
+            URLProtocol.removeProperty(forKey: LoggerProtocol.scytherInternalKey, in: mutableRequest)
 
             updatedRequest = mutableRequest as URLRequest
         } else {

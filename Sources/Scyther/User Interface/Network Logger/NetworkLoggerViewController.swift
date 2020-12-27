@@ -134,10 +134,10 @@ extension NetworkLoggerViewController: UITableViewDataSource {
 
 extension NetworkLoggerViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        // Deselect Cell
+        /// Deselect Cell
         defer { tableView.deselectRow(at: indexPath, animated: true) }
 
-        // Check for Cell
+        /// Check for Cell
         guard let row = viewModel.row(at: indexPath) else {
             return
         }

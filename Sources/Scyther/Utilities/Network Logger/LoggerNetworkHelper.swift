@@ -240,7 +240,7 @@ extension String {
             let config = URLSessionConfiguration.default_swizzled
 
             // Let's go ahead and add in ScytherProtocol, since it's safe to do so.
-            config.protocolClasses?.insert(ScytherProtocol.self, at: 0)
+            config.protocolClasses?.insert(LoggerProtocol.self, at: 0)
 
             return config
         }
@@ -251,7 +251,7 @@ extension String {
             let config = URLSessionConfiguration.ephemeral_swizzled
 
             // Let's go ahead and add in ScytherProtocol, since it's safe to do so.
-            config.protocolClasses?.insert(ScytherProtocol.self, at: 0)
+            config.protocolClasses?.insert(LoggerProtocol.self, at: 0)
 
             return config
         }

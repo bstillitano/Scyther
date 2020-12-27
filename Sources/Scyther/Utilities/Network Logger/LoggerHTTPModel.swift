@@ -7,6 +7,11 @@
 
 import Foundation
 
+/// Comparison function that determines whether a value that conforms `Comparable` is less than another value that conforms to `Comparable`.
+/// - Parameters:
+///   - lhs: The value that will be used as the left hand side of the equation. That is to say that if this value is 1 and `rhs` is 2, this function will return true.
+///   - rhs: The value that will be used as the right hand side of the equation. That is to say that if this value is 1 and `lhs` is 2, this function will return false.
+/// - Returns: A `Bool` value indicating whether the comparison was true or false
 fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
     switch (lhs, rhs) {
     case let (l?, r?):
@@ -20,17 +25,40 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
 
 /// Object Model representing a HTTP request
 @objc public class LoggerHTTPModel: NSObject {
+    /// The remote URL that the response was sent to
     @objc public var requestURL: String?
+    
+    /// `URLComponents` objcet representing the different components of the `requestURL
     @objc public var requestURLComponents: URLComponents?
+    
+    /// Array of `URLQueryItem`'s appended onto the `requestURL`
     @objc public var requestURLQueryItems: [URLQueryItem]?
+    
+    /// HTTP method that the request used to connect to the remote
     @objc public var requestMethod: String?
+    
+    /// Cache policy used to fetch/store the request and its corresponding response
     @objc public var requestCachePolicy: String?
+    
+    /// The date/time that the request was executed
     @objc public var requestDate: Date?
+    
+    /// The time that the request took to execute, from sending the payload/request to receiving a response
     @objc public var requestTime: String?
+    
+    /// The timeout of the response
     @objc public var requestTimeout: String?
+    
+    /// The headers that were sent with the response
     @objc public var requestHeaders: [AnyHashable: Any]?
+    
+    /// The length of the body that was sent with the request
     public var requestBodyLength: Int?
+    
+    /// The type of the request that was made eg: `application/x-protobuf`
     @objc public var requestType: String?
+    
+    ///
     @objc public var requestCurl: String?
 
     public var responseStatus: Int?
@@ -58,7 +86,7 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
         self.requestCachePolicy = request.cachePolicyString
         self.requestTimeout = request.timeout
         self.requestHeaders = request.headers
-        self.requestType = requestHeaders?["Content-Type"] as! String?
+        self.requestType = requestHeaders?["Content-Type"] as? String
         self.requestCurl = request.curlString
     }
 

@@ -39,7 +39,7 @@ public class Scyther {
         self.started = true
         
         /// Register `URLProtocol` class for network logging to intercept requests
-        URLProtocol.registerClass(ScytherProtocol.self)
+        URLProtocol.registerClass(LoggerProtocol.self)
         
         /// Get IP Address
         Logger.getIPAddress { (ipAddress) in
