@@ -10,6 +10,7 @@ import UIKit
 
 internal protocol LogDetailsViewModelProtocol: class {
     func viewModelShouldReloadData()
+    func viewModel(viewModel: LogDetailsViewModel?, shouldShowViewController viewController: UIViewController?)
 }
 
 internal class LogDetailsViewModel {
@@ -37,7 +38,10 @@ internal class LogDetailsViewModel {
         var row: ButtonRow = ButtonRow()
         row.text = "Export cURL request"
         row.actionBlock = { [weak self] in
-            UIPasteboard.general.string = self?.httpModel?.requestCurl
+            let viewController = UIActivityViewController(activityItems: [self?.httpModel?.requestCurl ?? ""],
+                                                      applicationActivities: nil)
+            self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
+            
         }
 
         return row

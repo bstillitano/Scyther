@@ -116,5 +116,16 @@ extension LogDetailsViewController: LogDetailsViewModelProtocol {
     func viewModelShouldReloadData() {
         self.tableView.reloadData()
     }
+    
+    func viewModel(viewModel: LogDetailsViewModel?, shouldShowViewController viewController: UIViewController?) {
+        guard let viewController = viewController else {
+            return
+        }
+        guard viewController.isKind(of: UIActivityViewController.self) else {
+            self.navigationController?.pushViewController(viewController, animated: true)
+            return
+        }
+        self.present(viewController, animated: true)
+    }
 }
 #endif
