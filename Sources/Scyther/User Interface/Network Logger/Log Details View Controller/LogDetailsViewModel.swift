@@ -36,6 +36,9 @@ internal class LogDetailsViewModel {
     var cURLRow: ButtonRow {
         var row: ButtonRow = ButtonRow()
         row.text = "Export cURL request"
+        row.actionBlock = { [weak self] in
+            UIPasteboard.general.string = self?.httpModel?.requestCurl
+        }
 
         return row
     }
@@ -83,7 +86,7 @@ internal class LogDetailsViewModel {
         /// Setup Request Body Section
         var requestBodySection: Section = Section()
         requestBodySection.title = "Request Body"
-        if String(httpModel?.getRequestBody() ?? "").isEmpty ?? true {
+        if String(httpModel?.getRequestBody() ?? "").isEmpty {
             requestBodySection.rows.append(emptyRow(text: "No content sent"))
         } else {
             //TODO
@@ -104,7 +107,7 @@ internal class LogDetailsViewModel {
         /// Setup Response Body Section
         var responseBodySection: Section = Section()
         responseBodySection.title = "Response Body"
-        if String(httpModel?.getResponseBody() ?? "").isEmpty ?? true {
+        if String(httpModel?.getResponseBody() ?? "").isEmpty {
             responseBodySection.rows.append(emptyRow(text: "No data received"))
         } else {
             //TODO
