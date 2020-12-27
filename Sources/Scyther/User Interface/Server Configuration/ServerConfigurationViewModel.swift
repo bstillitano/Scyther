@@ -39,6 +39,14 @@ internal class ServerConfigurationViewModel {
 
         return row
     }
+    
+    /// Empty row that contains text in a 'disabled' style
+    func emptyRow(text: String) -> EmptyRow {
+        var row: EmptyRow = EmptyRow()
+        row.text = text
+
+        return row
+    }
 
     func prepareObjects() {
         //Clear Data
@@ -48,11 +56,17 @@ internal class ServerConfigurationViewModel {
         var environmentSection: Section = Section()
         environmentSection.title = "Environment"
         environmentSection.rows = ConfigurationSwitcher.instance.configurations.sorted(by: { $0.identifier < $1.identifier }).map({ checkmarkRow(identifier: $0.identifier) })
+        if environmentSection.rows.isEmpty {
+            environmentSection.rows.append(emptyRow(text: "No environments configured"))
+        }
 
         //Setup Variables Section
         var variablesSection: Section = Section()
         variablesSection.title = "Variables"
         variablesSection.rows = ConfigurationSwitcher.instance.environmentVariables.map({ environmentVariable(name: $0.key, value: $0.value) })
+        if variablesSection.rows.isEmpty {
+            variablesSection.rows.append(emptyRow(text: "No variables configured"))
+        }
 
         //Setup Data
         sections.append(environmentSection)
