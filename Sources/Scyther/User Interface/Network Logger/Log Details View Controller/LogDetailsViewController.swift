@@ -11,7 +11,7 @@ import UIKit
 internal class LogDetailsViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
-    private var viewModel: ServerConfigurationViewModel = ServerConfigurationViewModel()
+    private var viewModel: LogDetailsViewModel = LogDetailsViewModel()
 
     // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -24,6 +24,7 @@ internal class LogDetailsViewController: UIViewController {
     
     convenience init(httpModel: LoggerHTTPModel) {
         self.init(nibName: nil, bundle: nil)
+        self.viewModel.httpModel = httpModel
     }
 
     required init?(coder: NSCoder) {
@@ -49,7 +50,6 @@ internal class LogDetailsViewController: UIViewController {
     
     private func setupData() {
         self.viewModel.delegate = self
-        self.viewModel.prepareObjects()
 
         title = viewModel.title
         navigationItem.title = viewModel.title
@@ -109,7 +109,7 @@ extension LogDetailsViewController: UITableViewDelegate {
     }
 }
 
-extension LogDetailsViewController: ServerConfigurationViewModelProtocol {
+extension LogDetailsViewController: LogDetailsViewModelProtocol {
     func viewModelShouldReloadData() {
         self.tableView.reloadData()
     }

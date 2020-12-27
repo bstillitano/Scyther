@@ -38,6 +38,7 @@ internal class NetworkLoggerViewController: UIViewController {
         //Setup Table View
         tableView.delegate = self
         tableView.dataSource = self
+        tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
 
         //Register Table View Cells
@@ -45,15 +46,9 @@ internal class NetworkLoggerViewController: UIViewController {
     }
 
     private func setupConstraints() {
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:|-0-[subview]-0-|",
-            options: .directionLeadingToTrailing,
-            metrics: nil,
-            views: ["subview": tableView]))
-        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|-0-[subview]-0-|",
-            options: .directionLeadingToTrailing,
-            metrics: nil,
-            views: ["subview": tableView]))
+        tableView.snp.makeConstraints { (make) in
+            make.edges.equalToSuperview()
+        }
     }
 
     private func setupData() {
@@ -80,7 +75,6 @@ internal class NetworkLoggerViewController: UIViewController {
 }
 
 extension NetworkLoggerViewController: UITableViewDataSource {
-
     func numberOfSections(in tableView: UITableView) -> Int {
         return viewModel.numberOfSections
     }
