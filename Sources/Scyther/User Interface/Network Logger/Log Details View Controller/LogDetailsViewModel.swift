@@ -111,7 +111,7 @@ internal class LogDetailsViewModel {
         if String(httpModel?.getRequestBody() ?? "").isEmpty {
             requestBodySection.rows.append(emptyRow(text: "No content sent"))
         } else {
-            //TODO
+            requestBodySection.rows.append(viewRequestButtonRow)
         }
         
         /// Setup Response Headers Section
@@ -132,7 +132,7 @@ internal class LogDetailsViewModel {
         if String(httpModel?.getResponseBody() ?? "").isEmpty {
             responseBodySection.rows.append(emptyRow(text: "No data received"))
         } else {
-            //TODO
+            requestBodySection.rows.append(viewResponseButtonRow)
         }
         
         /// Setup Developer Section
