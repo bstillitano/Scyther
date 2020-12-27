@@ -32,6 +32,14 @@ internal class LogDetailsViewModel {
         return row
     }
     
+    /// Button item for generating the cURL request corresponding to the `httpModel`
+    var cURLRow: ButtonRow {
+        var row: ButtonRow = ButtonRow()
+        row.text = "Export cURL request"
+
+        return row
+    }
+    
     /// Empty row that contains text in a 'disabled' style
     func emptyRow(text: String) -> EmptyRow {
         var row: EmptyRow = EmptyRow()
@@ -41,10 +49,10 @@ internal class LogDetailsViewModel {
     }
 
     func prepareObjects() {
-        //Clear Data
+        /// Clear Data
         sections.removeAll()
 
-        //Setup Overview Section
+        /// Setup Overview Section
         var overviewSection: Section = Section()
         overviewSection.title = "Overview"
         overviewSection.rows.append(defaultRow(name: "URL",
@@ -60,7 +68,7 @@ internal class LogDetailsViewModel {
         overviewSection.rows.append(defaultRow(name: "Duration",
                                                value: String(format: "%.2fs", httpModel?.requestDuration ?? 0)))
 
-        //Setup Request Headers Section
+        /// Setup Request Headers Section
         var requestHeadersSection: Section = Section()
         requestHeadersSection.title = "Request Headers"
         if httpModel?.requestHeaders?.isEmpty ?? true {
@@ -72,7 +80,11 @@ internal class LogDetailsViewModel {
             }
         }
         
-        //Setup Response Headers Section
+        /// Setup Request Body Section
+        var requestBodySection: Section = Section()
+        requestBodySection.title = "Request Body"
+        
+        /// Setup Response Headers Section
         var responseHeadersSection: Section = Section()
         responseHeadersSection.title = "Response Headers"
         if httpModel?.responseHeaders?.isEmpty ?? true {
@@ -84,13 +96,32 @@ internal class LogDetailsViewModel {
             }
         }
         
-        //Setup Data
+        /// Setup Response Body Section
+        var responseBodySection: Section = Section()
+        responseBodySection.title = "Response Body"
+        
+        /// Setup Developer Section
+        var developerSection: Section = Section()
+        developerSection.title = "Developer Info"
+        developerSection.rows.append(defaultRow(name: "Request time",
+                                                value: httpModel?.requestTime))
+        developerSection.rows.append(defaultRow(name: "Response time",
+                                                value: httpModel?.responseTime))
+        developerSection.rows.append(defaultRow(name: "Cache Policy",
+                                                value: httpModel?.requestCachePolicy))
+        developerSection.rows.append(defaultRow(name: "Timeout",
+                                                value: httpModel?.requestTimeout))
+        developerSection.rows.append(cURLRow)
+        
+        /// Setup Data
         sections.append(overviewSection)
         sections.append(requestHeadersSection)
-        // TODO - Request Body
+        sections.append(requestBodySection)
         sections.append(responseHeadersSection)
+        sections.append(responseBodySection)
+        sections.append(developerSection)
         
-        //Call Delegate
+        /// Call Delegate
         delegate?.viewModelShouldReloadData()
     }
 }
