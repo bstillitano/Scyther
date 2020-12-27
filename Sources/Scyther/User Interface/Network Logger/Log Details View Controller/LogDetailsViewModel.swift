@@ -83,6 +83,11 @@ internal class LogDetailsViewModel {
         /// Setup Request Body Section
         var requestBodySection: Section = Section()
         requestBodySection.title = "Request Body"
+        if String(httpModel?.getRequestBody() ?? "").isEmpty ?? true {
+            requestBodySection.rows.append(emptyRow(text: "No content sent"))
+        } else {
+            //TODO
+        }
         
         /// Setup Response Headers Section
         var responseHeadersSection: Section = Section()
@@ -99,6 +104,11 @@ internal class LogDetailsViewModel {
         /// Setup Response Body Section
         var responseBodySection: Section = Section()
         responseBodySection.title = "Response Body"
+        if String(httpModel?.getResponseBody() ?? "").isEmpty ?? true {
+            responseBodySection.rows.append(emptyRow(text: "No data received"))
+        } else {
+            //TODO
+        }
         
         /// Setup Developer Section
         var developerSection: Section = Section()
