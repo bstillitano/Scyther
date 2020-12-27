@@ -9,8 +9,11 @@
 import UIKit
 
 internal class NetworkLoggerViewController: UIViewController {
-    // MARK: - Data
+    // MARK: - UI Elements
     private let tableView = UITableView(frame: .zero, style: .plain)
+    private var searchController: UISearchController?
+    
+    // MARK: - Data
     private var viewModel: NetworkLoggerViewModel = NetworkLoggerViewModel()
 
     // MARK: - Init
@@ -35,14 +38,27 @@ internal class NetworkLoggerViewController: UIViewController {
 
     // MARK: - Setup
     private func setupUI() {
-        //Setup Table View
+        /// Setup Table View
         tableView.delegate = self
         tableView.dataSource = self
         tableView.tableFooterView = UIView()
         view.addSubview(tableView)
 
-        //Register Table View Cells
+        /// Register Table View Cells
         tableView.register(NetworkLogCell.self, forCellReuseIdentifier: RowStyle.networkLog.rawValue)
+        
+        /// Setup SearchController
+        searchController = UISearchController(searchResultsController: nil)
+        searchController?.searchResultsUpdater = self
+        searchController?.delegate = self
+        searchController?.hidesNavigationBarDuringPresentation = false
+        searchController?.dimsBackgroundDuringPresentation = false
+        searchController?.searchBar.autoresizingMask = [.flexibleWidth]
+        searchController?.searchBar.backgroundColor = UIColor.clear
+        searchController?.searchBar.searchBarStyle = .minimal
+        searchController?.view.backgroundColor = UIColor.clear
+        self.navigationItem.searchController = self.searchController
+        self.definesPresentationContext = true
     }
 
     private func setupConstraints() {
@@ -53,7 +69,7 @@ internal class NetworkLoggerViewController: UIViewController {
 
     private func setupData() {
         viewModel.delegate = self
-        viewModel.prepareObjects()
+        prepareObjects()
 
         title = viewModel.title
         navigationItem.title = viewModel.title
@@ -61,7 +77,7 @@ internal class NetworkLoggerViewController: UIViewController {
     
     @objc
     private func prepareObjects() {
-        viewModel.prepareObjects()
+        viewModel.prepareObjects(filteredOn: searchController?.searchBar.text)
     }
 
     // MARK: - Lifecycle
@@ -152,5 +168,15 @@ extension NetworkLoggerViewController: NetworkLoggerViewModelProtocol {
         }
         self.navigationController?.pushViewController(viewController, animated: true)
     }
+}
+
+extension NetworkLoggerViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        prepareObjects()
+    }
+}
+
+extension NetworkLoggerViewController: UISearchControllerDelegate {
+    
 }
 #endif

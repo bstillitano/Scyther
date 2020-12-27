@@ -57,15 +57,23 @@ internal class NetworkLoggerViewModel {
         }
     }
 
-    @objc func prepareObjects() {
+    @objc func prepareObjects(filteredOn searchString: String? = nil) {
         /// Clear Data
         sections.removeAll()
 
         /// Setup Logs Section
         var logsSection: Section = Section()
         logsSection.title = nil
-        for log in LoggerHTTPModelManager.sharedInstance.getModels() {
-            logsSection.rows.append(networkRow(httpModel: log))
+        
+        /// Check for Filtered Data
+        if searchString != nil && !(searchString?.isEmpty ?? true) {
+            for log in LoggerHTTPModelManager.sharedInstance.getModels().filter( { ($0.requestURL?.contains(searchString ?? "") ?? false) } ) {
+                logsSection.rows.append(networkRow(httpModel: log))
+            }
+        } else {
+            for log in LoggerHTTPModelManager.sharedInstance.getModels() {
+                logsSection.rows.append(networkRow(httpModel: log))
+            }
         }
 
         /// Setup Data
