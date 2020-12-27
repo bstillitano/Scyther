@@ -29,5 +29,17 @@ final internal class DefaultCell: UITableViewCell {
         detailTextLabel?.text = nil
         imageView?.image = nil
     }
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        /// Update detail text label constraints
+        detailTextLabel?.snp.remakeConstraints({ (make) in
+            make.top.equalToSuperview().inset(8)
+            make.bottom.equalToSuperview().inset(8)
+            make.right.equalToSuperview().inset(16)
+            make.left.equalTo(textLabel?.snp.right ?? 0).offset(16)
+        })
+    }
 }
 #endif
