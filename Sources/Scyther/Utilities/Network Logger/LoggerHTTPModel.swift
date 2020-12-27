@@ -139,7 +139,10 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
     }
 
 
-    func saveRequestBodyData(_ data: Data) {
+    func saveRequestBodyData(_ data: Data?) {
+        guard let data = data else {
+            return
+        }
         let tempBodyString = NSString.init(data: data, encoding: String.Encoding.utf8.rawValue)
         self.requestBodyLength = data.count
         if (tempBodyString != nil) {

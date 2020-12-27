@@ -64,8 +64,8 @@ extension URLRequest {
         return allHTTPHeaderFields ?? [:]
     }
 
-    var body: Data {
-        return httpBodyStream?.readfully() ?? URLProtocol.property(forKey: "ScytherBodyData", in: self) as? Data ?? Data()
+    var body: Data? {
+        return httpBodyStream?.readfully() ?? URLProtocol.property(forKey: "ScytherBodyData", in: self) as? Data
     }
 
     var curlString: String {
@@ -89,7 +89,10 @@ extension URLRequest {
         }
 
         /// Append Body
-        if let body = String(data: body, encoding: .utf8) {
+        guard let requestBody: Data = body else {
+            return commands.joined(separator: " ")
+        }
+        if let body = String(data: requestBody, encoding: .utf8) {
             commands.append("-d \u{22}\(body)\u{22}")
         }
 
