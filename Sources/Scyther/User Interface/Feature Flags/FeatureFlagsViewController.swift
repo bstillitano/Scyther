@@ -35,6 +35,7 @@ internal class FeatureFlagsViewController: UIViewController {
         //Register Table View Cells
         tableView.register(SwitchCell.self, forCellReuseIdentifier: RowStyle.switchAccessory.rawValue)
         tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
+        tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
 
         //Add Table View
         view.addSubview(tableView)

@@ -68,6 +68,14 @@ internal class FeatureFlagsViewModel {
 
         return row
     }
+    
+    /// Empty row that contains text in a 'disabled' style
+    func emptyRow(text: String) -> EmptyRow {
+        var row: EmptyRow = EmptyRow()
+        row.text = text
+
+        return row
+    }
 
     func prepareObjects() {
         //Clear Data
@@ -83,6 +91,9 @@ internal class FeatureFlagsViewModel {
         togglesSection.title = "Toggles"
         togglesSection.rows = Toggler.instance.toggles.sorted(by: { $0.name.lowercased() < $1.name.lowercased() })
             .map({ toggleSwitch(for: $0.name) })
+        if togglesSection.rows.isEmpty {
+            togglesSection.rows.append(emptyRow(text: "No toggles configured"))
+        }
 
         //Setup Data
         sections.append(globalSection)
