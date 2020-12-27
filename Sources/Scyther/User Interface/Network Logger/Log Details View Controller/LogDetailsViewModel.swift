@@ -52,7 +52,9 @@ internal class LogDetailsViewModel {
         var row: ButtonRow = ButtonRow()
         row.text = "View request body"
         row.actionBlock = { [weak self] in
-            UIPasteboard.general.string = self?.httpModel?.requestCurl
+            let viewController: TextReaderViewController = TextReaderViewController()
+            viewController.text = self?.httpModel?.getRequestBody() as String?
+            self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
         }
 
         return row
@@ -63,7 +65,9 @@ internal class LogDetailsViewModel {
         var row: ButtonRow = ButtonRow()
         row.text = "View reponse body"
         row.actionBlock = { [weak self] in
-            UIPasteboard.general.string = self?.httpModel?.requestCurl
+            let viewController: TextReaderViewController = TextReaderViewController()
+            viewController.text = self?.httpModel?.getResponseBody() as String?
+            self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
         }
 
         return row
