@@ -151,5 +151,12 @@ extension NetworkLoggerViewController: NetworkLoggerViewModelProtocol {
             self.tableView.reloadData()
         }
     }
+    
+    func viewModel(viewModel: NetworkLoggerViewModel?, shouldShowViewController viewController: UIViewController?) {
+        guard let viewController = viewController else {
+            return
+        }
+        self.navigationController?.pushViewController(viewController, animated: true)
+    }
 }
 #endif

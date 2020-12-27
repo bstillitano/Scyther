@@ -21,6 +21,10 @@ internal class LogDetailsViewController: UIViewController {
         setupConstraints()
         setupData()
     }
+    
+    convenience init(httpModel: LoggerHTTPModel) {
+        self.init(nibName: nil, bundle: nil)
+    }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")

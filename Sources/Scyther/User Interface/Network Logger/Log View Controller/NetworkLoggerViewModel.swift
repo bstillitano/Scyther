@@ -10,6 +10,7 @@ import UIKit
 
 internal protocol NetworkLoggerViewModelProtocol: class {
     func viewModelShouldReloadData()
+    func viewModel(viewModel: NetworkLoggerViewModel?, shouldShowViewController viewController: UIViewController?)
 }
 
 internal class NetworkLoggerViewModel {
@@ -29,6 +30,10 @@ internal class NetworkLoggerViewModel {
         row.httpRequestURL = httpModel.requestURL
         row.httpModel = httpModel
         row.accessoryType = .disclosureIndicator
+        row.actionBlock = { [weak self] in
+            let logDetailsViewController: LogDetailsViewController = LogDetailsViewController(httpModel: httpModel)
+            self?.delegate?.viewModel(viewModel: self, shouldShowViewController: logDetailsViewController)
+        }
         return row
     }
     
