@@ -75,7 +75,7 @@ extension URLRequest {
         }
 
         /// Construct curl command
-        let baseCommand = "curl \(url.absoluteString)"
+        let baseCommand = "curl \u{22}\(url.absoluteString)\u{22}"
         var commands = [baseCommand]
 
         /// Check method and append onto commands array
