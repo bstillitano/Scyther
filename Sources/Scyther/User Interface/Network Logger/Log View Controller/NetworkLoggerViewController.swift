@@ -54,10 +54,8 @@ internal class NetworkLoggerViewController: UIViewController {
         searchController?.hidesNavigationBarDuringPresentation = false
         searchController?.dimsBackgroundDuringPresentation = false
         searchController?.searchBar.autoresizingMask = [.flexibleWidth]
-        searchController?.searchBar.backgroundColor = UIColor.clear
         searchController?.searchBar.searchBarStyle = .minimal
         searchController?.searchBar.placeholder = "Search for a request URL"
-        searchController?.view.backgroundColor = UIColor.clear
         self.navigationItem.searchController = self.searchController
         self.definesPresentationContext = true
     }
