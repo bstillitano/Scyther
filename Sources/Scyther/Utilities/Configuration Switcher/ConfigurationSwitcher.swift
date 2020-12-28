@@ -18,7 +18,7 @@ public class ConfigurationSwitcher {
     internal var configurations: [ServerConfiguration] = [] {
         didSet {
             /// Set default value
-            guard !configuration.isEmpty else {
+            guard configuration.isEmpty else {
                 return
             }
             guard let newConfig = configurations.first else {
