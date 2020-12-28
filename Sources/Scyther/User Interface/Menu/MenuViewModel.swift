@@ -51,6 +51,14 @@ internal class MenuViewModel {
         row.accessoryType = UITableViewCell.AccessoryType.none
         return row
     }
+    
+    /// Empty row that contains text in a 'disabled' style
+    func emptyRow(text: String) -> EmptyRow {
+        var row: EmptyRow = EmptyRow()
+        row.text = text
+
+        return row
+    }
 
     func prepareObjects() {
         //Clear Data
@@ -116,14 +124,17 @@ internal class MenuViewModel {
         /// Setup Security Section
         var securitySection: Section = Section()
         securitySection.title = "Security"
+        securitySection.rows.append(emptyRow(text: "Coming soon"))
 
         /// Setup Support Section
         var supportSection: Section = Section()
         supportSection.title = "Support"
+        supportSection.rows.append(emptyRow(text: "Coming soon"))
 
         /// Setup Development Section
         var developmentSection: Section = Section()
         developmentSection.title = "Development Tools"
+        developmentSection.rows.append(emptyRow(text: "No tools configured"))
 
         /// Setup Data
         sections.append(deviceSection)
