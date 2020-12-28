@@ -36,8 +36,9 @@ internal class MenuViewController: UIViewController {
         view.addSubview(tableView)
 
         /// Register Table View Cells
-        tableView.register(DefaultCell.self, forCellReuseIdentifier: "default")
-        tableView.register(DeviceTableViewCell.self, forCellReuseIdentifier: "deviceHeader")
+        tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
+        tableView.register(DeviceTableViewCell.self, forCellReuseIdentifier: RowStyle.deviceHeader.rawValue)
+        tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
 
         /// Setup Close button
         if #available(iOS 13.0, *) {
