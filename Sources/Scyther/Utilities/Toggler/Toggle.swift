@@ -62,7 +62,14 @@ internal struct Toggle {
      
      - Complexity: O(1)
      */
-    internal var remoteValue: Bool = false
+    internal var remoteValue: Bool = false {
+        didSet {
+            guard UserDefaults.standard.value(forKey: defaultsKey) == nil else {
+                return
+            }
+            localValue = remoteValue
+        }
+    }
 
     /**
      Getter/Setter for this `Toggle` object's local override. When setting this value it will write to `UserDefaults` using the `defaultsKey` value as the key.

@@ -51,11 +51,10 @@ internal class NetworkLoggerViewController: UIViewController {
         searchController = UISearchController(searchResultsController: nil)
         searchController?.searchResultsUpdater = self
         searchController?.delegate = self
-        searchController?.hidesNavigationBarDuringPresentation = false
         searchController?.dimsBackgroundDuringPresentation = false
         searchController?.searchBar.autoresizingMask = [.flexibleWidth]
         searchController?.searchBar.searchBarStyle = .minimal
-        searchController?.searchBar.placeholder = "Search for a request URL"
+        searchController?.searchBar.placeholder = "Search by url or status code"
         self.navigationItem.searchController = self.searchController
         self.definesPresentationContext = true
     }
