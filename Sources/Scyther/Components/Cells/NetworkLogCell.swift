@@ -21,6 +21,7 @@ class NetworkLogCell: UITableViewCell {
     
         /// Setup UI
         setupUI()
+        setupConstraints()
     }
 
     required init(coder aDecoder: NSCoder) {
@@ -50,12 +51,10 @@ class NetworkLogCell: UITableViewCell {
         timeLabel.font = .systemFont(ofSize: 11)
         contentView.addSubview(timeLabel)
     }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-
+    
+    private func setupConstraints() {
         /// Setup `statusView` constraints
-        statusView.snp.makeConstraints { (make) in
+        statusView.snp.remakeConstraints { (make) in
             make.top.equalToSuperview()
             make.bottom.equalToSuperview()
             make.left.equalToSuperview()
@@ -63,21 +62,21 @@ class NetworkLogCell: UITableViewCell {
         }
         
         /// Setup `methodLabel` constraints
-        methodLabel.snp.makeConstraints { (make) in
+        methodLabel.snp.remakeConstraints { (make) in
             make.top.equalToSuperview().inset(8)
             make.left.equalTo(statusView.snp.right).offset(8)
             make.width.equalTo(48)
         }
         
         /// Setup `responseLabel` constraints
-        responseLabel.snp.makeConstraints { (make) in
+        responseLabel.snp.remakeConstraints { (make) in
             make.top.greaterThanOrEqualTo(methodLabel.snp.bottom).offset(8)
             make.left.equalTo(statusView.snp.right).offset(8)
             make.width.equalTo(48)
         }
         
         /// Setup `timeLabel` constraints
-        timeLabel.snp.makeConstraints { (make) in
+        timeLabel.snp.remakeConstraints { (make) in
             make.top.greaterThanOrEqualTo(responseLabel.snp.bottom).offset(8)
             make.left.equalTo(statusView.snp.right).offset(8)
             make.width.equalTo(48)
@@ -85,12 +84,19 @@ class NetworkLogCell: UITableViewCell {
         }
         
         /// Setup `urlLabel` constraints
-        urlLabel.snp.makeConstraints { (make) in
+        urlLabel.snp.remakeConstraints { (make) in
             make.top.equalToSuperview().inset(8)
             make.bottom.equalToSuperview().inset(8)
             make.left.equalTo(methodLabel.snp.right).offset(16)
             make.right.equalToSuperview().inset(16)
         }
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        /// Reset constraints
+        setupConstraints()
     }
 
     func configureWithRow(_ row: NetworkLogRow) {
@@ -103,18 +109,6 @@ class NetworkLogCell: UITableViewCell {
         /// Set Colors
         responseLabel.textColor = row.httpStatusColor
         statusView.backgroundColor = row.httpStatusColor
-        
-        //TODO - SET ISNEW
-        isNewBasedOnDate(Date(timeIntervalSinceNow: 100) as Date? ?? Date())
-    }
-
-    func isNewBasedOnDate(_ responseDate: Date) {
-        //TODO - Implement ???? why??????
-        if responseDate.isGreaterThanDate(Date()) {
-//            self.isNew()
-        } else {
-//            self.isOld()
-        }
     }
 }
 #endif
