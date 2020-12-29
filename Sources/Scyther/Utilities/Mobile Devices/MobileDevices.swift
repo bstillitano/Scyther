@@ -12,6 +12,7 @@ class MobileDevices {
     /// An initialised, shared instance of the `MobileDevices` class.
     static let instance = MobileDevices()
 
+    // MARK: - Data
     private let devices: [MobileDevice]
     private var bestMatchForCurrentDevice: MobileDevice?
 
@@ -23,19 +24,17 @@ class MobileDevices {
             return nil
         }
 
-        // We need to be able to transform this data into a Plist
+        /// Make sure this data can be cast into a PropertyList
         guard let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any] else {
             return nil
         }
-
-        // Map exported type declartions into memory
         let exportedTypeDeclarations = plist["UTExportedTypeDeclarations"] as? [[String: Any]] ?? []
 
+        /// Set Data
         devices = exportedTypeDeclarations.compactMap { MobileDevice(from: $0) }
     }
 
     // MARK: - Helper functions
-
     func findBestMatchForCurrentDevice() -> MobileDevice? {
         // Aquire hardware model & color from MobileGestalt
         let hardwareModel: String? = UIDevice.current.model // HWModelStr
@@ -93,7 +92,7 @@ class MobileDevices {
         guard let fileName = iconFileName else {
             return nil
         }
-        return URL(string: "https://github.com/Yoshimi-Robotics/MobileDevices/raw/master/Resources/\(fileName)")
+        return URL(string: "https://github.com/bstillitano/iOS-Device-Icons/raw/master/Resources/\(fileName)")
     }
 
     /// Device equivalent types
