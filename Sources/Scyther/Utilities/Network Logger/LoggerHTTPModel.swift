@@ -91,6 +91,7 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
     /// A `Bool` value representing whether or not the request hung/finalised with no response
     @objc public var noResponse: Bool = true
 
+    /// Setter method for this objects variables
     func saveRequest(_ request: URLRequest) {
         self.requestDate = Date()
         self.requestTime = getTimeFromDate(self.requestDate!)
@@ -137,7 +138,6 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
         saveResponseBodyData(data)
         formattedResponseLogEntry().appendToFile(filePath: LoggerFilePath.SessionLog)
     }
-
 
     func saveRequestBodyData(_ data: Data?) {
         guard let data = data else {
@@ -279,21 +279,10 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
             } catch {
                 return nil
             }
-
         default:
             return nil
-
         }
     }
-
-    @objc public func isSuccessful() -> Bool {
-        if (self.responseStatus != nil) && (self.responseStatus < 400) {
-            return true
-        } else {
-            return false
-        }
-    }
-
 
     @objc public func formattedRequestLogEntry() -> String {
         var log = String()

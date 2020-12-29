@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// Utility class used to monitor and subsequently log networking requests made by registering a `URLProtocol`
 public class Logger {
     /// Private Init to Stop re-initialisation and allow singleton creation.
     private init() { }
