@@ -7,6 +7,7 @@
 
 #if !os(macOS)
 import SDWebImage
+import SnapKit
 import UIKit
 
 internal class MenuViewController: UIViewController {
@@ -31,11 +32,13 @@ internal class MenuViewController: UIViewController {
         /// Setup Table View
         tableView.delegate = self
         tableView.dataSource = self
+        tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
 
         /// Register Table View Cells
-        tableView.register(DefaultCell.self, forCellReuseIdentifier: "default")
-        tableView.register(DeviceTableViewCell.self, forCellReuseIdentifier: "deviceHeader")
+        tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
+        tableView.register(DeviceTableViewCell.self, forCellReuseIdentifier: RowStyle.deviceHeader.rawValue)
+        tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
 
         /// Setup Close button
         if #available(iOS 13.0, *) {
@@ -43,18 +46,17 @@ internal class MenuViewController: UIViewController {
         } else {
             navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(dismissMenu))
         }
+        
+        /// Disable interactive dismissal
+        if #available(iOS 13.0, *) {
+            isModalInPresentation = true
+        }
     }
 
     private func setupConstraints() {
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:|-0-[subview]-0-|",
-                                                           options: .directionLeadingToTrailing,
-                                                           metrics: nil,
-                                                           views: ["subview": tableView]))
-        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|-0-[subview]-0-|",
-                                                           options: .directionLeadingToTrailing,
-                                                           metrics: nil,
-                                                           views: ["subview": tableView]))
+        tableView.snp.makeConstraints { (make) in
+            make.edges.equalToSuperview()
+        }
     }
 
     // MARK: - Lifecycle

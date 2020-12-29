@@ -1,17 +1,17 @@
 //
-//  ServerConfigurationViewController.swift
-//  Scyther
+//  LogDetailsViewController.swift
+//  
 //
-//  Created by Brandon Stillitano on 11/12/20.
+//  Created by Brandon Stillitano on 27/12/20.
 //
 
 #if !os(macOS)
 import UIKit
 
-internal class ServerConfigurationViewController: UIViewController {
+internal class LogDetailsViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
-    private var viewModel: ServerConfigurationViewModel = ServerConfigurationViewModel()
+    private var viewModel: LogDetailsViewModel = LogDetailsViewModel()
 
     // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -20,6 +20,11 @@ internal class ServerConfigurationViewController: UIViewController {
         setupUI()
         setupConstraints()
         setupData()
+    }
+    
+    convenience init(httpModel: LoggerHTTPModel) {
+        self.init(nibName: nil, bundle: nil)
+        self.viewModel.httpModel = httpModel
     }
 
     required init?(coder: NSCoder) {
@@ -35,25 +40,18 @@ internal class ServerConfigurationViewController: UIViewController {
 
         //Register Table View Cells
         tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
-        tableView.register(CheckmarkCell.self, forCellReuseIdentifier: RowStyle.checkmarkAccessory.rawValue)
+        tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
         tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
     }
 
     private func setupConstraints() {
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:|-0-[subview]-0-|",
-                                                           options: .directionLeadingToTrailing,
-                                                           metrics: nil,
-                                                           views: ["subview": tableView]))
-        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|-0-[subview]-0-|",
-                                                           options: .directionLeadingToTrailing,
-                                                           metrics: nil,
-                                                           views: ["subview": tableView]))
+        tableView.snp.makeConstraints { (make) in
+            make.edges.equalToSuperview()
+        }
     }
     
     private func setupData() {
         self.viewModel.delegate = self
-        self.viewModel.prepareObjects()
 
         title = viewModel.title
         navigationItem.title = viewModel.title
@@ -69,7 +67,7 @@ internal class ServerConfigurationViewController: UIViewController {
     }
 }
 
-extension ServerConfigurationViewController: UITableViewDataSource {
+extension LogDetailsViewController: UITableViewDataSource {
 
     func numberOfSections(in tableView: UITableView) -> Int {
         return viewModel.numberOfSections
@@ -95,24 +93,14 @@ extension ServerConfigurationViewController: UITableViewDataSource {
         cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
         cell.accessoryView = row.accessoryView
-
-        // Setup Accessory
-        switch row.style {
-        case .checkmarkAccessory:
-            guard let checkRow: CheckmarkRow = row as? CheckmarkRow else {
-                break
-            }
-            cell.accessoryType = checkRow.checked ? .checkmark : .none
-        default:
-            break
-        }
+        cell.accessoryType = row.accessoryType ?? .none
+        cell.detailTextLabel?.adjustsFontSizeToFitWidth = false
 
         return cell
     }
-
 }
 
-extension ServerConfigurationViewController: UITableViewDelegate {
+extension LogDetailsViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         // Deselect Cell
         defer { tableView.deselectRow(at: indexPath, animated: true) }
@@ -125,9 +113,20 @@ extension ServerConfigurationViewController: UITableViewDelegate {
     }
 }
 
-extension ServerConfigurationViewController: ServerConfigurationViewModelProtocol {
+extension LogDetailsViewController: LogDetailsViewModelProtocol {
     func viewModelShouldReloadData() {
         self.tableView.reloadData()
+    }
+    
+    func viewModel(viewModel: LogDetailsViewModel?, shouldShowViewController viewController: UIViewController?) {
+        guard let viewController = viewController else {
+            return
+        }
+        guard viewController.isKind(of: UIActivityViewController.self) else {
+            self.navigationController?.pushViewController(viewController, animated: true)
+            return
+        }
+        self.present(viewController, animated: true)
     }
 }
 #endif

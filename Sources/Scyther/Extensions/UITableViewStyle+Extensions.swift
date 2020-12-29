@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 22/12/20.
 //
 
+#if !os(macOS)
 import UIKit
 
 extension UITableView.Style {
@@ -16,3 +17,4 @@ extension UITableView.Style {
         }
     }
 }
+#endif
