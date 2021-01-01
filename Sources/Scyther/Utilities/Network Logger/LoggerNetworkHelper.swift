@@ -130,16 +130,6 @@ extension InputStream {
     }
 }
 
-extension Date {
-    func isGreaterThanDate(_ dateToCompare: Date) -> Bool {
-        if self.compare(dateToCompare) == ComparisonResult.orderedDescending {
-            return true
-        } else {
-            return false
-        }
-    }
-}
-
 extension String {
     func appendToFile(filePath: String) {
         let contentToAppend = self

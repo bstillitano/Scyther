@@ -38,11 +38,12 @@ public class Scyther {
         /// Set data
         self.started = true
         
-        /// Register `URLProtocol` class for network logging to intercept requests
+        /// Register `URLProtocol` class for network logging to intercept requests. Swizzling required because libraries like
+        /// Alamofire don't use the shared NSURLSession instance but instead use their own instance.
         URLSessionConfiguration.swizzleDefaultSessionConfiguration()
         Logger.enable(true)
         
-        /// Get IP Address
+        /// Get IP Address and store it in singleton instance for display on the menu
         Logger.getIPAddress { (ipAddress) in
             Scyther.logger.ipAddress = ipAddress
         }
