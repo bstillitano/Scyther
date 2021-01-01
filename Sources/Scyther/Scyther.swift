@@ -39,7 +39,8 @@ public class Scyther {
         self.started = true
         
         /// Register `URLProtocol` class for network logging to intercept requests
-        URLProtocol.registerClass(LoggerProtocol.self)
+        URLSessionConfiguration.swizzleDefaultSessionConfiguration()
+        Logger.enable(true)
         
         /// Get IP Address
         Logger.getIPAddress { (ipAddress) in

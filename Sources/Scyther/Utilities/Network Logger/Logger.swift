@@ -59,13 +59,13 @@ extension Logger {
                 completion("0.0.0.0")
                 return
             }
-            
+
             /// Serialize JSON response into `AnyObject`
             guard let jsonData = try? JSONSerialization.jsonObject(with: data, options: [.allowFragments]) else {
                 completion("0.0.0.0")
                 return
             }
-            
+
             /// Check response data for `ip` key
             guard let ipAddress: String = (jsonData as AnyObject).value(forKey: "ip") as? String else {
                 completion("0.0.0.0")
@@ -73,5 +73,27 @@ extension Logger {
             }
             completion(ipAddress)
         }.resume()
+    }
+    
+    static func enable(_ enable: Bool){
+        if enable {
+            URLProtocol.registerClass(LoggerProtocol.self)
+        } else {
+            URLProtocol.unregisterClass(LoggerProtocol.self)
+        }
+    }
+    
+    static func enable(_ enabled: Bool, sessionConfiguration: URLSessionConfiguration) {
+        guard var urlProtocolClasses = sessionConfiguration.protocolClasses else { return }
+
+        let index = urlProtocolClasses.firstIndex(where: { $0 == LoggerProtocol.self })
+        if enabled == true, index == nil {
+            urlProtocolClasses.insert(LoggerProtocol.self, at: 0)
+        } else if enabled == false && index != nil {
+            urlProtocolClasses.remove(at: index!)
+        }
+        sessionConfiguration.protocolClasses = urlProtocolClasses
+
+        Self.enable(enabled)
     }
 }
