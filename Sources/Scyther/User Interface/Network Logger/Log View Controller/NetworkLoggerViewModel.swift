@@ -67,11 +67,11 @@ internal class NetworkLoggerViewModel {
         
         /// Check for Filtered Data
         if searchString != nil && !(searchString?.isEmpty ?? true) {
-            for log in LoggerHTTPModelManager.sharedInstance.models.filter( { ($0.requestURL?.lowercased().contains(searchString?.lowercased() ?? "") ?? false) || ($0.responseStatus ?? 0 == Int(searchString ?? "") ?? 0) } ) {
+            for log in LoggerHTTPModelManager.sharedInstance.getModels().filter( { ($0.requestURL?.lowercased().contains(searchString?.lowercased() ?? "") ?? false) || ($0.responseStatus ?? 0 == Int(searchString ?? "") ?? 0) } ) {
                 logsSection.rows.append(networkRow(httpModel: log))
             }
         } else {
-            for log in LoggerHTTPModelManager.sharedInstance.models {
+            for log in LoggerHTTPModelManager.sharedInstance.getModels() {
                 logsSection.rows.append(networkRow(httpModel: log))
             }
         }

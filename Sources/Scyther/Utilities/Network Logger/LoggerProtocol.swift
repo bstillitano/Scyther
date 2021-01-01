@@ -90,8 +90,8 @@ extension LoggerProtocol: URLSessionDataDelegate {
         self.responseData = NSMutableData()
 
         client?.urlProtocol(self,
-                            didReceive: response,
-                            cacheStoragePolicy: Scyther.logger.cacheStoragePolicy)
+            didReceive: response,
+            cacheStoragePolicy: Scyther.logger.cacheStoragePolicy)
         completionHandler(.allow)
     }
 
@@ -145,8 +145,8 @@ extension LoggerProtocol: URLSessionDataDelegate {
     }
 
     #if !os(OSX)
-    public func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
-        client?.urlProtocolDidFinishLoading(self)
-    }
+        public func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
+            client?.urlProtocolDidFinishLoading(self)
+        }
     #endif
 }

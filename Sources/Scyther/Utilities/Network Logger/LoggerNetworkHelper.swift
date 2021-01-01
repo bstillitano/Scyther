@@ -144,11 +144,12 @@ extension String {
     func appendToFile(filePath: String) {
         let contentToAppend = self
 
-        /// Create file or append to file
         if let fileHandle = FileHandle(forWritingAtPath: filePath) {
+            /* Append to file */
             fileHandle.seekToEndOfFile()
-            fileHandle.write(contentToAppend.data(using: String.Encoding.utf8) ?? Data())
+            fileHandle.write(contentToAppend.data(using: String.Encoding.utf8)!)
         } else {
+            /* Create new file */
             do {
                 try contentToAppend.write(toFile: filePath, atomically: true, encoding: String.Encoding.utf8)
             } catch {
@@ -177,17 +178,15 @@ extension String {
 
     private static func swizzleProtocolSetter() {
         let instance = URLSessionConfiguration.default
-        guard let aClass: AnyClass = object_getClass(instance) else {
-            return
-        }
+
+        let aClass: AnyClass = object_getClass(instance)!
+
         let origSelector = #selector(setter: URLSessionConfiguration.protocolClasses)
         let newSelector = #selector(setter: URLSessionConfiguration.protocolClasses_Swizzled)
-        guard let origMethod = class_getInstanceMethod(aClass, origSelector) else {
-            return
-        }
-        guard let newMethod = class_getInstanceMethod(aClass, newSelector) else {
-            return
-        }
+
+        let origMethod = class_getInstanceMethod(aClass, origSelector)!
+        let newMethod = class_getInstanceMethod(aClass, newSelector)!
+
         method_exchangeImplementations(origMethod, newMethod)
     }
 
@@ -215,39 +214,36 @@ extension String {
     }
 
     private static func swizzleDefault() {
-        guard let aClass: AnyClass = object_getClass(self) else {
-            return
-        }
+        let aClass: AnyClass = object_getClass(self)!
+
         let origSelector = #selector(getter: URLSessionConfiguration.default)
         let newSelector = #selector(getter: URLSessionConfiguration.default_swizzled)
-        guard let origMethod = class_getClassMethod(aClass, origSelector) else {
-            return
-        }
-        guard let newMethod = class_getClassMethod(aClass, newSelector) else {
-            return
-        }
+
+        let origMethod = class_getClassMethod(aClass, origSelector)!
+        let newMethod = class_getClassMethod(aClass, newSelector)!
+
         method_exchangeImplementations(origMethod, newMethod)
     }
 
     private static func swizzleEphemeral() {
-        guard let aClass: AnyClass = object_getClass(self) else {
-            return
-        }
+        let aClass: AnyClass = object_getClass(self)!
+
         let origSelector = #selector(getter: URLSessionConfiguration.ephemeral)
         let newSelector = #selector(getter: URLSessionConfiguration.ephemeral_swizzled)
-        guard let origMethod = class_getClassMethod(aClass, origSelector) else {
-            return
-        }
-        guard let newMethod = class_getClassMethod(aClass, newSelector) else {
-            return
-        }
+
+        let origMethod = class_getClassMethod(aClass, origSelector)!
+        let newMethod = class_getClassMethod(aClass, newSelector)!
+
         method_exchangeImplementations(origMethod, newMethod)
     }
 
     @objc private class var default_swizzled: URLSessionConfiguration {
         get {
             let config = URLSessionConfiguration.default_swizzled
+
+            // Let's go ahead and add in ScytherProtocol, since it's safe to do so.
             config.protocolClasses?.insert(LoggerProtocol.self, at: 0)
+
             return config
         }
     }
@@ -255,7 +251,10 @@ extension String {
     @objc private class var ephemeral_swizzled: URLSessionConfiguration {
         get {
             let config = URLSessionConfiguration.ephemeral_swizzled
+
+            // Let's go ahead and add in ScytherProtocol, since it's safe to do so.
             config.protocolClasses?.insert(LoggerProtocol.self, at: 0)
+
             return config
         }
     }

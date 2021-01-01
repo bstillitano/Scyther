@@ -7,27 +7,30 @@
 
 import Foundation
 
+private let _sharedInstance = LoggerHTTPModelManager()
+
 final class LoggerHTTPModelManager: NSObject {
     static let sharedInstance = LoggerHTTPModelManager()
-    private var requestModels = [LoggerHTTPModel]()
+    fileprivate var models = [LoggerHTTPModel]()
     private let syncQueue = DispatchQueue(label: "LoggerSyncQueue")
     
     func add(_ obj: LoggerHTTPModel) {
         syncQueue.async {
-            self.requestModels.insert(obj, at: 0)
+            self.models.insert(obj, at: 0)
             NotificationCenter.default.post(name: NSNotification.Name.LoggerAddedModel, object: obj)
         }
     }
     
     func clear() {
         syncQueue.async {
-            self.requestModels.removeAll()
+            self.models.removeAll()
             NotificationCenter.default.post(name: NSNotification.Name.LoggerClearedModels, object: nil)
         }
     }
     
-    var models: [LoggerHTTPModel] {
+    func getModels() -> [LoggerHTTPModel] {
         var predicates = [NSPredicate]()
+        
         let filterValues = Logger.instance.cachedFilters
         let filterNames = HTTPModelShortType.allCases
         
@@ -43,7 +46,8 @@ final class LoggerHTTPModelManager: NSObject {
         }
 
         let searchPredicate = NSCompoundPredicate(orPredicateWithSubpredicates: predicates)
-        let array = (self.requestModels as NSArray).filtered(using: searchPredicate)
+        
+        let array = (self.models as NSArray).filtered(using: searchPredicate)
         
         return array as? [LoggerHTTPModel] ?? []
     }
