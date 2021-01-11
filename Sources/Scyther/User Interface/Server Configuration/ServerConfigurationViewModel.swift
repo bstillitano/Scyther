@@ -26,6 +26,7 @@ internal class ServerConfigurationViewModel {
         row.checked = ConfigurationSwitcher.instance.configuration == identifier
         row.actionBlock = { [weak self] in
             ConfigurationSwitcher.instance.configuration = identifier
+            Scyther.instance.delegate?.scyther(didSwitchToEnvironment: identifier)
             self?.prepareObjects()
         }
         return row

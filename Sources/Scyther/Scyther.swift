@@ -8,12 +8,20 @@
 #if !os(macOS)
 import UIKit
 
+/// Optional delegate that can be implemented to allow an app/caller to know that certain actions have been performed. This `protocol`is not required to be implemented in order for Scyther to work properly, it should be used primarily as a UI convenience; i.e. When switching environments, show a `UIAlertController`
+public protocol ScytherDelegate: class {
+    func scyther(didSwitchToEnvironment environment: String)
+}
+
 public class Scyther {
     /// Private init to stop re-initialisation and allow singleton creation.
     private init() { }
 
     /// An initialised, shared instance of the `Scyther` class.
     public static let instance = Scyther()
+    
+    /// Delegate instance for listening to key events and performing subsequent actions
+    public weak var delegate: ScytherDelegate? = nil
     
     /// Indicates whether or not Scyther has been initialised by the client implementing the framework.
     internal var started: Bool = false
