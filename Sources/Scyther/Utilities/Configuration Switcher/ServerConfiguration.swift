@@ -8,6 +8,6 @@
 import Foundation
 
 public struct ServerConfiguration {
-    var identifier: String
-    var variables: [String: String] = [:]
+    public var identifier: String
+    public var variables: [String: String] = [:]
 }

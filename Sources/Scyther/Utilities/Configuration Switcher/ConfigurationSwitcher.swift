@@ -35,7 +35,7 @@ public class ConfigurationSwitcher {
      
      - Complexity: O(1)
      */
-    private var defaultsKey: String {
+    internal var defaultsKey: String {
         return "configuration_switcher_identity"
     }
 

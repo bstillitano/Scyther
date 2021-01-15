@@ -16,4 +16,8 @@ class ScytherNetworkHelperTests: XCTestCase {
     override class func tearDown() {
         super.tearDown()
     }
+    
+    func testInit() {
+        
+    }
 }
