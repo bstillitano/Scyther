@@ -41,6 +41,9 @@ public class Scyther {
     /// `Logger` utility class. Used for local network logging.
     public static let logger: Logger = Logger.instance
     
+    /// `ConsoleLogger` utility class. Used for intercepting local console output.
+    public static let consoleLogger: ConsoleLogger = ConsoleLogger.instance
+    
     /// Initialises the Scyther library and sets the required data to properly intercept network calls and console logs.
     public func start() {
         /// Set data
@@ -55,6 +58,9 @@ public class Scyther {
         Logger.getIPAddress { (ipAddress) in
             Scyther.logger.ipAddress = ipAddress
         }
+        
+        /// Starts the console logger and allows it intercept `stderr` output from `NSLog`
+        ConsoleLogger.instance.start()
     }
 
     /// Convenience function for manually showing the Scyther menu. Would be used when no gesture is wanted to invoke the menu.

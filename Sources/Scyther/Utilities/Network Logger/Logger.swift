@@ -94,6 +94,6 @@ extension Logger {
         }
         sessionConfiguration.protocolClasses = urlProtocolClasses
 
-        Self.enable(enabled)
+        self.enable(enabled)
     }
 }

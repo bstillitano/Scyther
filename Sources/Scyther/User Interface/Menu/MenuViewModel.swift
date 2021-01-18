@@ -129,7 +129,11 @@ internal class MenuViewModel {
         /// Setup Support Section
         var supportSection: Section = Section()
         supportSection.title = "Support"
-        supportSection.rows.append(emptyRow(text: "Coming soon"))
+        supportSection.rows.append(actionRow(name: "Console Logs",
+                                             icon: UIImage(systemImage: "terminal"),
+                                             actionController: ConsoleLoggerViewController()))
+        supportSection.rows.append(emptyRow(text: "More coming soon"))
+
 
         /// Setup Development Section
         var developmentSection: Section = Section()
