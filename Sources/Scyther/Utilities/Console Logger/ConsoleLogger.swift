@@ -25,7 +25,7 @@ public class ConsoleLogger {
         try? FileManager.default.removeItem(at: logURL)
 
         // Start capturing output
-        freopen(logURL.absoluteString, "a+", stderr)
+        freopen(logURL.absoluteString, "a+", stdout)
     }
 
     /// String representation of the log file
