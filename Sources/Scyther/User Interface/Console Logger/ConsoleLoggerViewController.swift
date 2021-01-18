@@ -10,6 +10,10 @@ import UIKit
 class ConsoleLoggerViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
         
         print("CONSOLE LOGGER====================================================================================================")
         print(Scyther.consoleLogger.logContents)
