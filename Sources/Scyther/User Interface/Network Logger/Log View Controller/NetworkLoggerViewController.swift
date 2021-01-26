@@ -57,6 +57,9 @@ internal class NetworkLoggerViewController: UIViewController {
         searchController?.searchBar.placeholder = "Search by url or status code"
         self.navigationItem.searchController = self.searchController
         self.definesPresentationContext = true
+        
+        /// Setup Close button
+        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: #selector(clearLogs))
     }
 
     private func setupConstraints() {
@@ -85,6 +88,12 @@ internal class NetworkLoggerViewController: UIViewController {
         UIView.setAnimationsEnabled(false)
         UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
         UIView.setAnimationsEnabled(true)
+    }
+}
+
+extension NetworkLoggerViewController {
+    @objc private func clearLogs() {
+        LoggerHTTPModelManager.sharedInstance.clear()
     }
 }
 

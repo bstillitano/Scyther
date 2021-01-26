@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 18/1/21.
 //
 
+#if !os(macOS)
 import UIKit
 
 class ConsoleLoggerViewController: UIViewController {
@@ -20,3 +21,4 @@ class ConsoleLoggerViewController: UIViewController {
         print("CONSOLE LOGGER====================================================================================================")
     }
 }
+#endif
