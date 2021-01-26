@@ -30,6 +30,14 @@ internal class NetworkLoggerViewController: UIViewController {
                                                selector: #selector(prepareObjects),
                                                name: NSNotification.Name.LoggerReloadData,
                                                object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(prepareObjects),
+                                               name: NSNotification.Name.LoggerAddedModel,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(prepareObjects),
+                                               name: NSNotification.Name.LoggerClearedModels,
+                                               object: nil)
     }
 
     required init?(coder: NSCoder) {
@@ -59,7 +67,7 @@ internal class NetworkLoggerViewController: UIViewController {
         self.definesPresentationContext = true
         
         /// Setup Close button
-        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: #selector(clearLogs))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: #selector(clearLogs))
     }
 
     private func setupConstraints() {
