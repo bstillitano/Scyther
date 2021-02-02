@@ -135,6 +135,13 @@ internal class MenuViewModel {
         supportSection.rows.append(emptyRow(text: "More coming soon"))
 
 
+        /// Setup UI/UX Section
+        var uiUxSection: Section = Section()
+        uiUxSection.title = "UI/UX"
+        uiUxSection.rows.append(actionRow(name: "Interface Components",
+                                                 icon: UIImage(systemImage: "text.below.photo.fill"),
+                                                 actionController: InterfacePreviewsViewController()))
+        
         /// Setup Development Section
         var developmentSection: Section = Section()
         developmentSection.title = "Development Tools"
@@ -147,6 +154,7 @@ internal class MenuViewModel {
         sections.append(environmentSection)
         sections.append(securitySection)
         sections.append(supportSection)
+        sections.append(uiUxSection)
         sections.append(developmentSection)
 
         /// Call Delegate

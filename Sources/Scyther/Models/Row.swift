@@ -18,6 +18,7 @@ enum RowStyle: String {
     case checkmarkAccessory
     case networkLog
     case emptyRow
+    case previewable
 }
 
 internal protocol Row {
