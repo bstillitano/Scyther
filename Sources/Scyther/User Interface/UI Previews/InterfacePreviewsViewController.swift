@@ -90,20 +90,6 @@ extension InterfacePreviewsViewController: UITableViewDataSource {
         // Setup Cell
         let cell = tableView.dequeueReusableCell(withIdentifier: row.cellReuseIdentifier,
                                                  for: indexPath)
-        cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
-        cell.detailTextLabel?.text = row.detailText
-        cell.accessoryView = row.accessoryView
-
-        // Setup Accessory
-        switch row.style {
-        case .checkmarkAccessory:
-            guard let checkRow: CheckmarkRow = row as? CheckmarkRow else {
-                break
-            }
-            cell.accessoryType = checkRow.checked ? .checkmark : .none
-        default:
-            break
-        }
 
         return cell
     }

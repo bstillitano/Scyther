@@ -10,7 +10,12 @@ import UIKit
 
 class PreviewableCell: UITableViewCell {
     // MARK: - UI Elements
-    var previewView: UIView? = UIView(frame: .zero)
+    var previewView: UIView? = UIView(frame: .zero) {
+        didSet {
+            setupUI()
+            setupConstraints()
+        }
+    }
     var titleLabel: UILabel = UILabel(frame: .zero)
     var descriptionLabel: UILabel = UILabel(frame: .zero)
 
@@ -27,6 +32,11 @@ class PreviewableCell: UITableViewCell {
     }
     
     private func setupUI() {
+        /// Remove all subviews
+        subviews.forEach { (view) in
+            view.removeFromSuperview()
+        }
+
         /// Setup `titlelabel`
         titleLabel.font = .boldSystemFont(ofSize: 14)
         titleLabel.numberOfLines = 0
