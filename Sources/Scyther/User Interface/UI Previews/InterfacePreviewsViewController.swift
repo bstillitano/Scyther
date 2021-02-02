@@ -95,7 +95,7 @@ extension InterfacePreviewsViewController: UITableViewDataSource {
         cell.accessoryType = row.accessoryType ?? .none
         cell.accessoryView = row.accessoryView
 
-        /// Setup Accessory
+        /// Setup Row
         switch row.style {
         case .previewable:
             /// Check if we can cast our objects to the right class

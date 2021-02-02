@@ -56,9 +56,6 @@ class PreviewableCell: UITableViewCell {
         }
         
         /// Setup `previewView` constraints
-        guard previewView.superview != nil else {
-            return
-        }
         previewView.snp.remakeConstraints { (make) in
             make.top.equalTo(descriptionLabel.snp.bottom).offset(16)
             make.left.bottom.right.equalToSuperview()
@@ -66,10 +63,16 @@ class PreviewableCell: UITableViewCell {
     }
 
     func configureWithRow(_ row: PreviewableRow) {
+        /// Remove existing preview
+        previewView.removeFromSuperview()
+
         /// Set text
         titleLabel.text = row.text
         descriptionLabel.text = row.detailText
+        
+        /// Setup preview
         previewView = row.previewView
+        contentView.addSubview(previewView)
         
         /// Relayout Constraints
         setupConstraints()
