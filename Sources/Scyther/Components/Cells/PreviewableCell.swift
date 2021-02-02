@@ -68,21 +68,14 @@ class PreviewableCell: UITableViewCell {
         }
     }
 
-    override func layoutSubviews() {
-        super.layoutSubviews()
-
-        /// Reset constraints
-        setupConstraints()
-    }
-
     func configureWithRow(_ row: PreviewableRow) {
         /// Set text
         titleLabel.text = row.text
         descriptionLabel.text = row.detailText
         previewView = row.previewView
         
-        /// Layout subviews
-        layoutSubviews()
+        /// Relayout Constraints
+        setupConstraints()
     }
 }
 #endif
