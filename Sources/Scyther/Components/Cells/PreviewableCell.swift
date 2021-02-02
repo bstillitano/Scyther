@@ -19,7 +19,6 @@ class PreviewableCell: UITableViewCell {
     
         /// Setup UI
         setupUI()
-        setupConstraints()
     }
 
     required init(coder aDecoder: NSCoder) {
@@ -27,11 +26,6 @@ class PreviewableCell: UITableViewCell {
     }
     
     private func setupUI() {
-        /// Remove all subviews
-        subviews.forEach { (view) in
-            view.removeFromSuperview()
-        }
-
         /// Setup `titlelabel`
         titleLabel.font = .boldSystemFont(ofSize: 14)
         titleLabel.numberOfLines = 0
