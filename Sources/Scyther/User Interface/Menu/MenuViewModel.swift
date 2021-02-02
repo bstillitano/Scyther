@@ -139,7 +139,7 @@ internal class MenuViewModel {
         var uiUxSection: Section = Section()
         uiUxSection.title = "UI/UX"
         uiUxSection.rows.append(actionRow(name: "Interface Components",
-                                                 icon: UIImage(systemImage: "text.below.photo.fill"),
+                                                 icon: UIImage(systemImage: "apps.iphone"),
                                                  actionController: InterfacePreviewsViewController()))
         
         /// Setup Development Section

@@ -8,10 +8,10 @@
 #if !os(macOS)
 import UIKit
 
-public protocol ScytherPreviewable {
-    var previewView: UIView { get }
-    var name: String { get}
-    var details: String { get }
-    var customInsets: UIEdgeInsets? { get }
+@objc
+public protocol ScytherPreviewable: class {
+    static var previewView: UIView { get }
+    static var name: String { get}
+    static var details: String { get }
 }
 #endif

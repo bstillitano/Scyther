@@ -12,7 +12,7 @@ internal protocol InterfacePreviewsViewModelProtocol: class {
     func viewModelShouldReloadData()
 }
 
-internal class InterfacePreviewsViewModel {
+internal class InterfacePreviewsViewModel: NSObject {
     // MARK: - Data
     private var sections: [Section] = []
 
@@ -20,7 +20,7 @@ internal class InterfacePreviewsViewModel {
     weak var delegate: InterfacePreviewsViewModelProtocol?
 
     /// Single row representing a view that conforms to `ScytherPreviewable`
-    func previewableRow(view: ScytherPreviewable) -> PreviewableRow {
+    func previewableRow(view: ScytherPreviewable.Type) -> PreviewableRow {
         var row: PreviewableRow = PreviewableRow()
         row.text = view.name
         row.detailText = view.details
@@ -36,10 +36,11 @@ internal class InterfacePreviewsViewModel {
         //Setup Preview Views Section
         var section: Section = Section()
         section.title = nil
-        Runtime.classes(conformTo: ScytherPreviewable.self).forEach { (object) in
-            guard let previewable = object as? ScytherPreviewable else {
-                return
-            }
+        guard let classes = classesConformingToProtocol(ScytherPreviewable.self) as? [ScytherPreviewable.Type] else {
+            delegate?.viewModelShouldReloadData()
+            return
+        }
+        classes.forEach { (previewable) in
             section.rows.append(previewableRow(view: previewable))
         }
 
