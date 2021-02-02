@@ -82,14 +82,38 @@ extension InterfacePreviewsViewController: UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        // Check for Cell
+        /// Check for Cell
         guard let row = viewModel.row(at: indexPath) else {
             return UITableViewCell()
         }
 
-        // Setup Cell
+        /// Setup Cell
         let cell = tableView.dequeueReusableCell(withIdentifier: row.cellReuseIdentifier,
-                                                 for: indexPath)
+            for: indexPath)
+        cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
+        cell.detailTextLabel?.text = row.detailText
+        cell.accessoryType = row.accessoryType ?? .none
+        cell.accessoryView = row.accessoryView
+
+        /// Setup Accessory
+        switch row.style {
+        case .previewable:
+            /// Check if we can cast our objects to the right class
+            guard let row: PreviewableRow = row as? PreviewableRow else {
+                break
+            }
+            guard let cell: PreviewableCell = cell as? PreviewableCell else {
+                break
+            }
+
+            /// Configure cell
+            cell.textLabel?.text = nil
+            cell.detailTextLabel?.text = nil
+            cell.configureWithRow(row)
+            return cell
+        default:
+            break
+        }
 
         return cell
     }

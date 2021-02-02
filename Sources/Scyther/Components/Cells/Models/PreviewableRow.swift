@@ -22,6 +22,6 @@ internal struct PreviewableRow: Row {
     var image: UIImage?
     var imageURL: URL?
     var accessoryType: UITableViewCell.AccessoryType?
-    var previewView: UIView?
+    var previewView: UIView = UIView()
 }
 #endif

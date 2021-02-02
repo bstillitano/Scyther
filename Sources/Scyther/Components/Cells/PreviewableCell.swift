@@ -10,12 +10,7 @@ import UIKit
 
 class PreviewableCell: UITableViewCell {
     // MARK: - UI Elements
-    var previewView: UIView? = UIView(frame: .zero) {
-        didSet {
-            setupUI()
-            setupConstraints()
-        }
-    }
+    var previewView: UIView = UIView(frame: .zero)
     var titleLabel: UILabel = UILabel(frame: .zero)
     var descriptionLabel: UILabel = UILabel(frame: .zero)
 
@@ -50,9 +45,6 @@ class PreviewableCell: UITableViewCell {
         contentView.addSubview(descriptionLabel)
         
         /// Setup `previewView`
-        guard let previewView: UIView = previewView else {
-            return
-        }
         contentView.addSubview(previewView)
     }
     
@@ -70,7 +62,7 @@ class PreviewableCell: UITableViewCell {
         }
         
         /// Setup `previewView` constraints
-        previewView?.snp.remakeConstraints { (make) in
+        previewView.snp.remakeConstraints { (make) in
             make.top.equalTo(descriptionLabel.snp.bottom).offset(16)
             make.left.bottom.right.equalToSuperview()
         }
@@ -88,6 +80,9 @@ class PreviewableCell: UITableViewCell {
         titleLabel.text = row.text
         descriptionLabel.text = row.detailText
         previewView = row.previewView
+        
+        /// Layout subviews
+        layoutSubviews()
     }
 }
 #endif
