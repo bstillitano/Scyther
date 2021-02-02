@@ -9,9 +9,9 @@
 import UIKit
 
 public protocol ScytherPreviewable {
-    var previewView: UIView { get set }
-    var name: String { get set }
-    var description: String { get set }
-    var customInsets: UIEdgeInsets { get set }
+    var previewView: UIView { get }
+    var name: String { get}
+    var details: String { get }
+    var customInsets: UIEdgeInsets { get }
 }
 #endif

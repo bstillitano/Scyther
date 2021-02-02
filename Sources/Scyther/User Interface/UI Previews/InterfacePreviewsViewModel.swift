@@ -23,7 +23,7 @@ internal class InterfacePreviewsViewModel {
     func previewableRow(view: ScytherPreviewable) -> PreviewableRow {
         var row: PreviewableRow = PreviewableRow()
         row.text = view.name
-        row.detailText = view.description
+        row.detailText = view.details
         row.previewView = view.previewView
 
         return row
