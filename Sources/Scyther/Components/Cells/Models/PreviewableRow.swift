@@ -11,7 +11,7 @@ import UIKit
 internal struct PreviewableRow: Row {
     public init() {}
     
-    var style: RowStyle = .emptyRow
+    var style: RowStyle = .previewable
     var detailActionViewController: UIViewController?
     var actionBlock: ActionBlock?
     var isHidden: Bool = false

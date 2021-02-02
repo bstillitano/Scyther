@@ -13,7 +13,7 @@ internal struct SwitchAccessoryRow: Row {
     
     var text: String?
     var detailText: String?
-    var style: RowStyle = .previewable
+    var style: RowStyle = .switchAccessory
     var detailActionViewController: UIViewController?
     var actionBlock: ActionBlock?
     var isHidden: Bool = false
