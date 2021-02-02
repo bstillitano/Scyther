@@ -86,7 +86,11 @@ internal class NetworkLoggerViewController: UIViewController {
     
     @objc
     private func prepareObjects() {
-        viewModel.prepareObjects(filteredOn: searchController?.searchBar.text)
+        var searchText: String?
+        DispatchQueue.main.async { [weak self] in
+            searchText = self?.searchController?.searchBar.text
+        }
+        viewModel.prepareObjects(filteredOn: searchText)
     }
 
     // MARK: - Lifecycle
