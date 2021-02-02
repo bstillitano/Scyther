@@ -11,7 +11,7 @@ import UIKit
 internal class InterfacePreviewsViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .plain)
-    private var viewModel: UserDefaultsViewModel = UserDefaultsViewModel()
+    private var viewModel: InterfacePreviewsViewModel = InterfacePreviewsViewModel()
 
     // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -123,7 +123,7 @@ extension InterfacePreviewsViewController: UITableViewDelegate {
     }
 }
 
-extension InterfacePreviewsViewController: UserDefaultsViewModelProtocol {
+extension InterfacePreviewsViewController: InterfacePreviewsViewModelProtocol {
     func viewModelShouldReloadData() {
         self.tableView.reloadData()
     }
