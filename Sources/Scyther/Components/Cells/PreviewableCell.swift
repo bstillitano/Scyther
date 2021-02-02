@@ -45,13 +45,13 @@ class PreviewableCell: UITableViewCell {
     private func setupConstraints() {
         /// Setup `titleLabel` constraints
         titleLabel.snp.remakeConstraints { (make) in
-            make.top.left.right.equalToSuperview()
+            make.top.left.right.equalToSuperview().inset(16)
         }
         
         /// Setup `descriptionLabel` constraints
         descriptionLabel.snp.remakeConstraints { (make) in
             make.top.equalTo(titleLabel.snp.bottom).offset(8)
-            make.left.right.equalToSuperview()
+            make.left.right.equalToSuperview().inset(16)
             make.width.equalTo(48)
         }
         
