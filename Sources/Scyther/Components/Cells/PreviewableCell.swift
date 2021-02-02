@@ -56,6 +56,9 @@ class PreviewableCell: UITableViewCell {
         }
         
         /// Setup `previewView` constraints
+        guard previewView.superview != nil else {
+            return
+        }
         previewView.snp.remakeConstraints { (make) in
             make.top.equalTo(descriptionLabel.snp.bottom).offset(16)
             make.left.bottom.right.equalToSuperview()
