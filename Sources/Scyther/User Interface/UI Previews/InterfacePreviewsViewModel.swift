@@ -40,7 +40,7 @@ internal class InterfacePreviewsViewModel: NSObject {
             delegate?.viewModelShouldReloadData()
             return
         }
-        classes.forEach { (previewable) in
+        classes.sorted(by: { $0.name < $1.name }).forEach { (previewable) in
             section.rows.append(previewableRow(view: previewable))
         }
 
