@@ -27,8 +27,8 @@ final internal class DeviceTableViewCell: UITableViewCell {
         imageView?.snp.remakeConstraints({ (make) in
             make.top.bottom.equalToSuperview().inset(8)
             make.left.equalToSuperview().inset(8)
-            make.width.equalTo(60)
-            make.height.equalTo(bounds.height - 15)
+            make.width.equalTo(45)
+            make.height.equalTo(45)
         })
 
         textLabel?.snp.remakeConstraints({ (make) in
