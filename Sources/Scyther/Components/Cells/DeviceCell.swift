@@ -15,20 +15,12 @@ final internal class DeviceTableViewCell: UITableViewCell {
 
         imageView?.layer.cornerRadius = 12.0
         imageView?.layer.masksToBounds = true
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-
+        
         imageView?.snp.remakeConstraints({ (make) in
             make.top.bottom.equalToSuperview().inset(8)
             make.left.equalToSuperview().inset(8)
             make.width.equalTo(48)
-            make.height.equalTo(56)
+            make.height.equalTo(48)
         })
 
         textLabel?.snp.remakeConstraints({ (make) in
@@ -42,6 +34,15 @@ final internal class DeviceTableViewCell: UITableViewCell {
             make.left.equalTo(imageView?.snp.right ?? 0).offset(8)
             make.right.equalToSuperview()
         })
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
     }
 }
 #endif
