@@ -39,7 +39,7 @@ final internal class DeviceTableViewCell: UITableViewCell {
         
         detailTextLabel?.snp.remakeConstraints({ (make) in
             make.top.equalTo(detailTextLabel?.frame.origin.y ?? 0)
-            make.left.equalTo(imageView?.snp.right ?? 0).offset(8)Z
+            make.left.equalTo(imageView?.snp.right ?? 0).offset(8)
             make.right.equalToSuperview()
             make.bottom.equalToSuperview()
         })
