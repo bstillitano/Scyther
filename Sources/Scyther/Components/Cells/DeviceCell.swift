@@ -26,19 +26,20 @@ final internal class DeviceTableViewCell: UITableViewCell {
 
         imageView?.snp.remakeConstraints({ (make) in
             make.top.bottom.equalToSuperview().inset(8)
-            make.left.equalToSuperview()
-            make.width.height.equalTo(60)
+            make.left.equalToSuperview().inset(8)
+            make.width.equalTo(60)
+            make.height.equalTo(bounds.height - 15)
         })
 
         textLabel?.snp.remakeConstraints({ (make) in
             make.top.equalTo(textLabel?.frame.origin.y ?? 0)
-            make.left.equalTo(imageView?.snp.right ?? 0)
+            make.left.equalTo(imageView?.snp.right ?? 0).offset(8)
             make.right.equalToSuperview()
         })
         
         detailTextLabel?.snp.remakeConstraints({ (make) in
             make.top.equalTo(detailTextLabel?.frame.origin.y ?? 0)
-            make.left.equalTo(imageView?.snp.right ?? 0)
+            make.left.equalTo(imageView?.snp.right ?? 0).offset(8)Z
             make.right.equalToSuperview()
             make.bottom.equalToSuperview()
         })
