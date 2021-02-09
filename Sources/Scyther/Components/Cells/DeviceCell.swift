@@ -13,7 +13,6 @@ final internal class DeviceTableViewCell: UITableViewCell {
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: .subtitle, reuseIdentifier: reuseIdentifier)
 
-        imageView?.contentMode = .scaleAspectFit
         imageView?.layer.cornerRadius = 12.0
         imageView?.layer.masksToBounds = true
     }
@@ -25,22 +24,24 @@ final internal class DeviceTableViewCell: UITableViewCell {
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        imageView?.frame = CGRect(x: 0, y: 7.5, width: 60, height: bounds.height - 15)
+        imageView?.snp.remakeConstraints({ (make) in
+            make.top.bottom.equalToSuperview().inset(8)
+            make.left.equalToSuperview()
+            make.width.height.equalTo(60)
+        })
 
-        guard let imageView = imageView else { return }
-        if let textLabel = textLabel {
-            self.textLabel?.frame = CGRect(x: imageView.frame.origin.x + imageView.frame.size.width,
-                                           y: textLabel.frame.origin.y,
-                                           width: bounds.size.width,
-                                           height: textLabel.frame.size.height)
-        }
-
-        if let detailTextLabel = detailTextLabel {
-            self.detailTextLabel?.frame = CGRect(x: imageView.frame.origin.x + imageView.frame.size.width,
-                                                 y: detailTextLabel.frame.origin.y,
-                                                 width: bounds.size.width,
-                                                 height: detailTextLabel.frame.size.height)
-        }
+        textLabel?.snp.remakeConstraints({ (make) in
+            make.top.equalTo(textLabel?.frame.origin.y ?? 0)
+            make.left.equalTo(imageView?.snp.right ?? 0)
+            make.right.equalToSuperview()
+        })
+        
+        detailTextLabel?.snp.remakeConstraints({ (make) in
+            make.top.equalTo(detailTextLabel?.frame.origin.y ?? 0)
+            make.left.equalTo(imageView?.snp.right ?? 0)
+            make.right.equalToSuperview()
+            make.bottom.equalToSuperview()
+        })
     }
 }
 #endif
