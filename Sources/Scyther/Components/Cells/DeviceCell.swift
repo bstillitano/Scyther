@@ -17,21 +17,22 @@ final internal class DeviceTableViewCell: UITableViewCell {
         imageView?.layer.masksToBounds = true
         
         imageView?.snp.remakeConstraints({ (make) in
-            make.top.bottom.equalToSuperview().inset(8)
-            make.left.equalToSuperview().inset(8)
-            make.width.equalTo(48)
-            make.height.equalTo(48)
+            make.top.equalToSuperview().inset(8)
+            make.bottom.equalToSuperview()
+            make.left.equalToSuperview().inset(16)
+            make.width.equalTo(40)
+            make.height.equalTo(40)
         })
 
         textLabel?.snp.remakeConstraints({ (make) in
             make.bottom.equalTo(contentView.snp.centerY)
-            make.left.equalTo(imageView?.snp.right ?? 0).offset(8)
+            make.left.equalTo(imageView?.snp.right ?? 0).offset(16)
             make.right.equalToSuperview()
         })
         
         detailTextLabel?.snp.remakeConstraints({ (make) in
             make.top.equalTo(contentView.snp.centerY)
-            make.left.equalTo(imageView?.snp.right ?? 0).offset(8)
+            make.left.equalTo(imageView?.snp.right ?? 0).offset(16)
             make.right.equalToSuperview()
         })
     }
