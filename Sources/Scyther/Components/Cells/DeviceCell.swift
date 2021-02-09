@@ -14,6 +14,8 @@ final internal class DeviceTableViewCell: UITableViewCell {
         super.init(style: .subtitle, reuseIdentifier: reuseIdentifier)
 
         imageView?.contentMode = .scaleAspectFit
+        imageView?.layer.cornerRadius = 12.0
+        imageView?.clipsToBounds = true
     }
 
     required init?(coder: NSCoder) {
