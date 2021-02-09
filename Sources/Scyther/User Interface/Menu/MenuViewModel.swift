@@ -32,11 +32,11 @@ internal class MenuViewModel {
         return row
     }
 
-    func headerRow(name: String, value: String?, iconURL: URL? = nil) -> DeviceRow {
+    func headerRow(name: String, value: String?, image: UIImage? = nil) -> DeviceRow {
         let row: DeviceRow = DeviceRow()
         row.text = name
         row.detailText = value
-        row.imageURL = iconURL
+        row.image = image
         row.style = .deviceHeader
         row.accessoryType = UITableViewCell.AccessoryType.none
         return row
@@ -69,7 +69,7 @@ internal class MenuViewModel {
         deviceSection.title = "Device"
         deviceSection.rows.append(headerRow(name: UIDevice.current.name,
                                             value: UIDevice.current.model,
-                                            iconURL: UIDevice.current.deviceIconURL))
+                                            image: .appIcon))
         deviceSection.rows.append(valueRow(name: "Version",
                                            value: UIDevice.current.systemVersion,
                                            icon: nil))

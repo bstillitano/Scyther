@@ -195,7 +195,5 @@ extension NetworkLoggerViewController: UISearchResultsUpdating {
     }
 }
 
-extension NetworkLoggerViewController: UISearchControllerDelegate {
-    
-}
+extension NetworkLoggerViewController: UISearchControllerDelegate { }
 #endif

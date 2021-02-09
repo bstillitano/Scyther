@@ -17,5 +17,16 @@ extension UIImage {
             return nil
         }
     }
+    
+    /// `UIImage` representation of the current application icon
+    public static var appIcon: UIImage? {
+        guard let icons = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any],
+              let primaryIcon = icons["CFBundlePrimaryIcon"] as? [String: Any],
+              let iconFiles = primaryIcon["CFBundleIconFiles"] as? [String],
+              let lastIcon = iconFiles.last else {
+            return nil
+        }
+        return UIImage(named: lastIcon)
+    }
 }
 #endif
