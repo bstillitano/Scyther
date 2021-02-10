@@ -25,13 +25,13 @@ final internal class DeviceTableViewCell: UITableViewCell {
         })
 
         textLabel?.snp.remakeConstraints({ (make) in
-            make.bottom.equalTo(contentView.snp.centerY)
+            make.bottom.equalTo(imageView?.snp.centerY ?? 0)
             make.left.equalTo(imageView?.snp.right ?? 0).offset(16)
             make.right.equalToSuperview()
         })
         
         detailTextLabel?.snp.remakeConstraints({ (make) in
-            make.top.equalTo(contentView.snp.centerY)
+            make.top.equalTo(imageView?.snp.centerY ?? 0)
             make.left.equalTo(imageView?.snp.right ?? 0).offset(16)
             make.right.equalToSuperview()
         })
