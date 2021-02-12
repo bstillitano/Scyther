@@ -147,10 +147,12 @@ internal class MenuViewModel {
         developmentSection.title = "Development Tools"
         if Scyther.instance.developerOptions.isEmpty {
             developmentSection.rows.append(emptyRow(text: "No tools configured"))
-        } else for tool: DeveloperOption in Scyther.instance.developerOptions {
-            developmentSection.rows.append(actionRow(name: tool.name,
-                                                     icon: tool.icon,
-                                                     actionController: tool.viewController))
+        } else {
+            for tool: DeveloperOption in Scyther.instance.developerOptions {
+                developmentSection.rows.append(actionRow(name: tool.name ?? "",
+                                                         icon: tool.icon,
+                                                         actionController: tool.viewController))
+            }
         }
 
         /// Setup Data
