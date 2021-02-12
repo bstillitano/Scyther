@@ -44,6 +44,9 @@ public class Scyther {
     /// `ConsoleLogger` utility class. Used for intercepting local console output.
     public static let consoleLogger: ConsoleLogger = ConsoleLogger.instance
     
+    /// Developer options that will be displayed on the main manue
+    public var developerOptions: [DeveloperOption] = []
+    
     /// Initialises the Scyther library and sets the required data to properly intercept network calls and console logs.
     public func start() {
         /// Set data
