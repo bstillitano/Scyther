@@ -92,7 +92,7 @@ internal class MenuViewModel {
                                                 value: String(getpid()),
                                                 icon: nil))
         applicationSection.rows.append(valueRow(name: "Release Type",
-                                                value: EnvironmentReader.configuration().rawValue,
+                                                value: AppEnvironment.configuration().rawValue,
                                                 icon: nil))
         applicationSection.rows.append(valueRow(name: "Build Date",
                                                 value: Bundle.main.buildDate.formatted(),
