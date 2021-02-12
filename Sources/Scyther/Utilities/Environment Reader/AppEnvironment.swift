@@ -12,12 +12,12 @@ public class AppEnvironment {
     /**
      Indicates whether the `appStoreReceiptURL` at `Bundle.main.appStoreReceiptURL` is a sandbox receipt.
      */
-    static let isTestFlight = Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt" && !AppEnvironment.isDebug
+    public static let isTestFlight = Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt" && !AppEnvironment.isDebug
 
     /**
      Returns a `Bool` value indicating whether or not `#if DEBUG` is true for the current build.
      */
-    static var isDebug: Bool {
+    public static var isDebug: Bool {
         #if DEBUG
             return true
         #else
@@ -28,7 +28,7 @@ public class AppEnvironment {
     /**
      Returns a `Bool` value indicating whether or not the current build is being run via the iOS Simulator.
     */
-    static var isSimulator: Bool {
+    public static var isSimulator: Bool {
         #if targetEnvironment(simulator)
             return true
         #else
@@ -39,21 +39,21 @@ public class AppEnvironment {
     /**
      Returns a `Bool` value indicating whether or not the current build is being run via XCode or TestFlight.
     */
-    static var isDevelopment: Bool {
+    public static var isDevelopment: Bool {
         return isTestFlight || isSimulator
     }
 
     /**
      Returns a `Bool` value indicating whether or not the current build is being run via an App Store installation.
     */
-    static var isAppStore: Bool {
+    public static var isAppStore: Bool {
         return !isDevelopment
     }
 
     /**
      Returns a `BuildType` value representing the current build environment.
      */
-    static func configuration(testValue: BuildType? = nil) -> BuildType {
+    public static func configuration(testValue: BuildType? = nil) -> BuildType {
         if isTestFlight || testValue == .testFlight {
             return .testFlight
         } else if isAppStore || testValue == .appStore {
@@ -68,7 +68,7 @@ public class AppEnvironment {
      or not `Cydia` or `Sileo` is installed. It also checks for multiple other red flags that would indicate
      root/ssh access on the device. These checks will not apply if the device is a simulator.
     */
-    static var isJailbroken: Bool {
+    public static var isJailbroken: Bool {
         // Check if the device is not a simulator
         guard !AppEnvironment.isSimulator else {
             return false
