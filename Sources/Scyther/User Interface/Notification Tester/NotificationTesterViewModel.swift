@@ -42,8 +42,8 @@ internal class NotitifcationTesterViewModel {
         //Setup Accessory
         let switchView = UIActionSwitch()
         switchView.isOn = playSound
-        switchView.actionBlock = {
-            playSound = switchView.isOn
+        switchView.actionBlock = { [weak self] in
+            self?.playSound = switchView.isOn
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
@@ -60,8 +60,8 @@ internal class NotitifcationTesterViewModel {
         //Setup Accessory
         let switchView = UIActionSwitch()
         switchView.isOn = playSound
-        switchView.actionBlock = {
-            repeatNotification = switchView.isOn
+        switchView.actionBlock = { [weak self] in
+            self?.repeatNotification = switchView.isOn
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
@@ -78,8 +78,8 @@ internal class NotitifcationTesterViewModel {
         //Setup Accessory
         let switchView = UIActionSwitch()
         switchView.isOn = playSound
-        switchView.actionBlock = {
-            increaseBadge = switchView.isOn
+        switchView.actionBlock = { [weak self] in
+            self?.increaseBadge = switchView.isOn
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
@@ -127,10 +127,10 @@ internal class NotitifcationTesterViewModel {
         row.actionBlock = { [weak self] in
             NotificationTester.instance.scheduleNotification(withTitle: "",
                                                              withBody: "",
-                                                             withSound: playSound,
+                                                             withSound: self?.playSound ?? true,
                                                              withDelay: 2,
-                                                             withRepeat: repeatNotification,
-                                                             andIncreaseBadge: increaseBadge)
+                                                             withRepeat: self?.repeatNotification ?? false,
+                                                             andIncreaseBadge: self?.increaseBadge ?? true)
         }
         return row
     }
