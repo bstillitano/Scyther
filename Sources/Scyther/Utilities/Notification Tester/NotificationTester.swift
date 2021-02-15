@@ -27,10 +27,17 @@ public class NotificationTester {
     public var notificationsAllowed: Bool = false
 
     /// Schedules a local notification that will be delivered in a given time from now
+    /// - Parameters:
+    ///   - title: Title of the notification that will be sent
+    ///   - body: Body/Description of the notification that will be sent
+    ///   - withSound: Boolean value representing whether or not a sound should be played
+    ///   - delay: Time in seconds until this notitifcaiton should be fired (default is 2 seconds)
+    ///   - repeats: Boolean value representing whether or not the notification should repeat
+    ///   - increaseBadge: Boolean value representing whether or not the app badge should increment
     internal func scheduleNotification(withTitle title: String = "Scyther Notification",
                                        withBody body: String = "This is a dummy notification powered by Scyther.",
                                        withSound: Bool = true,
-                                       withDelay delay: TimeInterval = 5,
+                                       withDelay delay: TimeInterval = 2,
                                        withRepeat repeats: Bool = false,
                                        andIncreaseBadge increaseBadge: Bool = true) {
         //Setup Notification Content
