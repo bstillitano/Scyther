@@ -123,7 +123,7 @@ extension LogDetailsViewController: UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, performAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) {
         if action == #selector(copy(_:)) {
-            guard let cell = tableView.cellForRow(at: indexPath), let key = cell.detailTextLabel?.text else { return }
+            guard let cell = tableView.cellForRow(at: indexPath), let key = cell.textLabel?.text else { return }
             UIPasteboard.general.string = "\(key): \(cell.detailTextLabel?.text ?? "")"
         }
     }
