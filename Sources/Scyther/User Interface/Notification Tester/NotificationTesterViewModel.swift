@@ -1,6 +1,6 @@
 //
 //  NotitifcationTester.swift
-//  
+//
 //
 //  Created by Brandon Stillitano on 15/2/21.
 //
@@ -19,25 +19,26 @@ internal class NotitifcationTesterViewModel {
     // MARK: - Delegate
     weak var delegate: NotitificationTesterProtocol?
 
-    func valueRow(font: UIFont?) -> FontRow {
-        let row: FontRow = FontRow()
-        row.text = font?.fontName
-        row.font = font
-        row.style = .font
+    func valueRow(title: String?, text: String?) -> DefaultRow {
+        let row: DefaultRow = DefaultRow()
+        row.detailText = text
+        row.text = title
+        row.style = .default
         row.accessoryType = UITableViewCell.AccessoryType.none
         return row
     }
-    
+
     /// Button item that allows the caller to clear the notitifcation badge on the running app
     var clearBadge: ButtonRow {
         var row: ButtonRow = ButtonRow()
         row.text = "Clear app badge"
         row.actionBlock = {
             UIApplication.shared.applicationIconBadgeNumber = 0
+            UNUserNotificationCenter.current().removeAllDeliveredNotifications()
         }
         return row
     }
-    
+
     /// Button item that allows the caller to increment the notitifcation badge on the running app
     var incrementBadge: ButtonRow {
         var row: ButtonRow = ButtonRow()
@@ -48,7 +49,7 @@ internal class NotitifcationTesterViewModel {
         }
         return row
     }
-    
+
     /// Button item that allows the caller to decrease the notitifcation badge on the running app
     var decreaseBadge: ButtonRow {
         var row: ButtonRow = ButtonRow()
@@ -59,13 +60,24 @@ internal class NotitifcationTesterViewModel {
         }
         return row
     }
-    
+
     /// Button item that allows the caller to schedule a given dummy push notification
     var sendNotifcation: ButtonRow {
         var row: ButtonRow = ButtonRow()
         row.text = "Send push notification"
-        row.actionBlock = {[weak self] in
+        row.actionBlock = { [weak self] in
             NotificationTester.instance.scheduleNotification()
+            self?.prepareObjects()
+        }
+        return row
+    }
+
+    /// Button item that allows the caller to cancel all scheduled notifications
+    var cancelPending: ButtonRow {
+        var row: ButtonRow = ButtonRow()
+        row.text = "Cancel scheduled notifications"
+        row.actionBlock = {
+            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         }
         return row
     }
@@ -76,16 +88,17 @@ internal class NotitifcationTesterViewModel {
 
         //Setup Send Section
         var sendSection: Section = Section()
-        sendSection.title = "Send"
+        sendSection.title = "Send a test"
         sendSection.rows.append(sendNotifcation)
-        
+
         //Setup Badge Section
         var badgeSection: Section = Section()
         badgeSection.title = "App badge"
         badgeSection.rows.append(incrementBadge)
         badgeSection.rows.append(decreaseBadge)
         badgeSection.rows.append(clearBadge)
-        
+        badgeSection.rows.append(cancelPending)
+
         //Setup Data
         sections.append(sendSection)
         sections.append(badgeSection)
