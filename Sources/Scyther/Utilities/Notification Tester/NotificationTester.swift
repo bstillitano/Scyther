@@ -12,8 +12,8 @@ public class NotificationTester {
     /// Private Init to Stop re-initialisation and allow singleton creation.
     private init() {
         //Set Data
-        notificationCenter.getNotificationSettings { (settings) in
-            notificationsAllowed = settings.authorizationStatus == .authorized
+        notificationCenter.getNotificationSettings { [weak self] (settings) in
+            self?.notificationsAllowed = settings.authorizationStatus == .authorized
         }
     }
 
