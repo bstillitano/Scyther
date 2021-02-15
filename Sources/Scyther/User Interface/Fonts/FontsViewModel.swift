@@ -36,7 +36,7 @@ internal class FontsViewModel {
         UIFont.familyNames.forEach({ familyName in
             var fontSection: Section = Section()
             fontSection.title = familyName
-            fontSection.rows = UIFont.fontNames(forFamilyName: familyName).map( { valueRow(font: UIFont(name: $0, size: 12.0)) } )
+            fontSection.rows = UIFont.fontNames(forFamilyName: familyName).map( { valueRow(font: UIFont(name: $0, size: 16.0)) } )
             sections.append(fontSection)
         })
 
