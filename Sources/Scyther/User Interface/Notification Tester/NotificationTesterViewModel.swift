@@ -8,6 +8,12 @@
 #if !os(macOS)
 import UIKit
 
+enum NotificationTextField: String {
+    case title
+    case body
+    case payload
+}
+
 internal protocol NotitificationTesterProtocol: class {
     func viewModelShouldReloadData()
 }
@@ -17,19 +23,25 @@ internal class NotitifcationTesterViewModel {
     private var sections: [Section] = []
     
     // MARK: - Notification Params
+    private var pushTitle: String = "Scyther Notification"
+    private var pushBody: String = "This is a dummy notification powered by Scyther."
+    private var pushPayload: String? = nil
     private var playSound: Bool = true
-    private var repeatNotification: Bool = true
+    private var repeatNotification: Bool = false
     private var increaseBadge: Bool = true
 
     // MARK: - Delegate
     weak var delegate: NotitificationTesterProtocol?
-
-    func valueRow(title: String?, text: String?) -> DefaultRow {
+    
+    func valueRow(title: String?, text: String?, inputField: NotificationTextField) -> DefaultRow {
         let row: DefaultRow = DefaultRow()
         row.detailText = text
         row.text = title
         row.style = .default
-        row.accessoryType = UITableViewCell.AccessoryType.none
+        row.accessoryType = .disclosureIndicator
+        row.actionBlock = {
+            
+        }
         return row
     }
     
@@ -59,7 +71,7 @@ internal class NotitifcationTesterViewModel {
 
         //Setup Accessory
         let switchView = UIActionSwitch()
-        switchView.isOn = playSound
+        switchView.isOn = repeatNotification
         switchView.actionBlock = { [weak self] in
             self?.repeatNotification = switchView.isOn
         }
@@ -77,7 +89,7 @@ internal class NotitifcationTesterViewModel {
 
         //Setup Accessory
         let switchView = UIActionSwitch()
-        switchView.isOn = playSound
+        switchView.isOn = increaseBadge
         switchView.actionBlock = { [weak self] in
             self?.increaseBadge = switchView.isOn
         }
@@ -125,10 +137,10 @@ internal class NotitifcationTesterViewModel {
         var row: ButtonRow = ButtonRow()
         row.text = "Send push notification"
         row.actionBlock = { [weak self] in
-            NotificationTester.instance.scheduleNotification(withTitle: "",
-                                                             withBody: "",
+            NotificationTester.instance.scheduleNotification(withTitle: self?.pushTitle ?? "",
+                                                             withBody: self?.pushBody ?? "",
                                                              withSound: self?.playSound ?? true,
-                                                             withDelay: 2,
+                                                             withDelay: self?.repeatNotification ?? false ? 60 : 5,
                                                              withRepeat: self?.repeatNotification ?? false,
                                                              andIncreaseBadge: self?.increaseBadge ?? true)
         }
@@ -152,6 +164,15 @@ internal class NotitifcationTesterViewModel {
         //Setup Send Section
         var sendSection: Section = Section()
         sendSection.title = "Send a test"
+        sendSection.rows.append(valueRow(title: "Title",
+                                         text: pushTitle,
+                                         inputField: .title))
+        sendSection.rows.append(valueRow(title: "Body",
+                                         text: pushBody,
+                                         inputField: .body))
+        sendSection.rows.append(valueRow(title: "Payload",
+                                         text: pushPayload,
+                                         inputField: .payload))
         sendSection.rows.append(playSoundSwitch)
         sendSection.rows.append(repeatSwitch)
         sendSection.rows.append(incrementBadgeSwitch)

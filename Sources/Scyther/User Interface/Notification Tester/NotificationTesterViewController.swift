@@ -34,6 +34,7 @@ internal class NotificationTesterViewController: UIViewController {
         view.addSubview(tableView)
 
         //Register Table View Cells
+        tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
         tableView.register(SwitchCell.self, forCellReuseIdentifier: RowStyle.switchAccessory.rawValue)
         tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
     }
@@ -94,17 +95,7 @@ extension NotificationTesterViewController: UITableViewDataSource {
         cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
         cell.accessoryView = row.accessoryView
-
-        // Setup Accessory
-        switch row.style {
-        case .checkmarkAccessory:
-            guard let checkRow: CheckmarkRow = row as? CheckmarkRow else {
-                break
-            }
-            cell.accessoryType = checkRow.checked ? .checkmark : .none
-        default:
-            break
-        }
+        cell.accessoryType = row.accessoryType ?? .none
 
         return cell
     }
