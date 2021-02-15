@@ -17,21 +17,14 @@ internal class NotitifcationTesterViewModel {
     private var sections: [Section] = []
     
     // MARK: - Notification Params
+    private var pushTitle: String = "Scyther Notification"
+    private var pushBody: String = "This is a dummy notification powered by Scyther."
     private var playSound: Bool = true
     private var repeatNotification: Bool = true
     private var increaseBadge: Bool = true
 
     // MARK: - Delegate
     weak var delegate: NotitificationTesterProtocol?
-
-    func valueRow(title: String?, text: String?) -> DefaultRow {
-        let row: DefaultRow = DefaultRow()
-        row.detailText = text
-        row.text = title
-        row.style = .default
-        row.accessoryType = UITableViewCell.AccessoryType.none
-        return row
-    }
     
     /// Switch representing whether the notification that is sent should play a sound or not
     var playSoundSwitch: SwitchAccessoryRow {
@@ -125,8 +118,8 @@ internal class NotitifcationTesterViewModel {
         var row: ButtonRow = ButtonRow()
         row.text = "Send push notification"
         row.actionBlock = { [weak self] in
-            NotificationTester.instance.scheduleNotification(withTitle: "",
-                                                             withBody: "",
+            NotificationTester.instance.scheduleNotification(withTitle: pushTitle,
+                                                             withBody: pushBody,
                                                              withSound: self?.playSound ?? true,
                                                              withDelay: 2,
                                                              withRepeat: self?.repeatNotification ?? false,
