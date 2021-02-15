@@ -38,7 +38,7 @@ public class NotificationTester {
         content.title = title
         content.body = body
         content.sound = withSound ? .default : .none
-        content.badge = increaseBadge ? 1 : nil
+        content.badge = increaseBadge ? UIApplication.shared.applicationIconBadgeNumber + 1 as NSNumber : nil
 
         //Setup Trigger
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: delay,
