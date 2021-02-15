@@ -71,7 +71,7 @@ internal class NotitifcationTesterViewModel {
 
         //Setup Accessory
         let switchView = UIActionSwitch()
-        switchView.isOn = playSound
+        switchView.isOn = repeatNotification
         switchView.actionBlock = { [weak self] in
             self?.repeatNotification = switchView.isOn
         }
@@ -89,7 +89,7 @@ internal class NotitifcationTesterViewModel {
 
         //Setup Accessory
         let switchView = UIActionSwitch()
-        switchView.isOn = playSound
+        switchView.isOn = increaseBadge
         switchView.actionBlock = { [weak self] in
             self?.increaseBadge = switchView.isOn
         }
