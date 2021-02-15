@@ -15,6 +15,11 @@ internal protocol NotitificationTesterProtocol: class {
 internal class NotitifcationTesterViewModel {
     // MARK: - Data
     private var sections: [Section] = []
+    
+    // MARK: - Notification Params
+    private var playSound: Bool = true
+    private var repeatNotification: Bool = true
+    private var increaseBadge: Bool = true
 
     // MARK: - Delegate
     weak var delegate: NotitificationTesterProtocol?
@@ -25,6 +30,60 @@ internal class NotitifcationTesterViewModel {
         row.text = title
         row.style = .default
         row.accessoryType = UITableViewCell.AccessoryType.none
+        return row
+    }
+    
+    /// Switch representing whether the notification that is sent should play a sound or not
+    var playSoundSwitch: SwitchAccessoryRow {
+        //Setup Row
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = "Play sound"
+
+        //Setup Accessory
+        let switchView = UIActionSwitch()
+        switchView.isOn = playSound
+        switchView.actionBlock = {
+            playSound = switchView.isOn
+        }
+        switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        row.accessoryView = switchView
+
+        return row
+    }
+    
+    /// Switch representing whether the notification that is sent should be repeated
+    var repeatSwitch: SwitchAccessoryRow {
+        //Setup Row
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = "Repeat"
+
+        //Setup Accessory
+        let switchView = UIActionSwitch()
+        switchView.isOn = playSound
+        switchView.actionBlock = {
+            repeatNotification = switchView.isOn
+        }
+        switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        row.accessoryView = switchView
+
+        return row
+    }
+    
+    /// Switch representing whether the notification that is sent should increment the app badge or not
+    var incrementBadgeSwitch: SwitchAccessoryRow {
+        //Setup Row
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = "Increment app badge"
+
+        //Setup Accessory
+        let switchView = UIActionSwitch()
+        switchView.isOn = playSound
+        switchView.actionBlock = {
+            increaseBadge = switchView.isOn
+        }
+        switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        row.accessoryView = switchView
+
         return row
     }
 
@@ -66,8 +125,12 @@ internal class NotitifcationTesterViewModel {
         var row: ButtonRow = ButtonRow()
         row.text = "Send push notification"
         row.actionBlock = { [weak self] in
-            NotificationTester.instance.scheduleNotification()
-            self?.prepareObjects()
+            NotificationTester.instance.scheduleNotification(withTitle: "",
+                                                             withBody: "",
+                                                             withSound: playSound,
+                                                             withDelay: 2,
+                                                             withRepeat: repeatNotification,
+                                                             andIncreaseBadge: increaseBadge)
         }
         return row
     }
@@ -89,6 +152,9 @@ internal class NotitifcationTesterViewModel {
         //Setup Send Section
         var sendSection: Section = Section()
         sendSection.title = "Send a test"
+        sendSection.rows.append(playSoundSwitch)
+        sendSection.rows.append(repeatSwitch)
+        sendSection.rows.append(incrementBadgeSwitch)
         sendSection.rows.append(sendNotifcation)
 
         //Setup Badge Section
@@ -150,6 +216,13 @@ extension NotitifcationTesterViewModel {
     private func rows(inSection index: Int) -> [Row]? {
         guard let section = section(for: index) else { return nil }
         return section.rows.filter { !$0.isHidden }
+    }
+}
+
+extension NotitifcationTesterViewModel {
+    @objc
+    func switchToggled(_ sender: UIActionSwitch?) {
+        sender?.actionBlock?()
     }
 }
 #endif
