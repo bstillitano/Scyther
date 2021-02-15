@@ -9,6 +9,12 @@
 import UIKit
 
 class ConsoleLoggerViewController: UIViewController {
+    // MARK: - UI Elements
+    private var textView: UITextView = UITextView()
+    
+    // MARK: - Data
+    
+    
     override func viewDidLoad() {
         super.viewDidLoad()
     }

@@ -138,9 +138,15 @@ internal class MenuViewModel {
         /// Setup UI/UX Section
         var uiUxSection: Section = Section()
         uiUxSection.title = "UI/UX"
+        uiUxSection.rows.append(actionRow(name: "Fonts",
+                                                 icon: UIImage(systemImage: "textformat"),
+                                                 actionController: FontsViewController()))
         uiUxSection.rows.append(actionRow(name: "Interface Components",
                                                  icon: UIImage(systemImage: "apps.iphone"),
                                                  actionController: InterfacePreviewsViewController()))
+        uiUxSection.rows.append(actionRow(name: "Push Notifications",
+                                                 icon: UIImage(systemImage: "bell"),
+                                                 actionController: NotificationTesterViewController()))
         
         /// Setup Development Section
         var developmentSection: Section = Section()

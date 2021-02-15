@@ -1,17 +1,17 @@
 //
-//  LogDetailsViewController.swift
+//  FontsViewController.swift
 //  
 //
-//  Created by Brandon Stillitano on 27/12/20.
+//  Created by Brandon Stillitano on 15/2/21.
 //
 
 #if !os(macOS)
 import UIKit
 
-internal class LogDetailsViewController: UIViewController {
+internal class FontsViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
-    private var viewModel: LogDetailsViewModel = LogDetailsViewModel()
+    private var viewModel: FontsViewModel = FontsViewModel()
 
     // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -20,11 +20,6 @@ internal class LogDetailsViewController: UIViewController {
         setupUI()
         setupConstraints()
         setupData()
-    }
-    
-    convenience init(httpModel: LoggerHTTPModel) {
-        self.init(nibName: nil, bundle: nil)
-        self.viewModel.httpModel = httpModel
     }
 
     required init?(coder: NSCoder) {
@@ -39,19 +34,24 @@ internal class LogDetailsViewController: UIViewController {
         view.addSubview(tableView)
 
         //Register Table View Cells
-        tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
-        tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
-        tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
+        tableView.register(FontCell.self, forCellReuseIdentifier: RowStyle.font.rawValue)
     }
 
     private func setupConstraints() {
-        tableView.snp.makeConstraints { (make) in
-            make.edges.equalToSuperview()
-        }
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:|-0-[subview]-0-|",
+                                                           options: .directionLeadingToTrailing,
+                                                           metrics: nil,
+                                                           views: ["subview": tableView]))
+        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|-0-[subview]-0-|",
+                                                           options: .directionLeadingToTrailing,
+                                                           metrics: nil,
+                                                           views: ["subview": tableView]))
     }
     
     private func setupData() {
         self.viewModel.delegate = self
+        self.viewModel.prepareObjects()
 
         title = viewModel.title
         navigationItem.title = viewModel.title
@@ -67,7 +67,7 @@ internal class LogDetailsViewController: UIViewController {
     }
 }
 
-extension LogDetailsViewController: UITableViewDataSource {
+extension FontsViewController: UITableViewDataSource {
 
     func numberOfSections(in tableView: UITableView) -> Int {
         return viewModel.numberOfSections
@@ -93,14 +93,24 @@ extension LogDetailsViewController: UITableViewDataSource {
         cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
         cell.accessoryView = row.accessoryView
-        cell.accessoryType = row.accessoryType ?? .none
-        cell.detailTextLabel?.adjustsFontSizeToFitWidth = false
+
+        // Setup Accessory
+        switch row.style {
+        case .font:
+            guard let fontRow: FontRow = row as? FontRow else {
+                break
+            }
+            cell.textLabel?.font = fontRow.font
+        default:
+            break
+        }
 
         return cell
     }
+
 }
 
-extension LogDetailsViewController: UITableViewDelegate {
+extension FontsViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         // Deselect Cell
         defer { tableView.deselectRow(at: indexPath, animated: true) }
@@ -123,26 +133,16 @@ extension LogDetailsViewController: UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, performAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) {
         if action == #selector(copy(_:)) {
-            guard let cell = tableView.cellForRow(at: indexPath), let key = cell.textLabel?.text else { return }
-            UIPasteboard.general.string = "\(key): \(cell.detailTextLabel?.text ?? "")"
+            guard let cell = tableView.cellForRow(at: indexPath) else { return }
+            UIPasteboard.general.string = "\(cell.textLabel?.text ?? "")"
         }
     }
 }
 
-extension LogDetailsViewController: LogDetailsViewModelProtocol {
+extension FontsViewController: FontsViewModelProtocol {
     func viewModelShouldReloadData() {
         self.tableView.reloadData()
     }
-    
-    func viewModel(viewModel: LogDetailsViewModel?, shouldShowViewController viewController: UIViewController?) {
-        guard let viewController = viewController else {
-            return
-        }
-        guard viewController.isKind(of: UIActivityViewController.self) else {
-            self.navigationController?.pushViewController(viewController, animated: true)
-            return
-        }
-        self.present(viewController, animated: true)
-    }
 }
 #endif
+

@@ -19,6 +19,7 @@ enum RowStyle: String {
     case networkLog
     case emptyRow
     case previewable
+    case font
 }
 
 internal protocol Row {
