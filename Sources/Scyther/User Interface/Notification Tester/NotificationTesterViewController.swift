@@ -11,7 +11,7 @@ import UIKit
 internal class NotificationTesterViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
-    private var viewModel: ServerConfigurationViewModel = ServerConfigurationViewModel()
+    private var viewModel: NotitifcationTesterViewModel = NotitifcationTesterViewModel()
 
     // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -34,9 +34,7 @@ internal class NotificationTesterViewController: UIViewController {
         view.addSubview(tableView)
 
         //Register Table View Cells
-        tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
-        tableView.register(CheckmarkCell.self, forCellReuseIdentifier: RowStyle.checkmarkAccessory.rawValue)
-        tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
+        tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
     }
 
     private func setupConstraints() {
@@ -125,7 +123,7 @@ extension NotificationTesterViewController: UITableViewDelegate {
     }
 }
 
-extension NotificationTesterViewController: ServerConfigurationViewModelProtocol {
+extension NotificationTesterViewController: NotitificationTesterProtocol {
     func viewModelShouldReloadData() {
         self.tableView.reloadData()
     }
