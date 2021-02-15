@@ -5,8 +5,8 @@
         "package": "Scyther",
         "repositoryURL": "https://github.com/bstillitano/Scyther.git",
         "state": {
-          "branch": "feature/notification-tester",
-          "revision": "3a44ce9fb8980cd8fad525d7c563cd913ac0274f",
+          "branch": "main",
+          "revision": "39054553b66c3d3b94a88b3dc9b2f8c26335f983",
           "version": null
         }
       },
