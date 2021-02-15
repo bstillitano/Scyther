@@ -32,10 +32,6 @@ internal class NetworkLoggerViewController: UIViewController {
                                                object: nil)
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(prepareObjects),
-                                               name: NSNotification.Name.LoggerAddedModel,
-                                               object: nil)
-        NotificationCenter.default.addObserver(self,
-                                               selector: #selector(prepareObjects),
                                                name: NSNotification.Name.LoggerClearedModels,
                                                object: nil)
     }
