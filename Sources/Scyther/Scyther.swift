@@ -44,6 +44,9 @@ public class Scyther {
     /// `ConsoleLogger` utility class. Used for intercepting local console output.
     public static let consoleLogger: ConsoleLogger = ConsoleLogger.instance
     
+    /// `NotificationTester` utility class. Used for testing push notification functionality.
+    public static let notificationTester: NotificationTester = NotificationTester.instance
+    
     /// Developer options that will be displayed on the main manue
     public var developerOptions: [DeveloperOption] = []
     

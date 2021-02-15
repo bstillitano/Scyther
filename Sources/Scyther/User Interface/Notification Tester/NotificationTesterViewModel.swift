@@ -65,10 +65,7 @@ internal class NotitifcationTesterViewModel {
         var row: ButtonRow = ButtonRow()
         row.text = "Send push notification"
         row.actionBlock = {[weak self] in
-            for toggle: Toggle in Toggler.instance.toggles {
-                Toggler.instance.setLocalValue(value: toggle.remoteValue, forToggleWithName: toggle.name)
-            }
-            self?.prepareObjects()
+            NotificationTester.instance.scheduleNotification()
         }
         return row
     }
@@ -80,12 +77,18 @@ internal class NotitifcationTesterViewModel {
         //Setup Send Section
         var sendSection: Section = Section()
         sendSection.title = "Send"
-        sendSection.rows.append(incrementBadge)
-        sendSection.rows.append(decreaseBadge)
-        sendSection.rows.append(clearBadge)
+        sendSection.rows.append(sendNotifcation)
+        
+        //Setup Badge Section
+        var badgeSection: Section = Section()
+        badgeSection.title = "App badge"
+        badgeSection.rows.append(incrementBadge)
+        badgeSection.rows.append(decreaseBadge)
+        badgeSection.rows.append(clearBadge)
         
         //Setup Data
         sections.append(sendSection)
+        sections.append(badgeSection)
 
         //Call Delegate
         delegate?.viewModelShouldReloadData()
