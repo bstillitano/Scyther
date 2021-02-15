@@ -59,7 +59,7 @@ internal class NetworkLoggerViewModel {
 
     @objc func prepareObjects(filteredOn searchString: String? = nil) {
         /// Clear Data
-        sections = []
+        sections.removeAll()
 
         /// Setup Logs Section
         var logsSection: Section = Section()

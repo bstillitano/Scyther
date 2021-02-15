@@ -34,6 +34,7 @@ internal class NotificationTesterViewController: UIViewController {
         view.addSubview(tableView)
 
         //Register Table View Cells
+        tableView.register(DefaultCell, forCellReuseIdentifier: RowStyle.default.rawValue)
         tableView.register(SwitchCell.self, forCellReuseIdentifier: RowStyle.switchAccessory.rawValue)
         tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
     }
