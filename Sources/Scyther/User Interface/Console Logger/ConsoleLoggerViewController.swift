@@ -17,6 +17,19 @@ class ConsoleLoggerViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        /// Setup Interface
+        setupUI()
+        setupConstraints()
+    }
+    
+    private func setupUI() {
+        /// Setup background colour
+        view.backgroundColor = .black
+    }
+    
+    private func setupConstraints() {
+        
     }
     
     override func viewDidAppear(_ animated: Bool) {
