@@ -118,10 +118,10 @@ internal class NotitifcationTesterViewModel {
         var row: ButtonRow = ButtonRow()
         row.text = "Send push notification"
         row.actionBlock = { [weak self] in
-            NotificationTester.instance.scheduleNotification(withTitle: pushTitle,
-                                                             withBody: pushBody,
+            NotificationTester.instance.scheduleNotification(withTitle: self?.pushTitle ?? "",
+                                                             withBody: self?.pushBody ?? "",
                                                              withSound: self?.playSound ?? true,
-                                                             withDelay: 2,
+                                                             withDelay: self?.repeatNotification ?? false ? 60 : 2,
                                                              withRepeat: self?.repeatNotification ?? false,
                                                              andIncreaseBadge: self?.increaseBadge ?? true)
         }
