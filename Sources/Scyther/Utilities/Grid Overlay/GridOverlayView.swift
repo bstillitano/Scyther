@@ -101,12 +101,14 @@ public class GridOverlayView: UIView {
         verticalLabel.textColor = colorScheme.primaryColor
         verticalLabel.backgroundColor = colorScheme.secondaryColor
         verticalLabel.textAlignment = .center
+        addSubview(verticalLabel)
 
         //Setup Horizontal Label
         horizontalLabel.font = .systemFont(ofSize: 9.0)
         horizontalLabel.textColor = colorScheme.primaryColor
         horizontalLabel.backgroundColor = colorScheme.secondaryColor
         horizontalLabel.textAlignment = .center
+        addSubview(horizontalLabel)
     }
 
     // MARK: - Drawing
