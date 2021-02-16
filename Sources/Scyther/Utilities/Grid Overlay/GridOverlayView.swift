@@ -184,14 +184,13 @@ public class GridOverlayView: UIView {
 
         //Add Vertical Lines
         for lineIndex: Int in 1...linesPerHalf {
-            context?.addRect(CGRect(x: 0,
-                                    y: CGFloat(lineIndex * gridSize) - lineWidth,
-                                    width: frame.size.width,
-                                    height: lineWidth))
-            context?.addRect(CGRect(x: 0,
-                                    y: frame.size.height - CGFloat(lineIndex * gridSize),
-                                    width: frame.size.width,
-                                    height: lineWidth))
+            context?.setStrokeColor(colorScheme.primaryColor.cgColor)
+            context?.setLineWidth(1)
+            context?.move(to: CGPoint(x: CGFloat(lineIndex + 10),
+                                      y: bounds.height))
+            context?.addLine(to: CGPoint(x: bounds.width,
+                                         y: bounds.height))
+            context?.strokePath()
         }
     }
 }
