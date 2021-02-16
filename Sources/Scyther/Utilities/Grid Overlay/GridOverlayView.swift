@@ -143,14 +143,14 @@ public class GridOverlayView: UIView {
             horizontalLabel.frame = .zero
         }
 
-        //Add Vertical Lines
+        //Add Horizontal Lines
         for lineIndex: Int in 1...linesPerHalf {
             context?.setStrokeColor(colorScheme.primaryColor.cgColor)
             context?.setLineWidth(lineWidth)
-            context?.move(to: CGPoint(x: CGFloat(lineIndex * gridSize) - lineWidth,
-                                      y: 0))
+            context?.move(to: CGPoint(x: 0,
+                                      y: CGFloat(lineIndex * gridSize) - lineWidth))
             context?.addLine(to: CGPoint(x: bounds.width,
-                                         y: bounds.height))
+                                         y: CGFloat(lineIndex * gridSize) - lineWidth))
             context?.strokePath()
         }
 
