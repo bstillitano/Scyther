@@ -145,7 +145,7 @@ public class GridOverlayView: UIView {
 
         //Add Vertical Lines
         for lineIndex: Int in 1...linesPerHalf {
-            ccontext?.setStrokeColor(colorScheme.primaryColor.cgColor)
+            context?.setStrokeColor(colorScheme.primaryColor.cgColor)
             context?.setLineWidth(lineWidth)
             context?.move(to: CGPoint(x: CGFloat(lineIndex * gridSize) - lineWidth,
                                       y: 0))
