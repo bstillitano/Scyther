@@ -148,7 +148,7 @@ internal class MenuViewModel {
                                                  icon: UIImage(systemImage: "apps.iphone"),
                                                  actionController: InterfacePreviewsViewController()))
         uiUxSection.rows.append(actionRow(name: "Grid Overlay",
-                                                 icon: UIImage(systemImage: "squareshape.split.3x3"),
+                                                 icon: UIImage(systemImage: "rectangle.split.3x3"),
                                                  actionController: NotificationTesterViewController()))
         
         /// Setup Development Section

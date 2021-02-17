@@ -26,11 +26,11 @@ public enum GridOverlayColorScheme {
     var secondaryColor: UIColor {
         switch self {
         case .red:
-            return .systemGray
+            return .white
         case .green:
-            return .systemGray
+            return .white
         case .blue:
-            return .systemGray
+            return .white
         }
     }
 }
@@ -98,15 +98,15 @@ public class GridOverlayView: UIView {
     private func setupLabels() {
         //Setup Vertical Label
         verticalLabel.font = .systemFont(ofSize: 9.0)
-        verticalLabel.textColor = colorScheme.primaryColor
-        verticalLabel.backgroundColor = colorScheme.secondaryColor
+        verticalLabel.textColor = colorScheme.secondaryColor
+        verticalLabel.backgroundColor = colorScheme.primaryColor
         verticalLabel.textAlignment = .center
         addSubview(verticalLabel)
 
         //Setup Horizontal Label
         horizontalLabel.font = .systemFont(ofSize: 9.0)
-        horizontalLabel.textColor = colorScheme.primaryColor
-        horizontalLabel.backgroundColor = colorScheme.secondaryColor
+        horizontalLabel.textColor = colorScheme.secondaryColor
+        horizontalLabel.backgroundColor = colorScheme.primaryColor
         horizontalLabel.textAlignment = .center
         addSubview(horizontalLabel)
     }
@@ -189,6 +189,15 @@ public class GridOverlayView: UIView {
                                       y: CGFloat(lineIndex * gridSize) - lineWidth))
             context?.addLine(to: CGPoint(x: bounds.width,
                                          y: CGFloat(lineIndex * gridSize) - lineWidth))
+            context?.strokePath()
+        }
+        for lineIndex: Int in 1...linesPerHalf {
+            context?.setStrokeColor(colorScheme.primaryColor.cgColor)
+            context?.setLineWidth(lineWidth)
+            context?.move(to: CGPoint(x: 0,
+                                      y: CGFloat(lineIndex * gridSize) - lineWidth + verticalLabel.frame.origin.y + verticalLabel.frame.size.height))
+            context?.addLine(to: CGPoint(x: bounds.width,
+                                         y: CGFloat(lineIndex * gridSize) - lineWidth + verticalLabel.frame.origin.y + verticalLabel.frame.size.height))
             context?.strokePath()
         }
     }
