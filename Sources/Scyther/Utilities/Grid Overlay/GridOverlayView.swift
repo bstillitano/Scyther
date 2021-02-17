@@ -153,7 +153,7 @@ public class GridOverlayView: UIView {
                                          y: bounds.height))
             context?.strokePath()
         }
-        for lineIndex: Int in 1...linesPerHalf {
+        for lineIndex: Int in 0...linesPerHalf + 1 {
             context?.setStrokeColor(colorScheme.primaryColor.cgColor)
             context?.setLineWidth(lineWidth)
             context?.move(to: CGPoint(x: CGFloat(lineIndex * gridSize) - lineWidth + horizontalLabel.frame.origin.x + horizontalLabel.frame.size.width,
@@ -200,7 +200,7 @@ public class GridOverlayView: UIView {
                                          y: CGFloat(lineIndex * gridSize) - lineWidth))
             context?.strokePath()
         }
-        for lineIndex: Int in 1...linesPerHalf {
+        for lineIndex: Int in 0...linesPerHalf + 1 {
             context?.setStrokeColor(colorScheme.primaryColor.cgColor)
             context?.setLineWidth(lineWidth)
             context?.move(to: CGPoint(x: 0,
