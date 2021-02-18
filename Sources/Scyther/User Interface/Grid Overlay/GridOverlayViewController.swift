@@ -113,6 +113,7 @@ extension GridOverlayViewController: UITableViewDataSource {
         }
 
         return cell
+    }
 
 }
 
