@@ -85,15 +85,34 @@ extension GridOverlayViewController: UITableViewDataSource {
             return UITableViewCell()
         }
 
-        // Setup Cell
+        /// Setup Cell
         let cell = tableView.dequeueReusableCell(withIdentifier: row.cellReuseIdentifier,
                                                  for: indexPath)
         cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
         cell.accessoryView = row.accessoryView
         
+        /// Setup Row
+        switch row.style {
+        case .slider:
+            /// Check if we can cast our objects to the right class
+            guard let row: SliderRow = row as? SliderRow else {
+                break
+            }
+            guard let cell: SliderCell = cell as? SliderCell else {
+                break
+            }
+
+            /// Configure cell
+            cell.textLabel?.text = nil
+            cell.detailTextLabel?.text = nil
+            cell.configureWithRow(row)
+            return cell
+        default:
+            break
+        }
+
         return cell
-    }
 
 }
 
