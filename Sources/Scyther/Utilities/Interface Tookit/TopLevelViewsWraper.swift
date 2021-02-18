@@ -46,7 +46,7 @@ class TopLevelViewsWrapper: UIView {
     func updateVisibility() {
         var shouldBeVisible: Bool = false
         for view: UIView in subviews {
-            var isSubviewVisible = !view.isHidden
+            let isSubviewVisible = !view.isHidden
             shouldBeVisible |= isSubviewVisible
         }
         isHidden = !shouldBeVisible

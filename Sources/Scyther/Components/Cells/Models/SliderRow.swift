@@ -20,5 +20,6 @@ class SliderRow: Row {
     var image: UIImage?
     var imageURL: URL?
     var accessoryType: UITableViewCell.AccessoryType?
+    var slider: UISlider = UISlider()
 }
 #endif

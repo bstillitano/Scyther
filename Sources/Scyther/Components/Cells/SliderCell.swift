@@ -9,28 +9,18 @@
 import UIKit
 
 class SliderCell: UITableViewCell {
-    // MARK: - UI Elements
     var slider: UISlider = UISlider()
-
+    
     override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
     
         /// Setup UI
         textLabel?.adjustsFontSizeToFitWidth = false
         textLabel?.numberOfLines = 0
-        setupUI()
     }
 
     required init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-    
-    private func setupUI() {
-        /// Setup `slider`
-        slider.minimumValue = 1
-        slider.maximumValue = 100
-        slider.isContinuous = true
-        contentView.addSubview(slider)
     }
     
     private func setupConstraints() {
@@ -57,6 +47,7 @@ class SliderCell: UITableViewCell {
         textLabel?.text = row.text
         
         /// Setup Slider
+        slider = row.slider
         contentView.addSubview(slider)
         
         /// Relayout Constraints
