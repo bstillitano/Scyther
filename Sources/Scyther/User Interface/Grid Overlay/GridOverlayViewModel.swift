@@ -69,7 +69,9 @@ internal class GridOverlayViewModel {
 
         //Setup Data
         sections.append(overlaySection)
-        sections.append(optionsSection)
+        if GridOverlay.instance.enabled {
+            sections.append(optionsSection)
+        }
 
         //Call Delegate
         delegate?.viewModelShouldReloadData()
@@ -126,6 +128,7 @@ extension GridOverlayViewModel {
     @objc
     func switchToggled(_ sender: UIActionSwitch?) {
         sender?.actionBlock?()
+        prepareObjects()
     }
 }
 

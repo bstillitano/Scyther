@@ -59,12 +59,6 @@ class SliderCell: UITableViewCell {
         /// Set Delegate
         delegate = row.sliderCellDelegate
         
-        /// Set text
-        textLabel?.text = row.text
-        sliderValueLabel.text = "\(Int(row.slider.value))"
-        sliderValueLabel.font = detailTextLabel?.font ?? .systemFont(ofSize: 16.0)
-        sliderValueLabel.textColor = detailTextLabel?.textColor ?? .systemGray
-            
         /// Setup Slider
         slider = row.slider
         slider.removeTarget(self, action: #selector(sliderValueChanged(_:)), for: .valueChanged)
@@ -72,6 +66,12 @@ class SliderCell: UITableViewCell {
         sliderValueLabel = row.sliderValueLabel
         contentView.addSubview(slider)
         contentView.addSubview(sliderValueLabel)
+        
+        /// Set text
+        textLabel?.text = row.text
+        sliderValueLabel.text = "\(Int(row.slider.value))"
+        sliderValueLabel.font = detailTextLabel?.font ?? .systemFont(ofSize: 16.0)
+        sliderValueLabel.textColor = .systemGray
         
         /// Relayout Constraints
         setupConstraints()
