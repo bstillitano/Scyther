@@ -56,11 +56,14 @@ class SliderCell: UITableViewCell {
         slider.removeFromSuperview()
         sliderValueLabel.removeFromSuperview()
         
+        /// Set Delegate
+        delegate = row.sliderCellDelegate
+        
         /// Set text
         textLabel?.text = row.text
         sliderValueLabel.text = "\(Int(row.slider.value))"
-        sliderValueLabel.font = detailTextLabel?.font
-        sliderValueLabel.textColor = detailTextLabel?.textColor
+        sliderValueLabel.font = detailTextLabel?.font ?? .systemFont(ofSize: 16.0)
+        sliderValueLabel.textColor = detailTextLabel?.textColor ?? .systemGray
             
         /// Setup Slider
         slider = row.slider
