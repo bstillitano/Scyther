@@ -70,6 +70,9 @@ public class Scyther {
         
         /// Starts the console logger and allows it intercept `stderr` output from `NSLog`
 //        ConsoleLogger.instance.start()
+        
+        /// Sets up the grid overlay plugin
+        Scyther.interfaceToolkit.start()
     }
 
     /// Convenience function for manually showing the Scyther menu. Would be used when no gesture is wanted to invoke the menu.

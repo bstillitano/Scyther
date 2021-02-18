@@ -10,20 +10,10 @@ import UIKit
 
 public class InterfaceToolkit: NSObject {
     /// Private Init to Stop re-initialisation and allow singleton creation.
-    private override init() { }
-    
-    private static var initSingleton: InterfaceToolkit {
-        let instance: InterfaceToolkit = InterfaceToolkit()
-        instance.registerForNotitfcations()
-        instance.setupTopLevelViewsWrapper()
-        instance.setupGridOverlay()
-        instance.topLevelViewsWrapper.addTopLevelView(topLevelView: instance.gridOverlayView)
-        instance.showGridOverlay()
-        return instance
-    }
+    override private init() { }
 
     /// An initialised, shared instance of the `Toggler` class.
-    static let instance = InterfaceToolkit.initSingleton
+    static let instance = InterfaceToolkit()
 
     // MARK: - UI Elements
     internal var gridOverlayView: GridOverlayView = GridOverlayView()
@@ -35,6 +25,14 @@ public class InterfaceToolkit: NSObject {
                                                selector: #selector(newKeyWindowNotification(notification:)),
                                                name: UIWindow.didBecomeKeyNotification,
                                                object: nil)
+    }
+    
+    internal func start() {
+        registerForNotitfcations()
+        setupTopLevelViewsWrapper()
+        setupGridOverlay()
+        topLevelViewsWrapper.addTopLevelView(topLevelView: gridOverlayView)
+        showGridOverlay()
     }
 
     private func setupTopLevelViewsWrapper() {
@@ -63,7 +61,7 @@ public class InterfaceToolkit: NSObject {
         addTopLevelViewsWrapperToWindow(window: window)
     }
 
-    public override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
         if object is UIWindow {
             topLevelViewsWrapper.superview?.bringSubviewToFront(topLevelViewsWrapper)
         }
