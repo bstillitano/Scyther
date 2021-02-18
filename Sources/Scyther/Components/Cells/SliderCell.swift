@@ -24,7 +24,6 @@ class SliderCell: UITableViewCell {
     }
     
     private func setupConstraints() {
-        let frame = textLabel?.frame ?? .zero
         textLabel?.snp.remakeConstraints({ (make) in
             make.top.equalToSuperview().inset(16)
             make.left.equalToSuperview().inset(16)

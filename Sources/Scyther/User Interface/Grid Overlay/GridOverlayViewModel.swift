@@ -42,8 +42,10 @@ internal class GridOverlayViewModel {
         let slider: UISlider = UISlider()
         slider.minimumValue = 1
         slider.maximumValue = 100
-        slider.setValue(Float(GridOverlay.instance.size), animated: false)
-        var row: SliderRow = SliderRow()
+        slider.value = Float(GridOverlay.instance.size)
+        
+        //Setup Row
+        let row: SliderRow = SliderRow()
         row.text = "Grid size"
         row.slider = slider
         return row
