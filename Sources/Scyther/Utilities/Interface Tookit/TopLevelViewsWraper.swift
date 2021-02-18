@@ -34,7 +34,7 @@ class TopLevelViewsWrapper: UIView {
         updateVisibility()
     }
 
-    func pointInside(point: CGPoint, withEvent event: UIEvent) {
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
         for view: UIView in subviews {
             if view.hitTest(point, with: event) != nil {
                 return true
