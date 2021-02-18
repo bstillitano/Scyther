@@ -8,9 +8,18 @@
 #if os(iOS)
 import UIKit
 
+protocol SliderCellDelegate: class {
+    func sliderValueChanged(slider: UISlider?, label: UILabel)
+}
+
 class SliderCell: UITableViewCell {
+    // MARK: - UI Elements
     var slider: UISlider = UISlider()
+    var sliderValueLabel: UILabel = UILabel()
     
+    // MARK: - Delegate
+    weak var delegate: SliderCellDelegate?
+
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: .value1, reuseIdentifier: reuseIdentifier)
     
@@ -29,7 +38,7 @@ class SliderCell: UITableViewCell {
             make.right.equalToSuperview().inset(16)
         })
         
-        detailTextLabel?.snp.remakeConstraints({ (make) in
+        sliderValueLabel.snp.remakeConstraints({ (make) in
             make.centerY.equalTo(textLabel?.snp.centerY ?? 0)
             make.right.equalToSuperview().inset(16)
         })
@@ -45,17 +54,29 @@ class SliderCell: UITableViewCell {
     func configureWithRow(_ row: SliderRow) {
         /// Remove existing slider
         slider.removeFromSuperview()
-
+        sliderValueLabel.removeFromSuperview()
+        
         /// Set text
         textLabel?.text = row.text
-        detailTextLabel?.text = "\(Int(row.slider.value))"
+        sliderValueLabel.text = "\(Int(row.slider.value))"
+        sliderValueLabel.font = detailTextLabel?.font
+        sliderValueLabel.textColor = detailTextLabel?.textColor
             
         /// Setup Slider
         slider = row.slider
+        slider.removeTarget(self, action: #selector(sliderValueChanged(_:)), for: .valueChanged)
+        slider.addTarget(self, action: #selector(sliderValueChanged(_:)), for: .valueChanged)
+        sliderValueLabel = row.sliderValueLabel
         contentView.addSubview(slider)
+        contentView.addSubview(sliderValueLabel)
         
         /// Relayout Constraints
         setupConstraints()
+    }
+    
+    @objc
+    func sliderValueChanged(_ sender: UISlider?) {
+        delegate?.sliderValueChanged(slider: sender, label: sliderValueLabel)
     }
 }
 #endif

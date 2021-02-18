@@ -21,5 +21,7 @@ class SliderRow: Row {
     var imageURL: URL?
     var accessoryType: UITableViewCell.AccessoryType?
     var slider: UISlider = UISlider()
+    var sliderValueLabel: UILabel = UILabel()
+    weak var sliderCellDelegate: SliderCellDelegate?
 }
 #endif
