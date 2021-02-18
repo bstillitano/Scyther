@@ -44,7 +44,6 @@ public class InterfaceToolkit: NSObject {
     }
 
     private func addTopLevelViewsWrapperToWindow(window: UIWindow) {
-        topLevelViewsWrapper.isUserInteractionEnabled = false
         topLevelViewsWrapper.superview?.removeObserver(self, forKeyPath: "layer.sublayers")
         window.addSubview(topLevelViewsWrapper)
         window.addObserver(self,

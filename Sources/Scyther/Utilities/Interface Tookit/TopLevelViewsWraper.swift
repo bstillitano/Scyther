@@ -36,7 +36,7 @@ class TopLevelViewsWrapper: UIView {
 
     func pointInside(point: CGPoint, withEvent event: UIEvent) -> Bool {
         for view: UIView in subviews {
-            if view.hitTest(point, with: event) != nil {
+            if view.hitTest(convert(point, to: view), with: event) != nil {
                 return true
             }
         }
