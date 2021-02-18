@@ -80,17 +80,17 @@ extension ViewController {
     func setupFlags() {
         var flags: [String: Bool] = [:]
         flags["logging"] = true
-        flags["analytics"] = true
+        flags["analytics"] = false
         flags["voip-calling"] = true
         flags["live-chat"] = true
-        flags["force-update"] = true
+        flags["force-update"] = false
         flags["advertising"] = true
         flags["offline-cache"] = true
         flags["push-notifications"] = true
-        flags["backend-sync"] = true
+        flags["backend-sync"] = false
         flags["rtl-layout"] = true
-        flags["google-news-bypass"] = true
-        flags["development-environment"] = true
+        flags["google-news-bypass"] = false
+        flags["development-environment"] = false
         for key: String in flags.keys {
             Scyther.toggler.configureToggle(withName: key,
                                             remoteValue: flags[key] ?? false)

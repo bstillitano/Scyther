@@ -27,9 +27,9 @@ internal class GridOverlayViewModel {
 
         //Setup Accessory
         let switchView = UIActionSwitch()
-        switchView.isOn = Toggler.instance.localOverridesEnabled
+        switchView.isOn = GridOverlay.instance.enabled
         switchView.actionBlock = {
-            Toggler.instance.localOverridesEnabled = switchView.isOn
+            GridOverlay.instance.enabled = switchView.isOn
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView

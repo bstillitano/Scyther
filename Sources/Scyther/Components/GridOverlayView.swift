@@ -7,7 +7,7 @@
 
 import UIKit
 
-public enum GridOverlayColorScheme {
+public enum GridOverlayColorScheme: String, CaseIterable {
     case red
     case green
     case blue
@@ -35,14 +35,14 @@ public enum GridOverlayColorScheme {
     }
 }
 
-public class GridOverlayView: UIView {
+internal class GridOverlayView: TopLevelView {
     // MARK: - Static Data
-    static var DBGridOverlayViewMinHorizontalMiddlePartSize: Int = 8
-    static var DBGridOverlayViewMinVerticalMiddlePartSize: Int = 8
-    static var DBGridOverlayViewLabelFontSize: CGFloat = 9.0
-    static var DBGridOverlayViewHorizontalLabelTopOffset: CGFloat = 72.0
-    static var DBGridOverlayViewVerticalLabelRightOffset: CGFloat = 32.0
-    static var DBGridOverlayViewVerticalLabelContentOffsets: CGFloat = 4.0
+    static var MinHorizontalMiddlePartSize: Int = 8
+    static var MinVerticalMiddlePartSize: Int = 8
+    static var LabelFontSize: CGFloat = 9.0
+    static var HorizontalLabelTopOffset: CGFloat = 72.0
+    static var VerticalLabelRightOffset: CGFloat = 32.0
+    static var VerticalLabelContentOffsets: CGFloat = 4.0
 
     // MARK: - UI Elements
     private var horizontalLabel: UILabel = UILabel()
@@ -90,7 +90,7 @@ public class GridOverlayView: UIView {
         isOpaque = false
     }
 
-    private func updateFrame() {
+    internal override func updateFrame() {
         frame = UIScreen.main.bounds
         setNeedsDisplay()
     }
@@ -124,8 +124,8 @@ public class GridOverlayView: UIView {
 
         //Show/Hide Horizontal Label
         var showsLabel = middlePartSize > 0
-        if middlePartSize < GridOverlayView.DBGridOverlayViewMinHorizontalMiddlePartSize && showsLabel {
-            linesPerHalf -= (GridOverlayView.DBGridOverlayViewMinHorizontalMiddlePartSize - middlePartSize + 2 * gridSize - 1) / (2 * gridSize)
+        if middlePartSize < GridOverlayView.MinHorizontalMiddlePartSize && showsLabel {
+            linesPerHalf -= (GridOverlayView.MinHorizontalMiddlePartSize - middlePartSize + 2 * gridSize - 1) / (2 * gridSize)
             middlePartSize = screenSize - linesPerHalf * 2 * gridSize
         }
 
@@ -136,7 +136,7 @@ public class GridOverlayView: UIView {
 
             let labelSize: CGSize = horizontalLabel.frame.size
             horizontalLabel.frame = CGRect(x: CGFloat(linesPerHalf * gridSize) - lineWidth,
-                                           y: GridOverlayView.DBGridOverlayViewHorizontalLabelTopOffset,
+                                           y: GridOverlayView.HorizontalLabelTopOffset,
                                            width: CGFloat(middlePartSize) + 2 * lineWidth,
                                            height: labelSize.height)
         } else {
@@ -170,8 +170,8 @@ public class GridOverlayView: UIView {
 
         //Show/Hide Vertical Label
         showsLabel = middlePartSize > 0
-        if middlePartSize < GridOverlayView.DBGridOverlayViewMinVerticalMiddlePartSize && showsLabel {
-            linesPerHalf -= (GridOverlayView.DBGridOverlayViewMinVerticalMiddlePartSize - middlePartSize + 2 * gridSize - 1) / (2 * gridSize)
+        if middlePartSize < GridOverlayView.MinVerticalMiddlePartSize && showsLabel {
+            linesPerHalf -= (GridOverlayView.MinVerticalMiddlePartSize - middlePartSize + 2 * gridSize - 1) / (2 * gridSize)
             middlePartSize = screenSize - linesPerHalf * 2 * gridSize
         }
 
@@ -181,8 +181,8 @@ public class GridOverlayView: UIView {
             verticalLabel.sizeToFit()
 
             let labelSize: CGSize = verticalLabel.frame.size
-            let labelWidth: CGFloat = labelSize.width + GridOverlayView.DBGridOverlayViewVerticalLabelContentOffsets
-            verticalLabel.frame = CGRect(x: frame.size.width - GridOverlayView.DBGridOverlayViewVerticalLabelRightOffset - labelWidth,
+            let labelWidth: CGFloat = labelSize.width + GridOverlayView.VerticalLabelContentOffsets
+            verticalLabel.frame = CGRect(x: frame.size.width - GridOverlayView.VerticalLabelRightOffset - labelWidth,
                                          y: CGFloat(linesPerHalf * gridSize) - lineWidth,
                                          width: labelWidth,
                                          height: CGFloat(middlePartSize) + 2 * lineWidth)
