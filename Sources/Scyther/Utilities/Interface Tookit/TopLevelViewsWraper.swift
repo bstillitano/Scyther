@@ -35,14 +35,6 @@ class TopLevelViewsWrapper: UIView {
     }
 
     func pointInside(point: CGPoint, withEvent event: UIEvent) -> Bool {
-        for view: UIView in subviews {
-            if view.isKind(of: GridOverlayView.self) {
-                return false
-            }
-            else if view.hitTest(convert(point, to: view), with: event) != nil {
-                return true
-            }
-        }
         return false
     }
 
