@@ -78,6 +78,6 @@ extension InterfaceToolkit {
 
     internal func showGridOverlay() {
         gridOverlayView.alpha = GridOverlay.instance.enabled ? CGFloat(GridOverlay.instance.opacity) : 0.0
-        gridOverlayView.isHidden = GridOverlay.instance.enabled
+        gridOverlayView.isHidden = !GridOverlay.instance.enabled
     }
 }

@@ -43,7 +43,7 @@ internal class GridOverlay {
     /// Opacity of the grid that is overlayed
     internal var opacity: Float {
         get {
-            return UserDefaults.standard.float(forKey: GridOverlay.OpacityDefaultsKey)
+            return 1.0
         }
         set {
             UserDefaults.standard.setValue(newValue, forKey: GridOverlay.OpacityDefaultsKey)
