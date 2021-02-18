@@ -1,0 +1,639 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 52;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		CA73FCE825D690D2007FA627 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCE725D690D2007FA627 /* AppDelegate.swift */; };
+		CA73FCEA25D690D2007FA627 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCE925D690D2007FA627 /* SceneDelegate.swift */; };
+		CA73FCEC25D690D2007FA627 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCEB25D690D2007FA627 /* ViewController.swift */; };
+		CA73FCEF25D690D2007FA627 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CA73FCED25D690D2007FA627 /* Main.storyboard */; };
+		CA73FCF125D690D2007FA627 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CA73FCF025D690D2007FA627 /* Assets.xcassets */; };
+		CA73FCF425D690D2007FA627 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CA73FCF225D690D2007FA627 /* LaunchScreen.storyboard */; };
+		CA73FCFF25D690D2007FA627 /* Scyther_PlaygroundTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCFE25D690D2007FA627 /* Scyther_PlaygroundTests.swift */; };
+		CA73FD0A25D690D2007FA627 /* Scyther_PlaygroundUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FD0925D690D2007FA627 /* Scyther_PlaygroundUITests.swift */; };
+		CA73FDDD25DA22E8007FA627 /* Scyther in Frameworks */ = {isa = PBXBuildFile; productRef = CA73FDDC25DA22E8007FA627 /* Scyther */; };
+		CA9F8FC225DE08E5000FA677 /* Environments.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FC125DE08E5000FA677 /* Environments.swift */; };
+		CA9F8FC725DE0A88000FA677 /* RedViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FC625DE0A88000FA677 /* RedViewController.swift */; };
+		CA9F8FCF25DE0B5F000FA677 /* BlueViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FCE25DE0B5F000FA677 /* BlueViewController.swift */; };
+		CA9F8FD425DE0EFF000FA677 /* Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FD325DE0EFF000FA677 /* Button.swift */; };
+		CA9F8FD925DE0F6D000FA677 /* ButtonPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FD825DE0F6D000FA677 /* ButtonPreviews.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CA73FCFB25D690D2007FA627 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CA73FCDC25D690D2007FA627 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CA73FCE325D690D2007FA627;
+			remoteInfo = "Scyther Playground";
+		};
+		CA73FD0625D690D2007FA627 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CA73FCDC25D690D2007FA627 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CA73FCE325D690D2007FA627;
+			remoteInfo = "Scyther Playground";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		CA73FCE425D690D2007FA627 /* Scyther Playground.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Scyther Playground.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA73FCE725D690D2007FA627 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		CA73FCE925D690D2007FA627 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		CA73FCEB25D690D2007FA627 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		CA73FCEE25D690D2007FA627 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		CA73FCF025D690D2007FA627 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CA73FCF325D690D2007FA627 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		CA73FCF525D690D2007FA627 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CA73FCFA25D690D2007FA627 /* Scyther PlaygroundTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Scyther PlaygroundTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA73FCFE25D690D2007FA627 /* Scyther_PlaygroundTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scyther_PlaygroundTests.swift; sourceTree = "<group>"; };
+		CA73FD0025D690D2007FA627 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CA73FD0525D690D2007FA627 /* Scyther PlaygroundUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Scyther PlaygroundUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA73FD0925D690D2007FA627 /* Scyther_PlaygroundUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scyther_PlaygroundUITests.swift; sourceTree = "<group>"; };
+		CA73FD0B25D690D2007FA627 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CA9F8FC125DE08E5000FA677 /* Environments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Environments.swift; sourceTree = "<group>"; };
+		CA9F8FC625DE0A88000FA677 /* RedViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedViewController.swift; sourceTree = "<group>"; };
+		CA9F8FCE25DE0B5F000FA677 /* BlueViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlueViewController.swift; sourceTree = "<group>"; };
+		CA9F8FD325DE0EFF000FA677 /* Button.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Button.swift; sourceTree = "<group>"; };
+		CA9F8FD825DE0F6D000FA677 /* ButtonPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonPreviews.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CA73FCE125D690D2007FA627 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA73FDDD25DA22E8007FA627 /* Scyther in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA73FCF725D690D2007FA627 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA73FD0225D690D2007FA627 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CA73FCDB25D690D2007FA627 = {
+			isa = PBXGroup;
+			children = (
+				CA73FCE625D690D2007FA627 /* Scyther Playground */,
+				CA73FCFD25D690D2007FA627 /* Scyther PlaygroundTests */,
+				CA73FD0825D690D2007FA627 /* Scyther PlaygroundUITests */,
+				CA73FCE525D690D2007FA627 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CA73FCE525D690D2007FA627 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CA73FCE425D690D2007FA627 /* Scyther Playground.app */,
+				CA73FCFA25D690D2007FA627 /* Scyther PlaygroundTests.xctest */,
+				CA73FD0525D690D2007FA627 /* Scyther PlaygroundUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CA73FCE625D690D2007FA627 /* Scyther Playground */ = {
+			isa = PBXGroup;
+			children = (
+				CA73FCE725D690D2007FA627 /* AppDelegate.swift */,
+				CA73FCE925D690D2007FA627 /* SceneDelegate.swift */,
+				CA73FCEB25D690D2007FA627 /* ViewController.swift */,
+				CA9F8FC625DE0A88000FA677 /* RedViewController.swift */,
+				CA9F8FCE25DE0B5F000FA677 /* BlueViewController.swift */,
+				CA9F8FD325DE0EFF000FA677 /* Button.swift */,
+				CA9F8FD825DE0F6D000FA677 /* ButtonPreviews.swift */,
+				CA9F8FC125DE08E5000FA677 /* Environments.swift */,
+				CA73FCED25D690D2007FA627 /* Main.storyboard */,
+				CA73FCF025D690D2007FA627 /* Assets.xcassets */,
+				CA73FCF225D690D2007FA627 /* LaunchScreen.storyboard */,
+				CA73FCF525D690D2007FA627 /* Info.plist */,
+			);
+			path = "Scyther Playground";
+			sourceTree = "<group>";
+		};
+		CA73FCFD25D690D2007FA627 /* Scyther PlaygroundTests */ = {
+			isa = PBXGroup;
+			children = (
+				CA73FCFE25D690D2007FA627 /* Scyther_PlaygroundTests.swift */,
+				CA73FD0025D690D2007FA627 /* Info.plist */,
+			);
+			path = "Scyther PlaygroundTests";
+			sourceTree = "<group>";
+		};
+		CA73FD0825D690D2007FA627 /* Scyther PlaygroundUITests */ = {
+			isa = PBXGroup;
+			children = (
+				CA73FD0925D690D2007FA627 /* Scyther_PlaygroundUITests.swift */,
+				CA73FD0B25D690D2007FA627 /* Info.plist */,
+			);
+			path = "Scyther PlaygroundUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CA73FCE325D690D2007FA627 /* Scyther Playground */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA73FD0E25D690D2007FA627 /* Build configuration list for PBXNativeTarget "Scyther Playground" */;
+			buildPhases = (
+				CA73FCE025D690D2007FA627 /* Sources */,
+				CA73FCE125D690D2007FA627 /* Frameworks */,
+				CA73FCE225D690D2007FA627 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Scyther Playground";
+			packageProductDependencies = (
+				CA73FDDC25DA22E8007FA627 /* Scyther */,
+			);
+			productName = "Scyther Playground";
+			productReference = CA73FCE425D690D2007FA627 /* Scyther Playground.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CA73FCF925D690D2007FA627 /* Scyther PlaygroundTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA73FD1125D690D2007FA627 /* Build configuration list for PBXNativeTarget "Scyther PlaygroundTests" */;
+			buildPhases = (
+				CA73FCF625D690D2007FA627 /* Sources */,
+				CA73FCF725D690D2007FA627 /* Frameworks */,
+				CA73FCF825D690D2007FA627 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CA73FCFC25D690D2007FA627 /* PBXTargetDependency */,
+			);
+			name = "Scyther PlaygroundTests";
+			productName = "Scyther PlaygroundTests";
+			productReference = CA73FCFA25D690D2007FA627 /* Scyther PlaygroundTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CA73FD0425D690D2007FA627 /* Scyther PlaygroundUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA73FD1425D690D2007FA627 /* Build configuration list for PBXNativeTarget "Scyther PlaygroundUITests" */;
+			buildPhases = (
+				CA73FD0125D690D2007FA627 /* Sources */,
+				CA73FD0225D690D2007FA627 /* Frameworks */,
+				CA73FD0325D690D2007FA627 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CA73FD0725D690D2007FA627 /* PBXTargetDependency */,
+			);
+			name = "Scyther PlaygroundUITests";
+			productName = "Scyther PlaygroundUITests";
+			productReference = CA73FD0525D690D2007FA627 /* Scyther PlaygroundUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CA73FCDC25D690D2007FA627 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1240;
+				LastUpgradeCheck = 1240;
+				TargetAttributes = {
+					CA73FCE325D690D2007FA627 = {
+						CreatedOnToolsVersion = 12.4;
+					};
+					CA73FCF925D690D2007FA627 = {
+						CreatedOnToolsVersion = 12.4;
+						TestTargetID = CA73FCE325D690D2007FA627;
+					};
+					CA73FD0425D690D2007FA627 = {
+						CreatedOnToolsVersion = 12.4;
+						TestTargetID = CA73FCE325D690D2007FA627;
+					};
+				};
+			};
+			buildConfigurationList = CA73FCDF25D690D2007FA627 /* Build configuration list for PBXProject "Scyther Playground" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CA73FCDB25D690D2007FA627;
+			packageReferences = (
+				CA73FDDB25DA22E8007FA627 /* XCRemoteSwiftPackageReference "Scyther" */,
+			);
+			productRefGroup = CA73FCE525D690D2007FA627 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CA73FCE325D690D2007FA627 /* Scyther Playground */,
+				CA73FCF925D690D2007FA627 /* Scyther PlaygroundTests */,
+				CA73FD0425D690D2007FA627 /* Scyther PlaygroundUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CA73FCE225D690D2007FA627 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA73FCF425D690D2007FA627 /* LaunchScreen.storyboard in Resources */,
+				CA73FCF125D690D2007FA627 /* Assets.xcassets in Resources */,
+				CA73FCEF25D690D2007FA627 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA73FCF825D690D2007FA627 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA73FD0325D690D2007FA627 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CA73FCE025D690D2007FA627 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA9F8FD925DE0F6D000FA677 /* ButtonPreviews.swift in Sources */,
+				CA9F8FD425DE0EFF000FA677 /* Button.swift in Sources */,
+				CA9F8FC725DE0A88000FA677 /* RedViewController.swift in Sources */,
+				CA73FCEC25D690D2007FA627 /* ViewController.swift in Sources */,
+				CA9F8FC225DE08E5000FA677 /* Environments.swift in Sources */,
+				CA73FCE825D690D2007FA627 /* AppDelegate.swift in Sources */,
+				CA9F8FCF25DE0B5F000FA677 /* BlueViewController.swift in Sources */,
+				CA73FCEA25D690D2007FA627 /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA73FCF625D690D2007FA627 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA73FCFF25D690D2007FA627 /* Scyther_PlaygroundTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA73FD0125D690D2007FA627 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA73FD0A25D690D2007FA627 /* Scyther_PlaygroundUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CA73FCFC25D690D2007FA627 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CA73FCE325D690D2007FA627 /* Scyther Playground */;
+			targetProxy = CA73FCFB25D690D2007FA627 /* PBXContainerItemProxy */;
+		};
+		CA73FD0725D690D2007FA627 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CA73FCE325D690D2007FA627 /* Scyther Playground */;
+			targetProxy = CA73FD0625D690D2007FA627 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		CA73FCED25D690D2007FA627 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				CA73FCEE25D690D2007FA627 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		CA73FCF225D690D2007FA627 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				CA73FCF325D690D2007FA627 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		CA73FD0C25D690D2007FA627 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		CA73FD0D25D690D2007FA627 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CA73FD0F25D690D2007FA627 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = "Scyther Playground/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "io.stillitano.Scyther-Playground";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CA73FD1025D690D2007FA627 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = "Scyther Playground/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "io.stillitano.Scyther-Playground";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		CA73FD1225D690D2007FA627 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = "Scyther PlaygroundTests/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "io.stillitano.Scyther-PlaygroundTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Scyther Playground.app/Scyther Playground";
+			};
+			name = Debug;
+		};
+		CA73FD1325D690D2007FA627 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = "Scyther PlaygroundTests/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "io.stillitano.Scyther-PlaygroundTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Scyther Playground.app/Scyther Playground";
+			};
+			name = Release;
+		};
+		CA73FD1525D690D2007FA627 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = "Scyther PlaygroundUITests/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "io.stillitano.Scyther-PlaygroundUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Scyther Playground";
+			};
+			name = Debug;
+		};
+		CA73FD1625D690D2007FA627 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = "Scyther PlaygroundUITests/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "io.stillitano.Scyther-PlaygroundUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Scyther Playground";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CA73FCDF25D690D2007FA627 /* Build configuration list for PBXProject "Scyther Playground" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA73FD0C25D690D2007FA627 /* Debug */,
+				CA73FD0D25D690D2007FA627 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CA73FD0E25D690D2007FA627 /* Build configuration list for PBXNativeTarget "Scyther Playground" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA73FD0F25D690D2007FA627 /* Debug */,
+				CA73FD1025D690D2007FA627 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CA73FD1125D690D2007FA627 /* Build configuration list for PBXNativeTarget "Scyther PlaygroundTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA73FD1225D690D2007FA627 /* Debug */,
+				CA73FD1325D690D2007FA627 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CA73FD1425D690D2007FA627 /* Build configuration list for PBXNativeTarget "Scyther PlaygroundUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA73FD1525D690D2007FA627 /* Debug */,
+				CA73FD1625D690D2007FA627 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CA73FDDB25DA22E8007FA627 /* XCRemoteSwiftPackageReference "Scyther" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/bstillitano/Scyther.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CA73FDDC25DA22E8007FA627 /* Scyther */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA73FDDB25DA22E8007FA627 /* XCRemoteSwiftPackageReference "Scyther" */;
+			productName = Scyther;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = CA73FCDC25D690D2007FA627 /* Project object */;
+}
