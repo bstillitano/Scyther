@@ -71,7 +71,7 @@ public class Scyther {
         /// Starts the console logger and allows it intercept `stderr` output from `NSLog`
 //        ConsoleLogger.instance.start()
         
-        /// Sets up the grid overlay plugin
+        /// Sets up the interface toolit plugins
         Scyther.interfaceToolkit.start()
     }
 
