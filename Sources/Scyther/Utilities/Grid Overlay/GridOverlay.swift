@@ -22,7 +22,12 @@ internal class GridOverlay {
 
     /// Last known preference for whether or not the running application would like a grid overlay to be shown
     internal var enabled: Bool {
-        return true
+        get {
+            return true
+        }
+        set {
+            UserDefaults.standard.setValue(newValue, forKey: GridOverlay.EnabledDefaultsKey)
+        }
     }
 
     /// Color scheme of the grid that is overlayed
