@@ -10,17 +10,20 @@ import UIKit
 
 public class InterfaceToolkit: NSObject {
     /// Private Init to Stop re-initialisation and allow singleton creation.
-    override private init() {
-        super.init()
-        registerForNotitfcations()
-        setupTopLevelViewsWrapper()
-        setupGridOverlay()
-        topLevelViewsWrapper.addTopLevelView(topLevelView: gridOverlayView)
-        showGridOverlay()
+    private override init() { }
+    
+    private static var initSingleton: InterfaceToolkit {
+        let instance: InterfaceToolkit = InterfaceToolkit()
+        instance.registerForNotitfcations()
+        instance.setupTopLevelViewsWrapper()
+        instance.setupGridOverlay()
+        instance.topLevelViewsWrapper.addTopLevelView(topLevelView: instance.gridOverlayView)
+        instance.showGridOverlay()
+        return instance
     }
 
     /// An initialised, shared instance of the `Toggler` class.
-    static let instance = InterfaceToolkit()
+    static let instance = InterfaceToolkit.initSingleton
 
     // MARK: - UI Elements
     internal var gridOverlayView: GridOverlayView = GridOverlayView()
