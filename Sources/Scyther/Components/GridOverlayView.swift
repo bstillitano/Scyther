@@ -72,7 +72,12 @@ internal class GridOverlayView: TopLevelView {
     }
     
     override var isUserInteractionEnabled: Bool {
-        return false
+        get {
+            return false
+        }
+        set {
+            isUserInteractionEnabled = newValue
+        }
     }
 
     // MARK: - Init
