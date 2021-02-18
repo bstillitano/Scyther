@@ -70,6 +70,10 @@ internal class GridOverlayView: TopLevelView {
             setNeedsDisplay()
         }
     }
+    
+    override var isUserInteractionEnabled: Bool {
+        return false
+    }
 
     // MARK: - Init
     public override init(frame: CGRect) {
