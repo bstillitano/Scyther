@@ -59,6 +59,7 @@ internal class GridOverlayViewModel {
 
         //Setup Data
         sections.append(overlaySection)
+        sections.append(optionsSection)
 
         //Call Delegate
         delegate?.viewModelShouldReloadData()
