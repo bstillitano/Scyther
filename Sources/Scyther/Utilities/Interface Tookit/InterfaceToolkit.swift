@@ -61,7 +61,7 @@ public class InterfaceToolkit: NSObject {
         addTopLevelViewsWrapperToWindow(window: window)
     }
 
-    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
+    public override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
         if object is UIWindow {
             topLevelViewsWrapper.superview?.bringSubviewToFront(topLevelViewsWrapper)
         }
