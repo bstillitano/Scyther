@@ -36,6 +36,12 @@ internal class GridOverlayViewModel {
 
         return row
     }
+    
+    var sizeSlider: SliderRow {
+        var row: SliderRow = SliderRow()
+        row.text = "Grid size"
+        return row
+    }
 
     func prepareObjects() {
         //Clear Data
@@ -43,8 +49,13 @@ internal class GridOverlayViewModel {
 
         //Setup Overlay Section
         var overlaySection: Section = Section()
-        overlaySection.title = "Overlay"
+        overlaySection.title = nil
         overlaySection.rows = [enableGrid]
+        
+        //Setup Options Section
+        var optionsSection: Section = Section()
+        optionsSection.title = "Grid Options"
+        optionsSection.rows = [sizeSlider]
 
         //Setup Data
         sections.append(overlaySection)

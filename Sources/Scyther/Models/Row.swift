@@ -20,6 +20,7 @@ enum RowStyle: String {
     case emptyRow
     case previewable
     case font
+    case slider
 }
 
 internal protocol Row {
