@@ -43,6 +43,7 @@ internal class GridOverlayViewModel {
         slider.minimumValue = 1
         slider.maximumValue = 100
         slider.value = Float(GridOverlay.instance.size)
+        slider.addTarget(self, action: #selector(sizeSliderChanged(_:)), for: .valueChanged)
         
         //Setup Row
         let row: SliderRow = SliderRow()
@@ -124,6 +125,14 @@ extension GridOverlayViewModel {
     @objc
     func switchToggled(_ sender: UIActionSwitch?) {
         sender?.actionBlock?()
+    }
+    
+    @objc
+    func sizeSliderChanged(_ sender: UISlider?) {
+        guard let slider: UISlider = sender else {
+            return
+        }
+        GridOverlay.instance.size = Int(slider.value)
     }
 }
 #endif
