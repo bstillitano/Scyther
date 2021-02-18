@@ -11,8 +11,6 @@ import UserNotifications
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
-    var window: UIWindow?
-    
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         /// Run Scyther only on non AppStore builds to avoid introducing potential security issues into our app.
         if !AppEnvironment.isAppStore {

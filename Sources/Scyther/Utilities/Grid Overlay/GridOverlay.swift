@@ -19,14 +19,16 @@ internal class GridOverlay {
 
     /// An initialised, shared instance of the `GridOverlay` class.
     static let instance = GridOverlay()
+    
 
     /// Last known preference for whether or not the running application would like a grid overlay to be shown
     internal var enabled: Bool {
         get {
-            return true
+            return UserDefaults.standard.bool(forKey: GridOverlay.EnabledDefaultsKey)
         }
         set {
             UserDefaults.standard.setValue(newValue, forKey: GridOverlay.EnabledDefaultsKey)
+            InterfaceToolkit.instance.showGridOverlay()
         }
     }
 
@@ -37,6 +39,7 @@ internal class GridOverlay {
         }
         set {
             UserDefaults.standard.setValue(newValue, forKey: GridOverlay.ColorDefaultsKey)
+            InterfaceToolkit.instance.gridOverlayView.colorScheme = newValue
         }
     }
 
@@ -47,6 +50,7 @@ internal class GridOverlay {
         }
         set {
             UserDefaults.standard.setValue(newValue, forKey: GridOverlay.OpacityDefaultsKey)
+            InterfaceToolkit.instance.gridOverlayView.opacity = CGFloat(newValue)
         }
     }
 
@@ -57,6 +61,7 @@ internal class GridOverlay {
         }
         set {
             UserDefaults.standard.setValue(newValue, forKey: GridOverlay.SizeDefaultsKey)
+            InterfaceToolkit.instance.gridOverlayView.gridSize = newValue
         }
     }
 }
