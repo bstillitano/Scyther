@@ -16,6 +16,11 @@
 		CA73FCFF25D690D2007FA627 /* Scyther_PlaygroundTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCFE25D690D2007FA627 /* Scyther_PlaygroundTests.swift */; };
 		CA73FD0A25D690D2007FA627 /* Scyther_PlaygroundUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FD0925D690D2007FA627 /* Scyther_PlaygroundUITests.swift */; };
 		CA73FDDD25DA22E8007FA627 /* Scyther in Frameworks */ = {isa = PBXBuildFile; productRef = CA73FDDC25DA22E8007FA627 /* Scyther */; };
+		CA9F8FC225DE08E5000FA677 /* Environments.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FC125DE08E5000FA677 /* Environments.swift */; };
+		CA9F8FC725DE0A88000FA677 /* RedViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FC625DE0A88000FA677 /* RedViewController.swift */; };
+		CA9F8FCF25DE0B5F000FA677 /* BlueViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FCE25DE0B5F000FA677 /* BlueViewController.swift */; };
+		CA9F8FD425DE0EFF000FA677 /* Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FD325DE0EFF000FA677 /* Button.swift */; };
+		CA9F8FD925DE0F6D000FA677 /* ButtonPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FD825DE0F6D000FA677 /* ButtonPreviews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,6 +55,11 @@
 		CA73FD0525D690D2007FA627 /* Scyther PlaygroundUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Scyther PlaygroundUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA73FD0925D690D2007FA627 /* Scyther_PlaygroundUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scyther_PlaygroundUITests.swift; sourceTree = "<group>"; };
 		CA73FD0B25D690D2007FA627 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CA9F8FC125DE08E5000FA677 /* Environments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Environments.swift; sourceTree = "<group>"; };
+		CA9F8FC625DE0A88000FA677 /* RedViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedViewController.swift; sourceTree = "<group>"; };
+		CA9F8FCE25DE0B5F000FA677 /* BlueViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlueViewController.swift; sourceTree = "<group>"; };
+		CA9F8FD325DE0EFF000FA677 /* Button.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Button.swift; sourceTree = "<group>"; };
+		CA9F8FD825DE0F6D000FA677 /* ButtonPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonPreviews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -104,6 +114,11 @@
 				CA73FCE725D690D2007FA627 /* AppDelegate.swift */,
 				CA73FCE925D690D2007FA627 /* SceneDelegate.swift */,
 				CA73FCEB25D690D2007FA627 /* ViewController.swift */,
+				CA9F8FC625DE0A88000FA677 /* RedViewController.swift */,
+				CA9F8FCE25DE0B5F000FA677 /* BlueViewController.swift */,
+				CA9F8FD325DE0EFF000FA677 /* Button.swift */,
+				CA9F8FD825DE0F6D000FA677 /* ButtonPreviews.swift */,
+				CA9F8FC125DE08E5000FA677 /* Environments.swift */,
 				CA73FCED25D690D2007FA627 /* Main.storyboard */,
 				CA73FCF025D690D2007FA627 /* Assets.xcassets */,
 				CA73FCF225D690D2007FA627 /* LaunchScreen.storyboard */,
@@ -266,8 +281,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CA9F8FD925DE0F6D000FA677 /* ButtonPreviews.swift in Sources */,
+				CA9F8FD425DE0EFF000FA677 /* Button.swift in Sources */,
+				CA9F8FC725DE0A88000FA677 /* RedViewController.swift in Sources */,
 				CA73FCEC25D690D2007FA627 /* ViewController.swift in Sources */,
+				CA9F8FC225DE08E5000FA677 /* Environments.swift in Sources */,
 				CA73FCE825D690D2007FA627 /* AppDelegate.swift in Sources */,
+				CA9F8FCF25DE0B5F000FA677 /* BlueViewController.swift in Sources */,
 				CA73FCEA25D690D2007FA627 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

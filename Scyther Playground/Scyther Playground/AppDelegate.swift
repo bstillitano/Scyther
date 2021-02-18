@@ -16,17 +16,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         if !AppEnvironment.isAppStore {
             //Setup Networking
             Scyther.instance.start()
-//            Scyther.instance.delegate = self
-//            for environment in Environments.allCases {
-//                Scyther.configSwitcher.configureEnvironment(withIdentifier: environment.rawValue, variables: environment.environmentVariables)
-//            }
-//
-//            //Setup Developer Tools
-//            var deeplinkOption: DeveloperOption = DeveloperOption()
-//            deeplinkOption.name = "Deeplink Tester"
-//            deeplinkOption.icon = UIImage(systemImage: "link")
-//            deeplinkOption.viewController = DeeplinksViewController()
-//            Scyther.instance.developerOptions.append(deeplinkOption)
         }
 
         //Register for Push
