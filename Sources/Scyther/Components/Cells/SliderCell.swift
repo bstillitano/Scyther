@@ -11,8 +11,8 @@ import UIKit
 class SliderCell: UITableViewCell {
     var slider: UISlider = UISlider()
     
-    override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: .value1, reuseIdentifier: reuseIdentifier)
     
         /// Setup UI
         textLabel?.adjustsFontSizeToFitWidth = false
