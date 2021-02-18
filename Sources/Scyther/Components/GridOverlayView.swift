@@ -76,7 +76,7 @@ internal class GridOverlayView: TopLevelView {
             return false
         }
         set {
-            isUserInteractionEnabled = newValue
+            self.isUserInteractionEnabled = newValue
         }
     }
 
