@@ -149,7 +149,7 @@ internal class MenuViewModel {
                                                  actionController: InterfacePreviewsViewController()))
         uiUxSection.rows.append(actionRow(name: "Grid Overlay",
                                                  icon: UIImage(systemImage: "rectangle.split.3x3"),
-                                                 actionController: NotificationTesterViewController()))
+                                                 actionController: GridOverlayViewController()))
         
         /// Setup Development Section
         var developmentSection: Section = Section()
