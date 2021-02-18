@@ -17,6 +17,7 @@ class SliderCell: UITableViewCell {
         /// Setup UI
         textLabel?.adjustsFontSizeToFitWidth = false
         textLabel?.numberOfLines = 0
+        detailTextLabel?.adjustsFontSizeToFitWidth = true
     }
 
     required init(coder aDecoder: NSCoder) {
@@ -27,6 +28,11 @@ class SliderCell: UITableViewCell {
         textLabel?.snp.remakeConstraints({ (make) in
             make.top.equalToSuperview().inset(16)
             make.left.equalToSuperview().inset(16)
+            make.right.equalToSuperview().inset(16)
+        })
+        
+        detailTextLabel?.snp.remakeConstraints({ (make) in
+            make.centerY.equalTo(textLabel?.snp.centerY ?? 0)
             make.right.equalToSuperview().inset(16)
         })
         
@@ -44,7 +50,8 @@ class SliderCell: UITableViewCell {
 
         /// Set text
         textLabel?.text = row.text
-        
+        detailTextLabel?.text = "\(Int(row.slider.value))"
+            
         /// Setup Slider
         slider = row.slider
         contentView.addSubview(slider)
