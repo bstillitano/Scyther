@@ -133,7 +133,6 @@ extension GridOverlayViewModel {
             return
         }
         GridOverlay.instance.size = Int(slider.value)
-        prepareObjects()
     }
 }
 #endif

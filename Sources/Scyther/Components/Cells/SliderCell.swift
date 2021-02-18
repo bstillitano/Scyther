@@ -16,8 +16,6 @@ class SliderCell: UITableViewCell {
     
         /// Setup UI
         textLabel?.adjustsFontSizeToFitWidth = false
-        textLabel?.numberOfLines = 0
-        detailTextLabel?.adjustsFontSizeToFitWidth = true
     }
 
     required init(coder aDecoder: NSCoder) {
