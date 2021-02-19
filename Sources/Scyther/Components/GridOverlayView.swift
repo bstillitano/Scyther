@@ -59,7 +59,6 @@ internal class GridOverlayView: TopLevelView {
     ///Opacity of the grid overlay
     public var opacity: CGFloat = 1.0 {
         didSet {
-            alpha = opacity
             setNeedsDisplay()
         }
     }

@@ -53,7 +53,7 @@ internal class GridOverlay {
         }
         set {
             UserDefaults.standard.setValue(newValue, forKey: GridOverlay.OpacityDefaultsKey)
-            InterfaceToolkit.instance.gridOverlayView.opacity = CGFloat(newValue)
+            InterfaceToolkit.instance.gridOverlayView.opacity = CGFloat(newValue/100)
         }
     }
 
