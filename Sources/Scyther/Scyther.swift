@@ -47,6 +47,9 @@ public class Scyther {
     /// `NotificationTester` utility class. Used for testing push notification functionality.
     public static let notificationTester: NotificationTester = NotificationTester.instance
     
+    /// `InterfaceToolkit` utility class. Used for overlaying UI Elements onto the running application.
+    public static let interfaceToolkit: InterfaceToolkit = InterfaceToolkit.instance
+    
     /// Developer options that will be displayed on the main manue
     public var developerOptions: [DeveloperOption] = []
     
@@ -67,6 +70,9 @@ public class Scyther {
         
         /// Starts the console logger and allows it intercept `stderr` output from `NSLog`
 //        ConsoleLogger.instance.start()
+        
+        /// Sets up the interface toolit plugins
+        Scyther.interfaceToolkit.start()
     }
 
     /// Convenience function for manually showing the Scyther menu. Would be used when no gesture is wanted to invoke the menu.

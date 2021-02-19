@@ -11,4 +11,16 @@ extension Bool {
     var stringValue: String {
         return self ? "true" : "false"
     }
+
+    static public func |= (leftSide: inout Bool, rightSide: Bool) {
+        leftSide = leftSide || rightSide
+    }
+
+    static public func &= (leftSide: inout Bool, rightSide: Bool) {
+        leftSide = leftSide && rightSide
+    }
+
+    static public func ^= (leftSide: inout Bool, rightSide: Bool) {
+        leftSide = leftSide != rightSide
+    }
 }
