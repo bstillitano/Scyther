@@ -179,7 +179,7 @@ extension GridOverlayViewModel: SliderCellDelegate {
         case 1:
             GridOverlay.instance.size = Int(slider.value)
         case 2:
-            GridOverlay.instance.opacity = slider.value
+            GridOverlay.instance.opacity = slider.value/100
         default:
             return
         }

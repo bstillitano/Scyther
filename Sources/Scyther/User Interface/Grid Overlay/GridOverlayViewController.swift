@@ -92,6 +92,7 @@ extension GridOverlayViewController: UITableViewDataSource {
         cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
         cell.accessoryView = row.accessoryView
+        cell.accessoryType = row.accessoryType ?? .none
         
         /// Setup Row
         switch row.style {
