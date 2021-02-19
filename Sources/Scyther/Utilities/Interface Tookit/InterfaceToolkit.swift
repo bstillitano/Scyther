@@ -71,8 +71,9 @@ public class InterfaceToolkit: NSObject {
 // MARK: - Grid Overlay
 extension InterfaceToolkit {
     internal func setupGridOverlay() {
-        gridOverlayView.alpha = 0.0
+        gridOverlayView.alpha = CGFloat(GridOverlay.instance.opacity)
         gridOverlayView.isHidden = true
+        gridOverlayView.gridSize = GridOverlay.instance.size
         gridOverlayView.colorScheme = GridOverlay.instance.colorScheme
     }
 

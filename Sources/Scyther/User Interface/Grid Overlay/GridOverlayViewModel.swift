@@ -43,7 +43,8 @@ internal class GridOverlayViewModel {
         slider.minimumValue = 1
         slider.maximumValue = 100
         slider.value = Float(GridOverlay.instance.size)
-        
+        slider.tag = 1
+    
         //Setup Row
         let row: SliderRow = SliderRow()
         row.text = "Grid size"
@@ -51,6 +52,34 @@ internal class GridOverlayViewModel {
         row.sliderValueLabel = UILabel()
         row.sliderCellDelegate = self
         return row
+    }
+    
+    var opacitySlider: SliderRow {
+        //Setup Slider
+        let slider: UISlider = UISlider()
+        slider.minimumValue = 1
+        slider.maximumValue = 100
+        slider.value = Float(GridOverlay.instance.opacity)
+        slider.tag = 2
+
+        //Setup Row
+        let row: SliderRow = SliderRow()
+        row.text = "Opacity"
+        row.slider = slider
+        row.sliderValueLabel = UILabel()
+        row.sliderCellDelegate = self
+        return row
+    }
+    
+    func colorRow(color: GridOverlayColorScheme) -> DefaultRow {
+        let value: DefaultRow = DefaultRow()
+        value.text = color.rawValue.capitalized
+        value.accessoryType = GridOverlay.instance.colorScheme == color ? .checkmark : .none
+        value.actionBlock = { [weak self] in
+            GridOverlay.instance.colorScheme = color
+            self?.prepareObjects()
+        }
+        return value
     }
 
     func prepareObjects() {
@@ -66,11 +95,17 @@ internal class GridOverlayViewModel {
         var optionsSection: Section = Section()
         optionsSection.title = "Grid Options"
         optionsSection.rows = [sizeSlider]
+        
+        //Setup Colors Section
+        var colorSection: Section = Section()
+        colorSection.title = "Grid Color"
+        colorSection.rows = GridOverlayColorScheme.allCases.map( { colorRow(color: $0) })
 
         //Setup Data
         sections.append(overlaySection)
         if GridOverlay.instance.enabled {
             sections.append(optionsSection)
+            sections.append(colorSection)
         }
 
         //Call Delegate
@@ -134,10 +169,22 @@ extension GridOverlayViewModel {
 
 extension GridOverlayViewModel: SliderCellDelegate {
     func sliderValueChanged(slider: UISlider?, label: UILabel) {
+        //Get Slider
         guard let slider: UISlider = slider else {
             return
         }
-        GridOverlay.instance.size = Int(slider.value)
+        
+        //Update Grid
+        switch slider.tag {
+        case 1:
+            GridOverlay.instance.size = Int(slider.value)
+        case 2:
+            GridOverlay.instance.opacity = slider.value
+        default:
+            return
+        }
+        
+        //Set Text
         label.text = "\(Int(slider.value))"
     }
 }
