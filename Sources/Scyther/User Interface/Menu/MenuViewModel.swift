@@ -113,12 +113,15 @@ internal class MenuViewModel {
 
         /// Setup Environment Section
         var environmentSection: Section = Section()
-        environmentSection.title = "Environment"
+        environmentSection.title = "Data"
         environmentSection.rows.append(actionRow(name: "Feature Flags",
                                                  icon: UIImage(systemImage: "flag"),
                                                  actionController: FeatureFlagsViewController()))
         environmentSection.rows.append(actionRow(name: "User Defaults",
                                                  icon: UIImage(systemImage: "face.dashed"),
+                                                 actionController: UserDefaultsViewController()))
+        environmentSection.rows.append(actionRow(name: "Cookies",
+                                                 icon: UIImage(systemImage: "externaldrive.badge.person.crop"),
                                                  actionController: UserDefaultsViewController()))
 
         /// Setup Security Section
@@ -149,7 +152,7 @@ internal class MenuViewModel {
                                                  actionController: InterfacePreviewsViewController()))
         uiUxSection.rows.append(actionRow(name: "Grid Overlay",
                                                  icon: UIImage(systemImage: "rectangle.split.3x3"),
-                                                 actionController: GridOverlayViewController()))
+                                                 actionController: CookieBrowserViewController()))
         
         /// Setup Development Section
         var developmentSection: Section = Section()
