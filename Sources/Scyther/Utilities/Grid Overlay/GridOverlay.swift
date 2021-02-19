@@ -38,7 +38,7 @@ internal class GridOverlay {
             return GridOverlayColorScheme(rawValue: UserDefaults.standard.string(forKey: GridOverlay.ColorDefaultsKey) ?? "red") ?? .red
         }
         set {
-            UserDefaults.standard.setValue(newValue, forKey: GridOverlay.ColorDefaultsKey)
+            UserDefaults.standard.setValue(newValue.rawValue, forKey: GridOverlay.ColorDefaultsKey)
             InterfaceToolkit.instance.gridOverlayView.colorScheme = newValue
         }
     }

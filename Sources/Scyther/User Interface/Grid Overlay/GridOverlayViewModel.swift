@@ -94,7 +94,7 @@ internal class GridOverlayViewModel {
         //Setup Options Section
         var optionsSection: Section = Section()
         optionsSection.title = "Grid Options"
-        optionsSection.rows = [sizeSlider]
+        optionsSection.rows = [sizeSlider, opacitySlider]
         
         //Setup Colors Section
         var colorSection: Section = Section()
