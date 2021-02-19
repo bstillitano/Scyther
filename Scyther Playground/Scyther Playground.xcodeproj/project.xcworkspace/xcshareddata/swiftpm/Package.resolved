@@ -5,8 +5,8 @@
         "package": "Scyther",
         "repositoryURL": "https://github.com/bstillitano/Scyther.git",
         "state": {
-          "branch": "feature/grid-overlay",
-          "revision": "b18f485d3e6ff417342b1de57dd47f338cfc00c3",
+          "branch": "main",
+          "revision": "b77f1384ab2738bb23127bd1ff26bea32f3cc349",
           "version": null
         }
       },

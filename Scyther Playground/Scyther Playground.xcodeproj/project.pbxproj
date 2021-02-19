@@ -621,7 +621,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/bstillitano/Scyther.git";
 			requirement = {
-				branch = "feature/grid-overlay";
+				branch = main;
 				kind = branch;
 			};
 		};
