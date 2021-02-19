@@ -47,7 +47,7 @@ internal class GridOverlay {
     internal var opacity: Float {
         get {
             guard let value: Float = UserDefaults.standard.object(forKey: GridOverlay.OpacityDefaultsKey) as? Float else {
-                return Float(InterfaceToolkit.instance.gridOverlayView.opacity)
+                return Float(InterfaceToolkit.instance.gridOverlayView.opacity/100)
             }
             return value
         }

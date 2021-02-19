@@ -59,7 +59,7 @@ internal class GridOverlayViewModel {
         let slider: UISlider = UISlider()
         slider.minimumValue = 1
         slider.maximumValue = 100
-        slider.value = Float(GridOverlay.instance.opacity)
+        slider.value = Float(GridOverlay.instance.opacity*100)
         slider.tag = 2
 
         //Setup Row
