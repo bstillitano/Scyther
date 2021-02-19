@@ -34,6 +34,7 @@ internal class GridOverlayViewController: UIViewController {
 
         //Register Table View Cells
         tableView.register(SwitchCell.self, forCellReuseIdentifier: RowStyle.switchAccessory.rawValue)
+        tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
         tableView.register(SliderCell.self, forCellReuseIdentifier: RowStyle.slider.rawValue)
 
         //Add Table View
