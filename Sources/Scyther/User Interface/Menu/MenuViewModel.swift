@@ -113,13 +113,16 @@ internal class MenuViewModel {
 
         /// Setup Environment Section
         var environmentSection: Section = Section()
-        environmentSection.title = "Environment"
+        environmentSection.title = "Data"
         environmentSection.rows.append(actionRow(name: "Feature Flags",
                                                  icon: UIImage(systemImage: "flag"),
                                                  actionController: FeatureFlagsViewController()))
         environmentSection.rows.append(actionRow(name: "User Defaults",
                                                  icon: UIImage(systemImage: "face.dashed"),
                                                  actionController: UserDefaultsViewController()))
+        environmentSection.rows.append(actionRow(name: "Cookies",
+                                                 icon: UIImage(systemImage: "info.circle"),
+                                                 actionController: CookieBrowserViewController()))
 
         /// Setup Security Section
         var securitySection: Section = Section()

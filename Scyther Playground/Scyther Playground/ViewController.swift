@@ -21,6 +21,50 @@ class ViewController: UIViewController {
         setupConstraints()
 
         //Setup Data
+        if let cookie = HTTPCookie(properties: [
+            .domain: ".test.scyther.com",
+            .path: "/",
+            .name: "ScytherCookie",
+            .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
+            .secure: "FALSE",
+            .discard: "TRUE"
+        ]) {
+            HTTPCookieStorage.shared.setCookie(cookie)
+            print("Cookie inserted: \(cookie)")
+        }
+        if let cookie = HTTPCookie(properties: [
+            .domain: ".test.scyther.com",
+            .path: "/",
+            .name: "ScytherCookie2",
+            .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
+            .secure: "FALSE",
+            .discard: "TRUE"
+        ]) {
+            HTTPCookieStorage.shared.setCookie(cookie)
+            print("Cookie inserted: \(cookie)")
+        }
+        if let cookie = HTTPCookie(properties: [
+            .domain: ".test.scyther.com",
+            .path: "/",
+            .name: "ScytherCookie3",
+            .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
+            .secure: "FALSE",
+            .discard: "TRUE"
+        ]) {
+            HTTPCookieStorage.shared.setCookie(cookie)
+            print("Cookie inserted: \(cookie)")
+        }
+        if let cookie = HTTPCookie(properties: [
+            .domain: ".test.scyther.com",
+            .path: "/",
+            .name: "ScytherCookie4",
+            .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
+            .secure: "FALSE",
+            .discard: "TRUE"
+        ]) {
+            HTTPCookieStorage.shared.setCookie(cookie)
+            print("Cookie inserted: \(cookie)")
+        }
         setupData()
     }
 
@@ -63,9 +107,9 @@ extension ViewController: UITableViewDataSource {
         cell = UITableViewCell(style: .default, reuseIdentifier: cellIdentifier)
         cell?.accessoryType = .none
         cell?.selectionStyle = .none
-        
+
         cell?.textLabel?.text = "Open Scyther"
-        
+
         return cell ?? UITableViewCell()
     }
 }

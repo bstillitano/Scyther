@@ -14,8 +14,8 @@ final internal class SubtitleCell: UITableViewCell {
         super.init(style: .subtitle, reuseIdentifier: reuseIdentifier)
 
         textLabel?.numberOfLines = 0
-        textLabel?.adjustsFontSizeToFitWidth = true
-        detailTextLabel?.adjustsFontSizeToFitWidth = true
+        textLabel?.adjustsFontSizeToFitWidth = false
+        detailTextLabel?.adjustsFontSizeToFitWidth = false
     }
 
     required init?(coder: NSCoder) {
