@@ -70,7 +70,7 @@ internal class MenuViewModel {
         let switchView = UIActionSwitch()
         switchView.isOn = Toggler.instance.localOverridesEnabled
         switchView.actionBlock = {
-            Toggler.instance.localOverridesEnabled = switchView.isOn
+            InterfaceToolkit.instance.showsViewBorders = switchView.isOn
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
@@ -262,6 +262,13 @@ extension MenuViewModel {
     private func rows(inSection index: Int) -> [Row]? {
         guard let section = section(for: index) else { return nil }
         return section.rows.filter { !$0.isHidden }
+    }
+}
+
+extension MenuViewModel {
+    @objc
+    func switchToggled(_ sender: UIActionSwitch?) {
+        sender?.actionBlock?()
     }
 }
 #endif

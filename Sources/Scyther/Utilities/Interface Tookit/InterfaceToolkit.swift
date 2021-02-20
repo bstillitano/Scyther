@@ -9,6 +9,9 @@ import NotificationCenter
 import UIKit
 
 public class InterfaceToolkit: NSObject {
+    // MARK: - Static Data
+    static var DebugBordersChangeNotification: NSNotification.Name = NSNotification.Name("DebugBordersChangeNotification")
+
     /// Private Init to Stop re-initialisation and allow singleton creation.
     override private init() { }
 
@@ -19,6 +22,14 @@ public class InterfaceToolkit: NSObject {
     internal var gridOverlayView: GridOverlayView = GridOverlayView()
     internal var topLevelViewsWrapper: TopLevelViewsWrapper = TopLevelViewsWrapper()
 
+    // MARK: - Data
+    internal var showsViewBorders: Bool = true {
+        didSet {
+            NotificationCenter.default.post(name: InterfaceToolkit.DebugBordersChangeNotification,
+                                            object: showsViewBorders)
+        }
+    }
+
     // MARK: - Key Window Notifications
     internal func registerForNotitfcations() {
         NotificationCenter.default.addObserver(self,
@@ -26,8 +37,9 @@ public class InterfaceToolkit: NSObject {
                                                name: UIWindow.didBecomeKeyNotification,
                                                object: nil)
     }
-    
+
     internal func start() {
+        UIView.swizzleDefaultUIView()
         registerForNotitfcations()
         setupTopLevelViewsWrapper()
         setupGridOverlay()
