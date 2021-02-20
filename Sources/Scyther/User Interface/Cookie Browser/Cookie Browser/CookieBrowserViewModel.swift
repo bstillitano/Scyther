@@ -62,7 +62,7 @@ internal class CookieBrowserViewModel {
 
         //Setup Cookies Section
         var coookiesSection: Section = Section()
-        coookiesSection.title = "WKWebView Cookies"
+        coookiesSection.title = "HTTPCookieStorage Cookies"
         for cookie: HTTPCookie in CookieBrowser.instance.cookies {
             coookiesSection.rows.append(subtitleRow(cookie: cookie))
         }
