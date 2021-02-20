@@ -34,14 +34,14 @@ internal class CookieBrowserViewModel {
         return row
     }
 
-    /// Button item that allows the caller to restore all `Toggle` values to their remote value
-    var restoreDefaults: ButtonRow {
+    /// Button item that allows the caller to clear all cookies from HTTPCookieStorage
+    var clearAllCookies: ButtonRow {
         //Setup Row
         var row: ButtonRow = ButtonRow()
-        row.text = "Restore remote values"
+        row.text = "Clear all cookies"
         row.actionBlock = {[weak self] in
-            for toggle: Toggle in Toggler.instance.toggles {
-                Toggler.instance.setLocalValue(value: toggle.remoteValue, forToggleWithName: toggle.name)
+            for cookie: HTTPCookie in CookieBrowser.instance.cookies {
+                HTTPCookieStorage.shared.deleteCookie(cookie)
             }
             self?.prepareObjects()
         }
@@ -66,12 +66,21 @@ internal class CookieBrowserViewModel {
         for cookie: HTTPCookie in CookieBrowser.instance.cookies {
             coookiesSection.rows.append(subtitleRow(cookie: cookie))
         }
+        
+        //Setup Clear Section
+        var clearSection: Section = Section()
+        clearSection.rows.append(clearAllCookies)
         if coookiesSection.rows.isEmpty {
             coookiesSection.rows.append(emptyRow(text: "No HTTP Cookies"))
         }
         
         //Setup Data
         sections.append(coookiesSection)
+        if coookiesSection.rows.isEmpty {
+            coookiesSection.rows.append(emptyRow(text: "No HTTP Cookies"))
+        } else {
+            sections.append(clearSection)
+        }
 
         //Call Delegate
         delegate?.viewModelShouldReloadData()
