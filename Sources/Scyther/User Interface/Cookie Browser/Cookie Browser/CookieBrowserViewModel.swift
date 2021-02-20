@@ -10,6 +10,7 @@ import UIKit
 
 internal protocol CookieBrowserViewModelProtocol: class {
     func viewModelShouldReloadData()
+    func viewModel(viewModel: CookieBrowserViewModel?, shouldShowViewController viewController: UIViewController?)
 }
 
 internal class CookieBrowserViewModel {
@@ -20,10 +21,15 @@ internal class CookieBrowserViewModel {
     weak var delegate: CookieBrowserViewModelProtocol?
     
     /// Single row representing a single cookie
-    func defaultRow(name: String, value: String?) -> DefaultRow {
-        let row: DefaultRow = DefaultRow()
-        row.text = name
-        row.detailText = String(value ?? "NaS")
+    func subtitleRow(cookie: HTTPCookie) -> SubtitleRow {
+        let row: SubtitleRow = SubtitleRow()
+        row.text = cookie.name
+        row.detailText = cookie.domain
+        row.accessoryType = .disclosureIndicator
+        row.actionBlock = { [weak self] in
+            let viewController: CookieDetailsViewController = CookieDetailsViewController(cookie: cookie)
+            self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
+        }
 
         return row
     }
@@ -58,8 +64,7 @@ internal class CookieBrowserViewModel {
         var coookiesSection: Section = Section()
         coookiesSection.title = "WKWebView Cookies"
         for cookie: HTTPCookie in CookieBrowser.instance.cookies {
-            coookiesSection.rows.append(defaultRow(name: cookie.name,
-                                                   value: cookie.domain))
+            coookiesSection.rows.append(subtitleRow(cookie: cookie))
         }
         if coookiesSection.rows.isEmpty {
             coookiesSection.rows.append(emptyRow(text: "No HTTP Cookies"))

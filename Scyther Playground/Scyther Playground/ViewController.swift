@@ -21,6 +21,17 @@ class ViewController: UIViewController {
         setupConstraints()
 
         //Setup Data
+        if let cookie = HTTPCookie(properties: [
+            .domain: ".my.domain.name.com",
+            .path: "/",
+            .name: "myCookieNameKey",
+            .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
+            .secure: "FALSE",
+            .discard: "TRUE"
+        ]) {
+            HTTPCookieStorage.shared.setCookie(cookie)
+            print("Cookie inserted: \(cookie)")
+        }
         setupData()
     }
 
@@ -63,9 +74,9 @@ extension ViewController: UITableViewDataSource {
         cell = UITableViewCell(style: .default, reuseIdentifier: cellIdentifier)
         cell?.accessoryType = .none
         cell?.selectionStyle = .none
-        
+
         cell?.textLabel?.text = "Open Scyther"
-        
+
         return cell ?? UITableViewCell()
     }
 }

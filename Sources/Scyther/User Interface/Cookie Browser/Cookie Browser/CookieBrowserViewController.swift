@@ -39,7 +39,7 @@ internal class CookieBrowserViewController: UIViewController {
         tableView.dataSource = self
 
         //Register Table View Cells
-        tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
+        tableView.register(SubtitleCell.self, forCellReuseIdentifier: RowStyle.subtitle.rawValue)
         tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
         tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
 
@@ -126,6 +126,17 @@ extension CookieBrowserViewController: UITableViewDelegate {
 extension CookieBrowserViewController: CookieBrowserViewModelProtocol {
     func viewModelShouldReloadData() {
         self.tableView.reloadData()
+    }
+    
+    func viewModel(viewModel: CookieBrowserViewModel?, shouldShowViewController viewController: UIViewController?) {
+        guard let viewController = viewController else {
+            return
+        }
+        guard viewController.isKind(of: UIActivityViewController.self) else {
+            self.navigationController?.pushViewController(viewController, animated: true)
+            return
+        }
+        self.present(viewController, animated: true)
     }
 }
 #endif
