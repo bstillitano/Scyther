@@ -110,6 +110,7 @@ extension MenuViewController: UITableViewDataSource {
         /// Configure cell
         let cell = tableView.dequeueReusableCell(withIdentifier: row.style.rawValue, for: indexPath)
         cell.accessoryType = row.accessoryType ?? .none
+        cell.accessoryView = row.accessoryView
         cell.textLabel?.text = viewModel?.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
 
