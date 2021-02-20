@@ -133,12 +133,4 @@ extension CookieBrowserViewModel {
         return section.rows.filter { !$0.isHidden }
     }
 }
-
-
-extension CookieBrowserViewModel {
-    @objc
-    func switchToggled(_ sender: UIActionSwitch?) {
-        sender?.actionBlock?()
-    }
-}
 #endif

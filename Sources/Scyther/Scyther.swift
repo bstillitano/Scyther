@@ -65,14 +65,14 @@ public class Scyther {
         
         /// Get IP Address and store it in singleton instance for display on the menu
         Logger.getIPAddress { (ipAddress) in
-            Scyther.logger.ipAddress = ipAddress
+            Logger.instance.ipAddress = ipAddress
         }
         
         /// Starts the console logger and allows it intercept `stderr` output from `NSLog`
 //        ConsoleLogger.instance.start()
         
         /// Sets up the interface toolit plugins
-        Scyther.interfaceToolkit.start()
+        InterfaceToolkit.instance.start()
     }
 
     /// Convenience function for manually showing the Scyther menu. Would be used when no gesture is wanted to invoke the menu.

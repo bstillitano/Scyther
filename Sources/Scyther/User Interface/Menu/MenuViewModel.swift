@@ -59,6 +59,42 @@ internal class MenuViewModel {
 
         return row
     }
+    
+    /// Switch to enable/disable showing view frames
+    var viewFramesSwitch: SwitchAccessoryRow {
+        //Setup Row
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = "Show View Frames"
+
+        //Setup Accessory
+        let switchView = UIActionSwitch()
+        switchView.isOn = Toggler.instance.localOverridesEnabled
+        switchView.actionBlock = {
+            Toggler.instance.localOverridesEnabled = switchView.isOn
+        }
+        switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        row.accessoryView = switchView
+
+        return row
+    }
+    
+    /// Switch to enable/disable slow animations
+    var slowAnimationsSwitch: SwitchAccessoryRow {
+        //Setup Row
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = "Slow Animations"
+
+        //Setup Accessory
+        let switchView = UIActionSwitch()
+        switchView.isOn = Toggler.instance.localOverridesEnabled
+        switchView.actionBlock = {
+            Toggler.instance.localOverridesEnabled = switchView.isOn
+        }
+        switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        row.accessoryView = switchView
+
+        return row
+    }
 
     func prepareObjects() {
         //Clear Data
@@ -153,6 +189,8 @@ internal class MenuViewModel {
         uiUxSection.rows.append(actionRow(name: "Grid Overlay",
                                                  icon: UIImage(systemImage: "rectangle.split.3x3"),
                                                  actionController: GridOverlayViewController()))
+        uiUxSection.rows.append(viewFramesSwitch)
+        uiUxSection.rows.append(slowAnimationsSwitch)
         
         /// Setup Development Section
         var developmentSection: Section = Section()

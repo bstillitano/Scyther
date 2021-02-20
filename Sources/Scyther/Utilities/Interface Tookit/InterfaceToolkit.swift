@@ -31,8 +31,6 @@ public class InterfaceToolkit: NSObject {
         registerForNotitfcations()
         setupTopLevelViewsWrapper()
         setupGridOverlay()
-        topLevelViewsWrapper.addTopLevelView(topLevelView: gridOverlayView)
-        showGridOverlay()
     }
 
     private func setupTopLevelViewsWrapper() {
@@ -75,6 +73,8 @@ extension InterfaceToolkit {
         gridOverlayView.isHidden = true
         gridOverlayView.gridSize = GridOverlay.instance.size
         gridOverlayView.colorScheme = GridOverlay.instance.colorScheme
+        topLevelViewsWrapper.addTopLevelView(topLevelView: gridOverlayView)
+        showGridOverlay()
     }
 
     internal func showGridOverlay() {
