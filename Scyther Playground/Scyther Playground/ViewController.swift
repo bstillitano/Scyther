@@ -22,12 +22,14 @@ class ViewController: UIViewController {
 
         //Setup Data
         if let cookie = HTTPCookie(properties: [
-            .domain: ".my.domain.name.com",
+            .domain: ".test.scyther.com",
             .path: "/",
-            .name: "myCookieNameKey",
+            .name: "ScytherCookie",
             .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
             .secure: "FALSE",
-            .discard: "TRUE"
+            .discard: "TRUE",
+            .
+            HTTPCookiePropertyKey("TestProp"): "testVal"
         ]) {
             HTTPCookieStorage.shared.setCookie(cookie)
             print("Cookie inserted: \(cookie)")

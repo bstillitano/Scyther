@@ -87,7 +87,10 @@ internal class CookieDetailsViewModel {
         /// Setup Properties Section
         var propertiesSection: Section = Section()
         propertiesSection.title = "Properties"
-        //TODO
+        for value in cookie?.properties ?? [:] {
+            propertiesSection.rows.append(cookieRow(key: value.key.rawValue,
+                                                    value: "\(value.value)"))
+        }
         if propertiesSection.rows.isEmpty {
             propertiesSection.rows.append(emptyRow(text: "No cookie properties set"))
         }
