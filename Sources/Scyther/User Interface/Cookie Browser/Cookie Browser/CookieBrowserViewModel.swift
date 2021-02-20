@@ -70,9 +70,6 @@ internal class CookieBrowserViewModel {
         //Setup Clear Section
         var clearSection: Section = Section()
         clearSection.rows.append(clearAllCookies)
-        if coookiesSection.rows.isEmpty {
-            coookiesSection.rows.append(emptyRow(text: "No HTTP Cookies"))
-        }
         
         //Setup Data
         sections.append(coookiesSection)
