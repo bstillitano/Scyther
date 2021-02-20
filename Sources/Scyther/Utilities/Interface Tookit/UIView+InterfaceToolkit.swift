@@ -157,11 +157,11 @@ internal extension UIView {
     class func swizzleDefaultUIView() {
         guard self == UIView.self else { return }
 
-        let defaultInitWithFrame = class_getClassMethod(UIView.self, #selector(UIView.init(frame:)))
+        let defaultInitWithFrame = class_getInstanceMethod(UIView.self, #selector(UIView.init(frame:)))
         let swizzledInitWithFrame = class_getClassMethod(UIView.self, #selector(UIView.swizzledInitWithFrame(frame:)))
         method_exchangeImplementations(defaultInitWithFrame!, swizzledInitWithFrame!)
 
-        let defaultInitWithCoder = class_getClassMethod(UIView.self, #selector(UIView.init(coder:)))
+        let defaultInitWithCoder = class_getInstanceMethod(UIView.self, #selector(UIView.init(coder:)))
         let swizzledInitWithCoder = class_getClassMethod(UIView.self, #selector(UIView.swizzledInitWithCoder(coder:)))
         method_exchangeImplementations(defaultInitWithCoder!, swizzledInitWithCoder!)
         
