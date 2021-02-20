@@ -20,6 +20,9 @@ internal class CookieDetailsViewController: UIViewController {
         setupUI()
         setupConstraints()
         setupData()
+        
+        /// Setup Close button
+        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: #selector(deleteCookie))
     }
     
     convenience init(cookie: HTTPCookie) {
@@ -65,6 +68,21 @@ internal class CookieDetailsViewController: UIViewController {
         UIView.setAnimationsEnabled(false)
         UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
         UIView.setAnimationsEnabled(true)
+    }
+}
+
+extension CookieDetailsViewController {
+    @objc
+    private func deleteCookie() {
+        /// Check if cookie is available
+        guard let cookie = viewModel.cookie else {
+            return
+        }
+        
+        /// Delete the cookie and then synchrnoize defaults to try triggering HTTPCookieStorage's refresh mechanism.
+        HTTPCookieStorage.shared.deleteCookie(cookie)
+        UserDefaults.standard.synchronize()
+        self.navigationController?.popViewController(animated: true)
     }
 }
 
