@@ -79,7 +79,7 @@ internal class CookieDetailsViewModel {
         keyValuesSection.rows.append(cookieRow(key: "Session Only",
                                                value: cookie?.isSessionOnly.stringValue))
         keyValuesSection.rows.append(cookieRow(key: "Ports",
-                                               value: cookie?.portList?.compactMap( { "\($0)" }).joined(separator: ", ")))
+                                               value: cookie?.portList?.map( { "\($0)" }).joined(separator: ", ")))
         keyValuesSection.rows.append(cookieRow(key: "Version",
                                                value: "\(cookie?.version ?? 0)"))
         
