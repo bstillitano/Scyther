@@ -28,7 +28,7 @@ internal class CookieDetailsViewModel {
     func cookieRow(key: String?, value: String?) -> SubtitleRow {
         let row: SubtitleRow = SubtitleRow()
         row.text = key
-        row.detailText = value ?? "-"
+        row.detailText = value?.isEmpty ?? true ? "-" : value ?? "-"
         return row
     }
 
@@ -70,6 +70,8 @@ internal class CookieDetailsViewModel {
                                                value: cookie?.commentURL?.absoluteString))
         keyValuesSection.rows.append(cookieRow(key: "Expires",
                                                value: cookie?.expiresDate?.formatted()))
+        keyValuesSection.rows.append(cookieRow(key: "Expires",
+                                               value: cookie?.expiresDate?.formatted()))
         keyValuesSection.rows.append(cookieRow(key: "HTTP Only",
                                                value: cookie?.isHTTPOnly.stringValue))
         keyValuesSection.rows.append(cookieRow(key: "HTTPS Only",
@@ -78,8 +80,6 @@ internal class CookieDetailsViewModel {
                                                value: cookie?.isSessionOnly.stringValue))
         keyValuesSection.rows.append(cookieRow(key: "Ports",
                                                value: cookie?.portList?.compactMap( { "\($0)" }).joined(separator: ", ")))
-        keyValuesSection.rows.append(cookieRow(key: "Session Only",
-                                               value: cookie?.isSessionOnly.stringValue))
         keyValuesSection.rows.append(cookieRow(key: "Version",
                                                value: "\(cookie?.version ?? 0)"))
         
