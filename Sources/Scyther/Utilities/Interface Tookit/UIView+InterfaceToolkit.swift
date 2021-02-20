@@ -164,5 +164,9 @@ internal extension UIView {
         let defaultInitWithCoder = class_getClassMethod(UIView.self, #selector(UIView.init(coder:)))
         let swizzledInitWithCoder = class_getClassMethod(UIView.self, #selector(UIView.swizzledInitWithCoder(coder:)))
         method_exchangeImplementations(defaultInitWithCoder!, swizzledInitWithCoder!)
+        
+        let defaultDealloc = class_getClassMethod(UIView.self, NSSelectorFromString("dealloc"))
+        let swizzledDeal = class_getClassMethod(UIView.self, #selector(swizzledDealloc))
+        method_exchangeImplementations(defaultDealloc!, swizzledDeal!)
     }
 }
