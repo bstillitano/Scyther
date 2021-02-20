@@ -5,8 +5,8 @@
         "package": "Scyther",
         "repositoryURL": "https://github.com/bstillitano/Scyther.git",
         "state": {
-          "branch": "feature/cookie-browser",
-          "revision": "f4039cbaf6a9cfbb31b9a7aca46937c6e06400d6",
+          "branch": "main",
+          "revision": "62c1bf17c8694eee2d323ca2fbb0b3687d9ecf34",
           "version": null
         }
       },
