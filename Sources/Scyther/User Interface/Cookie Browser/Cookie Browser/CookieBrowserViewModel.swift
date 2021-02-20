@@ -109,6 +109,10 @@ extension CookieBrowserViewModel {
     func performAction(for row: Row, indexPath: IndexPath) {
         row.actionBlock?()
     }
+    
+    func canEditRow(at indexPath: IndexPath) -> Bool {
+        return true
+    }
 }
 
 // MARK: - Private data accessors

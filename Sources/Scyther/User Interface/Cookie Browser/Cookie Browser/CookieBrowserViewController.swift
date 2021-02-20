@@ -121,6 +121,17 @@ extension CookieBrowserViewController: UITableViewDelegate {
         }
         row.actionBlock?()
     }
+    
+    func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+        return viewModel.canEditRow(at: indexPath)
+    }
+    
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            HTTPCookieStorage.shared.deleteCookie(CookieBrowser.instance.cookies[indexPath.row])
+            viewModel.prepareObjects()
+        }
+    }
 }
 
 extension CookieBrowserViewController: CookieBrowserViewModelProtocol {
