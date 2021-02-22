@@ -145,7 +145,9 @@ extension MenuViewController: UITableViewDelegate {
 
 extension MenuViewController: MenuViewModelProtocol {
     func viewModelShouldReloadData() {
-        self.tableView.reloadData()
+        DispatchQueue.main.async {
+            self.tableView.reloadData()
+        }
     }
 
     func viewModel(viewModel: MenuViewModel?, shouldShowViewController viewController: UIViewController?) {
