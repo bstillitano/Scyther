@@ -158,36 +158,5 @@ extension ViewController {
         blueOption.icon = UIImage(systemImage: "location.circle")
         blueOption.viewController = BlueViewController()
         Scyther.instance.developerOptions.append(blueOption)
-        
-        let defaultSelector = NSSelectorFromString("dealloc")
-        let swizzledSelector = #selector(UIView.swizzledDealloc)
-        guard let defaultMethod = class_getClassMethod(UIView.self, defaultSelector) else {
-            return
-        }
-        guard let swizzledMethod = class_getClassMethod(UIView.self, swizzledSelector) else {
-            return
-        }
-        let didAddMethod = class_addMethod(self,
-                                           defaultSelector,
-                                           method_getImplementation(swizzledMethod),
-                                           method_getTypeEncoding(swizzledMethod))
-        if didAddMethod {
-            class_replaceMethod(self,
-                                swizzledSelector,
-                                method_getImplementation(defaultMethod),
-                                method_getTypeEncoding(defaultMethod))
-        } else {
-            method_exchangeImplementations(defaultMethod,
-                                           swizzledMethod)
-        }
-    }
-}
-
-extension UIView {
-    
-
-    @objc
-    internal static func swizzledDealloc() {
-        NotificationCenter.default.removeObserver(self)
     }
 }
