@@ -61,6 +61,7 @@
 		CA9F8FD325DE0EFF000FA677 /* Button.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Button.swift; sourceTree = "<group>"; };
 		CA9F8FD825DE0F6D000FA677 /* ButtonPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonPreviews.swift; sourceTree = "<group>"; };
 		CA9F908025DFEA66000FA677 /* Scyther Playground.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Scyther Playground.entitlements"; sourceTree = "<group>"; };
+		CAB7FAE225E3C9B300B5C7CA /* Scyther Playground-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Scyther Playground-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -125,6 +126,7 @@
 				CA73FCF025D690D2007FA627 /* Assets.xcassets */,
 				CA73FCF225D690D2007FA627 /* LaunchScreen.storyboard */,
 				CA73FCF525D690D2007FA627 /* Info.plist */,
+				CAB7FAE225E3C9B300B5C7CA /* Scyther Playground-Bridging-Header.h */,
 			);
 			path = "Scyther Playground";
 			sourceTree = "<group>";
@@ -217,6 +219,7 @@
 				TargetAttributes = {
 					CA73FCE325D690D2007FA627 = {
 						CreatedOnToolsVersion = 12.4;
+						LastSwiftMigration = 1240;
 					};
 					CA73FCF925D690D2007FA627 = {
 						CreatedOnToolsVersion = 12.4;
@@ -466,6 +469,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "Scyther Playground/Scyther Playground.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				INFOPLIST_FILE = "Scyther Playground/Info.plist";
@@ -476,6 +480,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "io.stillitano.Scyther-Playground";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Scyther Playground/Scyther Playground-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -486,6 +492,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "Scyther Playground/Scyther Playground.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				INFOPLIST_FILE = "Scyther Playground/Info.plist";
@@ -496,6 +503,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "io.stillitano.Scyther-Playground";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Scyther Playground/Scyther Playground-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

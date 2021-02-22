@@ -54,7 +54,6 @@ public class InterfaceToolkit: NSObject {
         setupTopLevelViewsWrapper()
         setupGridOverlay()
         setWindowSpeed()
-        showOverlay()
     }
 
     private func setupTopLevelViewsWrapper() {
@@ -115,25 +114,5 @@ extension InterfaceToolkit {
         for window in UIApplication.shared.windows {
             window.layer.speed = speed
         }
-    }
-}
-
-// MARK: UIDebuggingInformationOverlay
-extension InterfaceToolkit {
-    internal func showOverlay() {
-        // Construct the class name string using unsinged chars to avoid private api detection
-        guard let classNameString: String = String(data: Data(bytes: [0x55, 0x49, 0x44, 0x65, 0x62, 0x75, 0x67, 0x67, 0x69, 0x6e, 0x67, 0x49, 0x6e, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x4f, 0x76, 0x65, 0x72, 0x6c, 0x61, 0x79], count: 29), encoding: .ascii) else {
-            return
-        }
-        let overlayClass: AnyObject? = NSClassFromString(classNameString)
-
-        // Construct the overlay selector string, again using unsigned chars
-        guard let selectorString: String = String(data: Data(bytes: [0x6f, 0x76, 0x65, 0x72, 0x6c, 0x61, 0x79], count: 7), encoding: .ascii) else {
-            return
-        }
-        let overlaySelector = NSSelectorFromString(selectorString)
-        
-        // Show the overlay
-        overlayClass?.perform(overlaySelector)
     }
 }

@@ -30,7 +30,6 @@ class ViewController: UIViewController {
             .discard: "TRUE"
         ]) {
             HTTPCookieStorage.shared.setCookie(cookie)
-            print("Cookie inserted: \(cookie)")
         }
         if let cookie = HTTPCookie(properties: [
             .domain: ".test.scyther.com",
@@ -41,7 +40,6 @@ class ViewController: UIViewController {
             .discard: "TRUE"
         ]) {
             HTTPCookieStorage.shared.setCookie(cookie)
-            print("Cookie inserted: \(cookie)")
         }
         if let cookie = HTTPCookie(properties: [
             .domain: ".test.scyther.com",
@@ -52,7 +50,6 @@ class ViewController: UIViewController {
             .discard: "TRUE"
         ]) {
             HTTPCookieStorage.shared.setCookie(cookie)
-            print("Cookie inserted: \(cookie)")
         }
         if let cookie = HTTPCookie(properties: [
             .domain: ".test.scyther.com",
@@ -63,7 +60,6 @@ class ViewController: UIViewController {
             .discard: "TRUE"
         ]) {
             HTTPCookieStorage.shared.setCookie(cookie)
-            print("Cookie inserted: \(cookie)")
         }
         setupData()
     }

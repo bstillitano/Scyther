@@ -186,7 +186,7 @@ internal extension UIView {
     }
 
     private class func swizzleInitWithCoder() {
-        let defaultSelector = #selector(UIView.init(coder:))
+        let defaultSelector = Selector("init")
         let swizzledSelector = #selector(UIView.swizzledInitWithCoder(coder:))
         guard let defaultMethod = class_getClassMethod(self, defaultSelector) else {
             return
@@ -208,7 +208,7 @@ internal extension UIView {
                                            swizzledMethod)
         }
     }
-    
+
     private class func swizzleDealloc() {
         let defaultSelector = NSSelectorFromString("dealloc")
         let swizzledSelector = #selector(UIView.swizzledDealloc)
