@@ -134,7 +134,7 @@ internal extension UIView {
 // MARK: - Swizzling
 internal extension UIView {
     @objc
-    private static func swizzledInitWithFrame(frame: CGRect) -> UIView {
+    private class func swizzledInitWithFrame(frame: CGRect) -> UIView {
         let view = swizzledInitWithFrame(frame: frame)
         view.refreshDebugBorders()
         view.registerForDebugBorderNotifications()
@@ -142,7 +142,7 @@ internal extension UIView {
     }
 
     @objc
-    private static func swizzledInitWithCoder(coder: NSCoder) -> UIView {
+    private class func swizzledInitWithCoder(coder: NSCoder) -> UIView {
         let view = swizzledInitWithCoder(coder: coder)
         view.refreshDebugBorders()
         view.registerForDebugBorderNotifications()
@@ -150,21 +150,21 @@ internal extension UIView {
     }
 
     @objc
-    private static func swizzledDealloc() {
+    private class func swizzledDealloc() {
         NotificationCenter.default.removeObserver(self)
     }
 
-    static func swizzleDefaultUIView() {
+    class func swizzleDefaultUIView() {
         guard self == UIView.self else { return }
         swizzleInitWithFrame()
         swizzleInitWithCoder()
         swizzleDealloc()
     }
 
-    private static func swizzleInitWithFrame() {
+    private class func swizzleInitWithFrame() {
         let defaultSelector = #selector(UIView.init(frame:))
         let swizzledSelector = #selector(UIView.swizzledInitWithFrame(frame:))
-        guard let defaultMethod = class_getInstanceMethod(self, defaultSelector) else {
+        guard let defaultMethod = class_getClassMethod(self, defaultSelector) else {
             return
         }
         guard let swizzledMethod = class_getClassMethod(self, swizzledSelector) else {
@@ -185,10 +185,10 @@ internal extension UIView {
         }
     }
 
-    private static func swizzleInitWithCoder() {
+    private class func swizzleInitWithCoder() {
         let defaultSelector = #selector(UIView.init(coder:))
         let swizzledSelector = #selector(UIView.swizzledInitWithCoder(coder:))
-        guard let defaultMethod = class_getInstanceMethod(self, defaultSelector) else {
+        guard let defaultMethod = class_getClassMethod(self, defaultSelector) else {
             return
         }
         guard let swizzledMethod = class_getClassMethod(self, swizzledSelector) else {
@@ -208,11 +208,11 @@ internal extension UIView {
                                            swizzledMethod)
         }
     }
-
-    private static func swizzleDealloc() {
+    
+    private class func swizzleDealloc() {
         let defaultSelector = NSSelectorFromString("dealloc")
         let swizzledSelector = #selector(UIView.swizzledDealloc)
-        guard let defaultMethod = class_getInstanceMethod(self, defaultSelector) else {
+        guard let defaultMethod = class_getClassMethod(self, defaultSelector) else {
             return
         }
         guard let swizzledMethod = class_getClassMethod(self, swizzledSelector) else {
