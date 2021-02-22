@@ -70,8 +70,9 @@ internal class MenuViewModel {
         //Setup Accessory
         let switchView = UIActionSwitch()
         switchView.isOn = InterfaceToolkit.instance.showsViewBorders
-        switchView.actionBlock = {
+        switchView.actionBlock = { [weak self] in
             InterfaceToolkit.instance.showsViewBorders = switchView.isOn
+            self?.prepareObjects()
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
