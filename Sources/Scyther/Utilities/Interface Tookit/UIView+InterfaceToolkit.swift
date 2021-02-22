@@ -134,7 +134,7 @@ internal extension UIView {
 // MARK: - Swizzling
 internal extension UIView {
     @objc
-    private class func swizzledInitWithFrame(frame: CGRect) -> UIView {
+    private static func swizzledInitWithFrame(frame: CGRect) -> UIView {
         let view = swizzledInitWithFrame(frame: frame)
         view.refreshDebugBorders()
         view.registerForDebugBorderNotifications()
@@ -142,7 +142,7 @@ internal extension UIView {
     }
 
     @objc
-    private class func swizzledInitWithCoder(coder: NSCoder) -> UIView {
+    private static func swizzledInitWithCoder(coder: NSCoder) -> UIView {
         let view = swizzledInitWithCoder(coder: coder)
         view.refreshDebugBorders()
         view.registerForDebugBorderNotifications()
@@ -150,7 +150,7 @@ internal extension UIView {
     }
 
     @objc
-    private class func swizzledDealloc() {
+    private static func swizzledDealloc() {
         NotificationCenter.default.removeObserver(self)
     }
 
@@ -188,7 +188,7 @@ internal extension UIView {
     private class func swizzleInitWithCoder() {
         let defaultSelector = #selector(UIView.init(coder:))
         let swizzledSelector = #selector(UIView.swizzledInitWithCoder(coder:))
-        guard let defaultMethod = class_getClassMethod(self, defaultSelector) else {
+        guard let defaultMethod = class_getInstanceMethod(self, defaultSelector) else {
             return
         }
         guard let swizzledMethod = class_getClassMethod(self, swizzledSelector) else {
@@ -208,11 +208,11 @@ internal extension UIView {
                                            swizzledMethod)
         }
     }
-    
+
     private class func swizzleDealloc() {
         let defaultSelector = NSSelectorFromString("dealloc")
         let swizzledSelector = #selector(UIView.swizzledDealloc)
-        guard let defaultMethod = class_getClassMethod(self, defaultSelector) else {
+        guard let defaultMethod = class_getInstanceMethod(self, defaultSelector) else {
             return
         }
         guard let swizzledMethod = class_getClassMethod(self, swizzledSelector) else {
