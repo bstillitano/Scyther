@@ -70,9 +70,8 @@ internal class MenuViewModel {
         //Setup Accessory
         let switchView = UIActionSwitch()
         switchView.isOn = InterfaceToolkit.instance.showsViewBorders
-        switchView.actionBlock = { [weak self] in
+        switchView.actionBlock = {
             InterfaceToolkit.instance.showsViewBorders = switchView.isOn
-            self?.delegate?.viewModelShouldReloadData()
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
@@ -90,8 +89,9 @@ internal class MenuViewModel {
         //Setup Accessory
         let switchView = UIActionSwitch()
         switchView.isOn = InterfaceToolkit.instance.slowAnimationsEnabled
-        switchView.actionBlock = {
+        switchView.actionBlock = { [weak self] in
             InterfaceToolkit.instance.slowAnimationsEnabled = switchView.isOn
+            self?.delegate?.viewModelShouldReloadData()
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
