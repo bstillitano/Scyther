@@ -137,30 +137,37 @@ internal extension UIView {
         let view = swizzledInitWithFrame(frame: frame)
         view.refreshDebugBorders()
         view.registerForDebugBorderNotifications()
-        print("SCYTHER - InitWithFrame - Swizzled")
         return view
     }
 
     @objc
     private class func swizzledInitWithCoder(coder: NSCoder) -> UIView {
-        let view = UIView()
+        let view = swizzledInitWithCoder(coder: coder)
         view.refreshDebugBorders()
         view.registerForDebugBorderNotifications()
-        print("SCYTHER - InitWithCoder - Swizzled")
         return view
     }
 
     @objc
     private class func swizzledDealloc() {
         NotificationCenter.default.removeObserver(self)
-        print("SCYTHER - Dealloc - Swizzled")
     }
 
     class func swizzleDefaultUIView() {
-        guard self == UIView.self else { return }
-        swizzleInitWithFrame()
-        swizzleInitWithCoder()
-        swizzleDealloc()
+        let originalSelector = #selector(UIImage.init(named:))
+        let swizzledSelector = #selector(UIImage.init(named:))
+
+        guard let originalMethod = class_getClassMethod(self, originalSelector), let swizzledMethod = class_getClassMethod(self, swizzledSelector) else {
+            assertionFailure("The methods are not found!")
+            return
+        }
+
+        let didAddMethod = class_addMethod(self, originalSelector, method_getImplementation(swizzledMethod), method_getTypeEncoding(swizzledMethod))
+        if didAddMethod {
+            class_replaceMethod(self, swizzledSelector, method_getImplementation(originalMethod), method_getTypeEncoding(originalMethod))
+        } else {
+            method_exchangeImplementations(originalMethod, swizzledMethod)
+        }
     }
 
     private class func swizzleInitWithFrame() {
@@ -210,7 +217,7 @@ internal extension UIView {
                                            swizzledMethod)
         }
     }
-    
+
     private class func swizzleDealloc() {
         let defaultSelector = NSSelectorFromString("dealloc")
         let swizzledSelector = #selector(UIView.swizzledDealloc)
