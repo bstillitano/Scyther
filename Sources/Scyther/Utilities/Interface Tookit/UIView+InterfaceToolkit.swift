@@ -130,7 +130,6 @@ internal extension UIView {
     }
 }
 
-
 // MARK: - Swizzling
 internal extension UIView {
     @objc
@@ -138,6 +137,7 @@ internal extension UIView {
         let view = swizzledInitWithFrame(frame: frame)
         view.refreshDebugBorders()
         view.registerForDebugBorderNotifications()
+        print("SCYTHER - InitWithFrame - Swizzled")
         return view
     }
 
@@ -146,12 +146,14 @@ internal extension UIView {
         let view = swizzledInitWithCoder(coder: coder)
         view.refreshDebugBorders()
         view.registerForDebugBorderNotifications()
+        print("SCYTHER - InitWithCoder - Swizzled")
         return view
     }
 
     @objc
     private class func swizzledDealloc() {
         NotificationCenter.default.removeObserver(self)
+        print("SCYTHER - Dealloc - Swizzled")
     }
 
     class func swizzleDefaultUIView() {
