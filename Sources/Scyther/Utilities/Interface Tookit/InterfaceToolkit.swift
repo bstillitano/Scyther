@@ -11,6 +11,7 @@ import UIKit
 public class InterfaceToolkit: NSObject {
     // MARK: - Static Data
     static var DebugBordersChangeNotification: NSNotification.Name = NSNotification.Name("DebugBordersChangeNotification")
+    static var SlowAnimationsUserDefaultsKey: String = "Scyther_Interface_Toolkit_Slow_Animations_Enabled"
 
     /// Private Init to Stop re-initialisation and allow singleton creation.
     override private init() { }
@@ -29,6 +30,15 @@ public class InterfaceToolkit: NSObject {
                                             object: showsViewBorders)
         }
     }
+    internal var slowAnimationsEnabled: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: InterfaceToolkit.SlowAnimationsUserDefaultsKey)
+        }
+        set {
+            UserDefaults.standard.setValue(newValue, forKey: InterfaceToolkit.SlowAnimationsUserDefaultsKey)
+            setWindowSpeed()
+        }
+    }
 
     // MARK: - Key Window Notifications
     internal func registerForNotitfcations() {
@@ -43,6 +53,7 @@ public class InterfaceToolkit: NSObject {
         registerForNotitfcations()
         setupTopLevelViewsWrapper()
         setupGridOverlay()
+        setWindowSpeed()
     }
 
     private func setupTopLevelViewsWrapper() {
@@ -69,6 +80,7 @@ public class InterfaceToolkit: NSObject {
             return
         }
         addTopLevelViewsWrapperToWindow(window: window)
+        setWindowSpeed()
     }
 
     public override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
@@ -92,5 +104,15 @@ extension InterfaceToolkit {
     internal func showGridOverlay() {
         gridOverlayView.opacity = GridOverlay.instance.enabled ? CGFloat(GridOverlay.instance.opacity) : 0.0
         gridOverlayView.isHidden = !GridOverlay.instance.enabled
+    }
+}
+
+// MARK: Slow Animations
+extension InterfaceToolkit {
+    internal func setWindowSpeed() {
+        let speed: Float = slowAnimationsEnabled ? 0.1 : 1.0
+        for window in UIApplication.shared.windows {
+            window.layer.speed = speed
+        }
     }
 }
