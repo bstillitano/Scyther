@@ -210,7 +210,7 @@ internal extension UIView {
     }
     
     private class func swizzleDealloc() {
-        let defaultSelector = #selector(UIVIew.NSSelectorFromString("dealloc"))
+        let defaultSelector = NSSelectorFromString("dealloc")
         let swizzledSelector = #selector(UIView.swizzledDealloc)
         guard let defaultMethod = class_getClassMethod(self, defaultSelector) else {
             return
