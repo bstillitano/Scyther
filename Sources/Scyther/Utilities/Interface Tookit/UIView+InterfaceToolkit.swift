@@ -162,7 +162,7 @@ internal extension UIView {
     }
 
     class func swizzleDefaultUIView() {
-        guard self == UIView.self else { return }
+        swizzleInitialize()
         swizzleInitWithFrame()
         swizzleInitWithCoder()
         swizzleDealloc()
