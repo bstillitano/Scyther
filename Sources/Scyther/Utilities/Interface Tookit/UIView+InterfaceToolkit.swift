@@ -154,14 +154,14 @@ internal extension UIView {
         NotificationCenter.default.removeObserver(self)
     }
 
-    class func swizzleDefaultUIView() {
+    static func swizzleDefaultUIView() {
         guard self == UIView.self else { return }
         swizzleInitWithFrame()
         swizzleInitWithCoder()
         swizzleDealloc()
     }
 
-    private class func swizzleInitWithFrame() {
+    private static func swizzleInitWithFrame() {
         let defaultSelector = #selector(UIView.init(frame:))
         let swizzledSelector = #selector(UIView.swizzledInitWithFrame(frame:))
         guard let defaultMethod = class_getInstanceMethod(self, defaultSelector) else {
@@ -185,7 +185,7 @@ internal extension UIView {
         }
     }
 
-    private class func swizzleInitWithCoder() {
+    private static func swizzleInitWithCoder() {
         let defaultSelector = #selector(UIView.init(coder:))
         let swizzledSelector = #selector(UIView.swizzledInitWithCoder(coder:))
         guard let defaultMethod = class_getInstanceMethod(self, defaultSelector) else {
@@ -209,7 +209,7 @@ internal extension UIView {
         }
     }
 
-    private class func swizzleDealloc() {
+    private static func swizzleDealloc() {
         let defaultSelector = NSSelectorFromString("dealloc")
         let swizzledSelector = #selector(UIView.swizzledDealloc)
         guard let defaultMethod = class_getInstanceMethod(self, defaultSelector) else {
