@@ -134,23 +134,23 @@ internal extension UIView {
 // MARK: - Swizzling
 internal extension UIView {
     @objc
-    private class func swizzledInitWithFrame(frame: CGRect) -> UIView {
-        let view = swizzledInitWithFrame(frame: frame)
+    private func swizzledInit(frame: CGRect) -> UIView {
+        let view = swizzledInit(frame: frame)
         view.refreshDebugBorders()
         view.registerForDebugBorderNotifications()
         return view
     }
 
     @objc
-    private class func swizzledInitWithCoder(coder: NSCoder) -> UIView {
-        let view = swizzledInitWithCoder(coder: coder)
+    private func swizzledInit(coder: NSCoder) -> UIView {
+        let view = swizzledInit(coder: coder)
         view.refreshDebugBorders()
         view.registerForDebugBorderNotifications()
         return view
     }
 
     @objc
-    private class func swizzledDealloc() {
+    private func swizzledDealloc() {
         NotificationCenter.default.removeObserver(self)
     }
 
@@ -158,78 +158,17 @@ internal extension UIView {
         guard self == UIView.self else { return }
         swizzleInitWithFrame()
         swizzleInitWithCoder()
-        swizzleDealloc()
     }
 
     private class func swizzleInitWithFrame() {
-        let defaultSelector = #selector(UIView.init(frame:))
-        let swizzledSelector = #selector(UIView.swizzledInitWithFrame(frame:))
-        guard let defaultMethod = class_getClassMethod(self, defaultSelector) else {
-            return
-        }
-        guard let swizzledMethod = class_getClassMethod(self, swizzledSelector) else {
-            return
-        }
-        let didAddMethod = class_addMethod(self,
-                                           defaultSelector,
-                                           method_getImplementation(swizzledMethod),
-                                           method_getTypeEncoding(swizzledMethod))
-        if didAddMethod {
-            class_replaceMethod(self,
-                                swizzledSelector,
-                                method_getImplementation(defaultMethod),
-                                method_getTypeEncoding(defaultMethod))
-        } else {
-            method_exchangeImplementations(defaultMethod,
-                                           swizzledMethod)
-        }
+        let defaultSelector = class_getInstanceMethod(UIView.self, #selector(UIView.init(frame:)))
+        let swizzledSelector = class_getInstanceMethod(UIView.self, #selector(UIView.swizzledInit(frame:)))
+        method_exchangeImplementations(defaultSelector!, swizzledSelector!)
     }
 
     private class func swizzleInitWithCoder() {
-        let defaultSelector = Selector("init")
-        let swizzledSelector = #selector(UIView.swizzledInitWithCoder(coder:))
-        guard let defaultMethod = class_getClassMethod(self, defaultSelector) else {
-            return
-        }
-        guard let swizzledMethod = class_getClassMethod(self, swizzledSelector) else {
-            return
-        }
-        let didAddMethod = class_addMethod(self,
-                                           defaultSelector,
-                                           method_getImplementation(swizzledMethod),
-                                           method_getTypeEncoding(swizzledMethod))
-        if didAddMethod {
-            class_replaceMethod(self,
-                                swizzledSelector,
-                                method_getImplementation(defaultMethod),
-                                method_getTypeEncoding(defaultMethod))
-        } else {
-            method_exchangeImplementations(defaultMethod,
-                                           swizzledMethod)
-        }
-    }
-
-    private class func swizzleDealloc() {
-        let defaultSelector = NSSelectorFromString("dealloc")
-        let swizzledSelector = #selector(UIView.swizzledDealloc)
-        guard let defaultMethod = class_getClassMethod(self, defaultSelector) else {
-            return
-        }
-        guard let swizzledMethod = class_getClassMethod(self, swizzledSelector) else {
-            return
-        }
-        let didAddMethod = class_addMethod(self,
-                                           defaultSelector,
-                                           method_getImplementation(swizzledMethod),
-                                           method_getTypeEncoding(swizzledMethod))
-        if didAddMethod {
-            class_replaceMethod(self,
-                                swizzledSelector,
-                                method_getImplementation(defaultMethod),
-                                method_getTypeEncoding(defaultMethod))
-        } else {
-            method_exchangeImplementations(defaultMethod,
-                                           swizzledMethod)
-        }
+        let defaultSelector = class_getInstanceMethod(UIView.self, #selector(UIView.init(coder:)))
+        let swizzledSelector = class_getInstanceMethod(UIView.self, #selector(UIView.swizzledInit(coder:)))
+        method_exchangeImplementations(defaultSelector!, swizzledSelector!)
     }
 }
