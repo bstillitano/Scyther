@@ -167,7 +167,7 @@ internal extension UIView {
         guard let defaultMethod = class_getInstanceMethod(self, defaultSelector) else {
             return
         }
-        guard let swizzledMethod = class_getInstanceMethod(self, swizzledSelector) else {
+        guard let swizzledMethod = class_getClassMethod(self, swizzledSelector) else {
             return
         }
         let didAddMethod = class_addMethod(self,
