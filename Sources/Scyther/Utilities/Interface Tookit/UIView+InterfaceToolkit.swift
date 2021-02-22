@@ -152,22 +152,26 @@ internal extension UIView {
     private class func swizzledDealloc() {
         NotificationCenter.default.removeObserver(self)
     }
+    
+    @objc
+    private class func swizzledInitialize() -> UIView {
+        let view = swizzledInitialize()
+        view.refreshDebugBorders()
+        view.registerForDebugBorderNotifications()
+        return view
+    }
 
     class func swizzleDefaultUIView() {
-        let originalSelector = #selector(UIImage.init(named:))
-        let swizzledSelector = #selector(UIImage.init(named:))
-
-        guard let originalMethod = class_getClassMethod(self, originalSelector), let swizzledMethod = class_getClassMethod(self, swizzledSelector) else {
-            assertionFailure("The methods are not found!")
-            return
-        }
-
-        let didAddMethod = class_addMethod(self, originalSelector, method_getImplementation(swizzledMethod), method_getTypeEncoding(swizzledMethod))
-        if didAddMethod {
-            class_replaceMethod(self, swizzledSelector, method_getImplementation(originalMethod), method_getTypeEncoding(originalMethod))
-        } else {
-            method_exchangeImplementations(originalMethod, swizzledMethod)
-        }
+        guard self == UIView.self else { return }
+        swizzleInitWithFrame()
+        swizzleInitWithCoder()
+        swizzleDealloc()
+    }
+    
+    private class func swizzleInitialize() {
+        let defaultSessionConfiguration = class_getClassMethod(UIView.self, #selector(UIView.initialize))
+        let swizzledDefaultSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(UIView.swizzledInitialize))
+        method_exchangeImplementations(defaultSessionConfiguration!, swizzledDefaultSessionConfiguration!)
     }
 
     private class func swizzleInitWithFrame() {
@@ -217,7 +221,7 @@ internal extension UIView {
                                            swizzledMethod)
         }
     }
-
+    
     private class func swizzleDealloc() {
         let defaultSelector = NSSelectorFromString("dealloc")
         let swizzledSelector = #selector(UIView.swizzledDealloc)
