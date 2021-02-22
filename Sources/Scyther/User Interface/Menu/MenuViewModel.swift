@@ -72,7 +72,7 @@ internal class MenuViewModel {
         switchView.isOn = InterfaceToolkit.instance.showsViewBorders
         switchView.actionBlock = { [weak self] in
             InterfaceToolkit.instance.showsViewBorders = switchView.isOn
-            self?.prepareObjects()
+            self?.delegate?.viewModelShouldReloadData()
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
