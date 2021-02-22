@@ -65,10 +65,11 @@ internal class MenuViewModel {
         //Setup Row
         var row: SwitchAccessoryRow = SwitchAccessoryRow()
         row.text = "Show View Frames"
-
+        row.image = UIImage(systemImage: "viewfinder")
+        
         //Setup Accessory
         let switchView = UIActionSwitch()
-        switchView.isOn = Toggler.instance.localOverridesEnabled
+        switchView.isOn = GridOverlay.instance.enabled
         switchView.actionBlock = {
             InterfaceToolkit.instance.showsViewBorders = switchView.isOn
         }
@@ -83,6 +84,7 @@ internal class MenuViewModel {
         //Setup Row
         var row: SwitchAccessoryRow = SwitchAccessoryRow()
         row.text = "Slow Animations"
+        row.image = UIImage(systemImage: "tortoise")
 
         //Setup Accessory
         let switchView = UIActionSwitch()
