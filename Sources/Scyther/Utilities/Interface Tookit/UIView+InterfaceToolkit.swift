@@ -143,7 +143,7 @@ internal extension UIView {
 
     @objc
     private class func swizzledInitWithCoder(coder: NSCoder) -> UIView {
-        let view = swizzledInitWithCoder(coder: coder)
+        let view = UIView()
         view.refreshDebugBorders()
         view.registerForDebugBorderNotifications()
         print("SCYTHER - InitWithCoder - Swizzled")
