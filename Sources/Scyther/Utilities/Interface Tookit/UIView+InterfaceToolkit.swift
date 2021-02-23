@@ -25,7 +25,7 @@ protocol InterfaceToolkitPrivate: UIView {
 extension UIView: InterfaceToolkitPrivate {
     var showsDebugBorder: Bool {
         get {
-            let value: NSNumber = objc_getAssociatedObject(self, UIViewShowsDebugBorderKey)) as? NSNumber ?? 1
+            let value: NSNumber = objc_getAssociatedObject(self, UIViewShowsDebugBorderKey) as? NSNumber ?? 1
             return value.boolValue
         }
         set {
