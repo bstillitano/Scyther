@@ -25,7 +25,7 @@ protocol InterfaceToolkitPrivate: UIView {
 extension UIView: InterfaceToolkitPrivate {
     var showsDebugBorder: Bool {
         get {
-            return true
+            return NSNumber(nonretainedObject: objc_getAssociatedObject(self, UIViewShowsDebugBorderKey)).boolValue
         }
         set {
             objc_setAssociatedObject(self,
@@ -130,45 +130,32 @@ internal extension UIView {
     }
 }
 
-
 // MARK: - Swizzling
 internal extension UIView {
+    /// Replaces the original `layoutSubviews` implementation with the swizzled version
+    static let swizzleLayout: Void = {
+        /// Get original selector
+        guard let originalMethod = class_getInstanceMethod(UIView.self,
+                                                           #selector(layoutSubviews)) else {
+            return
+        }
+        
+        /// Get swizzled selector
+        guard let swizzledMethod = class_getInstanceMethod(UIView.self,
+                                                           #selector(swizzledLayoutSubviews)) else {
+            return
+        }
+        
+        /// Excahnge implementations
+        method_exchangeImplementations(originalMethod, swizzledMethod)
+    }()
+
+    
+    /// Swizzled implementation of layout subviews
     @objc
-    private func swizzledInit(frame: CGRect) -> UIView {
-        let view = swizzledInit(frame: frame)
-        view.refreshDebugBorders()
-        view.registerForDebugBorderNotifications()
-        return view
-    }
-
-    @objc
-    private func swizzledInit(coder: NSCoder) -> UIView {
-        let view = swizzledInit(coder: coder)
-        view.refreshDebugBorders()
-        view.registerForDebugBorderNotifications()
-        return view
-    }
-
-    @objc
-    private func swizzledDealloc() {
-        NotificationCenter.default.removeObserver(self)
-    }
-
-    class func swizzleDefaultUIView() {
-        guard self == UIView.self else { return }
-        swizzleInitWithFrame()
-        swizzleInitWithCoder()
-    }
-
-    private class func swizzleInitWithFrame() {
-        let defaultSelector = class_getInstanceMethod(UIView.self, #selector(UIView.init(frame:)))
-        let swizzledSelector = class_getInstanceMethod(UIView.self, #selector(UIView.swizzledInit(frame:)))
-        method_exchangeImplementations(defaultSelector!, swizzledSelector!)
-    }
-
-    private class func swizzleInitWithCoder() {
-        let defaultSelector = class_getInstanceMethod(UIView.self, #selector(UIView.init(coder:)))
-        let swizzledSelector = class_getInstanceMethod(UIView.self, #selector(UIView.swizzledInit(coder:)))
-        method_exchangeImplementations(defaultSelector!, swizzledSelector!)
+    private func swizzledLayoutSubviews() {
+        swizzledLayoutSubviews()
+        refreshDebugBorders()
+        registerForDebugBorderNotifications()
     }
 }

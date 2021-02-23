@@ -49,7 +49,7 @@ public class InterfaceToolkit: NSObject {
     }
 
     internal func start() {
-        UIView.swizzleDefaultUIView()
+        UIView.swizzleLayout
         registerForNotitfcations()
         setupTopLevelViewsWrapper()
         setupGridOverlay()
