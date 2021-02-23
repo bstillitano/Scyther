@@ -39,6 +39,7 @@ internal class MenuViewController: UIViewController {
         tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
         tableView.register(DeviceTableViewCell.self, forCellReuseIdentifier: RowStyle.deviceHeader.rawValue)
         tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
+        tableView.register(SwitchCell.self, forCellReuseIdentifier: RowStyle.switchAccessory.rawValue)
 
         /// Setup Close button
         if #available(iOS 13.0, *) {
@@ -109,6 +110,7 @@ extension MenuViewController: UITableViewDataSource {
         /// Configure cell
         let cell = tableView.dequeueReusableCell(withIdentifier: row.style.rawValue, for: indexPath)
         cell.accessoryType = row.accessoryType ?? .none
+        cell.accessoryView = row.accessoryView
         cell.textLabel?.text = viewModel?.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
 

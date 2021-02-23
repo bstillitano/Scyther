@@ -59,6 +59,45 @@ internal class MenuViewModel {
 
         return row
     }
+    
+    /// Switch to enable/disable showing view frames
+    var viewFramesSwitch: SwitchAccessoryRow {
+        //Setup Row
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = "Show View Frames"
+        row.image = UIImage(systemImage: "viewfinder")
+        
+        //Setup Accessory
+        let switchView = UIActionSwitch()
+        switchView.isOn = InterfaceToolkit.instance.showsViewBorders
+        switchView.actionBlock = {
+            InterfaceToolkit.instance.showsViewBorders = switchView.isOn
+        }
+        switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        row.accessoryView = switchView
+
+        return row
+    }
+    
+    /// Switch to enable/disable slow animations
+    var slowAnimationsSwitch: SwitchAccessoryRow {
+        //Setup Row
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = "Slow Animations"
+        row.image = UIImage(systemImage: "tortoise")
+
+        //Setup Accessory
+        let switchView = UIActionSwitch()
+        switchView.isOn = InterfaceToolkit.instance.slowAnimationsEnabled
+        switchView.actionBlock = { [weak self] in
+            InterfaceToolkit.instance.slowAnimationsEnabled = switchView.isOn
+            self?.delegate?.viewModelShouldReloadData()
+        }
+        switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        row.accessoryView = switchView
+
+        return row
+    }
 
     func prepareObjects() {
         //Clear Data
@@ -153,6 +192,8 @@ internal class MenuViewModel {
         uiUxSection.rows.append(actionRow(name: "Grid Overlay",
                                                  icon: UIImage(systemImage: "rectangle.split.3x3"),
                                                  actionController: GridOverlayViewController()))
+        uiUxSection.rows.append(viewFramesSwitch)
+        uiUxSection.rows.append(slowAnimationsSwitch)
         
         /// Setup Development Section
         var developmentSection: Section = Section()
@@ -224,6 +265,13 @@ extension MenuViewModel {
     private func rows(inSection index: Int) -> [Row]? {
         guard let section = section(for: index) else { return nil }
         return section.rows.filter { !$0.isHidden }
+    }
+}
+
+extension MenuViewModel {
+    @objc
+    func switchToggled(_ sender: UIActionSwitch?) {
+        sender?.actionBlock?()
     }
 }
 #endif
