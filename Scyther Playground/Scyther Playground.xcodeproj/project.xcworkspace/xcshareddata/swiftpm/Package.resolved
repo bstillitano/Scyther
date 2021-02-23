@@ -5,8 +5,8 @@
         "package": "Scyther",
         "repositoryURL": "https://github.com/bstillitano/Scyther.git",
         "state": {
-          "branch": "feature/view-frames",
-          "revision": "876e477572676273314aaedc7c87856587416927",
+          "branch": "main",
+          "revision": "c53a6cd1f3cad0ba29b03c748e9db0e3dc3e237d",
           "version": null
         }
       },

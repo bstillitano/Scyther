@@ -635,7 +635,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/bstillitano/Scyther.git";
 			requirement = {
-				branch = "feature/view-frames";
+				branch = main;
 				kind = branch;
 			};
 		};
