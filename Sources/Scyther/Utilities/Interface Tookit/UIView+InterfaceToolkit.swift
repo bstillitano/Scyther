@@ -8,14 +8,11 @@
 import UIKit
 
 // MARK: - Static Data
-private let UIViewShowsDebugBorderKey = "Scyther_showsDebugBorder"
 private let UIViewPreviousBorderColorKey = "Scyther_previousBorderColor"
 private let UIViewPreviousBorderWidthKey = "Scyther_previousBorderWidth"
-private let UIViewDebugBorderColorKey = "Scyther_debugBorderColor"
 
 // MARK: - Protocol
 protocol InterfaceToolkitPrivate: UIView {
-    var showsDebugBorder: Bool { get set }
     var previousBorderColor: CGColor { get set }
     var previousBorderWidth: CGFloat { get set }
     var debugBorderColor: CGColor { get set }
@@ -23,19 +20,6 @@ protocol InterfaceToolkitPrivate: UIView {
 
 // MARK: - Protocol Implementation
 extension UIView: InterfaceToolkitPrivate {
-    var showsDebugBorder: Bool {
-        get {
-            let value: NSNumber = objc_getAssociatedObject(self, UIViewShowsDebugBorderKey) as? NSNumber ?? 0
-            return value.boolValue
-        }
-        set {
-            objc_setAssociatedObject(self,
-                                     UIViewShowsDebugBorderKey,
-                                     NSNumber(value: newValue),
-                                         .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        }
-    }
-
     var previousBorderColor: CGColor {
         get {
             let color: UIColor = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor ?? .clear
@@ -61,20 +45,6 @@ extension UIView: InterfaceToolkitPrivate {
                                          .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
-
-    var debugBorderColor: CGColor {
-        get {
-            let color: UIColor = objc_getAssociatedObject(self, UIViewDebugBorderColorKey) as? UIColor ?? .red
-            return color.cgColor
-        }
-        set {
-            let color: UIColor = UIColor(cgColor: newValue)
-            objc_setAssociatedObject(self,
-                                     UIViewDebugBorderColorKey,
-                                     color,
-                                         .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        }
-    }
 }
 
 // MARK: - Show/Hide View Borders
@@ -88,29 +58,17 @@ internal extension UIView {
     }
 
     func enableDebugBorders() {
-        /// Check that we're not already showing debug borders, otherwise just return
-        guard !self.showsDebugBorder else {
-            return
-        }
-
         /// Set data and backup current settings
-        showsDebugBorder = true
         previousBorderWidth = layer.borderWidth
         previousBorderColor = layer.borderColor ?? UIColor.clear.cgColor
 
         /// Set new border values
-        layer.borderColor = debugBorderColor
+        layer.borderColor = UIColor.random.cgColor
         layer.borderWidth = 1.0
     }
 
     func disableDebugBorders() {
-        /// Check that we're currently showing debug borders, otherwise just return
-        guard self.showsDebugBorder else {
-            return
-        }
-        showsDebugBorder = false
-
-        /// Restore previous border values
+        /// Set data and restore previous settings
         layer.borderColor = previousBorderColor
         layer.borderWidth = previousBorderWidth
     }
@@ -151,7 +109,6 @@ internal extension UIView {
         method_exchangeImplementations(originalMethod, swizzledMethod)
     }()
 
-    
     /// Swizzled implementation of layout subviews
     @objc
     private func swizzledLayoutSubviews() {
