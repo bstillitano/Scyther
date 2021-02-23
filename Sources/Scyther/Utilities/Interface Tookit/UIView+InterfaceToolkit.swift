@@ -15,11 +15,15 @@ private let UIViewPreviousBorderWidthKey = "Scyther_previousBorderWidth"
 protocol InterfaceToolkitPrivate: UIView {
     var previousBorderColor: CGColor { get set }
     var previousBorderWidth: CGFloat { get set }
-    var debugBorderColor: CGColor { get set }
+    var debugBorderColor: CGColor { get }
 }
 
 // MARK: - Protocol Implementation
 extension UIView: InterfaceToolkitPrivate {
+    var debugBorderColor: CGColor {
+        return UIColor.random.cgColor
+    }
+    
     var previousBorderColor: CGColor {
         get {
             let color: UIColor = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor ?? .clear
@@ -63,7 +67,7 @@ internal extension UIView {
         previousBorderColor = layer.borderColor ?? UIColor.clear.cgColor
 
         /// Set new border values
-        layer.borderColor = UIColor.random.cgColor
+        layer.borderColor = debugBorderColor
         layer.borderWidth = 1.0
     }
 
@@ -98,13 +102,13 @@ internal extension UIView {
                                                            #selector(layoutSubviews)) else {
             return
         }
-        
+
         /// Get swizzled selector
         guard let swizzledMethod = class_getInstanceMethod(UIView.self,
                                                            #selector(swizzledLayoutSubviews)) else {
             return
         }
-        
+
         /// Excahnge implementations
         method_exchangeImplementations(originalMethod, swizzledMethod)
     }()
