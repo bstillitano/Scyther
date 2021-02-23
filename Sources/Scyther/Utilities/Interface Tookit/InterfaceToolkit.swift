@@ -10,8 +10,9 @@ import UIKit
 
 public class InterfaceToolkit: NSObject {
     // MARK: - Static Data
-    static var DebugBordersChangeNotification: NSNotification.Name = NSNotification.Name("DebugBordersChangeNotification")
-    static var SlowAnimationsUserDefaultsKey: String = "Scyther_Interface_Toolkit_Slow_Animations_Enabled"
+    internal static var DebugBordersChangeNotification: NSNotification.Name = NSNotification.Name("DebugBordersChangeNotification")
+    internal static var SlowAnimationsUserDefaultsKey: String = "Scyther_Interface_Toolkit_Slow_Animations_Enabled"
+    internal static var ViewFramesUserDefaultsKey: String = "Scyther_Interface_Toolkit_View_Borders_Enabled"
 
     /// Private Init to Stop re-initialisation and allow singleton creation.
     override private init() { }
@@ -24,10 +25,14 @@ public class InterfaceToolkit: NSObject {
     internal var topLevelViewsWrapper: TopLevelViewsWrapper = TopLevelViewsWrapper()
 
     // MARK: - Data
-    internal var showsViewBorders: Bool = true {
-        didSet {
+    internal var showsViewBorders: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: InterfaceToolkit.ViewFramesUserDefaultsKey)
+        }
+        set {
+            UserDefaults.standard.setValue(newValue, forKey: InterfaceToolkit.ViewFramesUserDefaultsKey)
             NotificationCenter.default.post(name: InterfaceToolkit.DebugBordersChangeNotification,
-                                            object: showsViewBorders)
+                                            object: newValue)
         }
     }
     internal var slowAnimationsEnabled: Bool {
