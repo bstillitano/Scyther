@@ -129,12 +129,13 @@ internal extension UIView {
     /// Swizzled implementation of layout subviews
     @objc
     private func swizzledLayoutSubviews() {
-        swizzledLayoutSubviews()
         if !hasSetPreviousDebugBorderValues {
             previousBorderColor = layer.borderColor ?? UIColor.clear.cgColor
             previousBorderWidth = layer.borderWidth
             hasSetPreviousDebugBorderValues = true
         }
+        
+        swizzledLayoutSubviews()
         refreshDebugBorders()
         registerForDebugBorderNotifications()
     }
