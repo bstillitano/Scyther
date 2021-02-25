@@ -53,7 +53,7 @@ extension UIView: InterfaceToolkitPrivate {
 
     var previousBorderWidth: CGFloat {
         get {
-            return objc_getAssociatedObject(self, UIViewPreviousBorderWidthKey) as? CGFloat ?? 1.0
+            return objc_getAssociatedObject(self, UIViewPreviousBorderWidthKey) as? CGFloat ?? 0.0
         }
         set {
             objc_setAssociatedObject(self,
@@ -129,13 +129,14 @@ internal extension UIView {
     /// Swizzled implementation of layout subviews
     @objc
     private func swizzledLayoutSubviews() {
+        swizzledLayoutSubviews()
+
         if !hasSetPreviousDebugBorderValues {
             previousBorderColor = layer.borderColor ?? UIColor.clear.cgColor
             previousBorderWidth = layer.borderWidth
             hasSetPreviousDebugBorderValues = true
         }
-        
-        swizzledLayoutSubviews()
+
         refreshDebugBorders()
         registerForDebugBorderNotifications()
     }
