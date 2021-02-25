@@ -51,7 +51,7 @@ extension UIView: InterfaceToolkitPrivate {
             objc_setAssociatedObject(self,
                                      UIViewPreviousBorderColorKey,
                                      color,
-                                         .OBJC_ASSOCIATION_RETAIN)
+                                         .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 
@@ -63,7 +63,7 @@ extension UIView: InterfaceToolkitPrivate {
             objc_setAssociatedObject(self,
                                      UIViewPreviousBorderWidthKey,
                                      newValue,
-                                         .OBJC_ASSOCIATION_RETAIN)
+                                         .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 }
@@ -135,14 +135,11 @@ internal extension UIView {
     private func swizzledLayoutSubviews() {
         swizzledLayoutSubviews()
 
-        if !hasSetPreviousDebugBorderValues && previousBorderColor != nil {
-            if let borderColor = layer.borderColor {
-                previousBorderColor = borderColor
-                previousBorderWidth = layer.borderWidth
-                hasSetPreviousDebugBorderValues = true
-            }
+        if let borderColor = layer.borderColor {
+            previousBorderColor = borderColor
+            previousBorderWidth = layer.borderWidth
         }
-
+        
         refreshDebugBorders()
         registerForDebugBorderNotifications()
     }
