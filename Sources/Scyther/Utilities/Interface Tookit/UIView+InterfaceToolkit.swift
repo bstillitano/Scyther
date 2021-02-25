@@ -23,23 +23,30 @@ extension UIView: InterfaceToolkitPrivate {
     var debugBorderColor: CGColor {
         return UIColor.random.cgColor
     }
-
+    
     var previousBorderColor: CGColor {
         get {
-            let color: UIColor = value(forKey: UIViewPreviousBorderColorKey) as? UIColor ?? .clear
+            let color: UIColor = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor ?? .clear
             return color.cgColor
         }
         set {
-            setValue(newValue, forKey: UIViewPreviousBorderColorKey)
+            let color: UIColor = UIColor(cgColor: newValue)
+            objc_setAssociatedObject(self,
+                                     UIViewPreviousBorderColorKey,
+                                     color,
+                                         .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 
     var previousBorderWidth: CGFloat {
         get {
-            return value(forKey: UIViewPreviousBorderWidthKey) as? CGFloat ?? 0.0
+            return objc_getAssociatedObject(self, UIViewPreviousBorderWidthKey) as? CGFloat ?? 1.0
         }
         set {
-            setValue(newValue, forKey: UIViewPreviousBorderWidthKey)
+            objc_setAssociatedObject(self,
+                                     UIViewPreviousBorderWidthKey,
+                                     newValue,
+                                         .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 }
