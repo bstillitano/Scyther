@@ -5,7 +5,7 @@
 //  Created by Brandon Stillitano on 20/2/21.
 //
 
-//#if !os(macOS)
+#if !os(macOS)
 import UIKit
 
 // MARK: - Static Data
@@ -22,11 +22,6 @@ protocol InterfaceToolkitPrivate: UIView {
 
 // MARK: - Protocol Implementation
 extension UIView: InterfaceToolkitPrivate {
-    //MARK: - Data Storeage
-    struct UIViewDataStorage {
-        static var key = "key"
-    }
-
     var debugBorderColor: CGColor {
         return UIColor.random.cgColor
     }
@@ -45,10 +40,15 @@ extension UIView: InterfaceToolkitPrivate {
 
     var previousBorderColor: CGColor {
         get {
-            return objc_getAssociatedObject(self, &UIViewDataStorage.key) as CGColor?
+            let color: UIColor = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor ?? .clear
+            return color.cgColor
         }
         set {
-            objc_setAssociatedObject(self, &UIViewDataStorage.key, newValue, .OBJC_ASSOCIATION_RETAIN)
+            let color: UIColor = UIColor(cgColor: newValue)
+            objc_setAssociatedObject(self,
+                                     UIViewPreviousBorderColorKey,
+                                     color,
+                                         .OBJC_ASSOCIATION_RETAIN)
         }
     }
 
@@ -60,7 +60,7 @@ extension UIView: InterfaceToolkitPrivate {
             objc_setAssociatedObject(self,
                                      UIViewPreviousBorderWidthKey,
                                      newValue,
-                                         .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                                         .OBJC_ASSOCIATION_RETAIN)
         }
     }
 }
@@ -142,4 +142,4 @@ internal extension UIView {
         registerForDebugBorderNotifications()
     }
 }
-//#endif
+#endif
