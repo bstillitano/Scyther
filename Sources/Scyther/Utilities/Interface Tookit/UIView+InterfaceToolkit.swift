@@ -20,23 +20,23 @@ protocol InterfaceToolkitPrivate: UIView {
 }
 
 // MARK: - Protocol Implementation
-internal extension UIView: InterfaceToolkitPrivate {
+extension UIView: InterfaceToolkitPrivate {
     var debugBorderColor: CGColor {
         return UIColor.random.cgColor
     }
-    
-    var hasSetPreviousValues: Bool {
+
+    var hasSetPreviousDebugBorderValues: Bool {
         get {
             return objc_getAssociatedObject(self, UIViewHasSetPreviousBorderColorKey) as? Bool ?? false
         }
         set {
             objc_setAssociatedObject(self,
                                      UIViewHasSetPreviousBorderColorKey,
-                                     color,
+                                     newValue,
                                          .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
-    
+
     var previousBorderColor: CGColor {
         get {
             let color: UIColor = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor ?? .clear
@@ -130,10 +130,10 @@ internal extension UIView {
     @objc
     private func swizzledLayoutSubviews() {
         swizzledLayoutSubviews()
-        if !hasSetPreviousValues {
+        if !hasSetPreviousDebugBorderValues {
             previousBorderColor = layer.borderColor ?? UIColor.clear.cgColor
             previousBorderWidth = layer.borderWidth
-            hasSetPreviousValues = true
+            hasSetPreviousDebugBorderValues = true
         }
         refreshDebugBorders()
         registerForDebugBorderNotifications()
