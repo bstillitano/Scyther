@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 18/2/21.
 //
 
+#if !os(macOS)
 import NotificationCenter
 import UIKit
 
@@ -111,3 +112,4 @@ extension TopLevelViewsWrapper: TopLevelViewDelegate {
         updateVisibility()
     }
 }
+#endif

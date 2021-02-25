@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 24/2/21.
 //
 
+#if !os(macOS)
 import UIKit
 
 extension UIColor {
@@ -16,3 +17,4 @@ extension UIColor {
                        alpha: 1.0)
     }
 }
+#endif

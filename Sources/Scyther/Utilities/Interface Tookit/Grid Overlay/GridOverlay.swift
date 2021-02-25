@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 18/2/21.
 //
 
+#if !os(macOS)
 import UIKit
 
 internal class GridOverlay {
@@ -71,3 +72,4 @@ internal class GridOverlay {
         }
     }
 }
+#endif

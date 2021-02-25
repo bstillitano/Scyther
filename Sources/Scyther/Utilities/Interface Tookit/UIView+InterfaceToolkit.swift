@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 20/2/21.
 //
 
+#if !os(macOS)
 import UIKit
 
 // MARK: - Static Data
@@ -39,7 +40,7 @@ extension UIView: InterfaceToolkitPrivate {
 
     var previousBorderColor: CGColor {
         get {
-            let color: UIColor = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor ?? .clear
+            let color: UIColor = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor ?? .red
             return color.cgColor
         }
         set {
@@ -141,3 +142,4 @@ internal extension UIView {
         registerForDebugBorderNotifications()
     }
 }
+#endif
