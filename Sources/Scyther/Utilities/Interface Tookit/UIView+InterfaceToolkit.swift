@@ -40,14 +40,12 @@ extension UIView: InterfaceToolkitPrivate {
 
     var previousBorderColor: CGColor {
         get {
-            let color: UIColor = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor ?? .red
-            return color.cgColor
+            return objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as! CGColor
         }
         set {
-            let color: UIColor = UIColor(cgColor: newValue)
             objc_setAssociatedObject(self,
                                      UIViewPreviousBorderColorKey,
-                                     color,
+                                     newValue,
                                          .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
