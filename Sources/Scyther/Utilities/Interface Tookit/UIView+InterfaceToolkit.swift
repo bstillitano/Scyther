@@ -15,7 +15,7 @@ private let UIViewPreviousBorderWidthKey = "Scyther_previousBorderWidth"
 
 // MARK: - Protocol
 protocol InterfaceToolkitPrivate: UIView {
-    var previousBorderColor: CGColor { get set }
+    var previousBorderColor: CGColor? { get set }
     var previousBorderWidth: CGFloat { get set }
     var debugBorderColor: CGColor { get }
 }
@@ -38,13 +38,16 @@ extension UIView: InterfaceToolkitPrivate {
         }
     }
 
-    var previousBorderColor: CGColor {
+    var previousBorderColor: CGColor? {
         get {
-            let color: UIColor = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor ?? .clear
-            return color.cgColor
+            let color: UIColor? = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor
+            return color?.cgColor
         }
         set {
-            let color: UIColor = UIColor(cgColor: newValue)
+            guard let value = newValue else {
+                return
+            }
+            let color: UIColor = UIColor(cgColor: value)
             objc_setAssociatedObject(self,
                                      UIViewPreviousBorderColorKey,
                                      color,
@@ -132,10 +135,12 @@ internal extension UIView {
     private func swizzledLayoutSubviews() {
         swizzledLayoutSubviews()
 
-        if !hasSetPreviousDebugBorderValues {
-            previousBorderColor = layer.borderColor ?? UIColor.clear.cgColor
-            previousBorderWidth = layer.borderWidth
-            hasSetPreviousDebugBorderValues = true
+        if !hasSetPreviousDebugBorderValues && previousBorderColor != nil {
+            if let borderColor = layer.borderColor {
+                previousBorderColor = borderColor
+                previousBorderWidth = layer.borderWidth
+                hasSetPreviousDebugBorderValues = true
+            }
         }
 
         refreshDebugBorders()
