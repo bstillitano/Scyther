@@ -23,7 +23,7 @@ extension UIView: InterfaceToolkitPrivate {
     var debugBorderColor: CGColor {
         return UIColor.random.cgColor
     }
-    
+
     var previousBorderColor: CGColor {
         get {
             let color: UIColor = value(forKey: UIViewPreviousBorderColorKey) as? UIColor ?? .clear
@@ -36,7 +36,7 @@ extension UIView: InterfaceToolkitPrivate {
 
     var previousBorderWidth: CGFloat {
         get {
-            return value(forKey: UIViewPreviousBorderWidthKey) as? CGFloat ?? 0.0
+            return value(forKey: UIViewPreviousBorderWidthKey) as? CGFloat ?? 0.0
         }
         set {
             setValue(newValue, forKey: UIViewPreviousBorderWidthKey)
