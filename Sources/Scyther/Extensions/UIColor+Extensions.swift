@@ -18,54 +18,72 @@ extension UIColor {
     }
 
     /// Provides the given color's hex code in the #RRGGBB format
-    var hexCode: String {
-        let components = cgColor.components
-        let r: CGFloat = components?[0] ?? 0.0
-        let g: CGFloat = components?[1] ?? 0.0
-        let b: CGFloat = components?[2] ?? 0.0
+    /// - Parameter withAlpha: Whether or not the string returned should include alpha values
+    /// - Returns: A hex code in either 8 or 6 digit format depending on the `withAlpha` value
+    func hexCode(withAlpha: Bool = true) -> String? {
+        //Confirm enough components exist to construct a `UIColor`
+        guard let components = cgColor.components, components.count >= 3 else {
+            return nil
+        }
 
-        return String.init(format: "#%02lX%02lX%02lX", lroundf(Float(r * 255)), lroundf(Float(g * 255)), lroundf(Float(b * 255)))
+        //Create color components
+        let r = Float(components[0])
+        let g = Float(components[1])
+        let b = Float(components[2])
+        var a = Float(1.0)
+
+        //Set alpha value
+        if components.count >= 4 {
+            a = Float(components[3])
+        }
+
+        //Construct hex string
+        if withAlpha {
+            return String(format: "%02lX%02lX%02lX%02lX", lroundf(r * 255), lroundf(g * 255), lroundf(b * 255), lroundf(a * 255))
+        } else {
+            return String(format: "%02lX%02lX%02lX", lroundf(r * 255), lroundf(g * 255), lroundf(b * 255))
+        }
     }
-    
-    /// Converts a hex code in the #RRGGBB format into a `UIColor`
-    /// - Parameter hexCode: Color Hex Code in #RRGGBB format
-    /// - Returns: A `UIColor` representing the provide code
-    static func fromHex(_ hexCode: String?) -> UIColor? {
-        guard let colorCode: String = hexCode else {
+
+    /// Convenience initialiser which allows initialising a `UIColor` from a hex code
+    /// - Parameter hex: Hex code in `#RRGGBB` format
+    convenience init?(hex: String?) {
+        //Check data
+        guard let hexString: String = hex else {
             return nil
         }
         
-        let alpha: CGFloat = 1.0
-        let red: CGFloat = UIColor.colorComponentFrom(colorCode, start: 0, length: 2)
-        let green: CGFloat = UIColor.colorComponentFrom(colorCode, start: 2, length: 2)
-        let blue: CGFloat = UIColor.colorComponentFrom(colorCode, start: 4, length: 2)
+        //Sanitise hex string
+        var hexSanitized = hexString.trimmingCharacters(in: .whitespacesAndNewlines)
+        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
 
-        return UIColor(red: red, green: green, blue: blue, alpha: alpha)
-    }
-    
-    /// Converts a given string (from a hex code) into the relevant `UIColor` component
-    /// - Parameters:
-    ///   - colorString: Hex code in #RRGGBB format or RRGGBB format
-    ///   - start: Start position in respect to the provide string
-    ///   - length: Length of the component that is to be retrieved
-    /// - Returns: A `CGFloat` representing the R, G or B value of a `UIColor`
-    private static func colorComponentFrom(_ colorString: String, start: Int, length: Int) -> CGFloat {
-        let colorCode = colorString.trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "#", with: "").uppercased()
+        //Setup RGB values
+        var rgb: UInt32 = 0
+        var r: CGFloat = 0.0
+        var g: CGFloat = 0.0
+        var b: CGFloat = 0.0
+        var a: CGFloat = 1.0
 
-        let startIndex = colorCode.index(colorCode.startIndex, offsetBy: start)
-        let endIndex = colorCode.index(startIndex, offsetBy: length)
-        let subString = colorCode[startIndex..<endIndex]
-        let fullHexString = length == 2 ? subString : "\(subString)\(subString)"
-        var hexComponent: UInt32 = 0
+        //Confirm hex code can be represented as Int32
+        let length = hexSanitized.count
+        guard Scanner(string: hexSanitized).scanHexInt32(&rgb) else { return nil }
 
-        guard Scanner(string: String(fullHexString)).scanHexInt32(&hexComponent) else {
-            return 0
+        //Assign RGB values
+        if length == 6 {
+            r = CGFloat((rgb & 0xFF0000) >> 16) / 255.0
+            g = CGFloat((rgb & 0x00FF00) >> 8) / 255.0
+            b = CGFloat(rgb & 0x0000FF) / 255.0
+        } else if length == 8 {
+            r = CGFloat((rgb & 0xFF000000) >> 24) / 255.0
+            g = CGFloat((rgb & 0x00FF0000) >> 16) / 255.0
+            b = CGFloat((rgb & 0x0000FF00) >> 8) / 255.0
+            a = CGFloat(rgb & 0x000000FF) / 255.0
+        } else {
+            return nil
         }
-        let hexFloat: CGFloat = CGFloat(hexComponent)
-        let floatValue: CGFloat = CGFloat(hexFloat / 255.0)
 
-        return floatValue
+        //Initialise color
+        self.init(red: r, green: g, blue: b, alpha: a)
     }
 }
 #endif

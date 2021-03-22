@@ -62,7 +62,7 @@ internal extension UIView {
         /// Set data and backup current settings
         if let borderColor = layer.borderColor {
             previousBorderWidth = layer.borderWidth
-            previousBorderColor = UIColor(cgColor: borderColor).hexCode
+            previousBorderColor = UIColor(cgColor: borderColor).hexCode()
         }
 
         /// Set new border values
@@ -72,7 +72,7 @@ internal extension UIView {
 
     func disableDebugBorders() {
         /// Set data and restore previous settings
-        layer.borderColor = UIColor.fromHex(previousBorderColor)?.cgColor
+        layer.borderColor = UIColor(hex: previousBorderColor)?.cgColor
         layer.borderWidth = previousBorderWidth
     }
 }
@@ -118,7 +118,7 @@ internal extension UIView {
         swizzledLayoutSubviews()
 
         if let borderColor = layer.borderColor {
-            previousBorderColor = UIColor(cgColor: borderColor).hexCode
+            previousBorderColor = UIColor(cgColor: borderColor).hexCode()
             previousBorderWidth = layer.borderWidth
         }
         
