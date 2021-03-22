@@ -14,7 +14,7 @@ private let UIViewPreviousBorderWidthKey = "Scyther_previousBorderWidth"
 
 // MARK: - Protocol
 protocol InterfaceToolkitPrivate: UIView {
-    var previousBorderColor: CGColor? { get set }
+    var previousBorderColor: String? { get set }
     var previousBorderWidth: CGFloat { get set }
     var debugBorderColor: CGColor { get }
 }
@@ -25,22 +25,13 @@ extension UIView: InterfaceToolkitPrivate {
         return UIColor.random.cgColor
     }
 
-    var previousBorderColor: CGColor? {
+    var previousBorderColor: String? {
         get {
-            guard let color: UIColor? = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor else {
-                return nil
-            }
-            return UIColor.systemRed.cgColor
+            let hexCode: String? = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? String
+            return hexCode
         }
         set {
-            guard let value = newValue else {
-                return
-            }
-            let color: UIColor = UIColor(cgColor: value)
-            objc_setAssociatedObject(self,
-                                     UIViewPreviousBorderColorKey,
-                                     color,
-                                         .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            objc_setAssociatedObject(self, UIViewPreviousBorderColorKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 
@@ -69,8 +60,10 @@ internal extension UIView {
 
     func enableDebugBorders() {
         /// Set data and backup current settings
-        previousBorderWidth = layer.borderWidth
-        previousBorderColor = layer.borderColor
+        if let borderColor = layer.borderColor {
+            previousBorderWidth = layer.borderWidth
+            previousBorderColor = UIColor(cgColor: borderColor).hexCode
+        }
 
         /// Set new border values
         layer.borderColor = debugBorderColor
@@ -79,7 +72,7 @@ internal extension UIView {
 
     func disableDebugBorders() {
         /// Set data and restore previous settings
-        layer.borderColor = previousBorderColor
+        layer.borderColor = UIColor.fromHex(previousBorderColor)?.cgColor
         layer.borderWidth = previousBorderWidth
     }
 }
@@ -124,8 +117,8 @@ internal extension UIView {
     private func swizzledLayoutSubviews() {
         swizzledLayoutSubviews()
 
-        if let borderColor = layer.borderColor, previousBorderColor == nil {
-            previousBorderColor = borderColor
+        if let borderColor = layer.borderColor {
+            previousBorderColor = UIColor(cgColor: borderColor).hexCode
             previousBorderWidth = layer.borderWidth
         }
         
