@@ -114,7 +114,7 @@ internal extension UIView {
     private func swizzledLayoutSubviews() {
         swizzledLayoutSubviews()
 
-        if let borderColor = layer.borderColor {
+        if let borderColor = layer.borderColor, previousBorderColor == nil {
             previousBorderColor = UIColor(cgColor: borderColor).hexCode()
             previousBorderWidth = layer.borderWidth
         }
