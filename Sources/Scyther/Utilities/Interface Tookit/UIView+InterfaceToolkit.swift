@@ -31,7 +31,7 @@ extension UIView: InterfaceToolkitPrivate {
             return hexCode
         }
         set {
-            objc_setAssociatedObject(self, UIViewPreviousBorderColorKey, newValue)
+            objc_setAssociatedObject(self, UIViewPreviousBorderColorKey, newValue, .OBJC_ASSOCIATION_RETAIN)
         }
     }
 
@@ -40,7 +40,7 @@ extension UIView: InterfaceToolkitPrivate {
             return objc_getAssociatedObject(self, UIViewPreviousBorderWidthKey) as? CGFloat ?? 0.0
         }
         set {
-            objc_setAssociatedObject(self, UIViewPreviousBorderWidthKey, newValue
+            objc_setAssociatedObject(self, UIViewPreviousBorderWidthKey, newValue, .OBJC_ASSOCIATION_RETAIN)
         }
     }
 }
