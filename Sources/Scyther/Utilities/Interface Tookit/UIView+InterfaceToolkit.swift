@@ -81,7 +81,7 @@ internal extension UIView {
     func enableDebugBorders() {
         /// Set data and backup current settings
         previousBorderWidth = layer.borderWidth
-        previousBorderColor = layer.borderColor ?? UIColor.clear.cgColor
+        previousBorderColor = layer.borderColor
 
         /// Set new border values
         layer.borderColor = debugBorderColor
