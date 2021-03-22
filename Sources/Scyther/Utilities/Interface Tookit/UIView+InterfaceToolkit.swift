@@ -9,7 +9,6 @@
 import UIKit
 
 // MARK: - Static Data
-private let UIViewHasSetPreviousBorderColorKey = "Scyther_hasSetPreviousBorderColor"
 private let UIViewPreviousBorderColorKey = "Scyther_previousBorderColor"
 private let UIViewPreviousBorderWidthKey = "Scyther_previousBorderWidth"
 
@@ -26,22 +25,12 @@ extension UIView: InterfaceToolkitPrivate {
         return UIColor.random.cgColor
     }
 
-    var hasSetPreviousDebugBorderValues: Bool {
-        get {
-            return objc_getAssociatedObject(self, UIViewHasSetPreviousBorderColorKey) as? Bool ?? false
-        }
-        set {
-            objc_setAssociatedObject(self,
-                                     UIViewHasSetPreviousBorderColorKey,
-                                     newValue,
-                                         .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        }
-    }
-
     var previousBorderColor: CGColor? {
         get {
-            let color: UIColor? = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor
-            return color?.cgColor
+            guard let color: UIColor? = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor else {
+                return nil
+            }
+            return UIColor.systemRed.cgColor
         }
         set {
             guard let value = newValue else {
@@ -135,7 +124,7 @@ internal extension UIView {
     private func swizzledLayoutSubviews() {
         swizzledLayoutSubviews()
 
-        if let borderColor = layer.borderColor {
+        if let borderColor = layer.borderColor, previousBorderColor == nil {
             previousBorderColor = borderColor
             previousBorderWidth = layer.borderWidth
         }
