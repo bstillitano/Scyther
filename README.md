@@ -11,9 +11,7 @@
 Just like scyther, this menu helps you cut through bugs in your iOS app. Scyther is a fully fledged debug menu that provides tools for developers, UAT (QA) members/testers, UI/UX teams, backend developers and even frontend developers who use your app.
 
 - [Features](#features)
-- [Component Libraries](#component-libraries)
 - [Requirements](#requirements)
-- [Migration Guides](#migration-guides)
 - [Communication](#communication)
 - [Installation](#installation)
 - [Usage](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#using-alamofire)
@@ -30,11 +28,6 @@ Just like scyther, this menu helps you cut through bugs in your iOS app. Scyther
 - [Credits](#credits)
 - [Donations](#donations)
 - [License](#license)
-
-
-## Why does Scyther exist?
-
-Working on some of the most-widely used and distributed codebases developed in Australia, I noticed just how powerful some of the tooling that these teams had developed internally was. This coupled with experience at startups and some time on small projects, I noticed a huge gap when it came to readily-available tools/libraries for small teams and junior developers that help answe the constant questions that I get asked.
 
 ## Features
 
@@ -53,32 +46,17 @@ Working on some of the most-widely used and distributed codebases developed in A
 - [x] Comprehensive Unit and Integration Test Coverage
 - [x] [Complete Documentation](https://alamofire.github.io/Alamofire)
 
-## Component Libraries
-
-In order to keep Alamofire focused specifically on core networking implementations, additional component libraries have been created by the [Alamofire Software Foundation](https://github.com/Alamofire/Foundation) to bring additional functionality to the Alamofire ecosystem.
-
-- [AlamofireImage](https://github.com/Alamofire/AlamofireImage) - An image library including image response serializers, `UIImage` and `UIImageView` extensions, custom image filters, an auto-purging in-memory cache, and a priority-based image downloading system.
-- [AlamofireNetworkActivityIndicator](https://github.com/Alamofire/AlamofireNetworkActivityIndicator) - Controls the visibility of the network activity indicator on iOS using Alamofire. It contains configurable delay timers to help mitigate flicker and can support `URLSession` instances not managed by Alamofire.
-
 ## Requirements
 
 - iOS 10.0+
 - Xcode 11+
 - Swift 5.1+
 
-## Migration Guides
-
-- [Alamofire 5.0 Migration Guide](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Alamofire%205.0%20Migration%20Guide.md)
-- [Alamofire 4.0 Migration Guide](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Alamofire%204.0%20Migration%20Guide.md)
-- [Alamofire 3.0 Migration Guide](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Alamofire%203.0%20Migration%20Guide.md)
-- [Alamofire 2.0 Migration Guide](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Alamofire%202.0%20Migration%20Guide.md)
-
 ## Communication
-- If you **need help with making network requests** using Alamofire, use [Stack Overflow](https://stackoverflow.com/questions/tagged/alamofire) and tag `alamofire`.
-- If you need to **find or understand an API**, check [our documentation](http://alamofire.github.io/Alamofire/) or [Apple's documentation for `URLSession`](https://developer.apple.com/documentation/foundation/url_loading_system), on top of which Alamofire is built.
-- If you need **help with an Alamofire feature**, use [our forum on swift.org](https://forums.swift.org/c/related-projects/alamofire).
-- If you'd like to **discuss Alamofire best practices**, use [our forum on swift.org](https://forums.swift.org/c/related-projects/alamofire).
-- If you'd like to **discuss a feature request**, use [our forum on swift.org](https://forums.swift.org/c/related-projects/alamofire). 
+- If you need to **find or understand an API**, check [our documentation](http://alamofire.github.io/Alamofire/)
+- If you need **help with a Scyther feature**, open an issue here on GitHub and follow the guide. The more detail the better!
+- If you'd like to **discuss Scyther best practices**, open an issue here on GitHub and follow the guide. The more detail the better!
+- If you'd like to **discuss a feature request**, open an issue here on GitHub and follow the guide. The more detail the better!
 - If you **found a bug**, open an issue here on GitHub and follow the guide. The more detail the better!
 - If you **want to contribute**, submit a pull request!
 
@@ -98,17 +76,21 @@ dependencies: [
 
 ## FAQ
 
-### What's the origin of the name Alamofire?
+### What's the origin of the name Scyther?
 
-Alamofire is named after the [Alamo Fire flower](https://aggie-horticulture.tamu.edu/wildseed/alamofire.html), a hybrid variant of the Bluebonnet, the official state flower of Texas.
+Scyther is named after the [Pokemon Scyther](https://pokemondb.net/pokedex/scyther), a bug type pokemon that is known for its cutting ability. One of my [all-time favourite co-workers](https://github.com/danielmoi) loved Pokémon and recommended Scyther. In short, there is no good reason for the name.
+
+### Why does Scyther exist?
+
+Working on some of the most-widely used and distributed codebases developed in Australia, I noticed just how powerful some of the tooling, that these teams had developed internally, was. This coupled with experience at startups and some time on small projects, I noticed a huge gap when it came to readily-available tools/libraries for small teams and junior developers that help answer the constant questions that mobile developers get asked. This library is all about enabling testers/users to help themselves before reaching out to developers.
 
 ## Credits
 
-Alamofire is owned and maintained by the [Alamofire Software Foundation](http://alamofire.org). You can follow them on Twitter at [@AlamofireSF](https://twitter.com/AlamofireSF) for project updates and releases.
+Scyther is owned and maintained by [Brandon Stillitano](http://github.com/bstillitano). You can follow me on Twitter at [@bstillitano](https://twitter.com/bstillita) for project updates and releases.
 
 ### Security Disclosure
 
-If you believe you have identified a security vulnerability with Alamofire, you should report it as soon as possible via email to security@alamofire.org. Please do not post it to a public issue tracker.
+If you believe you have identified a security vulnerability with Scyther, you should report it as soon as possible via email to b.stillitano95@gmail.com. Please do not post it to a public issue tracker.
 
 ## Donations
 
