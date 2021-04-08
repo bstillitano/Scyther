@@ -19,14 +19,8 @@ Just like scyther, this menu helps you cut through bugs in your iOS app. Scyther
 	- **HTTP -** [HTTP Methods](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#http-methods), [Parameters and Parameter Encoder](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md##request-parameters-and-parameter-encoders), [HTTP Headers](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#http-headers), [Authentication](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#authentication)
 	- **Large Data -** [Downloading Data to a File](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#downloading-data-to-a-file), [Uploading Data to a Server](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#uploading-data-to-a-server)
 	- **Tools -** [Statistical Metrics](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#statistical-metrics), [cURL Command Output](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#curl-command-output)
-- [Advanced Usage](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md)
-	- **URL Session -** [Session Manager](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md#session), [Session Delegate](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md#sessiondelegate), [Request](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md#request)
-	- **Routing -** [Routing Requests](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md#routing-requests), [Adapting and Retrying Requests](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md#adapting-and-retrying-requests-with-requestinterceptor)
-	- **Model Objects -** [Custom Response Handlers](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md#customizing-response-handlers)
-	- **Connection -** [Security](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md#security), [Network Reachability](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md#network-reachability)
 - [FAQ](#faq)
 - [Credits](#credits)
-- [Donations](#donations)
 - [License](#license)
 
 ## Features
@@ -88,28 +82,9 @@ Working on some of the most-widely used and distributed codebases developed in A
 
 Scyther is owned and maintained by [Brandon Stillitano](http://github.com/bstillitano). You can follow me on Twitter at [@bstillitano](https://twitter.com/bstillita) for project updates and releases.
 
-### Security Disclosure
+## Security Disclosure
 
 If you believe you have identified a security vulnerability with Scyther, you should report it as soon as possible via email to b.stillitano95@gmail.com. Please do not post it to a public issue tracker.
-
-## Donations
-
-The [ASF](https://github.com/Alamofire/Foundation#members) is looking to raise money to officially stay registered as a federal non-profit organization.
-Registering will allow Foundation members to gain some legal protections and also allow us to put donations to use, tax-free.
-Donating to the ASF will enable us to:
-
-- Pay our yearly legal fees to keep the non-profit in good status
-- Pay for our mail servers to help us stay on top of all questions and security issues
-- Potentially fund test servers to make it easier for us to test the edge cases
-- Potentially fund developers to work on one of our projects full-time
-
-The community adoption of the ASF libraries has been amazing.
-We are greatly humbled by your enthusiasm around the projects and want to continue to do everything we can to move the needle forward.
-With your continued support, the ASF will be able to improve its reach and also provide better legal safety for the core members.
-If you use any of our libraries for work, see if your employers would be interested in donating.
-Any amount you can donate today to help us reach our goal would be greatly appreciated.
-
-[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=W34WPEE74APJQ)
 
 ## License
 
