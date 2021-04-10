@@ -8,8 +8,9 @@
   <img src="https://img.shields.io/badge/platform-iOS-blue"> <img src="https://img.shields.io/badge/spm-main-green"> <img src="https://img.shields.io/github/license/bstillitano/Scyther">
 </p>
 
-Just like scyther, this menu helps you cut through bugs in your iOS app. Scyther is a fully fledged debug menu that provides tools for developers, UAT (QA) members/testers, UI/UX teams, backend developers and even frontend developers who use your app.
+Just like scyther, this menu helps you cut through bugs in your iOS app. Scyther is a fully fledged debug menu that provides tools for developers, UAT (QA) members/testers, UI/UX teams, backend developers and even frontend developers who use your app. Made with 💙 in Sydney, Australia 🇦🇺.
 
+- [Quick Start](#quick)
 - [Features](#features)
 - [Requirements](#requirements)
 - [Communication](#communication)
@@ -22,6 +23,26 @@ Just like scyther, this menu helps you cut through bugs in your iOS app. Scyther
 - [FAQ](#faq)
 - [Credits](#credits)
 - [License](#license)
+
+## Quick Start
+
+I recommend only running Scyther on non release/App Store builds of your iOS application. Running the library on public facing versions of your app has the potential to introduce security issues if you store/transmit secure data over a network. To achieve this, for developers of all skill levels, I have included a convenience which abstracts that logic into a single line. See below:
+
+``` swift
+import Scyther
+
+// AppDelegate.swift
+func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        /// Run Scyther only on non AppStore builds to avoid introducing potential security issues into our app.
+        if !AppEnvironment.isAppStore {
+            Scyther.instance.start()
+        }
+
+        return true
+    }
+```
+
+Once you have added the above code to your `AppDelegate.swift` file, simply run your app on a simulator or physical device. Once it's running, simply shake your device and you'll be presented with the Scyther debug menu for your app.
 
 ## Features
 
@@ -114,7 +135,7 @@ Scyther is named after the [Pokemon Scyther](https://pokemondb.net/pokedex/scyth
 
 ### Why does Scyther exist?
 
-Working on some of the most-widely used and distributed codebases developed in Australia, I noticed just how powerful some of the tooling, that these teams had developed internally, was. This coupled with experience at startups and some time on small projects, I noticed a huge gap when it came to readily-available tools/libraries for small teams and junior developers that help answer the constant questions that mobile developers get asked. This library is all about enabling testers/users to help themselves before reaching out to developers.
+Working on some very widely used and distributed codebases, I noticed just how powerful some of the tooling, that the teams developing these apps had developed internally, was. This coupled with experience at startups and some time on small projects, I noticed a huge gap when it came to readily-available tools/libraries for small teams and junior developers that help answer the constant questions that mobile developers get asked. This library is all about enabling testers/users to help themselves before reaching out to developers.
 
 ## Credits
 
