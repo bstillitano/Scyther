@@ -139,7 +139,7 @@ Working on some very widely used and distributed codebases, I noticed just how p
 
 ## Credits
 
-Scyther is owned and maintained by [Brandon Stillitano](http://github.com/bstillitano). You can follow me on Twitter at [@bstillitano](https://twitter.com/bstillita) for project updates and releases.
+Scyther is owned and maintained by [Brandon Stillitano](http://github.com/bstillitano). You can follow me on Twitter at [@bstillita](https://twitter.com/bstillita) for project updates and releases.
 
 ## Security Disclosure
 
