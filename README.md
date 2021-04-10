@@ -10,7 +10,7 @@
 
 Just like scyther, this menu helps you cut through bugs in your iOS app. Scyther is a fully fledged debug menu that provides tools for developers, UAT (QA) members/testers, UI/UX teams, backend developers and even frontend developers who use your app. Made with 💙 in Sydney, Australia 🇦🇺.
 
-- [Quick Start](#quick)
+- [Quick Start](#quick-start)
 - [Features](#features)
 - [Requirements](#requirements)
 - [Communication](#communication)
