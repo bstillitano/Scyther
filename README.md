@@ -80,7 +80,7 @@ Just like scyther, this menu helps you cut through bugs in your iOS app. Scyther
 
 ## Requirements
 
-- iOS 10.0+
+- iOS 11.0+
 - Xcode 11+
 - Swift 5.1+
 
