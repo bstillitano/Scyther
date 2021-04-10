@@ -11,6 +11,7 @@
 Just like scyther, this menu helps you cut through bugs in your iOS app. Scyther is a fully fledged debug menu that provides tools for developers, UAT (QA) members/testers, UI/UX teams, backend developers and even frontend developers who use your app. Made with 💙 in Sydney, Australia 🇦🇺.
 
 - [Quick Start](#quick-start)
+- [Demo](#demo)
 - [Features](#features)
 - [Requirements](#requirements)
 - [Communication](#communication)
@@ -43,6 +44,10 @@ func application(_ application: UIApplication, didFinishLaunchingWithOptions lau
 ```
 
 Once you have added the above code to your `AppDelegate.swift` file, simply run your app on a simulator or physical device. Once it's running, simply shake your device and you'll be presented with the Scyther debug menu for your app.
+
+## Demo
+
+There is a full-featured demo included in this repo. See the [Scyther Playgroud](https://github.com/bstillitano/Scyther/tree/improvement/readme/Scyther%20Playground) project. Note that some of the features included in the demo may not be required for your implementation. They've been included only as a reference for what Scyther is capable of and how to implement said features.
 
 ## Features
 
