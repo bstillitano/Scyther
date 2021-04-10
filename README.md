@@ -25,20 +25,58 @@ Just like scyther, this menu helps you cut through bugs in your iOS app. Scyther
 
 ## Features
 
-- [x] Chainable Request / Response Methods
-- [x] Combine Support
-- [x] URL / JSON Parameter Encoding
-- [x] Upload File / Data / Stream / MultipartFormData
-- [x] Download File using Request or Resume Data
-- [x] Authentication with `URLCredential`
-- [x] HTTP Response Validation
-- [x] Upload and Download Progress Closures with Progress
-- [x] cURL Command Output
-- [x] Dynamically Adapt and Retry Requests
-- [x] TLS Certificate and Public Key Pinning
-- [x] Network Reachability
-- [x] Comprehensive Unit and Integration Test Coverage
-- [x] [Complete Documentation](https://alamofire.github.io/Alamofire)
+### Application
+
+- [x] Display Bundle Identifier
+- [x] Display App Version
+- [x] Display Build Number
+- [x] Display Process ID
+- [x] Display Release Type (Debug/Testflight/Release)
+- [x] Display Build Date
+
+### Networking
+
+- [x] Display Public IP Address
+- [x] Network Logging
+- [x] Server/Environment Configuration
+
+### Data
+
+- [x] Feature Flagging
+- [x] Manage User Defaults
+- [x] Manage Cookies (HTTPCookieStorage)
+- [ ] Clear App Data (Coming Soon)
+- [ ] Manage App Files (Coming Soon)
+- [ ] Manage CoreData (Coming Soon)
+
+### Security
+
+- [ ] Manage Keychain Items (Coming Soon)
+
+### System
+
+- [ ] Console Logs (Coming Soon)
+- [ ] Performance Logs (Coming Soon)
+- [ ] Crash Logs (Coming Soon)
+- [ ] Location Spoofing (Coming Soon)
+
+### Support
+
+- [ ] App Feedback (Coming Soon)
+
+### UI/UX
+
+- [x] Push Notification Tester
+- [x] View Available Fonts
+- [x] Interface Component Catalog
+- [x] Grid Overlay
+- [x] Show View Frames
+- [x] Slow Animations
+- [ ] Show Screen Touches (Coming Soon)
+
+### Development Tools
+
+- [x] Insert Your Own, App Specific, Tools
 
 ## Requirements
 
