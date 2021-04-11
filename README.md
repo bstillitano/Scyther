@@ -16,11 +16,7 @@ Just like scyther, this menu helps you cut through bugs in your iOS app. Scyther
 - [Requirements](#requirements)
 - [Communication](#communication)
 - [Installation](#installation)
-- [Usage](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#using-alamofire)
-    - [**Introduction -**](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#introduction) [Making Requests](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#making-requests), [Response Handling](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#response-handling), [Response Validation](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#response-validation), [Response Caching](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#response-caching)
-	- **HTTP -** [HTTP Methods](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#http-methods), [Parameters and Parameter Encoder](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md##request-parameters-and-parameter-encoders), [HTTP Headers](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#http-headers), [Authentication](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#authentication)
-	- **Large Data -** [Downloading Data to a File](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#downloading-data-to-a-file), [Uploading Data to a Server](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#uploading-data-to-a-server)
-	- **Tools -** [Statistical Metrics](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#statistical-metrics), [cURL Command Output](https://github.com/Alamofire/Alamofire/blob/master/Documentation/Usage.md#curl-command-output)
+- [Documentation](#documentation) - Coming Soon
 - [FAQ](#faq)
 - [Credits](#credits)
 - [License](#license)
@@ -43,7 +39,7 @@ func application(_ application: UIApplication, didFinishLaunchingWithOptions lau
     }
 ```
 
-Once you have added the above code to your `AppDelegate.swift` file, simply run your app on a simulator or physical device. Once it's running, simply shake your device and you'll be presented with the Scyther debug menu for your app.
+Once you have added the above code to your `AppDelegate.swift` file, simply run your app on a simulator or physical device. Once it's running, simply shake your device (`Cmd + Option + Z`) on the simulator) and you'll be presented with the Scyther debug menu for your app.
 
 ## Demo
 
@@ -111,7 +107,7 @@ There is a full-featured demo included in this repo. See the [Scyther Playgroud]
 - Swift 5.1+
 
 ## Communication
-- If you need to **find or understand an API**, check [our documentation](http://alamofire.github.io/Alamofire/)
+
 - If you need **help with a Scyther feature**, open an issue here on GitHub and follow the guide. The more detail the better!
 - If you'd like to **discuss Scyther best practices**, open an issue here on GitHub and follow the guide. The more detail the better!
 - If you'd like to **discuss a feature request**, open an issue here on GitHub and follow the guide. The more detail the better!
