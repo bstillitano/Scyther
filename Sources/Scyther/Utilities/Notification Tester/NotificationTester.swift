@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 15/2/21.
 //
 
+#if !os(macOS)
 import UIKit
 import UserNotifications
 
@@ -59,3 +60,4 @@ public class NotificationTester {
         notificationCenter.add(request, withCompletionHandler: nil)
     }
 }
+#endif

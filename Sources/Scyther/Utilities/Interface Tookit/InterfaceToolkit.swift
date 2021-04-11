@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 18/2/21.
 //
 
+#if !os(macOS)
 import NotificationCenter
 import UIKit
 
@@ -121,3 +122,4 @@ extension InterfaceToolkit {
         }
     }
 }
+#endif

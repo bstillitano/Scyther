@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 20/2/21.
 //
 
+#if !os(macOS)
 import UIKit
 
 // MARK: - Static Data
@@ -13,7 +14,7 @@ private let UIViewPreviousBorderWidthKey = "Scyther_previousBorderWidth"
 
 // MARK: - Protocol
 protocol InterfaceToolkitPrivate: UIView {
-    var previousBorderColor: CGColor { get set }
+    var previousBorderColor: String? { get set }
     var previousBorderWidth: CGFloat { get set }
     var debugBorderColor: CGColor { get }
 }
@@ -23,30 +24,23 @@ extension UIView: InterfaceToolkitPrivate {
     var debugBorderColor: CGColor {
         return UIColor.random.cgColor
     }
-    
-    var previousBorderColor: CGColor {
+
+    var previousBorderColor: String? {
         get {
-            let color: UIColor = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? UIColor ?? .clear
-            return color.cgColor
+            let hexCode: String? = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? String
+            return hexCode
         }
         set {
-            let color: UIColor = UIColor(cgColor: newValue)
-            objc_setAssociatedObject(self,
-                                     UIViewPreviousBorderColorKey,
-                                     color,
-                                         .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            objc_setAssociatedObject(self, UIViewPreviousBorderColorKey, newValue, .OBJC_ASSOCIATION_RETAIN)
         }
     }
 
     var previousBorderWidth: CGFloat {
         get {
-            return objc_getAssociatedObject(self, UIViewPreviousBorderWidthKey) as? CGFloat ?? 1.0
+            return objc_getAssociatedObject(self, UIViewPreviousBorderWidthKey) as? CGFloat ?? 0.0
         }
         set {
-            objc_setAssociatedObject(self,
-                                     UIViewPreviousBorderWidthKey,
-                                     newValue,
-                                         .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            objc_setAssociatedObject(self, UIViewPreviousBorderWidthKey, newValue, .OBJC_ASSOCIATION_RETAIN)
         }
     }
 }
@@ -63,8 +57,10 @@ internal extension UIView {
 
     func enableDebugBorders() {
         /// Set data and backup current settings
-        previousBorderWidth = layer.borderWidth
-        previousBorderColor = layer.borderColor ?? UIColor.clear.cgColor
+        if let borderColor = layer.borderColor {
+            previousBorderWidth = layer.borderWidth
+            previousBorderColor = UIColor(cgColor: borderColor).hexCode()
+        }
 
         /// Set new border values
         layer.borderColor = debugBorderColor
@@ -73,7 +69,7 @@ internal extension UIView {
 
     func disableDebugBorders() {
         /// Set data and restore previous settings
-        layer.borderColor = previousBorderColor
+        layer.borderColor = UIColor(hex: previousBorderColor)?.cgColor
         layer.borderWidth = previousBorderWidth
     }
 }
@@ -117,7 +113,14 @@ internal extension UIView {
     @objc
     private func swizzledLayoutSubviews() {
         swizzledLayoutSubviews()
+
+        if let borderColor = layer.borderColor, previousBorderColor == nil {
+            previousBorderColor = UIColor(cgColor: borderColor).hexCode()
+            previousBorderWidth = layer.borderWidth
+        }
+        
         refreshDebugBorders()
         registerForDebugBorderNotifications()
     }
 }
+#endif

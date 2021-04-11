@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 16/2/21.
 //
 
+#if !os(macOS)
 import UIKit
 
 public enum GridOverlayColorScheme: String, CaseIterable {
@@ -212,3 +213,4 @@ internal class GridOverlayView: TopLevelView {
         }
     }
 }
+#endif
