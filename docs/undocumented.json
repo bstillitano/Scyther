@@ -1,0 +1,747 @@
+{
+  "warnings": [
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Components/GridOverlayView.swift",
+      "line": 11,
+      "symbol": "GridOverlayColorScheme",
+      "symbol_kind": "source.lang.swift.decl.enum",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Components/GridOverlayView.swift",
+      "line": 12,
+      "symbol": "GridOverlayColorScheme.red",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Components/GridOverlayView.swift",
+      "line": 13,
+      "symbol": "GridOverlayColorScheme.green",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Components/GridOverlayView.swift",
+      "line": 14,
+      "symbol": "GridOverlayColorScheme.blue",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Extensions/Bool+Extensions.swift",
+      "line": 15,
+      "symbol": "Bool.|=(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Extensions/Bool+Extensions.swift",
+      "line": 19,
+      "symbol": "Bool.&=(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Extensions/Bool+Extensions.swift",
+      "line": 23,
+      "symbol": "Bool.^=(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Extensions/Bundle+Extensions.swift",
+      "line": 11,
+      "symbol": "Bundle.versionNumber",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Extensions/Bundle+Extensions.swift",
+      "line": 15,
+      "symbol": "Bundle.buildNumber",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Extensions/Bundle+Extensions.swift",
+      "line": 19,
+      "symbol": "Bundle.buildDate",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Extensions/Date+Extensions.swift",
+      "line": 11,
+      "symbol": "Date.formatted(format:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Extensions/UIWindow+Extensions.swift",
+      "line": 11,
+      "symbol": "UIEventSubtype",
+      "symbol_kind": "source.lang.swift.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Extensions/UIWindow+Extensions.swift",
+      "line": 14,
+      "symbol": "UIWindow.motionEnded(_:with:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Models/DeveloperOption.swift",
+      "line": 11,
+      "symbol": "DeveloperOption",
+      "symbol_kind": "source.lang.swift.decl.struct",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Models/DeveloperOption.swift",
+      "line": 12,
+      "symbol": "DeveloperOption.init()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Models/DeveloperOption.swift",
+      "line": 14,
+      "symbol": "DeveloperOption.name",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Models/DeveloperOption.swift",
+      "line": 15,
+      "symbol": "DeveloperOption.icon",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Models/DeveloperOption.swift",
+      "line": 16,
+      "symbol": "DeveloperOption.viewController",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Models/ScytherGesture.swift",
+      "line": 10,
+      "symbol": "ScytherGesture",
+      "symbol_kind": "source.lang.swift.decl.enum",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Models/ScytherGesture.swift",
+      "line": 11,
+      "symbol": "ScytherGesture.shake",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Models/ScytherGesture.swift",
+      "line": 12,
+      "symbol": "ScytherGesture.custom",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Models/ScytherPreviewable.swift",
+      "line": 12,
+      "symbol": "ScytherPreviewable",
+      "symbol_kind": "source.lang.swift.decl.protocol",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Models/ScytherPreviewable.swift",
+      "line": 13,
+      "symbol": "ScytherPreviewable.previewView",
+      "symbol_kind": "source.lang.swift.decl.var.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Models/ScytherPreviewable.swift",
+      "line": 14,
+      "symbol": "ScytherPreviewable.name",
+      "symbol_kind": "source.lang.swift.decl.var.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Models/ScytherPreviewable.swift",
+      "line": 15,
+      "symbol": "ScytherPreviewable.details",
+      "symbol_kind": "source.lang.swift.decl.var.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Scyther.swift",
+      "line": 13,
+      "symbol": "ScytherDelegate.scyther(didSwitchToEnvironment:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Scyther.swift",
+      "line": 16,
+      "symbol": "Scyther",
+      "symbol_kind": "source.lang.swift.decl.class",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Configuration Switcher/ConfigurationSwitcher.swift",
+      "line": 10,
+      "symbol": "ConfigurationSwitcher",
+      "symbol_kind": "source.lang.swift.decl.class",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Configuration Switcher/ServerConfiguration.swift",
+      "line": 10,
+      "symbol": "ServerConfiguration",
+      "symbol_kind": "source.lang.swift.decl.struct",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Configuration Switcher/ServerConfiguration.swift",
+      "line": 11,
+      "symbol": "ServerConfiguration.identifier",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Configuration Switcher/ServerConfiguration.swift",
+      "line": 12,
+      "symbol": "ServerConfiguration.variables",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Console Logger/ConsoleLogger.swift",
+      "line": 10,
+      "symbol": "ConsoleLogger",
+      "symbol_kind": "source.lang.swift.decl.class",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Environment Reader/AppEnvironment.swift",
+      "line": 11,
+      "symbol": "AppEnvironment",
+      "symbol_kind": "source.lang.swift.decl.class",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Interface Tookit/InterfaceToolkit.swift",
+      "line": 12,
+      "symbol": "InterfaceToolkit",
+      "symbol_kind": "source.lang.swift.decl.class",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Interface Tookit/InterfaceToolkit.swift",
+      "line": 92,
+      "symbol": "InterfaceToolkit.observeValue(forKeyPath:of:change:context:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/Logger.swift",
+      "line": 26,
+      "symbol": "Logger.cachedFilters",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 182,
+      "symbol": "LoggerHTTPModel.getRequestBody()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 189,
+      "symbol": "LoggerHTTPModel.getResponseBody()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 197,
+      "symbol": "LoggerHTTPModel.getRandomHash()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 204,
+      "symbol": "LoggerHTTPModel.getRequestBodyFilepath()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 209,
+      "symbol": "LoggerHTTPModel.getRequestBodyFilename()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 213,
+      "symbol": "LoggerHTTPModel.getResponseBodyFilepath()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 218,
+      "symbol": "LoggerHTTPModel.getResponseBodyFilename()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 222,
+      "symbol": "LoggerHTTPModel.getDocumentsPath()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 226,
+      "symbol": "LoggerHTTPModel.saveData(_:toFile:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 234,
+      "symbol": "LoggerHTTPModel.readRawData(_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 238,
+      "symbol": "LoggerHTTPModel.getTimeFromDate(_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 251,
+      "symbol": "LoggerHTTPModel.getShortTypeFrom(_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 272,
+      "symbol": "LoggerHTTPModel.prettyPrint(_:type:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 287,
+      "symbol": "LoggerHTTPModel.formattedRequestLogEntry()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
+      "line": 327,
+      "symbol": "LoggerHTTPModel.formattedResponseLogEntry()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerNetworkHelper.swift",
+      "line": 17,
+      "symbol": "HTTPModelShortType.JSON",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerNetworkHelper.swift",
+      "line": 18,
+      "symbol": "HTTPModelShortType.XML",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerNetworkHelper.swift",
+      "line": 19,
+      "symbol": "HTTPModelShortType.HTML",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerNetworkHelper.swift",
+      "line": 20,
+      "symbol": "HTTPModelShortType.IMAGE",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerNetworkHelper.swift",
+      "line": 21,
+      "symbol": "HTTPModelShortType.OTHER",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerNetworkHelper.swift",
+      "line": 152,
+      "symbol": "NSNotification.Name.LoggerDeactivateSearch",
+      "symbol_kind": "source.lang.swift.decl.var.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerNetworkHelper.swift",
+      "line": 153,
+      "symbol": "NSNotification.Name.LoggerReloadData",
+      "symbol_kind": "source.lang.swift.decl.var.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerNetworkHelper.swift",
+      "line": 154,
+      "symbol": "NSNotification.Name.LoggerAddedModel",
+      "symbol_kind": "source.lang.swift.decl.var.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerNetworkHelper.swift",
+      "line": 155,
+      "symbol": "NSNotification.Name.LoggerClearedModels",
+      "symbol_kind": "source.lang.swift.decl.var.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerProtocol.swift",
+      "line": 11,
+      "symbol": "LoggerProtocol",
+      "symbol_kind": "source.lang.swift.decl.class",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerProtocol.swift",
+      "line": 24,
+      "symbol": "LoggerProtocol.canInit(with:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.class",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerProtocol.swift",
+      "line": 28,
+      "symbol": "LoggerProtocol.canInit(with:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.class",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerProtocol.swift",
+      "line": 58,
+      "symbol": "LoggerProtocol.startLoading()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerProtocol.swift",
+      "line": 70,
+      "symbol": "LoggerProtocol.stopLoading()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerProtocol.swift",
+      "line": 76,
+      "symbol": "LoggerProtocol.canonicalRequest(for:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.class",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerProtocol.swift",
+      "line": 81,
+      "symbol": "LoggerProtocol",
+      "symbol_kind": "source.lang.swift.decl.extension",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerProtocol.swift",
+      "line": 82,
+      "symbol": "LoggerProtocol.urlSession(_:dataTask:didReceive:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerProtocol.swift",
+      "line": 88,
+      "symbol": "LoggerProtocol.urlSession(_:dataTask:didReceive:completionHandler:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerProtocol.swift",
+      "line": 98,
+      "symbol": "LoggerProtocol.urlSession(_:task:didCompleteWithError:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerProtocol.swift",
+      "line": 126,
+      "symbol": "LoggerProtocol.urlSession(_:task:willPerformHTTPRedirection:newRequest:completionHandler:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerProtocol.swift",
+      "line": 142,
+      "symbol": "LoggerProtocol.urlSession(_:didReceive:completionHandler:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerProtocol.swift",
+      "line": 148,
+      "symbol": "LoggerProtocol.urlSessionDidFinishEvents(forBackgroundURLSession:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/NotificationTester.swift",
+      "line": 12,
+      "symbol": "NotificationTester",
+      "symbol_kind": "source.lang.swift.decl.class",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 11,
+      "symbol": "LinkedList",
+      "symbol_kind": "source.lang.swift.decl.struct",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 44,
+      "symbol": "LinkedList",
+      "symbol_kind": "source.lang.swift.decl.extension",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 166,
+      "symbol": "LinkedList",
+      "symbol_kind": "source.lang.swift.decl.extension",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 167,
+      "symbol": "LinkedList.head",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 171,
+      "symbol": "LinkedList.tail",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 177,
+      "symbol": "LinkedList",
+      "symbol_kind": "source.lang.swift.decl.extension",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 179,
+      "symbol": "LinkedList.ELEMENT",
+      "symbol_kind": "source.lang.swift.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 205,
+      "symbol": "LinkedList",
+      "symbol_kind": "source.lang.swift.decl.extension",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 215,
+      "symbol": "LinkedList.first",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 253,
+      "symbol": "LinkedList",
+      "symbol_kind": "source.lang.swift.decl.extension",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 279,
+      "symbol": "LinkedList",
+      "symbol_kind": "source.lang.swift.decl.extension",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 281,
+      "symbol": "LinkedList.prepend(_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 285,
+      "symbol": "LinkedList.prepend(contentsOf:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 290,
+      "symbol": "LinkedList.popFirst()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 298,
+      "symbol": "LinkedList.popLast()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 307,
+      "symbol": "LinkedList",
+      "symbol_kind": "source.lang.swift.decl.extension",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 308,
+      "symbol": "LinkedList.last",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 324,
+      "symbol": "LinkedList",
+      "symbol_kind": "source.lang.swift.decl.extension",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 438,
+      "symbol": "LinkedList",
+      "symbol_kind": "source.lang.swift.decl.extension",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 447,
+      "symbol": "LinkedList",
+      "symbol_kind": "source.lang.swift.decl.extension",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/LinkedList.swift",
+      "line": 454,
+      "symbol": "LinkedList",
+      "symbol_kind": "source.lang.swift.decl.extension",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/ShuntingYardResolver.swift",
+      "line": 66,
+      "symbol": "Operator.notEqualTo",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/ShuntingYardResolver.swift",
+      "line": 67,
+      "symbol": "Operator.lessThan",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/ShuntingYardResolver.swift",
+      "line": 68,
+      "symbol": "Operator.lessThanOrEqualTo",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/ShuntingYardResolver.swift",
+      "line": 69,
+      "symbol": "Operator.equalTo",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/ShuntingYardResolver.swift",
+      "line": 70,
+      "symbol": "Operator.greaterThan",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/ShuntingYardResolver.swift",
+      "line": 71,
+      "symbol": "Operator.greaterThanOrEqualTo",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/ShuntingYardResolver.swift",
+      "line": 72,
+      "symbol": "Operator.and",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/ShuntingYardResolver.swift",
+      "line": 73,
+      "symbol": "Operator.or",
+      "symbol_kind": "source.lang.swift.decl.enumelement",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/ShuntingYardResolver.swift",
+      "line": 87,
+      "symbol": "Validation.init()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Shunting Yard Resolver/Stack.swift",
+      "line": 75,
+      "symbol": "Stack.clear()",
+      "symbol_kind": "source.lang.swift.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Toggler/Toggler.swift",
+      "line": 10,
+      "symbol": "Toggler",
+      "symbol_kind": "source.lang.swift.decl.class",
+      "warning": "undocumented"
+    }
+  ],
+  "source_directory": "/Users/brandon/Scyther"
+}
