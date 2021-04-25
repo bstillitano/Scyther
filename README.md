@@ -5,18 +5,17 @@
 # Scyther
 
 [![bitrise-build-badge](https://app.bitrise.io/app/ea64d6f99435533d/status.svg?token=a5U0AgWUxliydR5tNHrPyw&branch=main)](https://app.bitrise.io/app/ea64d6f99435533d)
- ![platform-badge](https://img.shields.io/badge/platform-iOS-blue) ![spm-badge](https://img.shields.io/badge/spm-main-green) ![license-badge](https://img.shields.io/github/license/bstillitano/Scyther)
-</p>
+ [![documentation-badge](https://raw.githubusercontent.com/bstillitano/Scyther/main/docs/badge.svg)](https://scyther.io) ![platform-badge](https://img.shields.io/badge/platform-iOS-blue) ![spm-badge](https://img.shields.io/badge/spm-main-black) ![license-badge](https://img.shields.io/github/license/bstillitano/Scyther)
 
 Just like scyther, this menu helps you cut through bugs, in your iOS app. Scyther is a fully fledged debug menu that provides tools for developers, UAT (QA) members/testers, UI/UX teams, backend developers and even frontend developers who use your app. Made with 💙 in Sydney, Australia 🇦🇺.
 
 - [Quick Start](#quick-start)
 - [Demo](#demo)
-- [Features](#features)
+- [Features & Usage](#features)
 - [Requirements](#requirements)
 - [Communication](#communication)
 - [Installation](#installation)
-- [Documentation](#documentation) - Coming Soon
+- [Full API Documentation](https://scyther.io)
 - [FAQ](#faq)
 - [Credits](#credits)
 - [License](#license)
