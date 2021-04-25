@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>ShuntingYardResolver Class Reference</title>
+    <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
+    <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
+    <meta charset='utf-8'>
+    <script src="../js/jquery.min.js" defer></script>
+    <script src="../js/jazzy.js" defer></script>
+    
+    <script src="../js/lunr.min.js" defer></script>
+    <script src="../js/typeahead.jquery.js" defer></script>
+    <script src="../js/jazzy.search.js" defer></script>
+  </head>
+  <body>
+    <a name="//apple_ref/swift/Class/ShuntingYardResolver" class="dashAnchor"></a>
+    <a title="ShuntingYardResolver Class Reference"></a>
+    <header>
+      <div class="content-wrapper">
+        <p><a href="../index.html">Scyther Docs</a> (20% documented)</p>
+        <p class="header-right">
+          <form role="search" action="../search.json">
+            <input type="text" placeholder="Search documentation" data-typeahead>
+          </form>
+        </p>
+      </div>
+    </header>
+    <div class="content-wrapper">
+      <p id="breadcrumbs">
+        <a href="../index.html">Scyther Reference</a>
+        <img id="carat" src="../img/carat.png" />
+        ShuntingYardResolver Class Reference
+      </p>
+    </div>
+    <div class="content-wrapper">
+      <nav class="sidebar">
+        <ul class="nav-groups">
+          <li class="nav-group-name">
+            <a href="../Classes.html">Classes</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Classes/AppEnvironment.html">AppEnvironment</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ButtonCell.html">ButtonCell</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/CheckmarkCell.html">CheckmarkCell</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ConfigurationSwitcher.html">ConfigurationSwitcher</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ConsoleLogger.html">ConsoleLogger</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ConsoleLoggerViewController.html">ConsoleLoggerViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/CookieBrowser.html">CookieBrowser</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/CookieBrowserViewController.html">CookieBrowserViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/CookieBrowserViewModel.html">CookieBrowserViewModel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/CookieDetailsViewController.html">CookieDetailsViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/CookieDetailsViewModel.html">CookieDetailsViewModel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/DefaultCell.html">DefaultCell</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/DefaultRow.html">DefaultRow</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/DeviceRow.html">DeviceRow</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/DeviceTableViewCell.html">DeviceTableViewCell</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/EmptyCell.html">EmptyCell</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeatureFlagsViewController.html">FeatureFlagsViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeatureFlagsViewModel.html">FeatureFlagsViewModel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FontCell.html">FontCell</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FontRow.html">FontRow</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FontsViewController.html">FontsViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FontsViewModel.html">FontsViewModel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/GridOverlay.html">GridOverlay</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/GridOverlayView.html">GridOverlayView</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/GridOverlayViewController.html">GridOverlayViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/GridOverlayViewModel.html">GridOverlayViewModel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/InterfacePreviewsViewController.html">InterfacePreviewsViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/InterfacePreviewsViewModel.html">InterfacePreviewsViewModel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/InterfaceToolkit.html">InterfaceToolkit</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LogDetailsViewController.html">LogDetailsViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LogDetailsViewModel.html">LogDetailsViewModel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/Logger.html">Logger</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LoggerAuthenticationChallengeSender.html">LoggerAuthenticationChallengeSender</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LoggerHTTPModel.html">LoggerHTTPModel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LoggerHTTPModelManager.html">LoggerHTTPModelManager</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LoggerProtocol.html">LoggerProtocol</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/MenuViewController.html">MenuViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/MenuViewModel.html">MenuViewModel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/NetworkLogCell.html">NetworkLogCell</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/NetworkLogRow.html">NetworkLogRow</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/NetworkLoggerViewController.html">NetworkLoggerViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/NetworkLoggerViewModel.html">NetworkLoggerViewModel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/NotificationTester.html">NotificationTester</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/NotificationTesterViewController.html">NotificationTesterViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/NotitifcationTesterViewModel.html">NotitifcationTesterViewModel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/PreviewableCell.html">PreviewableCell</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/Scyther.html">Scyther</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ServerConfigurationViewController.html">ServerConfigurationViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ServerConfigurationViewModel.html">ServerConfigurationViewModel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ShuntingYardResolver.html">ShuntingYardResolver</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SliderCell.html">SliderCell</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SliderRow.html">SliderRow</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SubtitleCell.html">SubtitleCell</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SubtitleRow.html">SubtitleRow</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SwitchCell.html">SwitchCell</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/TextReaderViewController.html">TextReaderViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/Toggler.html">Toggler</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/TopLevelView.html">TopLevelView</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/TopLevelViewsWrapper.html">TopLevelViewsWrapper</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UIActionSwitch.html">UIActionSwitch</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserDefaultsViewController.html">UserDefaultsViewController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserDefaultsViewModel.html">UserDefaultsViewModel</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Global%20Variables.html">Global Variables</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Global%20Variables.html#/s:7Scyther28UIViewPreviousBorderColorKey33_E4843CE5E7544540EC74383C3DD57F39LLSSvp">UIViewPreviousBorderColorKey</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Global%20Variables.html#/s:7Scyther28UIViewPreviousBorderWidthKey33_E4843CE5E7544540EC74383C3DD57F39LLSSvp">UIViewPreviousBorderWidthKey</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Enums.html">Enumerations</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Enums/BuildType.html">BuildType</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Condition.html">Condition</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/GridOverlayColorScheme.html">GridOverlayColorScheme</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/HTTPModelShortType.html">HTTPModelShortType</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/NotificationTextField.html">NotificationTextField</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Operator.html">Operator</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/RowStyle.html">RowStyle</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/ScytherGesture.html">ScytherGesture</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Extensions.html">Extensions</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Extensions/Bool.html">Bool</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/Bundle.html">Bundle</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/Character.html">Character</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/Date.html">Date</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/InputStream.html">InputStream</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/NSNotification.html">NSNotification</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/NSNotification/Name.html">– Name</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/NSObject.html">NSObject</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/String.html">String</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/UIColor.html">UIColor</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/UIDevice.html">UIDevice</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/UIFont.html">UIFont</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/UIImage.html">UIImage</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/UITableView.html">UITableView</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/UITableView/Style.html">– Style</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/UIView.html">UIView</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/UIWindow.html">UIWindow</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/URL.html">URL</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/URLRequest.html">URLRequest</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/URLResponse.html">URLResponse</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/URLSessionConfiguration.html">URLSessionConfiguration</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/UserDefaults.html">UserDefaults</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Functions.html">Functions</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Functions.html#/s:7Scyther1loi33_C5330E94EA775096513F4D9F6A1A95D1LLySbxSg_ADtSLRzlF">&lt;(_:_:)</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Protocols.html">Protocols</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Protocols/CookieBrowserViewModelProtocol.html">CookieBrowserViewModelProtocol</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/CookieDetailsViewModelProtocol.html">CookieDetailsViewModelProtocol</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/FeatureFlagsViewModelProtocol.html">FeatureFlagsViewModelProtocol</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/FontsViewModelProtocol.html">FontsViewModelProtocol</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/GridOverlayViewModelProtocol.html">GridOverlayViewModelProtocol</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/InterfacePreviewsViewModelProtocol.html">InterfacePreviewsViewModelProtocol</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/InterfaceToolkitPrivate.html">InterfaceToolkitPrivate</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/LogDetailsViewModelProtocol.html">LogDetailsViewModelProtocol</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/MenuViewModelProtocol.html">MenuViewModelProtocol</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/NetworkLoggerViewModelProtocol.html">NetworkLoggerViewModelProtocol</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/NotitificationTesterProtocol.html">NotitificationTesterProtocol</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Row.html">Row</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ScytherDelegate.html">ScytherDelegate</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ScytherPreviewable.html">ScytherPreviewable</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ServerConfigurationViewModelProtocol.html">ServerConfigurationViewModelProtocol</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/SliderCellDelegate.html">SliderCellDelegate</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/TopLevelViewDelegate.html">TopLevelViewDelegate</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/UserDefaultsViewModelProtocol.html">UserDefaultsViewModelProtocol</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Structs.html">Structures</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Structs/ButtonRow.html">ButtonRow</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/CheckmarkRow.html">CheckmarkRow</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/DeveloperOption.html">DeveloperOption</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/EmptyRow.html">EmptyRow</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/LinkedList.html">LinkedList</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/LinkedList/ID.html">– ID</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/LinkedList/Node.html">– Node</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/LinkedList/Iterator.html">– Iterator</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/LinkedList/Index.html">– Index</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/LoggerFilePath.html">LoggerFilePath</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/PreviewableRow.html">PreviewableRow</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Section.html">Section</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/ServerConfiguration.html">ServerConfiguration</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Stack.html">Stack</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/SwitchAccessoryRow.html">SwitchAccessoryRow</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Toggle.html">Toggle</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Validation.html">Validation</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Typealiases.html">Type Aliases</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7Scyther11ActionBlocka">ActionBlock</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7Scyther14UIEventSubtypea">UIEventSubtype</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7Scyther20UITableViewCellStylea">UITableViewCellStyle</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+      <article class="main-content">
+        <section>
+          <section class="section">
+            <h1>ShuntingYardResolver</h1>
+              <div class="declaration">
+                <div class="language">
+                  
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">ShuntingYardResolver</span></code></pre>
+
+                </div>
+              </div>
+            <p>A strongly typed and performant class capable of resolving complex string logic and returning a comparison as a single Bool value.</p>
+
+          </section>
+          <section class="section task-group-section">
+            <div class="task-group">
+              <ul>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC8instanceACvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/instance" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC8instanceACvpZ">instance</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Singleton instance of this class to allow performant usage of the utility.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">instance</span><span class="p">:</span> <span class="kt">ShuntingYardResolver</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverCACyc33_D8072BB0F0945F2AD2A7915E3F1E9D2ELlfc"></a>
+                    <a name="//apple_ref/swift/Method/init()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverCACyc33_D8072BB0F0945F2AD2A7915E3F1E9D2ELlfc">init()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Private init to stop re-initialisation</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">private</span> <span class="nf">init</span><span class="p">()</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC9leftTokenSSvp"></a>
+                    <a name="//apple_ref/swift/Property/leftToken" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC9leftTokenSSvp">leftToken</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Value representing an opening bracket <code>(</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="k">let</span> <span class="nv">leftToken</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC10rightTokenSSvp"></a>
+                    <a name="//apple_ref/swift/Property/rightToken" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC10rightTokenSSvp">rightToken</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Value representing a closing bracket <code>)</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="k">let</span> <span class="nv">rightToken</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC8evaluate10expressionSbSSSg_tF"></a>
+                    <a name="//apple_ref/swift/Method/evaluate(expression:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC8evaluate10expressionSbSSSg_tF">evaluate(expression:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Parses a string in the format &ldquo;(a == b || c == d) &amp;&amp; (x == y) || (foo == bar &amp;&amp; day &gt;= night)&rdquo; where <code>||</code> represents <code>OR</code> conditions and <code>&amp;&amp;</code> represents an <code>AND</code> condition.</p>
+<div class="aside aside-complexity">
+    <p class="aside-title">Complexity</p>
+    <p>O(<em>n</em>) where <em>n</em> is the the number of conditions in the group</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">evaluate</span><span class="p">(</span><span class="nv">expression</span><span class="p">:</span> <span class="kt">String</span><span class="p">?)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>expression</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The entire string that represents ALL the conditions to be resolved.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A boolean value representing whether ALL conditions have been met or not.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC15evaluatePostfix33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL7postfixSbAA10LinkedListVySSG_tF"></a>
+                    <a name="//apple_ref/swift/Method/evaluatePostfix(postfix:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC15evaluatePostfix33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL7postfixSbAA10LinkedListVySSG_tF">evaluatePostfix(postfix:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Parses a string in the format &ldquo;(a == b || c == d) &amp;&amp; (x == y) || (foo == bar &amp;&amp; day &gt;= night)&rdquo; where <code>||</code> represents <code>OR</code> conditions and <code>&amp;&amp;</code> represents an <code>AND</code> condition.</p>
+<div class="aside aside-complexity">
+    <p class="aside-title">Complexity</p>
+    <p>O(<em>n</em>) where <em>n</em> is the the number of conditions in the list.</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">private</span> <span class="kd">func</span> <span class="nf">evaluatePostfix</span><span class="p">(</span><span class="nv">postfix</span><span class="p">:</span> <span class="kt"><a href="../Structs/LinkedList.html">LinkedList</a></span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>postfix</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The confitions to be evaluated broken down into a <code><a href="../Structs/LinkedList.html">LinkedList</a></code></p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A boolean value representing whether ALL conditions have been met or not.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC05applybC033_D8072BB0F0945F2AD2A7915E3F1E9D2ELL6tokensAA10LinkedListVySSGSaySSG_tF"></a>
+                    <a name="//apple_ref/swift/Method/applyShuntingYard(tokens:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC05applybC033_D8072BB0F0945F2AD2A7915E3F1E9D2ELL6tokensAA10LinkedListVySSGSaySSG_tF">applyShuntingYard(tokens:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Applies the ShuntingYard algorithm to an array of tokenized strings and returns them in a <code><a href="../Structs/LinkedList.html">LinkedList&lt;String&gt;</a></code> object.</p>
+<div class="aside aside-complexity">
+    <p class="aside-title">Complexity</p>
+    <p>O(<em>n</em>) where <em>n</em> is the number of items in the array of tokens.</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">private</span> <span class="kd">func</span> <span class="nf">applyShuntingYard</span><span class="p">(</span><span class="nv">tokens</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Structs/LinkedList.html">LinkedList</a></span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>tokens</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The values that will be used as the candidates for algorithmic transformation.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A list of values that have been transformed via the Shunting Yard algorithm.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC33isOperatorPrecedenceHigherOrEqual33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL5token13operatorStackSbSS_AA0W0VySSGtF"></a>
+                    <a name="//apple_ref/swift/Method/isOperatorPrecedenceHigherOrEqual(token:operatorStack:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC33isOperatorPrecedenceHigherOrEqual33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL5token13operatorStackSbSS_AA0W0VySSGtF">isOperatorPrecedenceHigherOrEqual(token:<wbr>operatorStack:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Determines whether the operator is of higher or equal precendence than the token.</p>
+<div class="aside aside-complexity">
+    <p class="aside-title">Complexity</p>
+    <p>O(<em>1</em>)</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">private</span> <span class="kd">func</span> <span class="nf">isOperatorPrecedenceHigherOrEqual</span><span class="p">(</span><span class="nv">token</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">operatorStack</span><span class="p">:</span> <span class="kt"><a href="../Structs/Stack.html">Stack</a></span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>token</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the left-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>operatorStack</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the right-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A boolean value indicating whether the operator is of higher or equal precendence than the token.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC34doesTopHaveHigherOrEqualPrecedence33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL5input3topSbSS_SStF"></a>
+                    <a name="//apple_ref/swift/Method/doesTopHaveHigherOrEqualPrecedence(input:top:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC34doesTopHaveHigherOrEqualPrecedence33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL5input3topSbSS_SStF">doesTopHaveHigherOrEqualPrecedence(input:<wbr>top:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Determines whether the top is of higher or equal precendence than the input.</p>
+<div class="aside aside-complexity">
+    <p class="aside-title">Complexity</p>
+    <p>O(<em>1</em>)</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">private</span> <span class="kd">func</span> <span class="nf">doesTopHaveHigherOrEqualPrecedence</span><span class="p">(</span><span class="nv">input</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">top</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>token</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the left-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>input</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the right-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A boolean value indicating whether the top is of higher or equal precendence than the input.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC10getOperand5stackSSAA5StackVySJG_tF"></a>
+                    <a name="//apple_ref/swift/Method/getOperand(stack:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC10getOperand5stackSSAA5StackVySJG_tF">getOperand(stack:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Extracts all the operand type characters from a <code><a href="../Structs/Stack.html">Stack&lt;Character&gt;</a></code> type object into a single <code>String</code></p>
+<div class="aside aside-complexity">
+    <p class="aside-title">Complexity</p>
+    <p>O(<em>n</em>) where <em>n</em> is the number of items on the stack.</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">getOperand</span><span class="p">(</span><span class="nv">stack</span><span class="p">:</span> <span class="kt"><a href="../Structs/Stack.html">Stack</a></span><span class="o">&lt;</span><span class="kt">Character</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>stack</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the left-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A string value representing an array of operand characters without spaces.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC16cohortPercentage8overrideSfSS_tF"></a>
+                    <a name="//apple_ref/swift/Method/cohortPercentage(override:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC16cohortPercentage8overrideSfSS_tF">cohortPercentage(override:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Value calculated by generating a UUID and hasing it followed by a mutation into a percentage value.
+This value is stored in UserDefaults and will persist between sessions.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">cohortPercentage</span><span class="p">(</span><span class="k">override</span> <span class="nv">key</span><span class="p">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="s">"abTestingPercentageValue"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Float</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC16compareCondition33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL3lhs3rhs9operationSbAA0F0O_SSAA8OperatorOtF"></a>
+                    <a name="//apple_ref/swift/Method/compareCondition(lhs:rhs:operation:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC16compareCondition33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL3lhs3rhs9operationSbAA0F0O_SSAA8OperatorOtF">compareCondition(lhs:<wbr>rhs:<wbr>operation:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Compares a condition with a value and returns a Bool value indicating its equality.</p>
+<div class="aside aside-complexity">
+    <p class="aside-title">Complexity</p>
+    <p>O(<em>1</em>)</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">private</span> <span class="kd">func</span> <span class="nf">compareCondition</span><span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Enums/Condition.html">Condition</a></span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">operation</span><span class="p">:</span> <span class="kt"><a href="../Enums/Operator.html">Operator</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>lhs</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The condition that will be used as the left-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>rhs</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the right-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>operation</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The type of operation that will be used to perform the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A boolean value indicating whether the lhs is equal to the rhs based on the operator.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC29compareConditionForPercentage33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL3rhs9operationSbSS_AA8OperatorOtF"></a>
+                    <a name="//apple_ref/swift/Method/compareConditionForPercentage(rhs:operation:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC29compareConditionForPercentage33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL3rhs9operationSbSS_AA8OperatorOtF">compareConditionForPercentage(rhs:<wbr>operation:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">private</span> <span class="kd">func</span> <span class="nf">compareConditionForPercentage</span><span class="p">(</span><span class="nv">rhs</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">operation</span><span class="p">:</span> <span class="kt"><a href="../Enums/Operator.html">Operator</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC7compare33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL3lhs3rhs9operationSbSf_SfAA8OperatorOtF"></a>
+                    <a name="//apple_ref/swift/Method/compare(lhs:rhs:operation:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC7compare33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL3lhs3rhs9operationSbSf_SfAA8OperatorOtF">compare(lhs:<wbr>rhs:<wbr>operation:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Compares a single Float value to another Float value using the operation as a comparison type.</p>
+<div class="aside aside-complexity">
+    <p class="aside-title">Complexity</p>
+    <p>O(<em>1</em>)</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">private</span> <span class="kd">func</span> <span class="nf">compare</span><span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Float</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Float</span><span class="p">,</span> <span class="nv">operation</span><span class="p">:</span> <span class="kt"><a href="../Enums/Operator.html">Operator</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>lhs</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the left-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>rhs</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the right-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>operation</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The type of operation that will be used to perform the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A boolean value indicating whether the lhs is equal to the rhs based on the operator.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC7compare33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL3lhs3rhs9operationSbSi_SiAA8OperatorOtF"></a>
+                    <a name="//apple_ref/swift/Method/compare(lhs:rhs:operation:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC7compare33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL3lhs3rhs9operationSbSi_SiAA8OperatorOtF">compare(lhs:<wbr>rhs:<wbr>operation:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Compares a single Int value to another Int value using the operation as a comparison type.</p>
+<div class="aside aside-complexity">
+    <p class="aside-title">Complexity</p>
+    <p>O(<em>1</em>)</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">private</span> <span class="kd">func</span> <span class="nf">compare</span><span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Int</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Int</span><span class="p">,</span> <span class="nv">operation</span><span class="p">:</span> <span class="kt"><a href="../Enums/Operator.html">Operator</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>lhs</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the left-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>rhs</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the right-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>operation</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The type of operation that will be used to perform the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A boolean value indicating whether the lhs is equal to the rhs based on the operator.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC7compare33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL3lhs3rhs9operationSbSS_SSAA8OperatorOtF"></a>
+                    <a name="//apple_ref/swift/Method/compare(lhs:rhs:operation:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC7compare33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL3lhs3rhs9operationSbSS_SSAA8OperatorOtF">compare(lhs:<wbr>rhs:<wbr>operation:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Compares a single String value to another String value using the operation as a comparison type.</p>
+<div class="aside aside-complexity">
+    <p class="aside-title">Complexity</p>
+    <p>O(<em>1</em>)</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">private</span> <span class="kd">func</span> <span class="nf">compare</span><span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">operation</span><span class="p">:</span> <span class="kt"><a href="../Enums/Operator.html">Operator</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>lhs</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the left-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>rhs</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the right-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>operation</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The type of operation that will be used to perform the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A boolean value indicating whether the lhs is equal to the rhs based on the operator.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC28compareConditionWithOperator33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL3lhs3rhs9operationSbSS_S2StF"></a>
+                    <a name="//apple_ref/swift/Method/compareConditionWithOperator(lhs:rhs:operation:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC28compareConditionWithOperator33_D8072BB0F0945F2AD2A7915E3F1E9D2ELL3lhs3rhs9operationSbSS_S2StF">compareConditionWithOperator(lhs:<wbr>rhs:<wbr>operation:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Compares a single String value to another String value using the operation as a comparison type.</p>
+<div class="aside aside-complexity">
+    <p class="aside-title">Complexity</p>
+    <p>O(<em>1</em>)</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">private</span> <span class="kd">func</span> <span class="nf">compareConditionWithOperator</span><span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">operation</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>lhs</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the left-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>rhs</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The value that will be used as the right-hand side of the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>operation</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The type of operation that will be used to perform the comparison.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A boolean value indicating whether the lhs is equal to the rhs based on the operator.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7Scyther20ShuntingYardResolverC8valueFor9conditionSSSgAA9ConditionO_tF"></a>
+                    <a name="//apple_ref/swift/Method/valueFor(condition:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7Scyther20ShuntingYardResolverC8valueFor9conditionSSSgAA9ConditionO_tF">valueFor(condition:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">valueFor</span><span class="p">(</span><span class="nv">condition</span><span class="p">:</span> <span class="kt"><a href="../Enums/Condition.html">Condition</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span><span class="p">?</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </section>
+        <section id="footer">
+          <p>&copy; 2021 <a class="link" href="" target="_blank" rel="external"></a>. All rights reserved. (Last updated: 2021-04-25)</p>
+          <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external">jazzy ♪♫ v0.13.6</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external">Realm</a> project.</p>
+        </section>
+      </article>
+    </div>
+  </body>
+</div>
+</html>
