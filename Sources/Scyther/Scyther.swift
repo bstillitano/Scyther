@@ -71,8 +71,8 @@ public class Scyther {
         /// Starts the console logger and allows it intercept `stderr` output from `NSLog`
 //        ConsoleLogger.instance.start()
         
-        /// Sets up the interface toolit plugins
-//        InterfaceToolkit.instance.start()
+        /// Sets up the interface toolkit plugins
+        InterfaceToolkit.instance.start()
     }
 
     /// Convenience function for manually showing the Scyther menu. Would be used when no gesture is wanted to invoke the menu.

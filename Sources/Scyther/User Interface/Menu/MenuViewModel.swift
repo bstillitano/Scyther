@@ -71,7 +71,7 @@ internal class MenuViewModel {
         let switchView = UIActionSwitch()
         switchView.isOn = InterfaceToolkit.instance.showsViewBorders
         switchView.actionBlock = {
-            InterfaceToolkit.instance.start()
+            InterfaceToolkit.instance.swizzleLayout()
             InterfaceToolkit.instance.showsViewBorders = switchView.isOn
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
