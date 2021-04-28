@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="200" height="200" src="https://cdn.bulbagarden.net/upload/thumb/b/ba/123Scyther.png/600px-123Scyther.png">
+  <img width="200" height="200" src="https://github.com/bstillitano/Scyther/raw/main/Scyther.png">
 </p>
 
 # Scyther
