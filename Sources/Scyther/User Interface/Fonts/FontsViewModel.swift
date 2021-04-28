@@ -59,7 +59,7 @@ extension FontsViewModel {
         return sections[index].title
     }
 
-    func numbeOfRows(inSection index: Int) -> Int {
+    func numberOfRows(inSection index: Int) -> Int {
         return rows(inSection: index)?.count ?? 0
     }
 
