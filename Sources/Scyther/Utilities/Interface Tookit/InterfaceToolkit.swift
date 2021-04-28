@@ -55,11 +55,14 @@ public class InterfaceToolkit: NSObject {
     }
 
     internal func start() {
-        UIView.swizzleLayout
         registerForNotitfcations()
         setupTopLevelViewsWrapper()
         setupGridOverlay()
         setWindowSpeed()
+    }
+    
+    internal func swizzleLayout() {
+        UIView.swizzleLayout
     }
 
     private func setupTopLevelViewsWrapper() {
