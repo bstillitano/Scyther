@@ -89,3 +89,9 @@ fastlane/test_output
 # https://github.com/johnno1962/injectionforxcode
 
 iOSInjectionProject/
+
+# Github Pages
+#
+# Once setup for GitHub pages is completed, we do not want to delete our CNAME files every time we
+# regenerate docs.
+CNAME

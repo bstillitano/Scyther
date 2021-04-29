@@ -240,7 +240,7 @@
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Interface Tookit/InterfaceToolkit.swift",
-      "line": 92,
+      "line": 95,
       "symbol": "InterfaceToolkit.observeValue(forKeyPath:of:change:context:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
