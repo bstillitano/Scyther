@@ -6,7 +6,7 @@
         "repositoryURL": "https://github.com/bstillitano/Scyther.git",
         "state": {
           "branch": "main",
-          "revision": "c53a6cd1f3cad0ba29b03c748e9db0e3dc3e237d",
+          "revision": "b36b1befa2cc4a4710aca7ff52bdf15fc417741d",
           "version": null
         }
       },
@@ -15,8 +15,8 @@
         "repositoryURL": "https://github.com/SDWebImage/SDWebImage",
         "state": {
           "branch": null,
-          "revision": "a6b6e44eadf0d39250c10a7cc0e3b91d0bdb0e94",
-          "version": "5.10.4"
+          "revision": "76dd4b49110b8624317fc128e7fa0d8a252018bc",
+          "version": "5.11.1"
         }
       },
       {
