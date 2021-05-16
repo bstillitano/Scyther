@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// `ConfigurationSwitcher` is a singleton that allows for environment/configuration switching when working with staging/production environments. Selections are persistent across sessions and can be updated on the fly.
 public class ConfigurationSwitcher {
     /// Private Init to Stop re-initialisation and allow singleton creation.
     private init() { }

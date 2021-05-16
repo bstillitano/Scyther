@@ -8,7 +8,8 @@
 #if !os(macOS)
 import UIKit
 
-public class AppEnvironment {
+/// `AppEnvironment` is a handy utility for determining the environment that the library is being run from. Beyond providing Scyther functionality, clients implementing Scyther may also find it useful.
+public struct AppEnvironment {
     /**
      Indicates whether the `appStoreReceiptURL` at `Bundle.main.appStoreReceiptURL` is a sandbox receipt.
      */

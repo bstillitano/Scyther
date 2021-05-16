@@ -190,13 +190,6 @@
       "warning": "undocumented"
     },
     {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Configuration Switcher/ConfigurationSwitcher.swift",
-      "line": 10,
-      "symbol": "ConfigurationSwitcher",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Configuration Switcher/ServerConfiguration.swift",
       "line": 10,
       "symbol": "ServerConfiguration",
@@ -221,13 +214,6 @@
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Console Logger/ConsoleLogger.swift",
       "line": 10,
       "symbol": "ConsoleLogger",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Environment Reader/AppEnvironment.swift",
-      "line": 11,
-      "symbol": "AppEnvironment",
       "symbol_kind": "source.lang.swift.decl.class",
       "warning": "undocumented"
     },
