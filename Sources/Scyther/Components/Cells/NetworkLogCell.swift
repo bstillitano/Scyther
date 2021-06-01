@@ -29,6 +29,8 @@ class NetworkLogCell: UITableViewCell {
     }
     
     private func setupUI() {
+        
+        backgroundColor = .red
         /// Setup `statusView`
         statusView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(self.statusView)
