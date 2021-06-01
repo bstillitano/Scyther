@@ -50,14 +50,14 @@ class PreviewableCell: UITableViewCell {
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
             titleLabel.leftAnchor.constraint(equalTo: contentView.leftAnchor, constant: 16),
-            titleLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: 16)
+            titleLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: -16)
         ])
         
         /// Setup `descriptionLabel` constraints
         NSLayoutConstraint.activate([
             descriptionLabel.topAnchor.constraint(equalTo: titleLabel.topAnchor, constant: 8),
             descriptionLabel.leftAnchor.constraint(equalTo: contentView.leftAnchor, constant: 16),
-            descriptionLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: 16),
+            descriptionLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: -16),
             descriptionLabel.widthAnchor.constraint(equalToConstant: 48)
         ])
         
