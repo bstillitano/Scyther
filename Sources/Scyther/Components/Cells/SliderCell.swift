@@ -34,6 +34,10 @@ class SliderCell: UITableViewCell {
     private func setupConstraints() {
         guard let textLabel = textLabel else { return }
         
+        textLabel.translatesAutoresizingMaskIntoConstraints = false
+        sliderValueLabel.translatesAutoresizingMaskIntoConstraints = false
+        slider.translatesAutoresizingMaskIntoConstraints = false
+        
         NSLayoutConstraint.activate([
             textLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
             textLabel.leftAnchor.constraint(equalTo: contentView.leftAnchor, constant: 16),

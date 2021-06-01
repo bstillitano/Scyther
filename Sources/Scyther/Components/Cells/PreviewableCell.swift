@@ -30,15 +30,18 @@ class PreviewableCell: UITableViewCell {
         titleLabel.font = .boldSystemFont(ofSize: 14)
         titleLabel.numberOfLines = 0
         titleLabel.textAlignment = .left
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(titleLabel)
 
         /// Setup `descriptionLabel`
         descriptionLabel.font = .systemFont(ofSize: 12)
         descriptionLabel.numberOfLines = 0
         descriptionLabel.textAlignment = .left
+        descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(descriptionLabel)
         
         /// Setup `previewView`
+        previewView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(previewView)
     }
     
@@ -60,10 +63,10 @@ class PreviewableCell: UITableViewCell {
         
         /// Setup `previewView` constraints
         NSLayoutConstraint.activate([
-            descriptionLabel.topAnchor.constraint(equalTo: descriptionLabel.topAnchor),
-            descriptionLabel.leftAnchor.constraint(equalTo: contentView.leftAnchor),
-            descriptionLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor),
-            descriptionLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            previewView.topAnchor.constraint(equalTo: descriptionLabel.topAnchor),
+            previewView.leftAnchor.constraint(equalTo: contentView.leftAnchor),
+            previewView.rightAnchor.constraint(equalTo: contentView.rightAnchor),
+            previewView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
         ])
     }
 

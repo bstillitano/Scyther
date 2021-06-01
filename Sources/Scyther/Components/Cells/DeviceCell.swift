@@ -22,6 +22,11 @@ final internal class DeviceTableViewCell: UITableViewCell {
         
         imageView.layer.cornerRadius = 12.0
         imageView.layer.masksToBounds = true
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        
+        textLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        detailTextLabel.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),

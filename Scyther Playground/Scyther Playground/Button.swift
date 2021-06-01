@@ -170,12 +170,17 @@ class Button: UIButton {
         super.init(frame: frame)
 
         //Update Constraints
-        snp.makeConstraints { (make) in
-            make.height.equalTo(type.buttonHeight)
-        }
+        heightAnchor.constraint(equalToConstant: type.buttonHeight).isActive = true
     }
 
     private func setType(_ type: ButtonStyle) {
+        guard let titleLabel = titleLabel,
+              let imageView = imageView,
+              let superview = superview
+        else {
+            return
+        }
+        
         //Set Padding
         if type == .plain || type == .plainLeft {
             self.contentEdgeInsets = .zero
@@ -187,23 +192,25 @@ class Button: UIButton {
         if type == .plainLeft {
             contentHorizontalAlignment = .left
         }
-
+        
         //Set Constants
-        titleLabel?.font = type.titleFont
+        titleLabel.font = type.titleFont
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
         layer.cornerRadius = type.cornerRadius
         clipsToBounds = true
         backgroundColor = type.backgroundColor
-        imageView?.tintColor = type.iconTintColor
+        imageView.tintColor = type.iconTintColor
         layer.borderColor = type.borderColor
         layer.borderWidth = type.borderWidth
         setTitleColor(type.titleColor, for: .normal)
         setTitleColor(type.disabledBackgroundColor, for: .disabled)
         
         //Set Constraints
-        titleLabel?.snp.remakeConstraints({ (make) in
-            make.height.equalTo(type.buttonHeight)
-            make.top.bottom.equalToSuperview()
-        })
+        NSLayoutConstraint.activate([
+            titleLabel.heightAnchor.constraint(equalToConstant: type.buttonHeight),
+            titleLabel.topAnchor.constraint(equalTo: superview.topAnchor),
+            titleLabel.bottomAnchor.constraint(equalTo: superview.bottomAnchor)
+        ])
     }
 
     func setImage(_ buttonImage: UIImage?, withRightInset rightInset: CGFloat = 16) {

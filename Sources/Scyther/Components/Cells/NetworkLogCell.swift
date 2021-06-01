@@ -89,12 +89,11 @@ class NetworkLogCell: UITableViewCell {
         ])
         
         /// Setup `urlLabel` constraints
-        
         NSLayoutConstraint.activate([
-            timeLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
-            timeLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: 8),
-            timeLabel.leftAnchor.constraint(equalTo: methodLabel.rightAnchor, constant: 8),
-            timeLabel.leftAnchor.constraint(equalTo: contentView.rightAnchor, constant: 16),
+            urlLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            urlLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: 8),
+            urlLabel.leftAnchor.constraint(equalTo: methodLabel.rightAnchor, constant: 8),
+            urlLabel.leftAnchor.constraint(equalTo: contentView.rightAnchor, constant: 16),
         ])
     }
 
