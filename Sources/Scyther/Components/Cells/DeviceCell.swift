@@ -38,13 +38,13 @@ final internal class DeviceTableViewCell: UITableViewCell {
         
         NSLayoutConstraint.activate([
             textLabel.bottomAnchor.constraint(equalTo: imageView.centerYAnchor),
-            textLabel.leftAnchor.constraint(equalTo: imageView.rightAnchor, constant: -16),
+            textLabel.leftAnchor.constraint(equalTo: imageView.rightAnchor, constant: 16),
             textLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor)
         ])
         
         NSLayoutConstraint.activate([
             detailTextLabel.topAnchor.constraint(equalTo: imageView.centerYAnchor),
-            detailTextLabel.leftAnchor.constraint(equalTo: imageView.rightAnchor, constant: -16),
+            detailTextLabel.leftAnchor.constraint(equalTo: imageView.rightAnchor, constant: 16),
             detailTextLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor)
         ])
     }

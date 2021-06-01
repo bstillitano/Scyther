@@ -69,21 +69,21 @@ class NetworkLogCell: UITableViewCell {
         /// Setup `methodLabel` constraints
         NSLayoutConstraint.activate([
             methodLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
-            methodLabel.leftAnchor.constraint(equalTo: statusView.rightAnchor, constant: -8),
+            methodLabel.leftAnchor.constraint(equalTo: statusView.rightAnchor, constant: 8),
             methodLabel.widthAnchor.constraint(equalToConstant: 48)
         ])
         
         /// Setup `responseLabel` constraints
         NSLayoutConstraint.activate([
             responseLabel.topAnchor.constraint(greaterThanOrEqualTo: methodLabel.bottomAnchor, constant: -8),
-            responseLabel.leftAnchor.constraint(equalTo: statusView.rightAnchor, constant: -8),
+            responseLabel.leftAnchor.constraint(equalTo: statusView.rightAnchor, constant: 8),
             responseLabel.widthAnchor.constraint(equalToConstant: 48)
         ])
         
         /// Setup `timeLabel` constraints
         NSLayoutConstraint.activate([
             timeLabel.topAnchor.constraint(greaterThanOrEqualTo: responseLabel.bottomAnchor, constant: -8),
-            timeLabel.leftAnchor.constraint(equalTo: statusView.rightAnchor, constant: -8),
+            timeLabel.leftAnchor.constraint(equalTo: statusView.rightAnchor, constant: 8),
             timeLabel.widthAnchor.constraint(equalToConstant: 48),
             timeLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
         ])
@@ -92,8 +92,8 @@ class NetworkLogCell: UITableViewCell {
         NSLayoutConstraint.activate([
             urlLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
             urlLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
-            urlLabel.leftAnchor.constraint(equalTo: methodLabel.rightAnchor, constant: -8),
-            urlLabel.leftAnchor.constraint(equalTo: contentView.rightAnchor, constant: -16),
+            urlLabel.leftAnchor.constraint(equalTo: methodLabel.rightAnchor, constant: 8),
+            urlLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: -16),
         ])
     }
 
