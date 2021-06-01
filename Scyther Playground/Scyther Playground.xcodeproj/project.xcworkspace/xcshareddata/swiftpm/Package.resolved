@@ -3,10 +3,10 @@
     "pins": [
       {
         "package": "Scyther",
-        "repositoryURL": "https://github.com/bstillitano/Scyther.git",
+        "repositoryURL": "/Users/stefanhaider/Documents/XcodeWorkespace/Scyther",
         "state": {
-          "branch": "main",
-          "revision": "b36b1befa2cc4a4710aca7ff52bdf15fc417741d",
+          "branch": "stfnhdr_remove_depenencies",
+          "revision": "58dafdaa848c9f6cf27287bff8a7c6ecd31b1fd3",
           "version": null
         }
       },

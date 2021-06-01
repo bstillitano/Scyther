@@ -8,7 +8,7 @@
 #if os(iOS)
 import UIKit
 
-protocol SliderCellDelegate: class {
+protocol SliderCellDelegate: AnyObject {
     func sliderValueChanged(slider: UISlider?, label: UILabel)
 }
 
@@ -32,23 +32,25 @@ class SliderCell: UITableViewCell {
     }
     
     private func setupConstraints() {
-        textLabel?.snp.remakeConstraints({ (make) in
-            make.top.equalToSuperview().inset(16)
-            make.left.equalToSuperview().inset(16)
-            make.right.equalToSuperview().inset(16)
-        })
+        guard let textLabel = textLabel else { return }
         
-        sliderValueLabel.snp.remakeConstraints({ (make) in
-            make.centerY.equalTo(textLabel?.snp.centerY ?? 0)
-            make.right.equalToSuperview().inset(16)
-        })
+        NSLayoutConstraint.activate([
+            textLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            textLabel.leftAnchor.constraint(equalTo: contentView.leftAnchor, constant: 16),
+            textLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: 16)
+        ])
         
-        slider.snp.remakeConstraints { (make) in
-            make.top.equalTo(textLabel?.snp.bottom ?? 0).offset(8)
-            make.left.equalToSuperview().inset(16)
-            make.right.equalToSuperview().inset(16)
-            make.bottom.equalToSuperview().inset(16)
-        }
+        NSLayoutConstraint.activate([
+            sliderValueLabel.centerYAnchor.constraint(equalTo: textLabel.centerYAnchor),
+            sliderValueLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: 16)
+        ])
+        
+        NSLayoutConstraint.activate([
+            slider.topAnchor.constraint(equalTo: textLabel.topAnchor, constant: 8),
+            slider.leftAnchor.constraint(equalTo: contentView.leftAnchor, constant: 16),
+            slider.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: 16),
+            slider.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: 16)
+        ])
     }
 
     func configureWithRow(_ row: SliderRow) {

@@ -7,7 +7,6 @@
 
 #if !os(macOS)
 import SDWebImage
-import SnapKit
 import UIKit
 
 internal class MenuViewController: UIViewController {
@@ -55,9 +54,12 @@ internal class MenuViewController: UIViewController {
     }
 
     private func setupConstraints() {
-        tableView.snp.makeConstraints { (make) in
-            make.edges.equalToSuperview()
-        }
+        NSLayoutConstraint.activate([
+            tableView.leftAnchor.constraint(equalTo: view.leftAnchor),
+            tableView.rightAnchor.constraint(equalTo: view.rightAnchor),
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
     }
 
     // MARK: - Lifecycle

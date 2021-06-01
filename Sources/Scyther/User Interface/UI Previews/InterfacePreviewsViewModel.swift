@@ -8,7 +8,7 @@
 #if !os(macOS)
 import UIKit
 
-internal protocol InterfacePreviewsViewModelProtocol: class {
+internal protocol InterfacePreviewsViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
 }
 

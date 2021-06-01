@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C9A3A2382666BAD400E2B2F9 /* Scyther in Frameworks */ = {isa = PBXBuildFile; productRef = C9A3A2372666BAD400E2B2F9 /* Scyther */; };
 		CA73FCE825D690D2007FA627 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCE725D690D2007FA627 /* AppDelegate.swift */; };
 		CA73FCEA25D690D2007FA627 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCE925D690D2007FA627 /* SceneDelegate.swift */; };
 		CA73FCEC25D690D2007FA627 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCEB25D690D2007FA627 /* ViewController.swift */; };
@@ -15,7 +16,6 @@
 		CA73FCF425D690D2007FA627 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CA73FCF225D690D2007FA627 /* LaunchScreen.storyboard */; };
 		CA73FCFF25D690D2007FA627 /* Scyther_PlaygroundTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCFE25D690D2007FA627 /* Scyther_PlaygroundTests.swift */; };
 		CA73FD0A25D690D2007FA627 /* Scyther_PlaygroundUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FD0925D690D2007FA627 /* Scyther_PlaygroundUITests.swift */; };
-		CA73FDDD25DA22E8007FA627 /* Scyther in Frameworks */ = {isa = PBXBuildFile; productRef = CA73FDDC25DA22E8007FA627 /* Scyther */; };
 		CA9F8FC225DE08E5000FA677 /* Environments.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FC125DE08E5000FA677 /* Environments.swift */; };
 		CA9F8FC725DE0A88000FA677 /* RedViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FC625DE0A88000FA677 /* RedViewController.swift */; };
 		CA9F8FCF25DE0B5F000FA677 /* BlueViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FCE25DE0B5F000FA677 /* BlueViewController.swift */; };
@@ -69,7 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CA73FDDD25DA22E8007FA627 /* Scyther in Frameworks */,
+				C9A3A2382666BAD400E2B2F9 /* Scyther in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -166,7 +166,7 @@
 			);
 			name = "Scyther Playground";
 			packageProductDependencies = (
-				CA73FDDC25DA22E8007FA627 /* Scyther */,
+				C9A3A2372666BAD400E2B2F9 /* Scyther */,
 			);
 			productName = "Scyther Playground";
 			productReference = CA73FCE425D690D2007FA627 /* Scyther Playground.app */;
@@ -241,7 +241,7 @@
 			);
 			mainGroup = CA73FCDB25D690D2007FA627;
 			packageReferences = (
-				CA73FDDB25DA22E8007FA627 /* XCRemoteSwiftPackageReference "Scyther" */,
+				C9A3A2362666BAD400E2B2F9 /* XCRemoteSwiftPackageReference "Scyther" */,
 			);
 			productRefGroup = CA73FCE525D690D2007FA627 /* Products */;
 			projectDirPath = "";
@@ -631,20 +631,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		CA73FDDB25DA22E8007FA627 /* XCRemoteSwiftPackageReference "Scyther" */ = {
+		C9A3A2362666BAD400E2B2F9 /* XCRemoteSwiftPackageReference "Scyther" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/bstillitano/Scyther.git";
+			repositoryURL = "file:///Users/stefanhaider/Documents/XcodeWorkespace/Scyther";
 			requirement = {
-				branch = main;
+				branch = stfnhdr_remove_depenencies;
 				kind = branch;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		CA73FDDC25DA22E8007FA627 /* Scyther */ = {
+		C9A3A2372666BAD400E2B2F9 /* Scyther */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CA73FDDB25DA22E8007FA627 /* XCRemoteSwiftPackageReference "Scyther" */;
+			package = C9A3A2362666BAD400E2B2F9 /* XCRemoteSwiftPackageReference "Scyther" */;
 			productName = Scyther;
 		};
 /* End XCSwiftPackageProductDependency section */

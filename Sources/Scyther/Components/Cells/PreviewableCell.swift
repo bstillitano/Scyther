@@ -44,22 +44,27 @@ class PreviewableCell: UITableViewCell {
     
     private func setupConstraints() {
         /// Setup `titleLabel` constraints
-        titleLabel.snp.remakeConstraints { (make) in
-            make.top.left.right.equalToSuperview().inset(16)
-        }
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            titleLabel.leftAnchor.constraint(equalTo: contentView.leftAnchor, constant: 16),
+            titleLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: 16)
+        ])
         
         /// Setup `descriptionLabel` constraints
-        descriptionLabel.snp.remakeConstraints { (make) in
-            make.top.equalTo(titleLabel.snp.bottom).offset(8)
-            make.left.right.equalToSuperview().inset(16)
-            make.width.equalTo(48)
-        }
+        NSLayoutConstraint.activate([
+            descriptionLabel.topAnchor.constraint(equalTo: titleLabel.topAnchor, constant: 8),
+            descriptionLabel.leftAnchor.constraint(equalTo: contentView.leftAnchor, constant: 16),
+            descriptionLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: 16),
+            descriptionLabel.widthAnchor.constraint(equalToConstant: 48)
+        ])
         
         /// Setup `previewView` constraints
-        previewView.snp.remakeConstraints { (make) in
-            make.top.equalTo(descriptionLabel.snp.bottom).offset(16)
-            make.left.bottom.right.equalToSuperview()
-        }
+        NSLayoutConstraint.activate([
+            descriptionLabel.topAnchor.constraint(equalTo: descriptionLabel.topAnchor),
+            descriptionLabel.leftAnchor.constraint(equalTo: contentView.leftAnchor),
+            descriptionLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor),
+            descriptionLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+        ])
     }
 
     func configureWithRow(_ row: PreviewableRow) {

@@ -8,7 +8,7 @@
 #if !os(macOS)
 import UIKit
 
-protocol TopLevelViewDelegate: class {
+protocol TopLevelViewDelegate: AnyObject {
     func topLevelView(topLevelView: TopLevelView, didUpdateVisibility isHidden: Bool)
 }
 

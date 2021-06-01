@@ -9,7 +9,7 @@
 import UIKit
 
 @objc
-public protocol ScytherPreviewable: class {
+public protocol ScytherPreviewable: AnyObject {
     static var previewView: UIView { get }
     static var name: String { get}
     static var details: String { get }
