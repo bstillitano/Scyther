@@ -30,7 +30,6 @@ class NetworkLogCell: UITableViewCell {
     
     private func setupUI() {
         
-        backgroundColor = .red
         /// Setup `statusView`
         statusView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(self.statusView)
@@ -77,14 +76,14 @@ class NetworkLogCell: UITableViewCell {
         
         /// Setup `responseLabel` constraints
         NSLayoutConstraint.activate([
-            responseLabel.topAnchor.constraint(greaterThanOrEqualTo: methodLabel.bottomAnchor, constant: -8),
+            responseLabel.topAnchor.constraint(greaterThanOrEqualTo: methodLabel.bottomAnchor, constant: 8),
             responseLabel.leftAnchor.constraint(equalTo: statusView.rightAnchor, constant: 8),
             responseLabel.widthAnchor.constraint(equalToConstant: 48)
         ])
         
         /// Setup `timeLabel` constraints
         NSLayoutConstraint.activate([
-            timeLabel.topAnchor.constraint(greaterThanOrEqualTo: responseLabel.bottomAnchor, constant: -8),
+            timeLabel.topAnchor.constraint(greaterThanOrEqualTo: responseLabel.bottomAnchor, constant: 8),
             timeLabel.leftAnchor.constraint(equalTo: statusView.rightAnchor, constant: 8),
             timeLabel.widthAnchor.constraint(equalToConstant: 48),
             timeLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
