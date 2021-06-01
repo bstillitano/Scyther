@@ -86,7 +86,7 @@ class NetworkLogCell: UITableViewCell {
             timeLabel.topAnchor.constraint(greaterThanOrEqualTo: responseLabel.bottomAnchor, constant: 8),
             timeLabel.leftAnchor.constraint(equalTo: statusView.rightAnchor, constant: 8),
             timeLabel.widthAnchor.constraint(equalToConstant: 48),
-            timeLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            timeLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8)
         ])
         
         /// Setup `urlLabel` constraints
