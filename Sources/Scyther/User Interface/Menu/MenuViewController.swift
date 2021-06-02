@@ -117,7 +117,9 @@ extension MenuViewController: UITableViewDataSource {
 
         /// Set image
         if let url = row.imageURL {
-            cell.imageView?.loadImage(fromURL: url)
+            cell.imageView?.loadImage(fromURL: url) { _ in
+                cell.setNeedsLayout()
+            }
         } else if #available(iOS 13.0, *), let icon = row.image {
             cell.imageView?.image = icon
         }

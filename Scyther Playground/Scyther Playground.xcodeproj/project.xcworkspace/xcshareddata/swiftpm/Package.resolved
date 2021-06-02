@@ -6,17 +6,8 @@
         "repositoryURL": "/Users/stefanhaider/Documents/XcodeWorkespace/Scyther",
         "state": {
           "branch": "stfnhdr_remove_depenencies",
-          "revision": "c01541e4bfa094755a16fdec3d311b17e6d2d2ee",
+          "revision": "d020020aa0e0325a487c3dd79575b79ac424046f",
           "version": null
-        }
-      },
-      {
-        "package": "SDWebImage",
-        "repositoryURL": "https://github.com/SDWebImage/SDWebImage",
-        "state": {
-          "branch": null,
-          "revision": "76dd4b49110b8624317fc128e7fa0d8a252018bc",
-          "version": "5.11.1"
         }
       }
     ]
