@@ -37,7 +37,8 @@ internal class CookieBrowserViewController: UIViewController {
         //Setup Table View
         tableView.delegate = self
         tableView.dataSource = self
-
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        
         //Register Table View Cells
         tableView.register(SubtitleCell.self, forCellReuseIdentifier: RowStyle.subtitle.rawValue)
         tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
@@ -48,9 +49,12 @@ internal class CookieBrowserViewController: UIViewController {
     }
 
     private func setupConstraints() {
-        tableView.snp.remakeConstraints { (make) in
-            make.edges.equalToSuperview()
-        }
+        NSLayoutConstraint.activate([
+            tableView.leftAnchor.constraint(equalTo: view.leftAnchor),
+            tableView.rightAnchor.constraint(equalTo: view.rightAnchor),
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
     }
     
     private func setupData() {

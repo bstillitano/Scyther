@@ -29,67 +29,73 @@ class NetworkLogCell: UITableViewCell {
     }
     
     private func setupUI() {
+        
         /// Setup `statusView`
+        statusView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(self.statusView)
 
         /// Setup `urlLabel`
         urlLabel.font = .systemFont(ofSize: 14)
         urlLabel.numberOfLines = 0
+        urlLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(self.urlLabel)
 
         /// Setup `methodLabel`
         methodLabel.textAlignment = .center
         methodLabel.font = .boldSystemFont(ofSize: 16)
+        methodLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(self.methodLabel)
         
         /// Setup `responseLabel`
         responseLabel.textAlignment = .center
+        responseLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(responseLabel)
         
         /// Setup `timeLabel`
         timeLabel.textAlignment = .center
         timeLabel.font = .systemFont(ofSize: 11)
+        timeLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(timeLabel)
     }
     
     private func setupConstraints() {
         /// Setup `statusView` constraints
-        statusView.snp.remakeConstraints { (make) in
-            make.top.equalToSuperview()
-            make.bottom.equalToSuperview()
-            make.left.equalToSuperview()
-            make.width.equalTo(8)
-        }
+        NSLayoutConstraint.activate([
+            statusView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            statusView.leftAnchor.constraint(equalTo: contentView.leftAnchor),
+            statusView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            statusView.widthAnchor.constraint(equalToConstant: 8)
+        ])
         
         /// Setup `methodLabel` constraints
-        methodLabel.snp.remakeConstraints { (make) in
-            make.top.equalToSuperview().inset(8)
-            make.left.equalTo(statusView.snp.right).offset(8)
-            make.width.equalTo(48)
-        }
+        NSLayoutConstraint.activate([
+            methodLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            methodLabel.leftAnchor.constraint(equalTo: statusView.rightAnchor, constant: 8),
+            methodLabel.widthAnchor.constraint(equalToConstant: 48)
+        ])
         
         /// Setup `responseLabel` constraints
-        responseLabel.snp.remakeConstraints { (make) in
-            make.top.greaterThanOrEqualTo(methodLabel.snp.bottom).offset(8)
-            make.left.equalTo(statusView.snp.right).offset(8)
-            make.width.equalTo(48)
-        }
+        NSLayoutConstraint.activate([
+            responseLabel.topAnchor.constraint(greaterThanOrEqualTo: methodLabel.bottomAnchor, constant: 8),
+            responseLabel.leftAnchor.constraint(equalTo: statusView.rightAnchor, constant: 8),
+            responseLabel.widthAnchor.constraint(equalToConstant: 48)
+        ])
         
         /// Setup `timeLabel` constraints
-        timeLabel.snp.remakeConstraints { (make) in
-            make.top.greaterThanOrEqualTo(responseLabel.snp.bottom).offset(8)
-            make.left.equalTo(statusView.snp.right).offset(8)
-            make.width.equalTo(48)
-            make.bottom.equalToSuperview().inset(8)
-        }
+        NSLayoutConstraint.activate([
+            timeLabel.topAnchor.constraint(greaterThanOrEqualTo: responseLabel.bottomAnchor, constant: 8),
+            timeLabel.leftAnchor.constraint(equalTo: statusView.rightAnchor, constant: 8),
+            timeLabel.widthAnchor.constraint(equalToConstant: 48),
+            timeLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8)
+        ])
         
         /// Setup `urlLabel` constraints
-        urlLabel.snp.remakeConstraints { (make) in
-            make.top.equalToSuperview().inset(8)
-            make.bottom.equalToSuperview().inset(8)
-            make.left.equalTo(methodLabel.snp.right).offset(16)
-            make.right.equalToSuperview().inset(16)
-        }
+        NSLayoutConstraint.activate([
+            urlLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            urlLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+            urlLabel.leftAnchor.constraint(equalTo: methodLabel.rightAnchor, constant: 8),
+            urlLabel.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: -16),
+        ])
     }
 
     override func layoutSubviews() {

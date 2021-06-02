@@ -8,7 +8,7 @@
 #if !os(macOS)
 import UIKit
 
-internal protocol GridOverlayViewModelProtocol: class {
+internal protocol GridOverlayViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
 }
 
@@ -74,7 +74,7 @@ internal class GridOverlayViewModel {
     func colorRow(color: GridOverlayColorScheme) -> DefaultRow {
         let value: DefaultRow = DefaultRow()
         value.text = color.rawValue.capitalized
-        value.accessoryType = GridOverlay.instance.colorScheme == color ? .checkmark : .none
+        value.accessoryType = GridOverlay.instance.colorScheme == color ? .checkmark : UITableViewCell.AccessoryType.none
         value.actionBlock = { [weak self] in
             GridOverlay.instance.colorScheme = color
             self?.prepareObjects()

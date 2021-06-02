@@ -31,6 +31,7 @@ internal class GridOverlayViewController: UIViewController {
         //Setup Table View
         tableView.delegate = self
         tableView.dataSource = self
+        tableView.translatesAutoresizingMaskIntoConstraints = false
 
         //Register Table View Cells
         tableView.register(SwitchCell.self, forCellReuseIdentifier: RowStyle.switchAccessory.rawValue)
@@ -42,10 +43,12 @@ internal class GridOverlayViewController: UIViewController {
     }
 
     private func setupConstraints() {
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        tableView.snp.makeConstraints { (make) in
-            make.edges.equalToSuperview()
-        }
+        NSLayoutConstraint.activate([
+            tableView.leftAnchor.constraint(equalTo: view.leftAnchor),
+            tableView.rightAnchor.constraint(equalTo: view.rightAnchor),
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
     }
     
     private func setupData() {

@@ -8,7 +8,7 @@
 #if !os(macOS)
 import UIKit
 
-internal protocol MenuViewModelProtocol: class {
+internal protocol MenuViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
     func viewModel(viewModel: MenuViewModel?, shouldShowViewController viewController: UIViewController?)
 }

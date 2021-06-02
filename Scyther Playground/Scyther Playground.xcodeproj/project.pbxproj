@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C90AB5752667AEAF0036A4FE /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = C90AB5742667AEAF0036A4FE /* SnapKit */; };
 		CA73FCE825D690D2007FA627 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCE725D690D2007FA627 /* AppDelegate.swift */; };
 		CA73FCEA25D690D2007FA627 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCE925D690D2007FA627 /* SceneDelegate.swift */; };
 		CA73FCEC25D690D2007FA627 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCEB25D690D2007FA627 /* ViewController.swift */; };
@@ -70,6 +71,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CA73FDDD25DA22E8007FA627 /* Scyther in Frameworks */,
+				C90AB5752667AEAF0036A4FE /* SnapKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -167,6 +169,7 @@
 			name = "Scyther Playground";
 			packageProductDependencies = (
 				CA73FDDC25DA22E8007FA627 /* Scyther */,
+				C90AB5742667AEAF0036A4FE /* SnapKit */,
 			);
 			productName = "Scyther Playground";
 			productReference = CA73FCE425D690D2007FA627 /* Scyther Playground.app */;
@@ -242,6 +245,7 @@
 			mainGroup = CA73FCDB25D690D2007FA627;
 			packageReferences = (
 				CA73FDDB25DA22E8007FA627 /* XCRemoteSwiftPackageReference "Scyther" */,
+				C90AB5732667AEAF0036A4FE /* XCRemoteSwiftPackageReference "SnapKit" */,
 			);
 			productRefGroup = CA73FCE525D690D2007FA627 /* Products */;
 			projectDirPath = "";
@@ -473,6 +477,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Scyther Playground/Scyther Playground.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				INFOPLIST_FILE = "Scyther Playground/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -496,6 +501,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Scyther Playground/Scyther Playground.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				INFOPLIST_FILE = "Scyther Playground/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -631,6 +637,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		C90AB5732667AEAF0036A4FE /* XCRemoteSwiftPackageReference "SnapKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SnapKit/SnapKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.1;
+			};
+		};
 		CA73FDDB25DA22E8007FA627 /* XCRemoteSwiftPackageReference "Scyther" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/bstillitano/Scyther.git";
@@ -642,6 +656,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		C90AB5742667AEAF0036A4FE /* SnapKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C90AB5732667AEAF0036A4FE /* XCRemoteSwiftPackageReference "SnapKit" */;
+			productName = SnapKit;
+		};
 		CA73FDDC25DA22E8007FA627 /* Scyther */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = CA73FDDB25DA22E8007FA627 /* XCRemoteSwiftPackageReference "Scyther" */;

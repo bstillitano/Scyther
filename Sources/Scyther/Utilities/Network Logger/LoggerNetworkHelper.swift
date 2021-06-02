@@ -75,7 +75,7 @@ extension URLRequest {
         }
 
         /// Construct curl command
-        let baseCommand = "curl \u{27}\(url.absoluteString)\u{27}"
+        let baseCommand = "curl \u{22}\(url.absoluteString)\u{22}"
         var commands = [baseCommand]
 
         /// Check method and append onto commands array
@@ -85,7 +85,7 @@ extension URLRequest {
 
         /// Append all headers
         for (key, value) in headers {
-            commands.append("-H \u{27}\(key): \(value)\u{27}")
+            commands.append("-H \u{22}\(key): \(value)\u{22}")
         }
 
         /// Append Conditional Body
@@ -93,7 +93,7 @@ extension URLRequest {
             let body = String(data: requestBody, encoding: .utf8) else {
             return commands.joined(separator: " ")
         }
-        commands.append("-d \u{27}\(body)\u{27}")
+        commands.append("-d \u{22}\(body)\u{22}")
 
         return commands.joined(separator: " ")
     }

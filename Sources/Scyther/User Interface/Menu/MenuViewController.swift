@@ -6,9 +6,8 @@
 //
 
 #if !os(macOS)
-import SDWebImage
-import SnapKit
 import UIKit
+import SDWebImage
 
 internal class MenuViewController: UIViewController {
     // MARK: - Data
@@ -55,9 +54,12 @@ internal class MenuViewController: UIViewController {
     }
 
     private func setupConstraints() {
-        tableView.snp.makeConstraints { (make) in
-            make.edges.equalToSuperview()
-        }
+        NSLayoutConstraint.activate([
+            tableView.leftAnchor.constraint(equalTo: view.leftAnchor),
+            tableView.rightAnchor.constraint(equalTo: view.rightAnchor),
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
     }
 
     // MARK: - Lifecycle
@@ -114,6 +116,7 @@ extension MenuViewController: UITableViewDataSource {
         cell.textLabel?.text = viewModel?.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
 
+        /// Set image
         /// Set image
         if let url = row.imageURL {
             cell.imageView?.sd_setImage(with: url, completed: { (_, _, _, _) in

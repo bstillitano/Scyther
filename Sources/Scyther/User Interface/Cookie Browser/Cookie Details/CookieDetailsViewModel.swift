@@ -8,7 +8,7 @@
 #if !os(macOS)
 import UIKit
 
-internal protocol CookieDetailsViewModelProtocol: class {
+internal protocol CookieDetailsViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
 }
 

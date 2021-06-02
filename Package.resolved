@@ -6,17 +6,8 @@
         "repositoryURL": "https://github.com/SDWebImage/SDWebImage",
         "state": {
           "branch": null,
-          "revision": "a6b6e44eadf0d39250c10a7cc0e3b91d0bdb0e94",
-          "version": "5.10.4"
-        }
-      },
-      {
-        "package": "SnapKit",
-        "repositoryURL": "https://github.com/SnapKit/SnapKit",
-        "state": {
-          "branch": null,
-          "revision": "d458564516e5676af9c70b4f4b2a9178294f1bc6",
-          "version": "5.0.1"
+          "revision": "76dd4b49110b8624317fc128e7fa0d8a252018bc",
+          "version": "5.11.1"
         }
       }
     ]
