@@ -8,7 +8,7 @@
 #if !os(macOS)
 import UIKit
 
-internal protocol NetworkLoggerViewModelProtocol: class {
+internal protocol NetworkLoggerViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
     func viewModel(viewModel: NetworkLoggerViewModel?, shouldShowViewController viewController: UIViewController?)
 }

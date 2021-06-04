@@ -38,14 +38,18 @@ class TextReaderViewController: UIViewController {
         /// Setup Text View
         textView.font = .systemFont(ofSize: 13.0)
         textView.isEditable = false
+        textView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(textView)
     }
     
     private func setupConstraints() {
         /// Setup Text View Constraints
-        textView.snp.makeConstraints { (make) in
-            make.edges.equalToSuperview()
-        }
+        NSLayoutConstraint.activate([
+            textView.leftAnchor.constraint(equalTo: view.leftAnchor),
+            textView.rightAnchor.constraint(equalTo: view.rightAnchor),
+            textView.topAnchor.constraint(equalTo: view.topAnchor),
+            textView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
     }
     
     @objc

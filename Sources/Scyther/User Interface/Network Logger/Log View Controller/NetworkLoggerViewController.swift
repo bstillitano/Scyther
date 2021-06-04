@@ -46,6 +46,7 @@ internal class NetworkLoggerViewController: UIViewController {
         tableView.delegate = self
         tableView.dataSource = self
         tableView.tableFooterView = UIView()
+        tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
 
         /// Register Table View Cells
@@ -67,9 +68,12 @@ internal class NetworkLoggerViewController: UIViewController {
     }
 
     private func setupConstraints() {
-        tableView.snp.makeConstraints { (make) in
-            make.edges.equalToSuperview()
-        }
+        NSLayoutConstraint.activate([
+            tableView.leftAnchor.constraint(equalTo: view.leftAnchor),
+            tableView.rightAnchor.constraint(equalTo: view.rightAnchor),
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
     }
 
     private func setupData() {

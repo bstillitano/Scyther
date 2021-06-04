@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  UIColor+Extensions.swift
 //
 //
 //  Created by Brandon Stillitano on 24/2/21.

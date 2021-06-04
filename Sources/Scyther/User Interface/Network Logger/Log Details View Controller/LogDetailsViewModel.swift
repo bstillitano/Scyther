@@ -8,7 +8,7 @@
 #if !os(macOS)
 import UIKit
 
-internal protocol LogDetailsViewModelProtocol: class {
+internal protocol LogDetailsViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
     func viewModel(viewModel: LogDetailsViewModel?, shouldShowViewController viewController: UIViewController?)
 }
