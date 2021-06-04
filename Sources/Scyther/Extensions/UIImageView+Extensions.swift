@@ -1,5 +1,5 @@
 //
-//  UIImageView+Extension.swift
+//  UIImageView+Extensions.swift
 // 
 //
 //  Created by Stefan Haider on 01.06.21.
@@ -11,7 +11,7 @@ import UIKit
 extension UIImageView {
     
     /**
-     Trys to load an Image from an URL and sets it as image
+     Tries to load an Image from an URL and sets it as image
      
      - Parameters:
         - url: The URL of the image to fetch
