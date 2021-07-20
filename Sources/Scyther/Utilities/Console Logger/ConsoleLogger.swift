@@ -11,7 +11,7 @@ public class ConsoleLogger {
     /// Private Init to Stop re-initialisation and allow singleton creation.
     private init() { }
 
-    /// An initialised, shared instance of the `ConfigurationSwitcher` class.
+    /// An initialised, shared instance of the `ConsoleLogger` class.
     static let instance = ConsoleLogger()
 
     /// Essentialy "starts" the logger by telling the system to start writing console output to a local file.

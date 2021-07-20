@@ -49,10 +49,5 @@ public extension UIDevice {
         /// Add 2007 to the value as that was the year of release for the first generation of iOS
         return (Float(value) ?? 0) + 2007
     }
-    
-    /// Gets a `URL` for an icon file that represents the current running device
-    var deviceIconURL: URL? {
-        return MobileDevices.instance?.iconURL
-    }
 }
 #endif

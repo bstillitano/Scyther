@@ -6,7 +6,6 @@
 //
 
 #if !os(macOS)
-import SDWebImage
 import SnapKit
 import UIKit
 
@@ -39,6 +38,7 @@ internal class MenuViewController: UIViewController {
         tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
         tableView.register(DeviceTableViewCell.self, forCellReuseIdentifier: RowStyle.deviceHeader.rawValue)
         tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
+        tableView.register(SwitchCell.self, forCellReuseIdentifier: RowStyle.switchAccessory.rawValue)
 
         /// Setup Close button
         if #available(iOS 13.0, *) {
@@ -97,7 +97,7 @@ extension MenuViewController: UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel?.numbeOfRows(inSection: section) ?? 0
+        return viewModel?.numberOfRows(inSection: section) ?? 0
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -109,15 +109,16 @@ extension MenuViewController: UITableViewDataSource {
         /// Configure cell
         let cell = tableView.dequeueReusableCell(withIdentifier: row.style.rawValue, for: indexPath)
         cell.accessoryType = row.accessoryType ?? .none
+        cell.accessoryView = row.accessoryView
         cell.textLabel?.text = viewModel?.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
 
         /// Set image
         if let url = row.imageURL {
-            cell.imageView?.sd_setImage(with: url, completed: { (_, _, _, _) in
+            cell.imageView?.loadImage(fromURL: url) { _ in
                 cell.setNeedsLayout()
-            })
-        } else if #available(iOS 13.0, *), let icon = row.image {
+            }
+        } else if let icon = row.image {
             cell.imageView?.image = icon
         }
 

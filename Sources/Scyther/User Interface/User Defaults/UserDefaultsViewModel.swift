@@ -19,7 +19,7 @@ internal class UserDefaultsViewModel {
     // MARK: - Delegate
     weak var delegate: UserDefaultsViewModelProtocol?
 
-    /// Single row representing a single environment variable
+    /// Single row representing a single user defalt
     func defaultRow(name: String, value: String?) -> DefaultRow {
         let row: DefaultRow = DefaultRow()
         row.text = name
@@ -60,7 +60,7 @@ extension UserDefaultsViewModel {
         return sections[index].title
     }
 
-    func numbeOfRows(inSection index: Int) -> Int {
+    func numberOfRows(inSection index: Int) -> Int {
         return rows(inSection: index)?.count ?? 0
     }
 

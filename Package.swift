@@ -6,8 +6,7 @@ import PackageDescription
 let package = Package(
     name: "Scyther",
     platforms: [
-        .macOS(.v10_12),
-        .iOS(.v11)
+        .macOS(.v10_14), .iOS(.v11)
     ], products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
@@ -17,8 +16,6 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        .package(url: "https://github.com/SDWebImage/SDWebImage",
-                 from: "5.10.0"),
         .package(url: "https://github.com/SnapKit/SnapKit",
                  from: "5.0.1")
     ],
@@ -27,10 +24,7 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "Scyther",
-            dependencies: [
-                "SDWebImage",
-                "SnapKit"
-            ],
+            dependencies: ["SnapKit"],
             resources: [
                 .process("Resources")
             ]

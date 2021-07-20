@@ -30,6 +30,10 @@ internal class NetworkLoggerViewController: UIViewController {
                                                selector: #selector(prepareObjects),
                                                name: NSNotification.Name.LoggerReloadData,
                                                object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(prepareObjects),
+                                               name: NSNotification.Name.LoggerClearedModels,
+                                               object: nil)
     }
 
     required init?(coder: NSCoder) {
@@ -57,6 +61,9 @@ internal class NetworkLoggerViewController: UIViewController {
         searchController?.searchBar.placeholder = "Search by url or status code"
         self.navigationItem.searchController = self.searchController
         self.definesPresentationContext = true
+        
+        /// Setup Close button
+        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: #selector(clearLogs))
     }
 
     private func setupConstraints() {
@@ -75,7 +82,9 @@ internal class NetworkLoggerViewController: UIViewController {
     
     @objc
     private func prepareObjects() {
-        viewModel.prepareObjects(filteredOn: searchController?.searchBar.text)
+        var searchText: String?
+        searchText = searchController?.searchBar.text
+        viewModel.prepareObjects(filteredOn: searchText)
     }
 
     // MARK: - Lifecycle
@@ -85,6 +94,12 @@ internal class NetworkLoggerViewController: UIViewController {
         UIView.setAnimationsEnabled(false)
         UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
         UIView.setAnimationsEnabled(true)
+    }
+}
+
+extension NetworkLoggerViewController {
+    @objc private func clearLogs() {
+        LoggerHTTPModelManager.sharedInstance.clear()
     }
 }
 
@@ -98,7 +113,7 @@ extension NetworkLoggerViewController: UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel.numbeOfRows(inSection: section)
+        return viewModel.numberOfRows(inSection: section)
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -174,7 +189,5 @@ extension NetworkLoggerViewController: UISearchResultsUpdating {
     }
 }
 
-extension NetworkLoggerViewController: UISearchControllerDelegate {
-    
-}
+extension NetworkLoggerViewController: UISearchControllerDelegate { }
 #endif

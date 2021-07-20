@@ -32,11 +32,11 @@ internal class MenuViewModel {
         return row
     }
 
-    func headerRow(name: String, value: String?, iconURL: URL? = nil) -> DeviceRow {
+    func headerRow(name: String, value: String?, image: UIImage? = nil) -> DeviceRow {
         let row: DeviceRow = DeviceRow()
         row.text = name
         row.detailText = value
-        row.imageURL = iconURL
+        row.image = image
         row.style = .deviceHeader
         row.accessoryType = UITableViewCell.AccessoryType.none
         return row
@@ -59,6 +59,46 @@ internal class MenuViewModel {
 
         return row
     }
+    
+    /// Switch to enable/disable showing view frames
+    var viewFramesSwitch: SwitchAccessoryRow {
+        //Setup Row
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = "Show View Frames"
+        row.image = UIImage(systemImage: "viewfinder")
+        
+        //Setup Accessory
+        let switchView = UIActionSwitch()
+        switchView.isOn = InterfaceToolkit.instance.showsViewBorders
+        switchView.actionBlock = {
+            InterfaceToolkit.instance.swizzleLayout()
+            InterfaceToolkit.instance.showsViewBorders = switchView.isOn
+        }
+        switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        row.accessoryView = switchView
+
+        return row
+    }
+    
+    /// Switch to enable/disable slow animations
+    var slowAnimationsSwitch: SwitchAccessoryRow {
+        //Setup Row
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = "Slow Animations"
+        row.image = UIImage(systemImage: "tortoise")
+
+        //Setup Accessory
+        let switchView = UIActionSwitch()
+        switchView.isOn = InterfaceToolkit.instance.slowAnimationsEnabled
+        switchView.actionBlock = { [weak self] in
+            InterfaceToolkit.instance.slowAnimationsEnabled = switchView.isOn
+            self?.delegate?.viewModelShouldReloadData()
+        }
+        switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        row.accessoryView = switchView
+
+        return row
+    }
 
     func prepareObjects() {
         //Clear Data
@@ -69,7 +109,7 @@ internal class MenuViewModel {
         deviceSection.title = "Device"
         deviceSection.rows.append(headerRow(name: UIDevice.current.name,
                                             value: UIDevice.current.model,
-                                            iconURL: UIDevice.current.deviceIconURL))
+                                            image: .appIcon))
         deviceSection.rows.append(valueRow(name: "Version",
                                            value: UIDevice.current.systemVersion,
                                            icon: nil))
@@ -92,7 +132,7 @@ internal class MenuViewModel {
                                                 value: String(getpid()),
                                                 icon: nil))
         applicationSection.rows.append(valueRow(name: "Release Type",
-                                                value: EnvironmentReader.configuration().rawValue,
+                                                value: AppEnvironment.configuration().rawValue,
                                                 icon: nil))
         applicationSection.rows.append(valueRow(name: "Build Date",
                                                 value: Bundle.main.buildDate.formatted(),
@@ -113,13 +153,16 @@ internal class MenuViewModel {
 
         /// Setup Environment Section
         var environmentSection: Section = Section()
-        environmentSection.title = "Environment"
+        environmentSection.title = "Data"
         environmentSection.rows.append(actionRow(name: "Feature Flags",
                                                  icon: UIImage(systemImage: "flag"),
                                                  actionController: FeatureFlagsViewController()))
         environmentSection.rows.append(actionRow(name: "User Defaults",
                                                  icon: UIImage(systemImage: "face.dashed"),
                                                  actionController: UserDefaultsViewController()))
+        environmentSection.rows.append(actionRow(name: "Cookies",
+                                                 icon: UIImage(systemImage: "info.circle"),
+                                                 actionController: CookieBrowserViewController()))
 
         /// Setup Security Section
         var securitySection: Section = Section()
@@ -135,10 +178,36 @@ internal class MenuViewModel {
         supportSection.rows.append(emptyRow(text: "More coming soon"))
 
 
+        /// Setup UI/UX Section
+        var uiUxSection: Section = Section()
+        uiUxSection.title = "UI/UX"
+        uiUxSection.rows.append(actionRow(name: "Push Notifications",
+                                                 icon: UIImage(systemImage: "bell"),
+                                                 actionController: NotificationTesterViewController()))
+        uiUxSection.rows.append(actionRow(name: "Fonts",
+                                                 icon: UIImage(systemImage: "textformat"),
+                                                 actionController: FontsViewController()))
+        uiUxSection.rows.append(actionRow(name: "Interface Components",
+                                                 icon: UIImage(systemImage: "apps.iphone"),
+                                                 actionController: InterfacePreviewsViewController()))
+        uiUxSection.rows.append(actionRow(name: "Grid Overlay",
+                                                 icon: UIImage(systemImage: "rectangle.split.3x3"),
+                                                 actionController: GridOverlayViewController()))
+        uiUxSection.rows.append(viewFramesSwitch)
+        uiUxSection.rows.append(slowAnimationsSwitch)
+        
         /// Setup Development Section
         var developmentSection: Section = Section()
         developmentSection.title = "Development Tools"
-        developmentSection.rows.append(emptyRow(text: "No tools configured"))
+        if Scyther.instance.developerOptions.isEmpty {
+            developmentSection.rows.append(emptyRow(text: "No tools configured"))
+        } else {
+            for tool: DeveloperOption in Scyther.instance.developerOptions {
+                developmentSection.rows.append(actionRow(name: tool.name ?? "",
+                                                         icon: tool.icon,
+                                                         actionController: tool.viewController))
+            }
+        }
 
         /// Setup Data
         sections.append(deviceSection)
@@ -147,6 +216,7 @@ internal class MenuViewModel {
         sections.append(environmentSection)
         sections.append(securitySection)
         sections.append(supportSection)
+        sections.append(uiUxSection)
         sections.append(developmentSection)
 
         /// Call Delegate
@@ -168,7 +238,7 @@ extension MenuViewModel {
         return sections[index].title
     }
 
-    func numbeOfRows(inSection index: Int) -> Int {
+    func numberOfRows(inSection index: Int) -> Int {
         return rows(inSection: index)?.count ?? 0
     }
 
@@ -196,6 +266,13 @@ extension MenuViewModel {
     private func rows(inSection index: Int) -> [Row]? {
         guard let section = section(for: index) else { return nil }
         return section.rows.filter { !$0.isHidden }
+    }
+}
+
+extension MenuViewModel {
+    @objc
+    func switchToggled(_ sender: UIActionSwitch?) {
+        sender?.actionBlock?()
     }
 }
 #endif

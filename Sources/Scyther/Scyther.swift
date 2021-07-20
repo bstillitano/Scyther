@@ -44,6 +44,15 @@ public class Scyther {
     /// `ConsoleLogger` utility class. Used for intercepting local console output.
     public static let consoleLogger: ConsoleLogger = ConsoleLogger.instance
     
+    /// `NotificationTester` utility class. Used for testing push notification functionality.
+    public static let notificationTester: NotificationTester = NotificationTester.instance
+    
+    /// `InterfaceToolkit` utility class. Used for overlaying UI Elements onto the running application.
+    public static let interfaceToolkit: InterfaceToolkit = InterfaceToolkit.instance
+    
+    /// Developer options that will be displayed on the main manue
+    public var developerOptions: [DeveloperOption] = []
+    
     /// Initialises the Scyther library and sets the required data to properly intercept network calls and console logs.
     public func start() {
         /// Set data
@@ -56,11 +65,14 @@ public class Scyther {
         
         /// Get IP Address and store it in singleton instance for display on the menu
         Logger.getIPAddress { (ipAddress) in
-            Scyther.logger.ipAddress = ipAddress
+            Logger.instance.ipAddress = ipAddress
         }
         
         /// Starts the console logger and allows it intercept `stderr` output from `NSLog`
 //        ConsoleLogger.instance.start()
+        
+        /// Sets up the interface toolkit plugins
+        InterfaceToolkit.instance.start()
     }
 
     /// Convenience function for manually showing the Scyther menu. Would be used when no gesture is wanted to invoke the menu.

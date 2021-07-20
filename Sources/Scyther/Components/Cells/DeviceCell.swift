@@ -13,7 +13,28 @@ final internal class DeviceTableViewCell: UITableViewCell {
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: .subtitle, reuseIdentifier: reuseIdentifier)
 
-        imageView?.contentMode = .scaleAspectFit
+        imageView?.layer.cornerRadius = 12.0
+        imageView?.layer.masksToBounds = true
+        
+        imageView?.snp.remakeConstraints({ (make) in
+            make.top.equalToSuperview().inset(8)
+            make.bottom.equalToSuperview()
+            make.left.equalToSuperview().inset(16)
+            make.width.equalTo(48)
+            make.height.equalTo(48)
+        })
+
+        textLabel?.snp.remakeConstraints({ (make) in
+            make.bottom.equalTo(imageView?.snp.centerY ?? 0)
+            make.left.equalTo(imageView?.snp.right ?? 0).offset(16)
+            make.right.equalToSuperview()
+        })
+        
+        detailTextLabel?.snp.remakeConstraints({ (make) in
+            make.top.equalTo(imageView?.snp.centerY ?? 0)
+            make.left.equalTo(imageView?.snp.right ?? 0).offset(16)
+            make.right.equalToSuperview()
+        })
     }
 
     required init?(coder: NSCoder) {
@@ -23,22 +44,6 @@ final internal class DeviceTableViewCell: UITableViewCell {
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        imageView?.frame = CGRect(x: 0, y: 7.5, width: 60, height: bounds.height - 15)
-
-        guard let imageView = imageView else { return }
-        if let textLabel = textLabel {
-            self.textLabel?.frame = CGRect(x: imageView.frame.origin.x + imageView.frame.size.width,
-                                           y: textLabel.frame.origin.y,
-                                           width: bounds.size.width,
-                                           height: textLabel.frame.size.height)
-        }
-
-        if let detailTextLabel = detailTextLabel {
-            self.detailTextLabel?.frame = CGRect(x: imageView.frame.origin.x + imageView.frame.size.width,
-                                                 y: detailTextLabel.frame.origin.y,
-                                                 width: bounds.size.width,
-                                                 height: detailTextLabel.frame.size.height)
-        }
     }
 }
 #endif
