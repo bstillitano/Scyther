@@ -98,6 +98,18 @@ extension LogDetailsViewController: UITableViewDataSource {
 
         return cell
     }
+    
+    func tableView(_ tableView: UITableView, canPerformAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) -> Bool {
+        return viewModel.canPerformAction(action: action, forRowAt: indexPath, withSender: sender)
+    }
+
+    func tableView(_ tableView: UITableView, performAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) {
+        if action == #selector(copy(_:)) {
+            let cell = tableView.cellForRow(at: indexPath)
+            let pasteboard = UIPasteboard.general
+            pasteboard.string = cell?.detailTextLabel?.text
+        }
+    }
 }
 
 extension LogDetailsViewController: UITableViewDelegate {

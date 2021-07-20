@@ -213,6 +213,26 @@ extension LogDetailsViewModel {
     func title(for row: Row, indexPath: IndexPath) -> String? {
         return row.text
     }
+    
+    func shouldShowMenuForRowAt(indexPath: IndexPath) -> Bool {
+        guard let value: String = sections[indexPath.section].rows[indexPath.row].detailText else {
+            return false
+        }
+        return !value.isEmpty
+    }
+    
+    func canPerformAction(action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) -> Bool {
+        return action == #selector(copy(_:))
+    }
+
+    func performAction(action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) {
+        guard action == #selector(copy(_:)) else {
+            return
+        }
+        let cell = tableView.cellForRow(at: indexPath)
+        let pasteboard = UIPasteboard.general
+        pasteboard.string = cell?.detailTextLabel?.text
+    }
 
     func performAction(for row: Row, indexPath: IndexPath) {
         row.actionBlock?()
