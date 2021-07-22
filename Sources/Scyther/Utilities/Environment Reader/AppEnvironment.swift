@@ -41,7 +41,7 @@ public struct AppEnvironment {
      Returns a `Bool` value indicating whether or not the current build is being run via XCode or TestFlight.
     */
     public static var isDevelopment: Bool {
-        return isTestFlight || isSimulator
+        return isTestFlight || isSimulator || isDebug
     }
 
     /**
