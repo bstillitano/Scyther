@@ -9,7 +9,7 @@
 import UIKit
 
 /// Optional delegate that can be implemented to allow an app/caller to know that certain actions have been performed. This `protocol`is not required to be implemented in order for Scyther to work properly, it should be used primarily as a UI convenience; i.e. When switching environments, show a `UIAlertController`
-public protocol ScytherDelegate: class {
+public protocol ScytherDelegate: AnyObject {
     func scyther(didSwitchToEnvironment environment: String)
 }
 
@@ -50,8 +50,14 @@ public class Scyther {
     /// `InterfaceToolkit` utility class. Used for overlaying UI Elements onto the running application.
     public static let interfaceToolkit: InterfaceToolkit = InterfaceToolkit.instance
     
-    /// Developer options that will be displayed on the main manue
+    /// Developer options that will be displayed on the main menu
     public var developerOptions: [DeveloperOption] = []
+    
+    /// 64 Character device token registered with APNS. Example: 30eee4d53612de08c61477d4503b23220d76d74efed258230ef3536afd4504f2
+    public var apnsToken: String?
+    
+    /// Variable length device token registerd with FCM. Example: dEoOEdh9yEy5sK-BeTxzJR:APA91bH0bNeYvYadpl98frTc6FYY1DbicXc40QrTDj5aOFxPNZF-JLEGvawxWl6g9GXgZod04_UV95zBlzdYFnxByHSCcySmzyrqfPk1IQC7aIfefBTL7a3FX9dQVNnG4x1igi317YUf
+    public var fcmToken: String?
     
     /// Initialises the Scyther library and sets the required data to properly intercept network calls and console logs.
     public func start() {

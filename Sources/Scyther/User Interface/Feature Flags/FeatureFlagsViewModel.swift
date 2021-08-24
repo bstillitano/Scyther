@@ -8,7 +8,7 @@
 #if !os(macOS)
 import UIKit
 
-internal protocol FeatureFlagsViewModelProtocol: class {
+internal protocol FeatureFlagsViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
 }
 

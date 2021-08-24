@@ -8,7 +8,7 @@
 #if !os(macOS)
 import UIKit
 
-internal protocol MenuViewModelProtocol: class {
+internal protocol MenuViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
     func viewModel(viewModel: MenuViewModel?, shouldShowViewController viewController: UIViewController?)
 }
@@ -42,12 +42,13 @@ internal class MenuViewModel {
         return row
     }
 
-    func valueRow(name: String, value: String?, icon: UIImage?) -> DefaultRow {
+    func valueRow(name: String, value: String?, icon: UIImage?, showMenu: Bool = false) -> DefaultRow {
         let row: DefaultRow = DefaultRow()
         row.text = name
         row.detailText = value
         row.image = icon
         row.style = .default
+        row.shouldShowMenuForRow = showMenu
         row.accessoryType = UITableViewCell.AccessoryType.none
         return row
     }
@@ -176,14 +177,25 @@ internal class MenuViewModel {
                                              icon: UIImage(systemImage: "terminal"),
                                              actionController: ConsoleLoggerViewController()))
         supportSection.rows.append(emptyRow(text: "More coming soon"))
-
+        
+        /// Setup Notifications Section
+        var notificationsSection: Section = Section()
+        notificationsSection.title = "Notifications"
+        notificationsSection.rows.append(actionRow(name: "Notification Tester",
+                                                 icon: UIImage(systemImage: "bell"),
+                                                 actionController: NotificationTesterViewController()))
+        notificationsSection.rows.append(valueRow(name: "APNS Token",
+                                                  value: Scyther.instance.apnsToken ?? "Not set",
+                                                  icon: UIImage(systemImage: "applelogo"),
+                                                  showMenu: true))
+        notificationsSection.rows.append(valueRow(name: "FCM Token",
+                                                  value: Scyther.instance.fcmToken ?? "Not set",
+                                                  icon: UIImage(systemImage: "flame"),
+                                                  showMenu: true))
 
         /// Setup UI/UX Section
         var uiUxSection: Section = Section()
         uiUxSection.title = "UI/UX"
-        uiUxSection.rows.append(actionRow(name: "Push Notifications",
-                                                 icon: UIImage(systemImage: "bell"),
-                                                 actionController: NotificationTesterViewController()))
         uiUxSection.rows.append(actionRow(name: "Fonts",
                                                  icon: UIImage(systemImage: "textformat"),
                                                  actionController: FontsViewController()))
@@ -216,6 +228,7 @@ internal class MenuViewModel {
         sections.append(environmentSection)
         sections.append(securitySection)
         sections.append(supportSection)
+        sections.append(notificationsSection)
         sections.append(uiUxSection)
         sections.append(developmentSection)
 

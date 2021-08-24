@@ -8,7 +8,7 @@
 #if !os(macOS)
 import UIKit
 
-internal protocol FontsViewModelProtocol: class {
+internal protocol FontsViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
 }
 

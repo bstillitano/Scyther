@@ -21,5 +21,6 @@ class FontRow: Row {
     var imageURL: URL?
     var accessoryType: UITableViewCell.AccessoryType?
     var font: UIFont?
+    var shouldShowMenuForRow: Bool? = false
 }
 #endif

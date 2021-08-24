@@ -23,5 +23,6 @@ class SliderRow: Row {
     var slider: UISlider = UISlider()
     var sliderValueLabel: UILabel = UILabel()
     weak var sliderCellDelegate: SliderCellDelegate?
+    var shouldShowMenuForRow: Bool? = false
 }
 #endif

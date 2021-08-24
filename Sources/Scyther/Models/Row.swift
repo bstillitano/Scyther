@@ -33,6 +33,7 @@ internal protocol Row {
     var image: UIImage? { get set }
     var imageURL: URL? { get set }
     var accessoryType: UITableViewCell.AccessoryType? { get set }
+    var shouldShowMenuForRow: Bool? { get set }
 }
 
 extension Row {
