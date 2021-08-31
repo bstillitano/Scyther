@@ -19,11 +19,12 @@ internal class NotificationLoggerViewModel {
     // MARK: - Delegate
     weak var delegate: NotificationLoggerViewModelProtocol?
 
-    /// Single checkable row value representing a single environment
-    func notificationRow(notification: PushNotification) -> DefaultRow {
-        var row: DefaultRow = DefaultRow()
-        row.text = notification.receivedAt?.formatted()
-        row.detailText = "Content-Avaialble: \(notification.aps.contentAvailable ?? -999)"
+    /// Single row representing a single value and key
+    func defaultRow(name: String, value: String?) -> DefaultRow {
+        let row: DefaultRow = DefaultRow()
+        row.text = name
+        row.detailText = value
+
         return row
     }
     
@@ -39,16 +40,26 @@ internal class NotificationLoggerViewModel {
         //Clear Data
         sections.removeAll()
 
-        //Setup Notifications Section
-        var notificationsSection: Section = Section()
-        notificationsSection.title = "Notifications"
-        notificationsSection.rows = NotificationTester.instance.notifications.sorted(by: { $0.receivedAt ?? Date() < $1.receivedAt ?? Date() }).map({ notificationRow(notification: $0) })
-        if notificationsSection.rows.isEmpty {
-            notificationsSection.rows.append(emptyRow(text: "No notifications received"))
+        //Setup Notification Sections
+        for notification: PushNotification in NotificationTester.instance.notifications.sorted(by: { $0.receivedAt ?? Date() < $1.receivedAt ?? Date() }) {
+            var section: Section = Section()
+            section.title = notification.receivedAt?.formatted(format: "dd MMM yyyy h:mm:ss a")
+            section.rows.append(defaultRow(name: "Title", value: notification.aps.alert.title))
+            section.rows.append(defaultRow(name: "Subtitle", value: notification.aps.alert.subtitle))
+            section.rows.append(defaultRow(name: "Body", value: notification.aps.alert.body))
+            section.rows.append(defaultRow(name: "Badge", value: "\(notification.aps.badge)"))
+            section.rows.append(defaultRow(name: "Category", value: notification.aps.category))
+            section.rows.append(defaultRow(name: "Content-Available", value: "\(notification.aps.contentAvailable)"))
+            section.rows.append(defaultRow(name: "Sound", value: notification.aps.sound))
+            sections.append(section)
         }
-
-        //Setup Data
-        sections.append(notificationsSection)
+        
+        //Setup Empty Section
+        var emptySection: Section = Section()
+        emptySection.rows.append(emptyRow(text: "No notifications received"))
+        if sections.isEmpty {
+            sections.append(emptySection)
+        }
 
         //Call Delegate
         delegate?.viewModelShouldReloadData()

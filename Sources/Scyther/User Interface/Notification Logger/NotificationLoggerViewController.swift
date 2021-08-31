@@ -20,6 +20,12 @@ internal class NotificationLoggerViewController: UIViewController {
         setupUI()
         setupConstraints()
         setupData()
+        
+        /// Start listening to notifications
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(setupData),
+                                               name: NSNotification.Name.NotificationLoggerLoggedData,
+                                               object: nil)
     }
 
     required init?(coder: NSCoder) {
@@ -51,6 +57,7 @@ internal class NotificationLoggerViewController: UIViewController {
                                                            views: ["subview": tableView]))
     }
     
+    @objc
     private func setupData() {
         self.viewModel.delegate = self
         self.viewModel.prepareObjects()

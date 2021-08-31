@@ -99,6 +99,13 @@ public class NotificationTester {
         
         //Append Data
         notifications.append(notification)
+        
+        //Post Notification
+        NotificationCenter.default.post(name: .NotificationLoggerLoggedData, object: nil)
     }
+}
+
+public extension NSNotification.Name {
+    static let NotificationLoggerLoggedData = Notification.Name("NotificationLoggerLoggedData")
 }
 #endif
