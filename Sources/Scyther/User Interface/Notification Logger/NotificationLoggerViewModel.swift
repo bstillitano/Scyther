@@ -30,7 +30,7 @@ internal class NotificationLoggerViewModel {
     }
     
     func additionalDataRow(notification: PushNotification) -> ButtonRow {
-        let row: ButtonRow = ButtonRow()
+        var row: ButtonRow = ButtonRow()
         row.text = "View User-Additional Data"
         row.accessoryType = .disclosureIndicator
         row.actionBlock = { [weak self] in
