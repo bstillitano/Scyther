@@ -74,7 +74,7 @@ public class NotificationTester {
         //Breakdown APNS Notification
         let aps: [String: Any] = userInfo["aps"] as? [String: Any] ?? [:]
         let apsAlert: [String: Any] = aps["alert"] as? [String: Any] ?? [:]
-        let additionalData: [AnyHashable: Any] = userInfo.filter({($0.key as? String ?? "") != "aps"})
+        let additionalData: [String: Any] = userInfo.filter({($0.key as? String ?? "") != "aps"}) as? [String: Any] ?? [:]
 
         //Construct Alert
         var notificationApsAlert: PushNotificationAPSAlert = PushNotificationAPSAlert()
@@ -94,7 +94,7 @@ public class NotificationTester {
         var notification: PushNotification = PushNotification()
         notification.receivedAt = Date()
         notification.aps = notificationAps
-        notification.rawPayload = userInfo
+        notification.rawPayload = userInfo as? [String: Any] ?? [:]
         notification.additionalData = additionalData
         
         //Append Data

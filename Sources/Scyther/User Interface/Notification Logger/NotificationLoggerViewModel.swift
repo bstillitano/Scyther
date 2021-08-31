@@ -10,6 +10,7 @@ import UIKit
 
 internal protocol NotificationLoggerViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
+    func viewModel(viewModel: NotificationLoggerViewModel?, shouldShowViewController viewController: UIViewController?)
 }
 
 internal class NotificationLoggerViewModel {
@@ -28,6 +29,33 @@ internal class NotificationLoggerViewModel {
         return row
     }
     
+    func additionalDataRow(notification: PushNotification) -> DefaultRow {
+        let row: DefaultRow = DefaultRow()
+        row.text = "User-Defined Data"
+        row.accessoryType = .disclosureIndicator
+        row.actionBlock = { [weak self] in
+            let viewController: TextReaderViewController = TextReaderViewController()
+            viewController.title = "Additional Push Data"
+            viewController.text = notification.additionalData.jsonString
+            self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
+        }
+
+        return row
+    }
+    
+    func rawPayloadRow(notification: PushNotification) -> ButtonRow {
+        var row: ButtonRow = ButtonRow()
+        row.text = "View Raw Payload"
+        row.actionBlock = { [weak self] in
+            let viewController: TextReaderViewController = TextReaderViewController()
+            viewController.title = "Raw Push Payload"
+            viewController.text = notification.rawPayload.jsonString
+            self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
+        }
+
+        return row
+    }
+    
     /// Empty row that contains text in a 'disabled' style
     func emptyRow(text: String) -> EmptyRow {
         var row: EmptyRow = EmptyRow()
@@ -41,16 +69,26 @@ internal class NotificationLoggerViewModel {
         sections.removeAll()
 
         //Setup Notification Sections
-        for notification: PushNotification in NotificationTester.instance.notifications.sorted(by: { $0.receivedAt ?? Date() < $1.receivedAt ?? Date() }) {
+        for notification: PushNotification in NotificationTester.instance.notifications.sorted(by: { $0.receivedAt ?? Date() > $1.receivedAt ?? Date() }) {
             var section: Section = Section()
             section.title = notification.receivedAt?.formatted(format: "dd MMM yyyy h:mm:ss a")
             section.rows.append(defaultRow(name: "Title", value: notification.aps.alert.title))
             section.rows.append(defaultRow(name: "Subtitle", value: notification.aps.alert.subtitle))
             section.rows.append(defaultRow(name: "Body", value: notification.aps.alert.body))
-            section.rows.append(defaultRow(name: "Badge", value: "\(notification.aps.badge)"))
-            section.rows.append(defaultRow(name: "Category", value: notification.aps.category))
-            section.rows.append(defaultRow(name: "Content-Available", value: "\(notification.aps.contentAvailable)"))
-            section.rows.append(defaultRow(name: "Sound", value: notification.aps.sound))
+            if let badge: Int = notification.aps.badge {
+                section.rows.append(defaultRow(name: "Badge", value: "\(badge)"))
+            }
+            if let category: String = notification.aps.category {
+                section.rows.append(defaultRow(name: "Category", value: "\(category)"))
+            }
+            if let contentAvailable: Int = notification.aps.contentAvailable {
+                section.rows.append(defaultRow(name: "Content-Available", value: "\(contentAvailable)"))
+            }
+            if let sound: String = notification.aps.sound {
+                section.rows.append(defaultRow(name: "Sound", value: "\(sound)"))
+            }
+            section.rows.append(additionalDataRow(notification: notification))
+            section.rows.append(rawPayloadRow(notification: notification))
             sections.append(section)
         }
         

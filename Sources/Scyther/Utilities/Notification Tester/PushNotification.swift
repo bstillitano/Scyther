@@ -12,8 +12,8 @@ public struct PushNotification {
 
     public var receivedAt: Date?
     public var aps: PushNotificationAPS = PushNotificationAPS()
-    public var additionalData: [AnyHashable: Any] = [:]
-    public var rawPayload: [AnyHashable: Any] = [:]
+    public var additionalData: [String: Any] = [:]
+    public var rawPayload: [String: Any] = [:]
 }
 
 public struct PushNotificationAPS {
