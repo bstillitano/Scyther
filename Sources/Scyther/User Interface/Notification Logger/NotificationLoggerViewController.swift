@@ -41,7 +41,7 @@ internal class NotificationLoggerViewController: UIViewController {
 
         //Register Table View Cells
         tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
-        tableView.register(CheckmarkCell.self, forCellReuseIdentifier: RowStyle.checkmarkAccessory.rawValue)
+        tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
         tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
     }
 
@@ -95,24 +95,15 @@ extension NotificationLoggerViewController: UITableViewDataSource {
         guard let row = viewModel.row(at: indexPath) else {
             return UITableViewCell()
         }
-
+        
         // Setup Cell
         let cell = tableView.dequeueReusableCell(withIdentifier: row.cellReuseIdentifier,
                                                  for: indexPath)
         cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
         cell.accessoryView = row.accessoryView
-
-        // Setup Accessory
-        switch row.style {
-        case .checkmarkAccessory:
-            guard let checkRow: CheckmarkRow = row as? CheckmarkRow else {
-                break
-            }
-            cell.accessoryType = checkRow.checked ? .checkmark : .none
-        default:
-            break
-        }
+        cell.accessoryType = row.accessoryType ?? .none
+        cell.detailTextLabel?.adjustsFontSizeToFitWidth = false
 
         return cell
     }
