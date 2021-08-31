@@ -20,24 +20,10 @@ internal class NotificationLoggerViewModel {
     weak var delegate: NotificationLoggerViewModelProtocol?
 
     /// Single checkable row value representing a single environment
-    func checkmarkRow(identifier: String) -> CheckmarkRow {
-        var row: CheckmarkRow = CheckmarkRow()
-        row.text = identifier
-        row.checked = ConfigurationSwitcher.instance.configuration == identifier
-        row.actionBlock = { [weak self] in
-            ConfigurationSwitcher.instance.configuration = identifier
-            Scyther.instance.delegate?.scyther(didSwitchToEnvironment: identifier)
-            self?.prepareObjects()
-        }
-        return row
-    }
-
-    /// Single row representing a single environment variable
-    func environmentVariable(name: String, value: String) -> DefaultRow {
-        let row: DefaultRow = DefaultRow()
-        row.text = name
-        row.detailText = value
-
+    func notificationRow(notification: PushNotification) -> DefaultRow {
+        var row: DefaultRow = DefaultRow()
+        row.text = notification.receivedAt?.formatted()
+        row.detailText = "Content-Avaialble: \(notification.aps.contentAvailable ?? -999)"
         return row
     }
     
@@ -56,7 +42,7 @@ internal class NotificationLoggerViewModel {
         //Setup Notifications Section
         var notificationsSection: Section = Section()
         notificationsSection.title = "Notifications"
-        notificationsSection.rows = ConfigurationSwitcher.instance.configurations.sorted(by: { $0.identifier < $1.identifier }).map({ checkmarkRow(identifier: $0.identifier) })
+        notificationsSection.rows = NotificationTester.instance.notifications.sorted(by: { $0.receivedAt ?? Date() < $1.receivedAt ?? Date() }).map({ notificationRow(notification: $0) })
         if notificationsSection.rows.isEmpty {
             notificationsSection.rows.append(emptyRow(text: "No notifications received"))
         }

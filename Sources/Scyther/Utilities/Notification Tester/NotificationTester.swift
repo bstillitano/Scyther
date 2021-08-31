@@ -32,7 +32,7 @@ public class NotificationTester {
     public var notificationsAllowed: Bool = false
     
     /// Dictionary containing all received notifications during this session.
-    private var notifications: [PushNotification] = []
+    internal var notifications: [PushNotification] = []
 
     /// Schedules a local notification that will be delivered in a given time from now
     /// - Parameters:
@@ -92,6 +92,7 @@ public class NotificationTester {
         
         //Construct Notification
         var notification: PushNotification = PushNotification()
+        notification.receivedAt = Date()
         notification.aps = notificationAps
         notification.rawPayload = userInfo
         notification.additionalData = additionalData

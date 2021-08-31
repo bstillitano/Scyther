@@ -181,6 +181,9 @@ internal class MenuViewModel {
         /// Setup Notifications Section
         var notificationsSection: Section = Section()
         notificationsSection.title = "Notifications"
+        notificationsSection.rows.append(actionRow(name: "Notification Logger",
+                                                 icon: UIImage(systemImage: "list.bullet"),
+                                                 actionController: NotificationLoggerViewController()))
         notificationsSection.rows.append(actionRow(name: "Notification Tester",
                                                  icon: UIImage(systemImage: "bell"),
                                                  actionController: NotificationTesterViewController()))

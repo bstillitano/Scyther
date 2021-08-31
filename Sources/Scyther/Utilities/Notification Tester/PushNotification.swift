@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  PushNotification.swift
 //
 //
 //  Created by Brandon Stillitano on 31/8/21.
@@ -10,6 +10,7 @@ import Foundation
 public struct PushNotification {
     public init() { }
 
+    public var receivedAt: Date?
     public var aps: PushNotificationAPS = PushNotificationAPS()
     public var additionalData: [AnyHashable: Any] = [:]
     public var rawPayload: [AnyHashable: Any] = [:]

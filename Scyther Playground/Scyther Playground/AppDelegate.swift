@@ -43,7 +43,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-        Scyther.instance.noti
+        Scyther.notificationTester.processNotification(userInfo)
     }
 }
 
@@ -55,4 +55,8 @@ extension AppDelegate {
     }
 }
 
-extension AppDelegate: UNUserNotificationCenterDelegate { }
+extension AppDelegate: UNUserNotificationCenterDelegate {
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        Scyther.notificationTester.processNotification(response.notification.request.content.userInfo)
+    }
+}
