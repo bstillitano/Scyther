@@ -29,9 +29,9 @@ internal class NotificationLoggerViewModel {
         return row
     }
     
-    func additionalDataRow(notification: PushNotification) -> DefaultRow {
-        let row: DefaultRow = DefaultRow()
-        row.text = "User-Defined Data"
+    func additionalDataRow(notification: PushNotification) -> ButtonRow {
+        let row: ButtonRow = ButtonRow()
+        row.text = "View User-Additional Data"
         row.accessoryType = .disclosureIndicator
         row.actionBlock = { [weak self] in
             let viewController: TextReaderViewController = TextReaderViewController()
