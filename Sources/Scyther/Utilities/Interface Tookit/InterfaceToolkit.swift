@@ -56,12 +56,16 @@ public class InterfaceToolkit: NSObject {
 
     internal func start() {
         registerForNotitfcations()
-        setupTopLevelViewsWrapper()
-        setupGridOverlay()
-        setWindowSpeed()
-        swizzleLayout()
+        
+        /// Delaying here to allow UIWindow time to initialise.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            setupTopLevelViewsWrapper()
+            setupGridOverlay()
+            setWindowSpeed()
+            swizzleLayout()
+        }
     }
-    
+
     internal func swizzleLayout() {
         UIView.swizzleLayout
     }
