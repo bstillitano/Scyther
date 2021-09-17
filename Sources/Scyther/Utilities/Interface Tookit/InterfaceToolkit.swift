@@ -59,6 +59,7 @@ public class InterfaceToolkit: NSObject {
         setupTopLevelViewsWrapper()
         setupGridOverlay()
         setWindowSpeed()
+        swizzleLayout()
     }
     
     internal func swizzleLayout() {
@@ -67,7 +68,7 @@ public class InterfaceToolkit: NSObject {
 
     private func setupTopLevelViewsWrapper() {
         guard let keyWindow: UIWindow = UIApplication.shared.keyWindow else {
-            print("Scyher.InterfaceToolkit failed to setup the top level views wrapper. There is no keyWindow available at UIApplication.shared.keyWindow")
+            logMessage("Scyther.InterfaceToolkit failed to setup the top level views wrapper. There is no keyWindow available at UIApplication.shared.keyWindow")
             return
         }
         addTopLevelViewsWrapperToWindow(window: keyWindow)
@@ -85,7 +86,7 @@ public class InterfaceToolkit: NSObject {
     @objc
     internal func newKeyWindowNotification(notification: NSNotification) {
         guard let window: UIWindow = notification.object as? UIWindow else {
-            print("Scyher.InterfaceToolkit failed to setup the top level views wrapper. There is no window available at UIWindow.didResignKeyNotification.object")
+            logMessage("Scyther.InterfaceToolkit failed to setup the top level views wrapper. There is no window available at UIWindow.didResignKeyNotification.object")
             return
         }
         addTopLevelViewsWrapperToWindow(window: window)

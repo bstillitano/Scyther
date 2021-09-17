@@ -122,7 +122,7 @@ extension Scyther {
             
         } else {
             #if DEBUG
-            print("🐛🐛🐛🐛🐛🐛🐛🐛🐛🐛\n\nCould not find a keyWindow to anchor to. The menu will not be shown. This is expected.\n\n🐛🐛🐛🐛🐛🐛🐛🐛🐛🐛")
+            logMessage("Could not find a keyWindow to anchor to. The menu will not be shown. This is expected.")
             #endif
             return nil
         }
@@ -130,7 +130,7 @@ extension Scyther {
     
     /// Convenience for logging a message to the console.
     fileprivate func logMessage(_ msg: String) {
-        print("Scyther - [https://github.com/bstillitano/scyther]: \(msg)")
+        print("🐛🐛🐛🐛🐛🐛🐛🐛🐛🐛\n\nScyther - [https://github.com/bstillitano/scyther]: \(msg)\n\n🐛🐛🐛🐛🐛🐛🐛🐛🐛🐛")
     }
 }
 #endif
