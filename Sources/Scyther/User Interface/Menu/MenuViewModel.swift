@@ -20,15 +20,13 @@ internal class MenuViewModel {
     // MARK: - Delegate
     weak var delegate: MenuViewModelProtocol?
 
-    func actionRow(name: String, icon: UIImage?, actionController: UIViewController?) -> DefaultRow {
+    func actionRow(name: String, icon: UIImage?, actionBlock: ActionBlock? = nil) -> DefaultRow {
         let row: DefaultRow = DefaultRow()
         row.text = name
         row.image = icon
         row.style = .default
-        row.accessoryType = actionController == nil ? UITableViewCell.AccessoryType.none : .disclosureIndicator
-        row.actionBlock = { [weak self] in
-            self?.delegate?.viewModel(viewModel: self, shouldShowViewController: actionController)
-        }
+        row.accessoryType = actionBlock == nil ? UITableViewCell.AccessoryType.none : .disclosureIndicator
+        row.actionBlock = actionBlock
         return row
     }
 
@@ -52,7 +50,7 @@ internal class MenuViewModel {
         row.accessoryType = UITableViewCell.AccessoryType.none
         return row
     }
-    
+
     /// Empty row that contains text in a 'disabled' style
     func emptyRow(text: String) -> EmptyRow {
         var row: EmptyRow = EmptyRow()
@@ -60,14 +58,14 @@ internal class MenuViewModel {
 
         return row
     }
-    
+
     /// Switch to enable/disable showing view frames
     var viewFramesSwitch: SwitchAccessoryRow {
         //Setup Row
         var row: SwitchAccessoryRow = SwitchAccessoryRow()
         row.text = "Show View Frames"
         row.image = UIImage(systemImage: "viewfinder")
-        
+
         //Setup Accessory
         let switchView = UIActionSwitch()
         switchView.isOn = InterfaceToolkit.instance.showsViewBorders
@@ -80,7 +78,7 @@ internal class MenuViewModel {
 
         return row
     }
-    
+
     /// Switch to enable/disable slow animations
     var slowAnimationsSwitch: SwitchAccessoryRow {
         //Setup Row
@@ -147,23 +145,33 @@ internal class MenuViewModel {
                                             icon: UIImage(systemImage: "network")))
         networkSection.rows.append(actionRow(name: "Network Logs",
                                              icon: UIImage(systemImage: "doc.append"),
-                                             actionController: NetworkLoggerViewController()))
+                                             actionBlock: { [weak self] in
+                                                 self?.delegate?.viewModel(viewModel: self, shouldShowViewController: NetworkLoggerViewController())
+                                             }))
         networkSection.rows.append(actionRow(name: "Server Configuration",
                                              icon: UIImage(systemImage: "externaldrive.badge.icloud"),
-                                             actionController: ServerConfigurationViewController()))
+                                             actionBlock: { [weak self] in
+                                                 self?.delegate?.viewModel(viewModel: self, shouldShowViewController: ServerConfigurationViewController())
+                                             }))
 
         /// Setup Environment Section
         var environmentSection: Section = Section()
         environmentSection.title = "Data"
         environmentSection.rows.append(actionRow(name: "Feature Flags",
                                                  icon: UIImage(systemImage: "flag"),
-                                                 actionController: FeatureFlagsViewController()))
+                                                 actionBlock: { [weak self] in
+                                                     self?.delegate?.viewModel(viewModel: self, shouldShowViewController: FeatureFlagsViewController())
+                                                 }))
         environmentSection.rows.append(actionRow(name: "User Defaults",
                                                  icon: UIImage(systemImage: "face.dashed"),
-                                                 actionController: UserDefaultsViewController()))
+                                                 actionBlock: { [weak self] in
+                                                     self?.delegate?.viewModel(viewModel: self, shouldShowViewController: UserDefaultsViewController())
+                                                 }))
         environmentSection.rows.append(actionRow(name: "Cookies",
                                                  icon: UIImage(systemImage: "info.circle"),
-                                                 actionController: CookieBrowserViewController()))
+                                                 actionBlock: { [weak self] in
+                                                     self?.delegate?.viewModel(viewModel: self, shouldShowViewController: CookieBrowserViewController())
+                                                 }))
 
         /// Setup Security Section
         var securitySection: Section = Section()
@@ -175,18 +183,24 @@ internal class MenuViewModel {
         supportSection.title = "Support"
         supportSection.rows.append(actionRow(name: "Console Logs",
                                              icon: UIImage(systemImage: "terminal"),
-                                             actionController: ConsoleLoggerViewController()))
+                                             actionBlock: { [weak self] in
+                                                 self?.delegate?.viewModel(viewModel: self, shouldShowViewController: ConsoleLoggerViewController())
+                                             }))
         supportSection.rows.append(emptyRow(text: "More coming soon"))
-        
+
         /// Setup Notifications Section
         var notificationsSection: Section = Section()
         notificationsSection.title = "Notifications"
         notificationsSection.rows.append(actionRow(name: "Notification Logger",
-                                                 icon: UIImage(systemImage: "list.bullet"),
-                                                 actionController: NotificationLoggerViewController()))
+                                                   icon: UIImage(systemImage: "list.bullet"),
+                                                   actionBlock: { [weak self] in
+                                                       self?.delegate?.viewModel(viewModel: self, shouldShowViewController: NotificationLoggerViewController())
+                                                   }))
         notificationsSection.rows.append(actionRow(name: "Notification Tester",
-                                                 icon: UIImage(systemImage: "bell"),
-                                                 actionController: NotificationTesterViewController()))
+                                                   icon: UIImage(systemImage: "bell"),
+                                                   actionBlock: { [weak self] in
+                                                       self?.delegate?.viewModel(viewModel: self, shouldShowViewController: NotificationTesterViewController())
+                                                   }))
         notificationsSection.rows.append(valueRow(name: "APNS Token",
                                                   value: Scyther.instance.apnsToken ?? "Not set",
                                                   icon: UIImage(systemImage: "applelogo"),
@@ -200,17 +214,23 @@ internal class MenuViewModel {
         var uiUxSection: Section = Section()
         uiUxSection.title = "UI/UX"
         uiUxSection.rows.append(actionRow(name: "Fonts",
-                                                 icon: UIImage(systemImage: "textformat"),
-                                                 actionController: FontsViewController()))
+                                          icon: UIImage(systemImage: "textformat"),
+                                          actionBlock: { [weak self] in
+                                              self?.delegate?.viewModel(viewModel: self, shouldShowViewController: FontsViewController())
+                                          }))
         uiUxSection.rows.append(actionRow(name: "Interface Components",
-                                                 icon: UIImage(systemImage: "apps.iphone"),
-                                                 actionController: InterfacePreviewsViewController()))
+                                          icon: UIImage(systemImage: "apps.iphone"),
+                                          actionBlock: { [weak self] in
+                                              self?.delegate?.viewModel(viewModel: self, shouldShowViewController: InterfacePreviewsViewController())
+                                          }))
         uiUxSection.rows.append(actionRow(name: "Grid Overlay",
-                                                 icon: UIImage(systemImage: "rectangle.split.3x3"),
-                                                 actionController: GridOverlayViewController()))
+                                          icon: UIImage(systemImage: "rectangle.split.3x3"),
+                                          actionBlock: { [weak self] in
+                                              self?.delegate?.viewModel(viewModel: self, shouldShowViewController: GridOverlayViewController())
+                                          }))
         uiUxSection.rows.append(viewFramesSwitch)
         uiUxSection.rows.append(slowAnimationsSwitch)
-        
+
         /// Setup Development Section
         var developmentSection: Section = Section()
         developmentSection.title = "Development Tools"
@@ -220,7 +240,9 @@ internal class MenuViewModel {
             for tool: DeveloperOption in Scyther.instance.developerOptions {
                 developmentSection.rows.append(actionRow(name: tool.name ?? "",
                                                          icon: tool.icon,
-                                                         actionController: tool.viewController))
+                                                         actionBlock: { [weak self] in
+                                                             self?.delegate?.viewModel(viewModel: self, shouldShowViewController: tool.viewController)
+                                                         }))
             }
         }
 
