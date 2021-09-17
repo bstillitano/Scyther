@@ -58,11 +58,11 @@ public class InterfaceToolkit: NSObject {
         registerForNotitfcations()
         
         /// Delaying here to allow UIWindow time to initialise.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            setupTopLevelViewsWrapper()
-            setupGridOverlay()
-            setWindowSpeed()
-            swizzleLayout()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.setupTopLevelViewsWrapper()
+            self?.setupGridOverlay()
+            self?.setWindowSpeed()
+            self?.swizzleLayout()
         }
     }
 
