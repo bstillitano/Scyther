@@ -127,10 +127,10 @@ extension Scyther {
             return nil
         }
     }
-    
-    /// Convenience for logging a message to the console.
-    fileprivate func logMessage(_ msg: String) {
-        print("🐛🐛🐛🐛🐛🐛🐛🐛🐛🐛\n\nScyther - [https://github.com/bstillitano/scyther]: \(msg)\n\n🐛🐛🐛🐛🐛🐛🐛🐛🐛🐛")
-    }
+}
+
+/// Convenience for logging a message to the console.
+internal func logMessage(_ msg: String) {
+    print("🐛🐛🐛🐛🐛🐛🐛🐛🐛🐛\n\nScyther - [https://github.com/bstillitano/scyther]: \(msg)\n\n🐛🐛🐛🐛🐛🐛🐛🐛🐛🐛")
 }
 #endif
