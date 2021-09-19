@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Brandon Stillitano on 19/9/21.
 //
@@ -21,7 +21,7 @@ internal class KeychainBrowserViewModel {
     weak var delegate: KeychainBrowserViewModelProtocol?
 
     /// Single row representing a single value and key
-    func defaultRow(name: String, value: String?) -> DefaultRow {
+    func defaultRow(name: String?, value: String?) -> DefaultRow {
         let row: DefaultRow = DefaultRow()
         row.text = name
         row.detailText = value
@@ -34,10 +34,10 @@ internal class KeychainBrowserViewModel {
         sections.removeAll()
 
         //Setup Notification Sections
-        for keychainItem: String in KeychainBrowswer.keychainItems.sorted(by: { $0 < $1 }) {
+        for keychainItem: KeychainItem in KeychainBrowswer.keychainItems(forClass: kSecClassGenericPassword) {
             var section: Section = Section()
-            section.title = keychainItem
-            section.rows.append(defaultRow(name: keychainItem, value: "TBA"))
+            section.title = kSecClassGenericPassword as String
+            section.rows.append(defaultRow(name: keychainItem.name, value: keychainItem.value))
             sections.append(section)
         }
 
