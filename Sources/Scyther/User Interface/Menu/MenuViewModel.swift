@@ -176,7 +176,11 @@ internal class MenuViewModel {
         /// Setup Security Section
         var securitySection: Section = Section()
         securitySection.title = "Security"
-        securitySection.rows.append(emptyRow(text: "Coming soon"))
+        environmentSection.rows.append(actionRow(name: "Keychain Browser",
+                                                 icon: UIImage(systemImage: "key"),
+                                                 actionBlock: { [weak self] in
+                                                     self?.delegate?.viewModel(viewModel: self, shouldShowViewController: KeychainBrowserViewController())
+                                                 }))
 
         /// Setup Support Section
         var supportSection: Section = Section()
