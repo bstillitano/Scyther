@@ -20,68 +20,7 @@ class ViewController: UIViewController {
         //Setup Interface
         setupUI()
         setupConstraints()
-
-        //Setup Data
-        if let cookie = HTTPCookie(properties: [
-                .domain: ".test.scyther.com",
-                .path: "/",
-                .name: "ScytherCookie",
-                .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
-                .secure: "FALSE",
-                .discard: "TRUE"
-            ]) {
-            HTTPCookieStorage.shared.setCookie(cookie)
-        }
-        if let cookie = HTTPCookie(properties: [
-                .domain: ".test.scyther.com",
-                .path: "/",
-                .name: "ScytherCookie2",
-                .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
-                .secure: "FALSE",
-                .discard: "TRUE"
-            ]) {
-            HTTPCookieStorage.shared.setCookie(cookie)
-        }
-        if let cookie = HTTPCookie(properties: [
-                .domain: ".test.scyther.com",
-                .path: "/",
-                .name: "ScytherCookie3",
-                .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
-                .secure: "FALSE",
-                .discard: "TRUE"
-            ]) {
-            HTTPCookieStorage.shared.setCookie(cookie)
-        }
-        if let cookie = HTTPCookie(properties: [
-                .domain: ".test.scyther.com",
-                .path: "/",
-                .name: "ScytherCookie4",
-                .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
-                .secure: "FALSE",
-                .discard: "TRUE"
-            ]) {
-            HTTPCookieStorage.shared.setCookie(cookie)
-        }
         setupData()
-
-        // Set username and password
-        let username = "john"
-        let password = "1234".data(using: .utf8)!
-
-        // Set attributes
-        let attributes: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: username,
-            kSecValueData as String: password,
-        ]
-
-        // Add user
-        if SecItemAdd(attributes as CFDictionary, nil) == noErr {
-            print("User saved successfully in the keychain")
-        } else {
-            print("Something went wrong trying to save the user in the keychain")
-        }
-
     }
 
     func setupUI() {
@@ -132,9 +71,72 @@ extension ViewController: UITableViewDataSource {
 
 extension ViewController {
     func setupData() {
+        setupCookies()
+        setupKeychain()
         setupFlags()
         setupEnvironments()
         setupDeveloperTools()
+    }
+    
+    func setupCookies() {
+        if let cookie = HTTPCookie(properties: [
+                .domain: ".test.scyther.com",
+                .path: "/",
+                .name: "ScytherCookie",
+                .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
+                .secure: "FALSE",
+                .discard: "TRUE"
+            ]) {
+            HTTPCookieStorage.shared.setCookie(cookie)
+        }
+        if let cookie = HTTPCookie(properties: [
+                .domain: ".test.scyther.com",
+                .path: "/",
+                .name: "ScytherCookie2",
+                .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
+                .secure: "FALSE",
+                .discard: "TRUE"
+            ]) {
+            HTTPCookieStorage.shared.setCookie(cookie)
+        }
+        if let cookie = HTTPCookie(properties: [
+                .domain: ".test.scyther.com",
+                .path: "/",
+                .name: "ScytherCookie3",
+                .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
+                .secure: "FALSE",
+                .discard: "TRUE"
+            ]) {
+            HTTPCookieStorage.shared.setCookie(cookie)
+        }
+        if let cookie = HTTPCookie(properties: [
+                .domain: ".test.scyther.com",
+                .path: "/",
+                .name: "ScytherCookie4",
+                .value: "K324klj23KLJKH223423CookieValueDSFLJ234",
+                .secure: "FALSE",
+                .discard: "TRUE"
+            ]) {
+            HTTPCookieStorage.shared.setCookie(cookie)
+        }
+    }
+    
+    func setupKeychain() {
+        let username = "john"
+        let password = "1234".data(using: .utf8)!
+        
+        for i in 0...99 {
+            let attributes: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrAccount as String: "\(username)+\(i)",
+                kSecValueData as String: password
+            ]
+            if SecItemAdd(attributes as CFDictionary, nil) == noErr {
+                print("User saved successfully in the keychain")
+            } else {
+                print("Something went wrong trying to save the user in the keychain")
+            }
+        }
     }
 
     func setupFlags() {

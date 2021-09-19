@@ -86,11 +86,7 @@ internal class DataBrowserViewModel {
     private func objectFor(_ dataRow: DataRow) -> Row {
         switch dataRow {
         case .string(let title, let data):
-            if data?.count ?? 0 > 20 {
-                return defaultRow(name: title, value: data)
-            } else {
-                return subtitleRow(name: title, value: data)
-            }
+            return defaultRow(name: title, value: data)
 
         case .json(let title, _):
             break

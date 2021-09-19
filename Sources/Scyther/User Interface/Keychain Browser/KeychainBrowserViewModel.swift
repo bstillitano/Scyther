@@ -21,15 +21,14 @@ internal class KeychainBrowserViewModel {
     weak var delegate: KeychainBrowserViewModelProtocol?
 
     /// Single row representing a single value and key
-    func defaultRow(name: String?, value: String?, actionBlock: ActionBlock? = nil) -> DefaultRow {
-        let row: DefaultRow = DefaultRow()
-        row.text = name
-        row.detailText = value
+    func actionRow(title: String?, actionBlock: ActionBlock? = nil) -> ButtonRow {
+        var row: ButtonRow = ButtonRow()
+        row.text = title
         row.actionBlock = actionBlock
-        row.accessoryType = actionBlock == nil ? .none : .disclosureIndicator
+        row.accessoryType = .none
         return row
     }
-    
+
     /// Empty row that contains text in a 'disabled' style
     func emptyRow(text: String) -> EmptyRow {
         var row: EmptyRow = EmptyRow()
@@ -41,13 +40,13 @@ internal class KeychainBrowserViewModel {
     func prepareObjects() {
         //Clear Data
         sections.removeAll()
-        
+
         //Setup Sections
         for kSecClassType in KeychainBrowser.keychainItems {
             var section: Section = Section()
             section.title = kSecClassType.key
             for item in kSecClassType.value {
-                section.rows.append(defaultRow(name: item.key, value: "", actionBlock: { [weak self] in
+                section.rows.append(actionRow(title: item.key, actionBlock: { [weak self] in
                     self?.delegate?.viewModel(viewModel: self, shouldShowViewController: DataBrowserViewController(data: KeychainBrowser.keychainItems[kSecClassType.key] ?? [:]))
                 }))
             }
