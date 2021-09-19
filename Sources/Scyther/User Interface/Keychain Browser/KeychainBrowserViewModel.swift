@@ -45,6 +45,12 @@ internal class KeychainBrowserViewModel {
         for kSecClassType in KeychainBrowser.keychainItems {
             var section: Section = Section()
             section.title = kSecClassType.key
+            for item in kSecClassType.value {
+                section.rows.append(defaultRow(name: item.key, value: item.value as? String))
+            }
+            if section.rows.isEmpty {
+                section.rows.append(emptyRow(text: "No \(kSecClassType.key.lowercased()) items in keychain"))
+            }
             sections.append(section)
         }
 //
