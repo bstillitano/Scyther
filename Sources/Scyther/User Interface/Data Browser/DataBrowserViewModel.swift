@@ -54,11 +54,17 @@ internal class DataBrowserViewModel {
     func prepareObjects() {
         //Clear Data
         sections.removeAll()
+        
+        let mockData: [String : Any] = [
+            "String" : "String",
+            "Int": 1,
+            "Bool": true
+        ]
 
         //Setup Sections
         var section: Section = Section()
         section.title = "Data"
-        for value in data {
+        for value in mockData {
             let dataRow = DataRow(title: value.key, from: value.value)
             section.rows.append(objectFor(dataRow))
             sections.append(section)

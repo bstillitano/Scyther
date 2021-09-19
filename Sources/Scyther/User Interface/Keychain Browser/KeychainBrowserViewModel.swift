@@ -26,6 +26,7 @@ internal class KeychainBrowserViewModel {
         row.text = name
         row.detailText = value
         row.actionBlock = actionBlock
+        row.accessoryType = actionBlock == nil ? .none : .disclosureIndicator
         return row
     }
     
