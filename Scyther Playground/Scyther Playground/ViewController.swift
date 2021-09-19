@@ -122,12 +122,28 @@ extension ViewController {
     }
     
     func setupKeychain() {
-        let username = "john"
-        let password = "1234".data(using: .utf8)!
-        
-        for i in 0...99 {
+        //Setup Generic Keychain
+        for i in 0...12 {
+            let username = "john"
+            let password = "1234".data(using: .utf8)!
             let attributes: [String: Any] = [
                 kSecClass as String: kSecClassGenericPassword,
+                kSecAttrAccount as String: "\(username)+\(i)",
+                kSecValueData as String: password
+            ]
+            if SecItemAdd(attributes as CFDictionary, nil) == noErr {
+                print("User saved successfully in the keychain")
+            } else {
+                print("Something went wrong trying to save the user in the keychain")
+            }
+        }
+        
+        //Setup Internet Keychain
+        for i in 0...12 {
+            let username = "internet-boi"
+            let password = "1234".data(using: .utf8)!
+            let attributes: [String: Any] = [
+                kSecClass as String: kSecClassInternetPassword,
                 kSecAttrAccount as String: "\(username)+\(i)",
                 kSecValueData as String: password
             ]

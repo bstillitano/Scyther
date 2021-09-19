@@ -56,17 +56,6 @@ internal class DataBrowserViewModel {
     func prepareObjects() {
         //Clear Data
         sections.removeAll()
-        
-        let mockData: [String : Any] = [
-            "String" : "String",
-            "Int": 1,
-            "Bool": true,
-            "Dictionary": [
-                "String" : "String",
-                "Int": 1,
-                "Bool": true
-            ]
-        ]
 
         //Setup Sections
         var section: Section = Section()
