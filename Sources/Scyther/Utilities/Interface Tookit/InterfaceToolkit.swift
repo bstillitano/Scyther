@@ -62,7 +62,9 @@ public class InterfaceToolkit: NSObject {
             self?.setupTopLevelViewsWrapper()
             self?.setupGridOverlay()
             self?.setWindowSpeed()
-            self?.swizzleLayout()
+            if self?.showsViewBorders ?? false {
+                self?.swizzleLayout()
+            }
         }
     }
 
