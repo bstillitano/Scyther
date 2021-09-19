@@ -29,30 +29,19 @@ internal class KeychainBrowserViewModel {
         return row
     }
 
-    /// Empty row that contains text in a 'disabled' style
-    func emptyRow(text: String) -> EmptyRow {
-        var row: EmptyRow = EmptyRow()
-        row.text = text
-
-        return row
-    }
-
     func prepareObjects() {
         //Clear Data
         sections.removeAll()
 
         //Setup Sections
+        var section: Section = Section()
+        section.title = "Item Types"
         for kSecClassType in KeychainBrowser.keychainItems {
-            var section: Section = Section()
-            section.title = kSecClassType.key
             section.rows.append(actionRow(title: kSecClassType.key, actionBlock: { [weak self] in
                 self?.delegate?.viewModel(viewModel: self, shouldShowViewController: DataBrowserViewController(data: KeychainBrowser.keychainItems[kSecClassType.key] ?? [:]))
             }))
-            if section.rows.isEmpty {
-                section.rows.append(emptyRow(text: "No \(kSecClassType.key.lowercased()) in keychain"))
-            }
-            sections.append(section)
         }
+        sections.append(section)
 
         //Call Delegate
         delegate?.viewModelShouldReloadData()
