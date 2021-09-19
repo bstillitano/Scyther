@@ -37,12 +37,11 @@ struct KeychainBrowswer {
         let items = items_ref as! Array<Dictionary<String, Any>>
 
         return items.compactMap { item in
-            let name: String? = item[kSecAttrAccount as String] as? String
-            let value: String? = item[kSecAttrGeneric as String] as? String
-            var item: KeychainItem = KeychainItem()
-            item.name = name
-            item.value = value
-            return item
+            var keychainItem: KeychainItem = KeychainItem()
+            keychainItem.name = item[kSecAttrAccount as String] as? String
+            keychainItem.value = try? readPassword(service: item[kSecAttrService as String] as? String,
+                                                   account: item[kSecAttrAccount as String] as? String)
+            return keychainItem
         }
     }
 
