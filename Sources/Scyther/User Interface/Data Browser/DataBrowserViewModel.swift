@@ -26,20 +26,22 @@ internal class DataBrowserViewModel {
     weak var delegate: DataBrowserViewModelProtocol?
 
     /// Single row representing a single value and key
-    func defaultRow(name: String?, value: String?) -> DefaultRow {
+    func defaultRow(name: String?, value: String?, actionBlock: ActionBlock? = nil) -> DefaultRow {
         let row: DefaultRow = DefaultRow()
         row.text = name
         row.detailText = value
-
+        row.actionBlock = actionBlock
+        row.accessoryType = actionBlock == nil ? .none : .disclosureIndicator
         return row
     }
     
     /// Single row representing a single value and key
-    func subtitleRow(name: String?, value: String?) -> SubtitleRow {
+    func subtitleRow(name: String?, value: String?, actionBlock: ActionBlock? = nil) -> SubtitleRow {
         let row: SubtitleRow = SubtitleRow()
         row.text = name
         row.detailText = value
-
+        row.actionBlock = actionBlock
+        row.accessoryType = actionBlock == nil ? .none : .disclosureIndicator
         return row
     }
 
@@ -72,9 +74,11 @@ internal class DataBrowserViewModel {
         for value in mockData {
             let dataRow = DataRow(title: value.key, from: value.value)
             section.rows.append(objectFor(dataRow))
-            sections.append(section)
         }
-
+        
+        //Setup Sections
+        sections.append(section)
+        
         //Call Delegate
         delegate?.viewModelShouldReloadData()
     }
@@ -82,7 +86,7 @@ internal class DataBrowserViewModel {
     private func objectFor(_ dataRow: DataRow) -> Row {
         switch dataRow {
         case .string(let title, let data):
-            if (title?.count ?? 0) + (data?.count ?? 0) > 35 {
+            if data?.count ?? 0) > 20
                 return defaultRow(name: title, value: data)
             } else {
                 return subtitleRow(name: title, value: data)

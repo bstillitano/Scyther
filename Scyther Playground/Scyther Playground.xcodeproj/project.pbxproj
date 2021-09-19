@@ -635,7 +635,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/bstillitano/Scyther.git";
 			requirement = {
-				branch = "bugfix/view-frames-on-load";
+				branch = "feature/keychain-browser";
 				kind = branch;
 			};
 		};
