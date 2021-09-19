@@ -40,7 +40,7 @@ internal class KeychainBrowserViewController: UIViewController {
         view.addSubview(tableView)
 
         //Register Table View Cells
-        tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
+        tableView.register(SubtitleCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
         tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
         tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
     }
@@ -120,6 +120,22 @@ extension KeychainBrowserViewController: UITableViewDelegate {
             return
         }
         row.actionBlock?()
+    }
+    
+    func tableView(_ tableView: UITableView, shouldShowMenuForRowAt indexPath: IndexPath) -> Bool {
+        guard let row = viewModel.row(at: indexPath) else { return false }
+        return row.style != .button || row.style != .emptyRow
+    }
+
+    func tableView(_ tableView: UITableView, canPerformAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) -> Bool {
+        return (action == #selector(copy(_:)))
+    }
+
+    func tableView(_ tableView: UITableView, performAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) {
+        if action == #selector(copy(_:)) {
+            guard let cell = tableView.cellForRow(at: indexPath), let key = cell.textLabel?.text else { return }
+            UIPasteboard.general.string = "\(key): \(cell.detailTextLabel?.text ?? "")"
+        }
     }
 }
 

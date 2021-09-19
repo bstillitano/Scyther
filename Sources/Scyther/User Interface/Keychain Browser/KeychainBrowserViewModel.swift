@@ -21,10 +21,18 @@ internal class KeychainBrowserViewModel {
     weak var delegate: KeychainBrowserViewModelProtocol?
 
     /// Single row representing a single value and key
-    func defaultRow(name: String?, value: String?) -> DefaultRow {
-        let row: DefaultRow = DefaultRow()
+    func defaultRow(name: String?, value: String?) -> SubtitleRow {
+        let row: SubtitleRow = SubtitleRow()
         row.text = name
         row.detailText = value
+
+        return row
+    }
+    
+    /// Empty row that contains text in a 'disabled' style
+    func emptyRow(text: String) -> EmptyRow {
+        var row: EmptyRow = EmptyRow()
+        row.text = text
 
         return row
     }
@@ -39,12 +47,18 @@ internal class KeychainBrowserViewModel {
         for keychainItem: KeychainItem in KeychainBrowswer.keychainItems(forClass: kSecClassGenericPassword) {
             genericSection.rows.append(defaultRow(name: keychainItem.name, value: keychainItem.value))
         }
+        if genericSection.rows.isEmpty {
+            genericSection.rows.append(emptyRow(text: "No generic keychain items"))
+        }
         
         //Setup Internet Passwords Sections
         var internetSection: Section = Section()
         internetSection.title = "kSecClassInternetPassword"
         for keychainItem: KeychainItem in KeychainBrowswer.keychainItems(forClass: kSecClassInternetPassword) {
             internetSection.rows.append(defaultRow(name: keychainItem.name, value: keychainItem.value))
+        }
+        if internetSection.rows.isEmpty {
+            internetSection.rows.append(emptyRow(text: "No internet keychain items"))
         }
         
         //Setup Sections
