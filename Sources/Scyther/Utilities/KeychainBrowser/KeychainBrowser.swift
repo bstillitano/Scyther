@@ -9,7 +9,7 @@ import Foundation
 
 struct KeychainBrowswer {
     static var keychainItems: [String] {
-        let query: [String: Any] = [kSecClass as String: kSecClassInternetPassword, // change the kSecClass for your needs
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, // change the kSecClass for your needs
             kSecMatchLimit as String: kSecMatchLimitAll,
                                     kSecReturnAttributes as String: true,
                                     kSecReturnRef as String: true]
