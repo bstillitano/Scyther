@@ -8,10 +8,10 @@
 #if !os(macOS)
 import UIKit
 
-internal class KeychainBrowserViewController: UIViewController {
+internal class DataBrowserViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
-    private var viewModel: KeychainBrowserViewModel = KeychainBrowserViewModel()
+    private var viewModel: DataBrowserViewModel = DataBrowserViewModel()
 
     // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -20,6 +20,11 @@ internal class KeychainBrowserViewController: UIViewController {
         setupUI()
         setupConstraints()
         setupData()
+    }
+    
+    convenience init(data: [String: AnyObject]) {
+        self.init(nibName: nil, bundle: nil)
+        self.viewModel.data = data
     }
 
     required init?(coder: NSCoder) {
@@ -35,6 +40,7 @@ internal class KeychainBrowserViewController: UIViewController {
 
         //Register Table View Cells
         tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
+        tableView.register(SubtitleCell.self, forCellReuseIdentifier: RowStyle.subtitle.rawValue)
         tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
         tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
     }
@@ -70,7 +76,7 @@ internal class KeychainBrowserViewController: UIViewController {
     }
 }
 
-extension KeychainBrowserViewController: UITableViewDataSource {
+extension DataBrowserViewController: UITableViewDataSource {
 
     func numberOfSections(in tableView: UITableView) -> Int {
         return viewModel.numberOfSections
@@ -104,7 +110,7 @@ extension KeychainBrowserViewController: UITableViewDataSource {
 
 }
 
-extension KeychainBrowserViewController: UITableViewDelegate {
+extension DataBrowserViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         // Deselect Cell
         defer { tableView.deselectRow(at: indexPath, animated: true) }
@@ -115,30 +121,14 @@ extension KeychainBrowserViewController: UITableViewDelegate {
         }
         row.actionBlock?()
     }
-    
-    func tableView(_ tableView: UITableView, shouldShowMenuForRowAt indexPath: IndexPath) -> Bool {
-        guard let row = viewModel.row(at: indexPath) else { return false }
-        return row.style != .button || row.style != .emptyRow
-    }
-
-    func tableView(_ tableView: UITableView, canPerformAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) -> Bool {
-        return (action == #selector(copy(_:)))
-    }
-
-    func tableView(_ tableView: UITableView, performAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) {
-        if action == #selector(copy(_:)) {
-            guard let cell = tableView.cellForRow(at: indexPath), let key = cell.textLabel?.text else { return }
-            UIPasteboard.general.string = "\(key): \(cell.detailTextLabel?.text ?? "")"
-        }
-    }
 }
 
-extension KeychainBrowserViewController: KeychainBrowserViewModelProtocol {
+extension DataBrowserViewController: DataBrowserViewModelProtocol {
     func viewModelShouldReloadData() {
         self.tableView.reloadData()
     }
     
-    func viewModel(viewModel: KeychainBrowserViewModel?, shouldShowViewController viewController: UIViewController?) {
+    func viewModel(viewModel: DataBrowserViewModel?, shouldShowViewController viewController: UIViewController?) {
         guard let viewController = viewController else {
             return
         }

@@ -8,27 +8,41 @@
 #if !os(macOS)
 import UIKit
 
-internal protocol KeychainBrowserViewModelProtocol: AnyObject {
+internal protocol DataBrowserViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
-    func viewModel(viewModel: KeychainBrowserViewModel?, shouldShowViewController viewController: UIViewController?)
+    func viewModel(viewModel: DataBrowserViewModel?, shouldShowViewController viewController: UIViewController?)
 }
 
-internal class KeychainBrowserViewModel {
+internal class DataBrowserViewModel {
     // MARK: - Data
     private var sections: [Section] = []
+    internal var data: [String: AnyObject] = [:] {
+        didSet {
+            prepareObjects()
+        }
+    }
 
     // MARK: - Delegate
-    weak var delegate: KeychainBrowserViewModelProtocol?
+    weak var delegate: DataBrowserViewModelProtocol?
 
     /// Single row representing a single value and key
-    func defaultRow(name: String?, value: String?, actionBlock: ActionBlock? = nil) -> DefaultRow {
+    func defaultRow(name: String?, value: String?) -> DefaultRow {
         let row: DefaultRow = DefaultRow()
         row.text = name
         row.detailText = value
-        row.actionBlock = actionBlock
+
         return row
     }
     
+    /// Single row representing a single value and key
+    func subtitleRow(name: String?, value: String?) -> SubtitleRow {
+        let row: SubtitleRow = SubtitleRow()
+        row.text = name
+        row.detailText = value
+
+        return row
+    }
+
     /// Empty row that contains text in a 'disabled' style
     func emptyRow(text: String) -> EmptyRow {
         var row: EmptyRow = EmptyRow()
@@ -40,31 +54,46 @@ internal class KeychainBrowserViewModel {
     func prepareObjects() {
         //Clear Data
         sections.removeAll()
-        
+
         //Setup Sections
-        for kSecClassType in KeychainBrowser.keychainItems {
-            var section: Section = Section()
-            section.title = kSecClassType.key
-            for item in kSecClassType.value {
-                section.rows.append(defaultRow(name: item.key, value: "", actionBlock: { [weak self] in
-                    self?.delegate?.viewModel(viewModel: self, shouldShowViewController: DataBrowserViewController(data: KeychainBrowser.keychainItems[kSecClassType.key] ?? [:]))
-                }))
-            }
-            if section.rows.isEmpty {
-                section.rows.append(emptyRow(text: "No \(kSecClassType.key.lowercased()) in keychain"))
-            }
+        var section: Section = Section()
+        section.title = "Data"
+        for value in data {
+            let dataRow = DataRow(title: value.key, from: value.value)
+            section.rows.append(objectFor(dataRow))
             sections.append(section)
         }
 
         //Call Delegate
         delegate?.viewModelShouldReloadData()
     }
+
+    private func objectFor(_ dataRow: DataRow) -> Row {
+        switch dataRow {
+        case .string(let title, let data):
+            if (title?.count ?? 0) + (data?.count ?? 0) > 35 {
+                return defaultRow(name: title, value: data)
+            } else {
+                return subtitleRow(name: title, value: data)
+            }
+
+        case .json(let title, _):
+            break
+
+        case .array(let title, _):
+            break
+
+        case .dictionary(let title, _):
+            break
+        }
+        return defaultRow(name: "asd", value: "asd")
+    }
 }
 
 // MARK: - Public data accessors
-extension KeychainBrowserViewModel {
+extension DataBrowserViewModel {
     var title: String {
-        return "Keychain Browser"
+        return "Data Browser"
     }
 
     var numberOfSections: Int {
@@ -95,7 +124,7 @@ extension KeychainBrowserViewModel {
 }
 
 // MARK: - Private data accessors
-extension KeychainBrowserViewModel {
+extension DataBrowserViewModel {
     private func section(for index: Int) -> Section? {
         return sections[index]
     }
@@ -106,3 +135,4 @@ extension KeychainBrowserViewModel {
     }
 }
 #endif
+
