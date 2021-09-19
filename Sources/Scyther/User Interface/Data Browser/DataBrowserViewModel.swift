@@ -58,7 +58,12 @@ internal class DataBrowserViewModel {
         let mockData: [String : Any] = [
             "String" : "String",
             "Int": 1,
-            "Bool": true
+            "Bool": true,
+            "Dictionary": [
+                "String" : "String",
+                "Int": 1,
+                "Bool": true
+            ]
         ]
 
         //Setup Sections
