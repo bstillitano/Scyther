@@ -45,11 +45,9 @@ internal class KeychainBrowserViewModel {
         for kSecClassType in KeychainBrowser.keychainItems {
             var section: Section = Section()
             section.title = kSecClassType.key
-            for item in kSecClassType.value {
-                section.rows.append(actionRow(title: item.key, actionBlock: { [weak self] in
-                    self?.delegate?.viewModel(viewModel: self, shouldShowViewController: DataBrowserViewController(data: KeychainBrowser.keychainItems[kSecClassType.key] ?? [:]))
-                }))
-            }
+            section.rows.append(actionRow(title: kSecClassType.key, actionBlock: { [weak self] in
+                self?.delegate?.viewModel(viewModel: self, shouldShowViewController: DataBrowserViewController(data: KeychainBrowser.keychainItems[kSecClassType.key] ?? [:]))
+            }))
             if section.rows.isEmpty {
                 section.rows.append(emptyRow(text: "No \(kSecClassType.key.lowercased()) in keychain"))
             }
