@@ -21,8 +21,8 @@ internal class KeychainBrowserViewModel {
     weak var delegate: KeychainBrowserViewModelProtocol?
 
     /// Single row representing a single value and key
-    func defaultRow(name: String?, value: String?) -> SubtitleRow {
-        let row: SubtitleRow = SubtitleRow()
+    func defaultRow(name: String?, value: String?) -> DefaultRow {
+        let row: DefaultRow = DefaultRow()
         row.text = name
         row.detailText = value
 
