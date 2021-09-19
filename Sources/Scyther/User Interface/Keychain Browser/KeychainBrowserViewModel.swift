@@ -40,30 +40,37 @@ internal class KeychainBrowserViewModel {
     func prepareObjects() {
         //Clear Data
         sections.removeAll()
-
-        //Setup Generic Passwords Sections
-        var genericSection: Section = Section()
-        genericSection.title = "kSecClassGenericPassword"
-        for keychainItem: KeychainItem in KeychainBrowswer.keychainItems(forClass: kSecClassGenericPassword) {
-            genericSection.rows.append(defaultRow(name: keychainItem.name, value: keychainItem.value))
-        }
-        if genericSection.rows.isEmpty {
-            genericSection.rows.append(emptyRow(text: "No generic keychain items"))
-        }
-        
-        //Setup Internet Passwords Sections
-        var internetSection: Section = Section()
-        internetSection.title = "kSecClassInternetPassword"
-        for keychainItem: KeychainItem in KeychainBrowswer.keychainItems(forClass: kSecClassInternetPassword) {
-            internetSection.rows.append(defaultRow(name: keychainItem.name, value: keychainItem.value))
-        }
-        if internetSection.rows.isEmpty {
-            internetSection.rows.append(emptyRow(text: "No internet keychain items"))
-        }
         
         //Setup Sections
-        sections.append(genericSection)
-        sections.append(internetSection)
+        for kSecClassType in KeychainBrowser.keychainItems {
+            var section: Section = Section()
+            section.title = kSecClassType.key
+            sections.append(section)
+        }
+//
+//        //Setup Generic Passwords Sections
+//        var genericSection: Section = Section()
+//        genericSection.title = "kSecClassGenericPassword"
+//        for keychainItem in KeychainBrowser.keychainItems(forClass: kSecClassGenericPassword) {
+//            genericSection.rows.append(defaultRow(name: keychainItem.name, value: keychainItem.value))
+//        }
+//        if genericSection.rows.isEmpty {
+//            genericSection.rows.append(emptyRow(text: "No generic keychain items"))
+//        }
+//
+//        //Setup Internet Passwords Sections
+//        var internetSection: Section = Section()
+//        internetSection.title = "kSecClassInternetPassword"
+//        for keychainItem in KeychainBrowser.keychainItems(forClass: kSecClassInternetPassword) {
+//            internetSection.rows.append(defaultRow(name: keychainItem.name, value: keychainItem.value))
+//        }
+//        if internetSection.rows.isEmpty {
+//            internetSection.rows.append(emptyRow(text: "No internet keychain items"))
+//        }
+//
+//        //Setup Sections
+//        sections.append(genericSection)
+//        sections.append(internetSection)
 
         //Call Delegate
         delegate?.viewModelShouldReloadData()
