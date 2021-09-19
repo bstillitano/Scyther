@@ -49,7 +49,7 @@ internal class KeychainBrowserViewModel {
                 section.rows.append(defaultRow(name: item.key, value: item.value as? String))
             }
             if section.rows.isEmpty {
-                section.rows.append(emptyRow(text: "No \(kSecClassType.key.lowercased()) items in keychain"))
+                section.rows.append(emptyRow(text: "No \(kSecClassType.key.lowercased()) in keychain"))
             }
             sections.append(section)
         }
