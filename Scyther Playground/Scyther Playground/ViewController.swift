@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 12/2/21.
 //
 
+import Security
 import Scyther
 import UIKit
 
@@ -62,6 +63,25 @@ class ViewController: UIViewController {
             HTTPCookieStorage.shared.setCookie(cookie)
         }
         setupData()
+
+        // Set username and password
+        let username = "john"
+        let password = "1234".data(using: .utf8)!
+
+        // Set attributes
+        let attributes: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: username,
+            kSecValueData as String: password,
+        ]
+
+        // Add user
+        if SecItemAdd(attributes as CFDictionary, nil) == noErr {
+            print("User saved successfully in the keychain")
+        } else {
+            print("Something went wrong trying to save the user in the keychain")
+        }
+
     }
 
     func setupUI() {

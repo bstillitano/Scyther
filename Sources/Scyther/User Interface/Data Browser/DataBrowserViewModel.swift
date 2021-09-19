@@ -71,7 +71,7 @@ internal class DataBrowserViewModel {
         //Setup Sections
         var section: Section = Section()
         section.title = "Data"
-        for value in mockData {
+        for value in data {
             let dataRow = DataRow(title: value.key, from: value.value)
             section.rows.append(objectFor(dataRow))
         }
@@ -86,7 +86,7 @@ internal class DataBrowserViewModel {
     private func objectFor(_ dataRow: DataRow) -> Row {
         switch dataRow {
         case .string(let title, let data):
-            if data?.count ?? 0) > 20
+            if data?.count ?? 0 > 20 {
                 return defaultRow(name: title, value: data)
             } else {
                 return subtitleRow(name: title, value: data)
