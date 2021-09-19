@@ -38,7 +38,7 @@ struct KeychainBrowswer {
 
         return items.compactMap { item in
             let name: String? = item[kSecAttrAccount as String] as? String
-            let value: String? = try? readPassword(service: item[kSecAttrService as String] as? String, account: item[kSecAttrAccount as String] as? String)
+            let value: String? = item[kSecAttrGeneric as String] as? String
             var item: KeychainItem = KeychainItem()
             item.name = name
             item.value = value

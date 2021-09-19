@@ -33,13 +33,22 @@ internal class KeychainBrowserViewModel {
         //Clear Data
         sections.removeAll()
 
-        //Setup Notification Sections
+        //Setup Generic Passwords Sections
+        var genericSection: Section = Section()
+        genericSection.title = "kSecClassGenericPassword"
         for keychainItem: KeychainItem in KeychainBrowswer.keychainItems(forClass: kSecClassGenericPassword) {
-            var section: Section = Section()
-            section.title = kSecClassGenericPassword as String
             section.rows.append(defaultRow(name: keychainItem.name, value: keychainItem.value))
-            sections.append(section)
         }
+        
+        //Setup Internet Passwords Sections
+        var genericSection: Section = Section()
+        genericSection.title = "kSecClassInternetPassword"
+        for keychainItem: KeychainItem in KeychainBrowswer.keychainItems(forClass: kSecClassInternetPassword) {
+            section.rows.append(defaultRow(name: keychainItem.name, value: keychainItem.value))
+        }
+        
+        //Setup Sections
+        sections.append(genericSection)
 
         //Call Delegate
         delegate?.viewModelShouldReloadData()
