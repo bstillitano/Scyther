@@ -16,7 +16,7 @@ internal protocol DataBrowserViewModelProtocol: AnyObject {
 internal class DataBrowserViewModel {
     // MARK: - Data
     private var sections: [Section] = []
-    internal var data: [String : [String : Any]] = [:] {
+    internal var data: [String: [String: Any]] = [:] {
         didSet {
             prepareObjects()
         }
@@ -34,7 +34,7 @@ internal class DataBrowserViewModel {
         row.accessoryType = actionBlock == nil ? .none : .disclosureIndicator
         return row
     }
-    
+
     /// Single row representing a single value and key
     func subtitleRow(name: String?, value: String?, actionBlock: ActionBlock? = nil) -> SubtitleRow {
         let row: SubtitleRow = SubtitleRow()
@@ -71,7 +71,7 @@ internal class DataBrowserViewModel {
             }
             sections.append(section)
         }
-        
+
         //Call Delegate
         delegate?.viewModelShouldReloadData()
     }
@@ -79,10 +79,10 @@ internal class DataBrowserViewModel {
     private func objectFor(_ dataRow: DataRow) -> Row {
         switch dataRow {
         case .array(let title, let arrayData):
-            var organisedData: [String : [String : AnyObject]] = [:]
-            var subData: [String: AnyObject] = [:]
+            var organisedData: [String: [String: Any]] = [:]
+            var subData: [String: Any] = [:]
             arrayData.enumerated().forEach({ (index, element) in
-                subData["\(index)"] = NSString(string: element)
+                subData["\(index)"] = element
             })
             organisedData["Array Data"] = subData
             return defaultRow(name: title, value: "Array") { [weak self] in
@@ -91,18 +91,38 @@ internal class DataBrowserViewModel {
             }
 
         case .dictionary(let title, let dictionaryData):
-            let organisedData: [String : [String : AnyObject]] = [
+            let organisedData: [String: [String: Any]] = [
                 "Dictionary Data": dictionaryData
             ]
             return defaultRow(name: title, value: "Dictionary") { [weak self] in
                 let viewController: DataBrowserViewController = DataBrowserViewController(data: organisedData)
                 self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
             }
-            
+
         case .json(let title, let jsonData):
-            return defaultRow(name: "AD", value: "ADSSS")
-            break
-            
+            if let arrayData = jsonData as? NSArray {
+                var organisedData: [String: [String: Any]] = [:]
+                var subData: [String: Any] = [:]
+                arrayData.enumerated().forEach({ (index, element) in
+                    subData["\(index)"] = element
+                })
+                organisedData["Array Data"] = subData
+                return defaultRow(name: title, value: "Array") { [weak self] in
+                    let viewController: DataBrowserViewController = DataBrowserViewController(data: organisedData)
+                    self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
+                }
+            } else if let dictionaryData = jsonData as? NSDictionary {
+                let organisedData: [String: [String: Any]] = [
+                    "Dictionary Data": dictionaryData.swiftDictionary
+                ]
+                return defaultRow(name: title, value: "Dictionary") { [weak self] in
+                    let viewController: DataBrowserViewController = DataBrowserViewController(data: organisedData)
+                    self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
+                }
+            } else {
+                return subtitleRow(name: title, value: String(describing: jsonData))
+            }
+
         case .string(let title, let stringData):
             return defaultRow(name: title, value: stringData)
         }
