@@ -16,7 +16,7 @@ internal protocol DataBrowserViewModelProtocol: AnyObject {
 internal class DataBrowserViewModel {
     // MARK: - Data
     private var sections: [Section] = []
-    internal var data: [String: AnyObject] = [:] {
+    internal var data: [String : [String : AnyObject]] = [:] {
         didSet {
             prepareObjects()
         }
@@ -58,15 +58,16 @@ internal class DataBrowserViewModel {
         sections.removeAll()
 
         //Setup Sections
-        var section: Section = Section()
-        section.title = "Data"
         for value in data {
-            let dataRow = DataRow(title: value.key, from: value.value)
-            section.rows.append(objectFor(dataRow))
+            var section: Section = Section()
+            section.title = value.key
+            let dataRows: [Row] = value.value.map { object in
+                let dataRow: DataRow = DataRow(title: object.key, from: object.value)
+                return objectFor(dataRow)
+            }
+            section.rows.append(contentsOf: dataRows)
+            sections.append(section)
         }
-        
-        //Setup Sections
-        sections.append(section)
         
         //Call Delegate
         delegate?.viewModelShouldReloadData()
@@ -135,4 +136,3 @@ extension DataBrowserViewModel {
     }
 }
 #endif
-

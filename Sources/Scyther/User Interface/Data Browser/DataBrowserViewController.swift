@@ -22,7 +22,7 @@ internal class DataBrowserViewController: UIViewController {
         setupData()
     }
     
-    convenience init(data: [String: AnyObject]) {
+    convenience init(data: [String: [String: AnyObject]]) {
         self.init(nibName: nil, bundle: nil)
         self.viewModel.data = data
     }
@@ -120,6 +120,22 @@ extension DataBrowserViewController: UITableViewDelegate {
             return
         }
         row.actionBlock?()
+    }
+    
+    func tableView(_ tableView: UITableView, shouldShowMenuForRowAt indexPath: IndexPath) -> Bool {
+        guard let row = viewModel.row(at: indexPath) else { return false }
+        return row.style != .button || row.style != .emptyRow
+    }
+
+    func tableView(_ tableView: UITableView, canPerformAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) -> Bool {
+        return (action == #selector(copy(_:)))
+    }
+
+    func tableView(_ tableView: UITableView, performAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) {
+        if action == #selector(copy(_:)) {
+            guard let cell = tableView.cellForRow(at: indexPath), let key = cell.textLabel?.text else { return }
+            UIPasteboard.general.string = "\(key): \(cell.detailTextLabel?.text ?? "")"
+        }
     }
 }
 
