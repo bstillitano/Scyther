@@ -193,6 +193,18 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
 
         return prettyOutput(data, contentType: responseType)
     }
+    
+    @objc public func getResponseBodyDictionary() -> [String: [String: Any]] {
+        guard let data = readRawData(getResponseBodyFilepath()) else {
+            return [:]
+        }
+
+        return [
+            "Network Response Body": [
+                "JSON Response": prettyOutput(data, contentType: responseType)
+            ]
+        ]
+    }
 
     @objc public func getRandomHash() -> NSString {
         if !(self.randomHash != nil) {

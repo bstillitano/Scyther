@@ -181,11 +181,6 @@ internal class MenuViewModel {
                                               actionBlock: { [weak self] in
                                                   self?.delegate?.viewModel(viewModel: self, shouldShowViewController: DataBrowserViewController(data: KeychainBrowser.keychainItems))
                                               }))
-        securitySection.rows.append(actionRow(name: "Mocker",
-                                              icon: UIImage(systemImage: "key"),
-                                              actionBlock: { [weak self] in
-            self?.delegate?.viewModel(viewModel: self, shouldShowViewController: DataBrowserViewController(data: Mocker.nestedDictionaryData))
-                                              }))
 
         /// Setup Support Section
         var supportSection: Section = Section()
