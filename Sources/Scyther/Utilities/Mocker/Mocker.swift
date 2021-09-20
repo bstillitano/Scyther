@@ -15,13 +15,16 @@ internal enum Mocker {
                 "Int": 1,
                 "Bool": true,
                 "String Array": ["String1", "String2", "String3"],
-                "Mixed Array": ["String", 1, true],
+                "Dictionary Array": [
+                    "DictionaryString": "String",
+                    "DictionaryInt": 1,
+                    "DictionaryBool": true
+                ],
                 "Nested Dictionary": [
                     "String": "Stringy",
                     "Int": 1,
                     "Bool": true,
                     "StringArray": ["String1", "String2", "String3"],
-                    "MixedArray": ["String", 1, true]
                 ]
             ]
         ]
