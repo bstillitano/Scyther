@@ -100,7 +100,7 @@ internal class DataBrowserViewModel {
             }
 
         case .json(let title, let jsonData):
-            if let arrayData = jsonData as? Array<Any> {
+            if let arrayData = jsonData as? NSArray {
                 var organisedData: [String: [String: Any]] = [:]
                 var subData: [String: Any] = [:]
                 arrayData.enumerated().forEach({ (index, element) in

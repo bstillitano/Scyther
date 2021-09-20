@@ -5,8 +5,8 @@
         "package": "Scyther",
         "repositoryURL": "https://github.com/bstillitano/Scyther.git",
         "state": {
-          "branch": "main",
-          "revision": "10b0b164a0be204ea8f75a58b19db643db9446b5",
+          "branch": "improvement/data-browser-migration",
+          "revision": "3ce62dcc3c4d84e08fbc227a42f28fcb77f09ecc",
           "version": null
         }
       },
