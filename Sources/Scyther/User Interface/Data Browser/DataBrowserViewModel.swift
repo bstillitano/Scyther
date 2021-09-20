@@ -66,6 +66,9 @@ internal class DataBrowserViewModel {
                 return objectFor(dataRow)
             }
             section.rows.append(contentsOf: dataRows)
+            if section.rows.isEmpty {
+                section.rows.append(emptyRow(text: "No \(value.key) stored in the Keychain"))
+            }
             sections.append(section)
         }
         
@@ -75,19 +78,34 @@ internal class DataBrowserViewModel {
 
     private func objectFor(_ dataRow: DataRow) -> Row {
         switch dataRow {
-        case .string(let title, let data):
-            return defaultRow(name: title, value: data)
+        case .array(let title, let arrayData):
+            var organisedData: [String : [String : AnyObject]] = [:]
+            var subData: [String: AnyObject] = [:]
+            arrayData.enumerated().forEach({ (index, element) in
+                subData["\(index)"] = NSString(string: element)
+            })
+            organisedData["Array Data"] = subData
+            return defaultRow(name: title, value: "Array") { [weak self] in
+                let viewController: DataBrowserViewController = DataBrowserViewController(data: organisedData)
+                self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
+            }
 
-        case .json(let title, _):
+        case .dictionary(let title, let dictionaryData):
+            let organisedData: [String : [String : AnyObject]] = [
+                "Dictionary Data": dictionaryData
+            ]
+            return defaultRow(name: title, value: "Dictionary") { [weak self] in
+                let viewController: DataBrowserViewController = DataBrowserViewController(data: organisedData)
+                self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
+            }
+            
+        case .json(let title, let jsonData):
+            return defaultRow(name: "AD", value: "ADSSS")
             break
-
-        case .array(let title, _):
-            break
-
-        case .dictionary(let title, _):
-            break
+            
+        case .string(let title, let stringData):
+            return defaultRow(name: title, value: stringData)
         }
-        return defaultRow(name: "asd", value: "asd")
     }
 }
 
