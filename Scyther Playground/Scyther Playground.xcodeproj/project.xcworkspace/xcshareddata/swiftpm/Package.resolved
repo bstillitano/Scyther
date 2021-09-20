@@ -5,8 +5,8 @@
         "package": "Scyther",
         "repositoryURL": "https://github.com/bstillitano/Scyther.git",
         "state": {
-          "branch": "feature/keychain-browser",
-          "revision": "9ed42a41a8ed34cff021af11c0f7131946bc6eeb",
+          "branch": "main",
+          "revision": "10b0b164a0be204ea8f75a58b19db643db9446b5",
           "version": null
         }
       },

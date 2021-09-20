@@ -639,7 +639,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/bstillitano/Scyther.git";
 			requirement = {
-				branch = "feature/keychain-browser";
+				branch = main;
 				kind = branch;
 			};
 		};
