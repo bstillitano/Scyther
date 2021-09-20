@@ -5,8 +5,7 @@
 //  Created by Brandon Stillitano on 4/12/20.
 //
 
-#if !os(macOS)
-import UIKit
+import Foundation
 
 public extension String {
     /**
@@ -39,11 +38,21 @@ public extension String {
         return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
     }
 
-    /**
-     The current build number for the running application.
-     */
+    /// The current build number for the running application.
     static var buildNumber: String? {
         return Bundle.main.infoDictionary?["CFBundleVersion"] as? String
     }
+
+    /// Parses this string into a dicrionary of values
+    var dictionaryRepresentation: [String: Any]? {
+        if let data = self.data(using: .utf8) {
+            do {
+                let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any]
+                return json
+            } catch {
+                print("Something went wrong")
+            }
+        }
+        return nil
+    }
 }
-#endif

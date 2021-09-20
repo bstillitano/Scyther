@@ -200,9 +200,7 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
         }
 
         return [
-            "Network Response": [
-                "Body": prettyOutput(data, contentType: responseType)
-            ]
+            "JSON Body": (prettyOutput(data, contentType: responseType) as String).dictionaryRepresentation ?? [:]
         ]
     }
 
