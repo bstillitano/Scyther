@@ -125,6 +125,7 @@ public class Toggler {
         /// Construct & insert toggle into local array
         let toggle: Toggle = Toggle(name: name, remoteValue: remoteValue, abValue: abValue)
         toggles.append(toggle)
+        setLocalValue(value: value(forToggle: name), forToggleWithName: name)
     }
 
     /**
