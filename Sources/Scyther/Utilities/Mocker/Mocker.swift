@@ -10,12 +10,19 @@ import Foundation
 internal enum Mocker {
     static var nestedDictionaryData: [String: [String: Any]] {
         return [
-            "DictionaryData": [
+            "Dictionary Data": [
                 "String": "Stringy",
                 "Int": 1,
                 "Bool": true,
-                "StringArray": ["String1", "String2", "String3"],
-                "MixedArray": ["String", 1, true]
+                "String Array": ["String1", "String2", "String3"],
+                "Mixed Array": ["String", 1, true],
+                "Nested Dictionary": [
+                    "String": "Stringy",
+                    "Int": 1,
+                    "Bool": true,
+                    "StringArray": ["String1", "String2", "String3"],
+                    "MixedArray": ["String", 1, true]
+                ]
             ]
         ]
     }
