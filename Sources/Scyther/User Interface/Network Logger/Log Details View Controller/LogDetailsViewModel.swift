@@ -96,10 +96,7 @@ internal class LogDetailsViewModel {
         var row: ButtonRow = ButtonRow()
         row.text = "Browse response body"
         row.actionBlock = { [weak self] in
-            let data: [String: [String: Any]] = [
-                "JSON Data": self?.httpModel?.getResponseBodyDictionary() ?? [:]
-            ]
-            let viewController: DataBrowserViewController = DataBrowserViewController(data: data)
+            let viewController: DataBrowserViewController = DataBrowserViewController(data: self?.httpModel?.getResponseBodyDictionary() ?? [:])
             viewController.title = "Response body"
             self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
         }
