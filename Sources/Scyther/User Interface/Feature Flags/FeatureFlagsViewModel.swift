@@ -59,7 +59,7 @@ internal class FeatureFlagsViewModel {
         row.detailText = "Remote value: \(Toggler.instance.remoteValue(forToggle: name).stringValue)"
         // Setup Accessory
         let switchView = UIActionSwitch()
-        switchView.isOn = Toggler.instance.localValue(forToggle: name)
+        switchView.isOn = Toggler.instance.localValue(forToggle: name) ?? Toggler.instance.remoteValue(forToggle: name)
         switchView.actionBlock = {
             Toggler.instance.setLocalValue(value: switchView.isOn, forToggleWithName: name)
         }

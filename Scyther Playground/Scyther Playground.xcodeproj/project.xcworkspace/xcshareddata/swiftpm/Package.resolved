@@ -5,8 +5,8 @@
         "package": "Scyther",
         "repositoryURL": "https://github.com/bstillitano/Scyther.git",
         "state": {
-          "branch": "bugfix/view-frames-on-load",
-          "revision": "b6735940ae82ddca29930a4dbcc1f8fff8d32199",
+          "branch": "feature/keychain-browser",
+          "revision": "cd430860b96cb7f0e3efb7f648462a830408a32c",
           "version": null
         }
       },

@@ -21,6 +21,7 @@
 		CA9F8FCF25DE0B5F000FA677 /* BlueViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FCE25DE0B5F000FA677 /* BlueViewController.swift */; };
 		CA9F8FD425DE0EFF000FA677 /* Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FD325DE0EFF000FA677 /* Button.swift */; };
 		CA9F8FD925DE0F6D000FA677 /* ButtonPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FD825DE0F6D000FA677 /* ButtonPreviews.swift */; };
+		CABAC83926F7542000BA8CFD /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = CABAC83826F7542000BA8CFD /* Keychain.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,6 +63,7 @@
 		CA9F8FD825DE0F6D000FA677 /* ButtonPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonPreviews.swift; sourceTree = "<group>"; };
 		CA9F908025DFEA66000FA677 /* Scyther Playground.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Scyther Playground.entitlements"; sourceTree = "<group>"; };
 		CAB7FAE225E3C9B300B5C7CA /* Scyther Playground-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Scyther Playground-Bridging-Header.h"; sourceTree = "<group>"; };
+		CABAC83826F7542000BA8CFD /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -121,6 +123,7 @@
 				CA9F8FCE25DE0B5F000FA677 /* BlueViewController.swift */,
 				CA9F8FD325DE0EFF000FA677 /* Button.swift */,
 				CA9F8FD825DE0F6D000FA677 /* ButtonPreviews.swift */,
+				CABAC83826F7542000BA8CFD /* Keychain.swift */,
 				CA9F8FC125DE08E5000FA677 /* Environments.swift */,
 				CA73FCED25D690D2007FA627 /* Main.storyboard */,
 				CA73FCF025D690D2007FA627 /* Assets.xcassets */,
@@ -291,6 +294,7 @@
 				CA9F8FC725DE0A88000FA677 /* RedViewController.swift in Sources */,
 				CA73FCEC25D690D2007FA627 /* ViewController.swift in Sources */,
 				CA9F8FC225DE08E5000FA677 /* Environments.swift in Sources */,
+				CABAC83926F7542000BA8CFD /* Keychain.swift in Sources */,
 				CA73FCE825D690D2007FA627 /* AppDelegate.swift in Sources */,
 				CA9F8FCF25DE0B5F000FA677 /* BlueViewController.swift in Sources */,
 				CA73FCEA25D690D2007FA627 /* SceneDelegate.swift in Sources */,
@@ -635,7 +639,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/bstillitano/Scyther.git";
 			requirement = {
-				branch = "bugfix/view-frames-on-load";
+				branch = "feature/keychain-browser";
 				kind = branch;
 			};
 		};
