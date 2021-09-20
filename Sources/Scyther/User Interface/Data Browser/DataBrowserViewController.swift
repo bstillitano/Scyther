@@ -22,7 +22,7 @@ internal class DataBrowserViewController: UIViewController {
         setupData()
     }
     
-    convenience init(data: [String: [String: AnyObject]]) {
+    convenience init(data: [String: [String: Any]]) {
         self.init(nibName: nil, bundle: nil)
         self.viewModel.data = data
     }

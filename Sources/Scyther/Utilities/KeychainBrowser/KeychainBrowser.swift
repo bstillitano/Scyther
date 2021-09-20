@@ -11,8 +11,8 @@ import Foundation
 internal struct KeychainBrowser {
     /// Creates a dictionary of keychain values of differing types
     /// - Returns: A dictionary containing kSecClassGenericPassword, kSecClassInternetPassword & kSecClassIdentity values
-    static var keychainItems: [String: [String: AnyObject]] {
-        var values: [String: [String: AnyObject]] = [:]
+    static var keychainItems: [String: [String: Any]] {
+        var values: [String: [String: Any]] = [:]
         values["Generic Passwords"] = keychainItems(forClass: kSecClassGenericPassword)
         values["Internet Passwords"] = keychainItems(forClass: kSecClassInternetPassword)
         values["Identities"] = keychainItems(forClass: kSecClassIdentity)
@@ -48,5 +48,21 @@ internal struct KeychainBrowser {
         }
 
         return values
+    }
+    
+    /// USE WITH CAUTION - Deletes all items stored in the Keychain for the consuming app.
+    static internal func clearKeychain() {
+        let secItemClasses = [
+            kSecClassGenericPassword,
+            kSecClassInternetPassword,
+            kSecClassCertificate,
+            kSecClassKey,
+            kSecClassIdentity
+        ]
+
+        for secItemClass in secItemClasses {
+            let dictionary = [kSecClass as String: secItemClass]
+            SecItemDelete(dictionary as CFDictionary)
+        }
     }
 }

@@ -16,7 +16,7 @@ internal protocol DataBrowserViewModelProtocol: AnyObject {
 internal class DataBrowserViewModel {
     // MARK: - Data
     private var sections: [Section] = []
-    internal var data: [String : [String : AnyObject]] = [:] {
+    internal var data: [String : [String : Any]] = [:] {
         didSet {
             prepareObjects()
         }
@@ -67,7 +67,7 @@ internal class DataBrowserViewModel {
             }
             section.rows.append(contentsOf: dataRows)
             if section.rows.isEmpty {
-                section.rows.append(emptyRow(text: "No \(value.key) stored in the Keychain"))
+                section.rows.append(emptyRow(text: "No \(value.key)"))
             }
             sections.append(section)
         }

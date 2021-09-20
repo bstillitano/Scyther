@@ -77,7 +77,7 @@ extension ViewController {
         setupEnvironments()
         setupDeveloperTools()
     }
-    
+
     func setupCookies() {
         if let cookie = HTTPCookie(properties: [
                 .domain: ".test.scyther.com",
@@ -120,12 +120,25 @@ extension ViewController {
             HTTPCookieStorage.shared.setCookie(cookie)
         }
     }
-    
+
     func setupKeychain() {
+        //Clear Existing Keychain Items
+        let secItemClasses = [
+            kSecClassGenericPassword,
+            kSecClassInternetPassword,
+            kSecClassCertificate,
+            kSecClassKey,
+            kSecClassIdentity
+        ]
+        for secItemClass in secItemClasses {
+            let dictionary = [kSecClass as String: secItemClass]
+            SecItemDelete(dictionary as CFDictionary)
+        }
+
         //Setup Generic Keychain
         for i in 0...12 {
             let username = "john"
-            let password = "1234".data(using: .utf8)!
+            let password = "69420".data(using: .utf8)!
             let attributes: [String: Any] = [
                 kSecClass as String: kSecClassGenericPassword,
                 kSecAttrAccount as String: "\(username)+\(i)",
@@ -137,11 +150,11 @@ extension ViewController {
                 print("Something went wrong trying to save the user in the keychain")
             }
         }
-        
+
         //Setup Internet Keychain
         for i in 0...12 {
             let username = "internet-boi"
-            let password = "1234".data(using: .utf8)!
+            let password = "1337-h4x0r".data(using: .utf8)!
             let attributes: [String: Any] = [
                 kSecClass as String: kSecClassInternetPassword,
                 kSecAttrAccount as String: "\(username)+\(i)",
