@@ -19,8 +19,8 @@ final public class TouchVisualiser: NSObject {
     // MARK: - Object life cycle
     private override init() {
         super.init()
-        
-        
+
+
 
         UIDevice.current.beginGeneratingDeviceOrientationNotifications()
 
@@ -28,9 +28,7 @@ final public class TouchVisualiser: NSObject {
     }
 
     deinit {
-        NotificationCenter
-            .default
-            .removeObserver(self)
+        NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - Helper Functions
@@ -58,13 +56,21 @@ extension TouchVisualiser {
     }
 
     // MARK: - Start and Stop functions
+    internal func registerForNotitfcations() {
+        NotificationCenter.default.addObserver(self, selector: #selector(TouchVisualiser.orientationDidChangeNotification(_:)),
+                                               name: UIDevice.orientationDidChangeNotification,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(TouchVisualiser.applicationDidBecomeActiveNotification(_:)),
+                                               name: UIApplication.didBecomeActiveNotification,
+                                               object: nil)
+    }
 
     public class func start(_ config: TouchVisualiserConfiguration = TouchVisualiserConfiguration()) {
-
         if config.showsLog {
             print("Visualizer start...")
         }
         let instance = sharedInstance
+        instance.registerForNotitfcations()
         instance.enabled = true
         instance.config = config
 
