@@ -58,8 +58,14 @@ public class InterfaceToolkit: NSObject {
         }
     }
 
-    // MARK: - Key Window Notifications
+    // MARK: - Lifecycle Notifications
     internal func registerForNotitfcations() {
+        NotificationCenter.default.addObserver(self, selector: #selector(TouchVisualiser.orientationDidChangeNotification(_:)),
+                                               name: UIDevice.orientationDidChangeNotification,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(TouchVisualiser.applicationDidBecomeActiveNotification(_:)),
+                                               name: UIApplication.didBecomeActiveNotification,
+                                               object: nil)
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(newKeyWindowNotification(notification:)),
                                                name: UIWindow.didBecomeKeyNotification,
@@ -68,6 +74,7 @@ public class InterfaceToolkit: NSObject {
 
     internal func start() {
         registerForNotitfcations()
+        TouchVisualiser.start()
         
         /// Delaying here to allow UIWindow time to initialise.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
@@ -77,7 +84,6 @@ public class InterfaceToolkit: NSObject {
             if self?.showsViewBorders ?? false {
                 self?.swizzleLayout()
             }
-            TouchVisualiser.start()
         }
     }
 

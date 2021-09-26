@@ -19,17 +19,10 @@ final public class TouchVisualiser: NSObject {
     // MARK: - Object life cycle
     private override init() {
         super.init()
-        NotificationCenter
-            .default
-            .addObserver(self, selector: #selector(TouchVisualiser.orientationDidChangeNotification(_:)), name: UIDevice.orientationDidChangeNotification, object: nil)
+        
+        
 
-        NotificationCenter
-            .default
-            .addObserver(self, selector: #selector(TouchVisualiser.applicationDidBecomeActiveNotification(_:)), name: UIApplication.didBecomeActiveNotification, object: nil)
-
-        UIDevice
-            .current
-            .beginGeneratingDeviceOrientationNotifications()
+        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
 
         warnIfSimulator()
     }
