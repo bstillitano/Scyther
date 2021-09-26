@@ -41,7 +41,7 @@ internal class TouchVisualiserViewModel {
 
         //Setup Accessory
         let switchView = UIActionSwitch()
-        switchView.isOn = InterfaceToolkit.instance.visualiseTouches
+        switchView.isOn = InterfaceToolkit.instance.touchVisualiser.config.showsTouchDuration
         switchView.actionBlock = {
             InterfaceToolkit.instance.touchVisualiser.config.showsTouchDuration = switchView.isOn
         }
@@ -56,7 +56,7 @@ internal class TouchVisualiserViewModel {
 
         //Setup Accessory
         let switchView = UIActionSwitch()
-        switchView.isOn = InterfaceToolkit.instance.visualiseTouches
+        switchView.isOn = InterfaceToolkit.instance.touchVisualiser.config.showsTouchRadius
         switchView.actionBlock = {
             InterfaceToolkit.instance.touchVisualiser.config.showsTouchRadius = switchView.isOn
         }
@@ -71,7 +71,7 @@ internal class TouchVisualiserViewModel {
 
         //Setup Accessory
         let switchView = UIActionSwitch()
-        switchView.isOn = InterfaceToolkit.instance.visualiseTouches
+        switchView.isOn = InterfaceToolkit.instance.touchVisualiser.config.loggingEnabled
         switchView.actionBlock = {
             InterfaceToolkit.instance.touchVisualiser.config.loggingEnabled = switchView.isOn
         }
@@ -87,11 +87,9 @@ internal class TouchVisualiserViewModel {
         //Setup Section
         var section: Section = Section()
         section.rows.append(visualiseTouchesSwitch)
-        if InterfaceToolkit.instance.visualiseTouches {
-            section.rows.append(touchDurationSwitch)
-            section.rows.append(touchRadiusSwitch)
-            section.rows.append(touchLoggingSwitch)
-        }
+        section.rows.append(touchDurationSwitch)
+        section.rows.append(touchRadiusSwitch)
+        section.rows.append(touchLoggingSwitch)
 
         //Setup Data
         sections.append(section)
