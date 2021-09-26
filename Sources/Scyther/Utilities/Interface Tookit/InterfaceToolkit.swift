@@ -60,9 +60,9 @@ public class InterfaceToolkit: NSObject {
 
     // MARK: - Lifecycle Notifications
     internal func registerForNotitfcations() {
-        NotificationCenter.default.addObserver(self, selector: #selector(TouchVisualiser.orientationDidChangeNotification(_:)),
-                                               name: UIDevice.orientationDidChangeNotification,
-                                               object: nil)
+//        NotificationCenter.default.addObserver(self, selector: #selector(TouchVisualiser.orientationDidChangeNotification(_:)),
+//                                               name: UIDevice.orientationDidChangeNotification,
+//                                               object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(TouchVisualiser.applicationDidBecomeActiveNotification(_:)),
                                                name: UIApplication.didBecomeActiveNotification,
                                                object: nil)
