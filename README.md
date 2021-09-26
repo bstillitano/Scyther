@@ -93,7 +93,7 @@ There is a full-featured demo included in this repo. See the [Scyther Playground
 - [x] Grid Overlay
 - [x] Show View Frames
 - [x] Slow Animations
-- [ ] Show Screen Touches (Coming Soon)
+- [x] Show Screen Touches
 
 #### Development Tools
 
