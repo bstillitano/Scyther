@@ -84,6 +84,9 @@ public class InterfaceToolkit: NSObject {
             if self?.showsViewBorders ?? false {
                 self?.swizzleLayout()
             }
+            if self?.visualiseTouches ?? false {
+                TouchVisualiser.instance.start()
+            }
         }
     }
 

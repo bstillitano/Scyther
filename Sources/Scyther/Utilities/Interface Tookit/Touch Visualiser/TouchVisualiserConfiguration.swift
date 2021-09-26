@@ -11,18 +11,21 @@ import UIKit
 public struct TouchVisualiserConfiguration {
     // MARK: - Data
     /// Color to be used for touch indicators
-    public var touchIndicatorColor: UIColor = .systemGreen
+    public var touchIndicatorColor: UIColor = .systemGray.withAlphaComponent(0.7)
 
     /// Image to be used for touch indicators. If not nil, this will replace color based touch indicators.
     public var touchIndicatorImage: UIImage? {
-        let rect = CGRect(x: 0.0, y: 0.0,
-                          width: 60.0,
-                          height: 60.0)
-        UIGraphicsBeginImageContextWithOptions(rect.size, false, 0.0)
+        let rect = CGRect(x: 0.0,
+                          y: 0.0,
+                          width: touchIndicatorSize.width,
+                          height: touchIndicatorSize.height)
+        UIGraphicsBeginImageContextWithOptions(rect.size,
+                                               false,
+                                               0.0)
         let contextRef = UIGraphicsGetCurrentContext()
         contextRef?.setFillColor(touchIndicatorColor.cgColor)
         contextRef?.fillEllipse(in: rect)
-        var image = UIGraphicsGetImageFromCurrentImageContext()
+        let image = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         return image?.withRenderingMode(.alwaysTemplate)
     }
