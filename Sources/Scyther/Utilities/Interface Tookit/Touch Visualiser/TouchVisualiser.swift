@@ -157,7 +157,7 @@ extension TouchVisualiser {
 extension TouchVisualiser {
     internal func validateEnvironment() {
         if AppEnvironment.isSimulator {
-            print("Scyther.TouchVisualiser: TouchRadius doesn't work on the simulator because it is not possible to read touch radius on it.", terminator: "")
+            print("Scyther.TouchVisualiser: TouchRadius doesn't work on the simulator because it is not possible to read touch radius on it.")
         }
     }
 
