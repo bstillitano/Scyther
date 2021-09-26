@@ -72,7 +72,7 @@ There is a full-featured demo included in this repo. See the [Scyther Playground
 
 #### Security
 
-- [ ] Manage Keychain Items (Coming Soon)
+- [x] Manage Keychain Items
 
 #### System
 
