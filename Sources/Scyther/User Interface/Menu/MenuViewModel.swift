@@ -58,6 +58,26 @@ internal class MenuViewModel {
 
         return row
     }
+    
+    /// Switch to enable/disable touch visualiser
+    var visualiseTouchesSwitch: SwitchAccessoryRow {
+        //Setup Row
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = "Visualise Touches"
+        row.image = UIImage(systemImage: "hand.point.up")
+
+        //Setup Accessory
+        let switchView = UIActionSwitch()
+        switchView.isOn = InterfaceToolkit.instance.visualiseTouches
+        switchView.actionBlock = { [weak self] in
+            InterfaceToolkit.instance.visualiseTouches = switchView.isOn
+            self?.delegate?.viewModelShouldReloadData()
+        }
+        switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        row.accessoryView = switchView
+
+        return row
+    }
 
     /// Switch to enable/disable showing view frames
     var viewFramesSwitch: SwitchAccessoryRow {
@@ -232,6 +252,7 @@ internal class MenuViewModel {
                                           actionBlock: { [weak self] in
                                               self?.delegate?.viewModel(viewModel: self, shouldShowViewController: GridOverlayViewController())
                                           }))
+        uiUxSection.rows.append(visualiseTouchesSwitch)
         uiUxSection.rows.append(viewFramesSwitch)
         uiUxSection.rows.append(slowAnimationsSwitch)
 

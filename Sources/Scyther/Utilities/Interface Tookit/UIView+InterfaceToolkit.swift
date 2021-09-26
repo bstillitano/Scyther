@@ -87,6 +87,18 @@ internal extension UIView {
     func debugBordersChanged() {
         refreshDebugBorders()
     }
+    
+    func registerForVisualiseTouchesNotifications() {
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(visualiseTouchesChanged),
+                                               name: InterfaceToolkit.VisualiseTouchesChangeNotification,
+                                               object: nil)
+    }
+
+    @objc
+    func visualiseTouchesChanged() {
+        refreshDebugBorders()
+    }
 }
 
 // MARK: - Swizzling
