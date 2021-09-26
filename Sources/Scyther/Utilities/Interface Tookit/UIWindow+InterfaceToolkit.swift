@@ -7,16 +7,13 @@
 
 import UIKit
 
-fileprivate var isSwizzled = false
+private var isSwizzled = false
 
-@available(iOS 8.0, *)
 extension UIWindow {
-
     public func swizzle() {
-        guard isSwizzled == false else {
+        guard !isSwizzled else {
             return
         }
-
         let sendEvent = class_getInstanceMethod(
             object_getClass(self),
             #selector(UIApplication.sendEvent(_:))

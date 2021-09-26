@@ -24,6 +24,7 @@ public class InterfaceToolkit: NSObject {
     static let instance = InterfaceToolkit()
 
     // MARK: - UI Elements
+    public var touchVisualiser: TouchVisualiser = TouchVisualiser.instance
     internal var gridOverlayView: GridOverlayView = GridOverlayView()
     internal var topLevelViewsWrapper: TopLevelViewsWrapper = TopLevelViewsWrapper()
 

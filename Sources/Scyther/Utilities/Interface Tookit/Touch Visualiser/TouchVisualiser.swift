@@ -7,10 +7,10 @@
 
 import UIKit
 
-internal class TouchVisualiser: NSObject {
+public class TouchVisualiser: NSObject {
     // MARK: - Data
     private var enabled = false
-    internal var config: TouchVisualiserConfiguration = TouchVisualiserConfiguration()
+    public var config: TouchVisualiserConfiguration = TouchVisualiserConfiguration()
     private var touchViews: [TouchView] = []
     private var previousLog = ""
 
@@ -30,29 +30,31 @@ internal class TouchVisualiser: NSObject {
 
     // MARK: - Functions
     internal func start() {
-        self.enabled = true
-        
+        //Set data
         if config.loggingEnabled {
-            print("Visualizer start...")
+            print("Scyther.TouchVisualiser: Starting")
         }
+        enabled = true
+        removeAllTouchViews()
         
-
-        if let window = UIApplication.shared.keyWindow {
-            for subview in window.subviews {
-                if let subview = subview as? TouchView {
-                    subview.removeFromSuperview()
-                }
-            }
-        }
-        
+        //Log successful startup
         if config.loggingEnabled {
-            print("started !")
+            print("Scyther.TouchVisualiser: Started")
         }
     }
 
     internal func stop() {
+        //Set Data
+        if config.loggingEnabled {
+            print("Scyther.TouchVisualiser: Stopping")
+        }
         enabled = false
         removeAllTouchViews()
+        
+        //Log successful shutdown
+        if config.loggingEnabled {
+            print("Scyther.TouchVisualiser: Stopped")
+        }
     }
 
     // MARK: - Helper Functions
@@ -60,21 +62,17 @@ internal class TouchVisualiser: NSObject {
         for view in self.touchViews {
             view.removeFromSuperview()
         }
+        if let window = UIApplication.shared.keyWindow {
+            for subview in window.subviews {
+                if let subview = subview as? TouchView {
+                    subview.removeFromSuperview()
+                }
+            }
+        }
     }
 }
 
 extension TouchVisualiser {
-
-
-    public class func getTouches() -> [UITouch] {
-        let instance = instance
-        var touches: [UITouch] = []
-        for view in instance.touchViews {
-            guard let touch = view.touch else { continue }
-            touches.append(touch)
-        }
-        return touches
-    }
 
     // MARK: - Dequeue and locating TouchViews and handling events
     private func dequeueTouchView() -> TouchView {
@@ -104,7 +102,7 @@ extension TouchVisualiser {
         return nil
     }
 
-    public func handleEvent(_ event: UIEvent) {
+    internal func handleEvent(_ event: UIEvent) {
         if event.type != .touches {
             return
         }
@@ -157,12 +155,12 @@ extension TouchVisualiser {
 extension TouchVisualiser {
     internal func validateEnvironment() {
         if AppEnvironment.isSimulator {
-            print("Scyther.TouchVisualiser: TouchRadius doesn't work on the simulator because it is not possible to read touch radius on it.")
+            print("Scyther.TouchVisualiser: Touch radius doesn't work on the simulator because it is not possible to read touch radius on it.")
         }
     }
 
     // MARK: - Logging
-    public func log(_ touch: UITouch) {
+    internal func log(_ touch: UITouch) {
         if !config.loggingEnabled {
             return
         }
