@@ -232,6 +232,11 @@ internal class MenuViewModel {
                                           actionBlock: { [weak self] in
                                               self?.delegate?.viewModel(viewModel: self, shouldShowViewController: GridOverlayViewController())
                                           }))
+        uiUxSection.rows.append(actionRow(name: "Touch Visualiser",
+                                          icon: UIImage(systemImage: "hand.point.up"),
+                                          actionBlock: { [weak self] in
+                                              self?.delegate?.viewModel(viewModel: self, shouldShowViewController: TouchVisualiserViewController())
+                                          }))
         uiUxSection.rows.append(viewFramesSwitch)
         uiUxSection.rows.append(slowAnimationsSwitch)
 

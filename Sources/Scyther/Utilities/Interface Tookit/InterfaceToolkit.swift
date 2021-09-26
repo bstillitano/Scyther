@@ -12,8 +12,10 @@ import UIKit
 public class InterfaceToolkit: NSObject {
     // MARK: - Static Data
     internal static var DebugBordersChangeNotification: NSNotification.Name = NSNotification.Name("DebugBordersChangeNotification")
+    internal static var VisualiseTouchesChangeNotification: NSNotification.Name = NSNotification.Name("VisualiseTouchesChangeNotification")
     internal static var SlowAnimationsUserDefaultsKey: String = "Scyther_Interface_Toolkit_Slow_Animations_Enabled"
     internal static var ViewFramesUserDefaultsKey: String = "Scyther_Interface_Toolkit_View_Borders_Enabled"
+    internal static var VisualiseTouchesUserDefaultsKey: String = "Scyther_Interface_Toolkit_Visualise_Touches_Enabled"
 
     /// Private Init to Stop re-initialisation and allow singleton creation.
     override private init() { }
@@ -22,10 +24,21 @@ public class InterfaceToolkit: NSObject {
     static let instance = InterfaceToolkit()
 
     // MARK: - UI Elements
+    public var touchVisualiser: TouchVisualiser = TouchVisualiser.instance
     internal var gridOverlayView: GridOverlayView = GridOverlayView()
     internal var topLevelViewsWrapper: TopLevelViewsWrapper = TopLevelViewsWrapper()
 
     // MARK: - Data
+    internal var visualiseTouches: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: InterfaceToolkit.VisualiseTouchesUserDefaultsKey)
+        }
+        set {
+            UserDefaults.standard.setValue(newValue, forKey: InterfaceToolkit.VisualiseTouchesUserDefaultsKey)
+            NotificationCenter.default.post(name: InterfaceToolkit.VisualiseTouchesChangeNotification,
+                                            object: newValue)
+        }
+    }
     internal var showsViewBorders: Bool {
         get {
             UserDefaults.standard.bool(forKey: InterfaceToolkit.ViewFramesUserDefaultsKey)
@@ -46,11 +59,18 @@ public class InterfaceToolkit: NSObject {
         }
     }
 
-    // MARK: - Key Window Notifications
+    // MARK: - Lifecycle Notifications
     internal func registerForNotitfcations() {
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(newKeyWindowNotification(notification:)),
                                                name: UIWindow.didBecomeKeyNotification,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(orientationDidChangeNotification(_:)),
+                                               name: UIDevice.orientationDidChangeNotification,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(applicationDidBecomeActiveNotification(notification:)),
+                                               name: UIApplication.didBecomeActiveNotification,
                                                object: nil)
     }
 
@@ -65,11 +85,18 @@ public class InterfaceToolkit: NSObject {
             if self?.showsViewBorders ?? false {
                 self?.swizzleLayout()
             }
+            if self?.visualiseTouches ?? false {
+                TouchVisualiser.instance.start()
+            }
         }
     }
 
     internal func swizzleLayout() {
         UIView.swizzleLayout
+    }
+    
+    internal func swizzleWindow() {
+        UIApplication.shared.keyWindow?.swizzle()
     }
 
     private func setupTopLevelViewsWrapper() {
@@ -103,6 +130,16 @@ public class InterfaceToolkit: NSObject {
         if object is UIWindow {
             topLevelViewsWrapper.superview?.bringSubviewToFront(topLevelViewsWrapper)
         }
+    }
+    
+    @objc
+    internal func applicationDidBecomeActiveNotification(notification: NSNotification) {
+        swizzleWindow()
+    }
+    
+    @objc
+    internal func orientationDidChangeNotification(_ notification: Notification) {
+        TouchVisualiser.instance.removeAllTouchViews()
     }
 }
 
