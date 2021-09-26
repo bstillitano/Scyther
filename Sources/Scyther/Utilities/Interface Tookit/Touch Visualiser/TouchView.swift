@@ -22,8 +22,8 @@ final public class TouchView: UIImageView {
         set (value) {
             _config = value
             image = self.config.touchIndicatorImage
-            tintColor = self.config.color
-            timerLabel.textColor = self.config.color
+            tintColor = self.config.touchIndicatorColor
+            timerLabel.textColor = self.config.touchIndicatorColor
         }
     }
     

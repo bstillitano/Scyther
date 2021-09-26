@@ -11,7 +11,7 @@ import UIKit
 public struct TouchVisualiserConfiguration {
     // MARK: - Data
     /// Color to be used for touch indicators
-    public var color: UIColor = .systemGreen
+    public var touchIndicatorColor: UIColor = .systemGreen
 
     /// Image to be used for touch indicators. If not nil, this will replace color based touch indicators.
     public var touchIndicatorImage: UIImage? = nil

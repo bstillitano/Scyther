@@ -28,6 +28,7 @@ extension UIWindow {
         method_exchangeImplementations(sendEvent!, swizzledSendEvent!)
 
         isSwizzled = true
+        registerForVisualiseTouchesNotifications()
     }
 }
 
