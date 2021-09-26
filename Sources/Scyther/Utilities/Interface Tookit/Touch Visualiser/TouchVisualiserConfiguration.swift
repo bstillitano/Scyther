@@ -14,21 +14,16 @@ public struct TouchVisualiserConfiguration {
     public var touchIndicatorColor: UIColor = .systemGray.withAlphaComponent(0.7)
 
     /// Image to be used for touch indicators. If not nil, this will replace color based touch indicators.
-    public lazy var touchIndicatorImage: UIImage? = {
-        let rect = CGRect(x: 0.0,
-                          y: 0.0,
-                          width: touchIndicatorSize.width,
-                          height: touchIndicatorSize.height)
-        UIGraphicsBeginImageContextWithOptions(rect.size,
-                                               false,
-                                               0.0)
-        let contextRef = UIGraphicsGetCurrentContext()
-        contextRef?.setFillColor(touchIndicatorColor.cgColor)
-        contextRef?.fillEllipse(in: rect)
-        let image = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-        return image?.withRenderingMode(.alwaysTemplate)
-    }()
+    public var touchIndicatorImage: UIImage? {
+        get {
+            return indicatorImage ?? .touchIndicatorImage(withColor: touchIndicatorColor,
+                                                         andSize: touchIndicatorSize)
+        }
+        set {
+            indicatorImage = newValue
+        }
+    }
+    private var indicatorImage: UIImage?
 
     /// Touch indicator size. If `showsTouchRadius` is enabled, this value is ignored
     public var touchIndicatorSize = CGSize(width: 60.0, height: 60.0)
