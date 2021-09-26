@@ -21,7 +21,7 @@ final public class TouchView: UIImageView {
         get { return _config }
         set (value) {
             _config = value
-            image = self.config.image
+            image = self.config.touchIndicatorImage
             tintColor = self.config.color
             timerLabel.textColor = self.config.color
         }
@@ -53,7 +53,7 @@ final public class TouchView: UIImageView {
         _config = TouchVisualiserConfiguration()
         super.init(frame: frame)
         
-        self.frame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: _config.defaultSize)
+        self.frame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: _config.touchIndicatorSize)
     }
 
     public required init?(coder aDecoder: NSCoder) {
@@ -70,7 +70,7 @@ final public class TouchView: UIImageView {
         timerLabel.alpha = 0.0
         layer.transform = CATransform3DIdentity
         previousRatio = 1.0
-        frame = CGRect(origin: frame.origin, size: _config.defaultSize)
+        frame = CGRect(origin: frame.origin, size: _config.touchIndicatorSize)
         startDate = Date()
         timer = Timer.scheduledTimer(timeInterval: 1.0 / 60.0, target: self, selector: #selector(self.update(_:)), userInfo: nil, repeats: true)
         
@@ -106,7 +106,7 @@ final public class TouchView: UIImageView {
     
     internal func updateSize() {
         guard let touch = touch else { return }
-        let ratio = touch.majorRadius * 2.0 / _config.defaultSize.width
+        let ratio = touch.majorRadius * 2.0 / _config.touchIndicatorSize.width
         if ratio != previousRatio {
             layer.transform = CATransform3DMakeScale(ratio, ratio, 1.0)
             previousRatio = ratio

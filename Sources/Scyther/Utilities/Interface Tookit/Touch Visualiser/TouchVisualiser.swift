@@ -7,72 +7,35 @@
 
 import UIKit
 
-final public class TouchVisualiser: NSObject {
+internal class TouchVisualiser: NSObject {
+    // MARK: - Data
+    private var enabled = false
+    internal var config: TouchVisualiserConfiguration = TouchVisualiserConfiguration()
+    private var touchViews: [TouchView] = []
+    private var previousLog = ""
 
-    // MARK: - Public Variables
-    static public let sharedInstance = TouchVisualiser()
-    fileprivate var enabled = false
-    fileprivate var config: TouchVisualiserConfiguration!
-    fileprivate var touchViews = [TouchView]()
-    fileprivate var previousLog = ""
-
-    // MARK: - Object life cycle
-    private override init() {
-        super.init()
-
-
-
-        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-
-        warnIfSimulator()
-    }
-
+    // MARK: - Lifecycle
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
 
-    // MARK: - Helper Functions
-    @objc internal func applicationDidBecomeActiveNotification(_ notification: Notification) {
-        UIApplication.shared.keyWindow?.swizzle()
+    // MARK: - Singleton
+    internal static let instance = TouchVisualiser()
+    private override init() {
+        super.init()
+
+        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+        validateEnvironment()
     }
 
-    @objc internal func orientationDidChangeNotification(_ notification: Notification) {
-        let instance = TouchVisualiser.sharedInstance
-        for touch in instance.touchViews {
-            touch.removeFromSuperview()
-        }
-    }
-
-    public func removeAllTouchViews() {
-        for view in self.touchViews {
-            view.removeFromSuperview()
-        }
-    }
-}
-
-extension TouchVisualiser {
-    public class func isEnabled() -> Bool {
-        return sharedInstance.enabled
-    }
-
-    // MARK: - Start and Stop functions
-    internal func registerForNotitfcations() {
-        NotificationCenter.default.addObserver(self, selector: #selector(TouchVisualiser.orientationDidChangeNotification(_:)),
-                                               name: UIDevice.orientationDidChangeNotification,
-                                               object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(TouchVisualiser.applicationDidBecomeActiveNotification(_:)),
-                                               name: UIApplication.didBecomeActiveNotification,
-                                               object: nil)
-    }
-
-    public class func start(_ config: TouchVisualiserConfiguration = TouchVisualiserConfiguration()) {
-        if config.showsLog {
+    // MARK: - Functions
+    internal func start() {
+        self.enabled = true
+        
+        if config.loggingEnabled {
             print("Visualizer start...")
         }
-        let instance = sharedInstance
-        instance.registerForNotitfcations()
-        instance.enabled = true
-        instance.config = config
+        
 
         if let window = UIApplication.shared.keyWindow {
             for subview in window.subviews {
@@ -81,22 +44,30 @@ extension TouchVisualiser {
                 }
             }
         }
-        if config.showsLog {
+        
+        if config.loggingEnabled {
             print("started !")
         }
     }
 
-    public class func stop() {
-        let instance = sharedInstance
-        instance.enabled = false
-
-        for touch in instance.touchViews {
-            touch.removeFromSuperview()
-        }
+    internal func stop() {
+        enabled = false
+        removeAllTouchViews()
     }
 
+    // MARK: - Helper Functions
+    internal func removeAllTouchViews() {
+        for view in self.touchViews {
+            view.removeFromSuperview()
+        }
+    }
+}
+
+extension TouchVisualiser {
+
+
     public class func getTouches() -> [UITouch] {
-        let instance = sharedInstance
+        let instance = instance
         var touches: [UITouch] = []
         for view in instance.touchViews {
             guard let touch = view.touch else { continue }
@@ -138,7 +109,7 @@ extension TouchVisualiser {
             return
         }
 
-        if !TouchVisualiser.sharedInstance.enabled {
+        if !TouchVisualiser.instance.enabled {
             return
         }
 
@@ -154,7 +125,7 @@ extension TouchVisualiser {
             switch phase {
             case .began:
                 let view = dequeueTouchView()
-                view.config = TouchVisualiser.sharedInstance.config
+                view.config = TouchVisualiser.instance.config
                 view.touch = touch
                 view.beginTouch()
                 view.center = touch.location(in: topWindow)
@@ -184,15 +155,15 @@ extension TouchVisualiser {
 }
 
 extension TouchVisualiser {
-    public func warnIfSimulator() {
-        #if targetEnvironment(simulator)
-            print("[TouchVisualizer] Warning: TouchRadius doesn't work on the simulator because it is not possible to read touch radius on it.", terminator: "")
-        #endif
+    internal func validateEnvironment() {
+        if AppEnvironment.isSimulator {
+            print("Scyther.TouchVisualiser: TouchRadius doesn't work on the simulator because it is not possible to read touch radius on it.", terminator: "")
+        }
     }
 
     // MARK: - Logging
     public func log(_ touch: UITouch) {
-        if !config.showsLog {
+        if !config.loggingEnabled {
             return
         }
 

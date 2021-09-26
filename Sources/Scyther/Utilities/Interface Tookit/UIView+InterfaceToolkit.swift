@@ -74,7 +74,7 @@ internal extension UIView {
     }
 }
 
-// MARK: - Notifications
+// MARK: - Debug Border Notifications
 internal extension UIView {
     func registerForDebugBorderNotifications() {
         NotificationCenter.default.addObserver(self,
@@ -87,7 +87,10 @@ internal extension UIView {
     func debugBordersChanged() {
         refreshDebugBorders()
     }
-    
+}
+
+// MARK: - Visualise Touches Notifications
+internal extension UIView {
     func registerForVisualiseTouchesNotifications() {
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(visualiseTouchesChanged),
@@ -97,7 +100,11 @@ internal extension UIView {
 
     @objc
     func visualiseTouchesChanged() {
-        refreshDebugBorders()
+        if InterfaceToolkit.instance.visualiseTouches {
+            TouchVisualiser.instance.start()
+        } else {
+            TouchVisualiser.instance.stop()
+        }
     }
 }
 

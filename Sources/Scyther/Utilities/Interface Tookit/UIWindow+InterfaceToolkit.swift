@@ -34,7 +34,7 @@ extension UIWindow {
 // MARK: - Swizzle
 extension UIWindow {
     @objc public func swizzledSendEvent(_ event: UIEvent) {
-        TouchVisualiser.sharedInstance.handleEvent(event)
+        TouchVisualiser.instance.handleEvent(event)
         swizzledSendEvent(event)
     }
 }

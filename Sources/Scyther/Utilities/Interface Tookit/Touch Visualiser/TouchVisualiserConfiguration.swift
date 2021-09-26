@@ -7,50 +7,35 @@
 
 import UIKit
 
+/// Data struct used to configure the Scyther touch visualisation feature
 public struct TouchVisualiserConfiguration {
-    private struct Constants {
-        static let defaultColor = UIColor(red: 52.0 / 255.0, green: 152.0 / 255.0, blue: 219.0 / 255.0, alpha: 0.8)
-    }
+    // MARK: - Data
+    /// Color to be used for touch indicators
+    public var color: UIColor = .systemGreen
 
-    /**
-    Color of touch points
-    */
-    public var color: UIColor? = Constants.defaultColor
+    /// Image to be used for touch indicators. If not nil, this will replace color based touch indicators.
+    public var touchIndicatorImage: UIImage? = nil
 
-    // Image of touch points
-    public var image: UIImage? = {
-        let rect = CGRect(x: 0.0, y: 0.0, width: 60.0, height: 60.0)
+    /// Touch indicator size. If `showsTouchRadius` is enabled, this value is ignored
+    public var touchIndicatorSize = CGSize(width: 60.0, height: 60.0)
 
-        UIGraphicsBeginImageContextWithOptions(rect.size, false, 0.0)
-        let contextRef = UIGraphicsGetCurrentContext()
-        contextRef?.setFillColor(Constants.defaultColor.cgColor)
-        contextRef?.fillEllipse(in: rect)
-        var image = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-
-        return image?.withRenderingMode(.alwaysTemplate)
-    }()
-
-    /**
-    Default touch point size. If `showsTouchRadius` is enabled, this value is ignored
-    */
-    public var defaultSize = CGSize(width: 60.0, height: 60.0)
-
-    /**
-    Shows touch duration.
-    */
+    /// Boolean value indicating whether or not the duration of a touch should be shown. Useful when trying to debug time based interactions like press and hold of a `UIButton`. Defaults to `false`.
     public var showsTimer = false
 
-    /**
-    Shows touch radius. It doesn't work on simulator because it is not
-    possible to read touch radius on it. Please test it on device
-    */
+    /// Boolean value indicating the radius of a given touch. This only works on physical devices as touch radius is not supported on simulator given that there is no physical screen to touch.
     public var showsTouchRadius = false
 
-    /**
-    Shows log. This will affect performance. Make sure showing logs only in development environment
-    */
-    public var showsLog = false
+    /// Boolean value indicating whether or not logging should be enabled for touches. This has a drastic impact on performance, so will always be disabled when running within an AppStore environment, even if set to true.
+    public var loggingEnabled: Bool {
+        get {
+            return AppEnvironment.isAppStore ? false : logsEnabled
+        }
+        set {
+            logsEnabled = newValue
+        }
+    }
+    private var logsEnabled: Bool = false
 
+    // MARK: - Lifecycle
     public init() { }
 }

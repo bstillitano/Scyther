@@ -64,11 +64,17 @@ public class InterfaceToolkit: NSObject {
                                                selector: #selector(newKeyWindowNotification(notification:)),
                                                name: UIWindow.didBecomeKeyNotification,
                                                object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(orientationDidChangeNotification(_:)),
+                                               name: UIDevice.orientationDidChangeNotification,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(applicationDidBecomeActiveNotification(notification:)),
+                                               name: UIApplication.didBecomeActiveNotification,
+                                               object: nil)
     }
 
     internal func start() {
         registerForNotitfcations()
-        TouchVisualiser.start()
         
         /// Delaying here to allow UIWindow time to initialise.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
@@ -83,6 +89,10 @@ public class InterfaceToolkit: NSObject {
 
     internal func swizzleLayout() {
         UIView.swizzleLayout
+    }
+    
+    internal func swizzleWindow() {
+        UIApplication.shared.keyWindow?.swizzle()
     }
 
     private func setupTopLevelViewsWrapper() {
@@ -116,6 +126,16 @@ public class InterfaceToolkit: NSObject {
         if object is UIWindow {
             topLevelViewsWrapper.superview?.bringSubviewToFront(topLevelViewsWrapper)
         }
+    }
+    
+    @objc
+    internal func applicationDidBecomeActiveNotification(notification: NSNotification) {
+        swizzleWindow()
+    }
+    
+    @objc
+    internal func orientationDidChangeNotification(_ notification: Notification) {
+        TouchVisualiser.instance.removeAllTouchViews()
     }
 }
 
