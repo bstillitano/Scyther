@@ -29,7 +29,7 @@ extension UIWindow {
     }
 }
 
-// MARK: - Swizzle
+// MARK: - Swizzling
 extension UIWindow {
     @objc public func swizzledSendEvent(_ event: UIEvent) {
         TouchVisualiser.instance.handleEvent(event)

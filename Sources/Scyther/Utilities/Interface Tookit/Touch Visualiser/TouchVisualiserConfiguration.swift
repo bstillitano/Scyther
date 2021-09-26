@@ -29,7 +29,7 @@ public struct TouchVisualiserConfiguration {
     public var touchIndicatorSize = CGSize(width: 60.0, height: 60.0)
 
     /// Boolean value indicating whether or not the duration of a touch should be shown. Useful when trying to debug time based interactions like press and hold of a `UIButton`. Defaults to `false`.
-    public var showsTimer = false
+    public var showsTouchDuration = false
 
     /// Boolean value indicating the radius of a given touch. This only works on physical devices as touch radius is not supported on simulator given that there is no physical screen to touch.
     public var showsTouchRadius = false
