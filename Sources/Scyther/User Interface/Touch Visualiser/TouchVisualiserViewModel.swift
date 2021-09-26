@@ -28,13 +28,13 @@ internal class TouchVisualiserViewModel {
         switchView.isOn = InterfaceToolkit.instance.visualiseTouches
         switchView.actionBlock = { [weak self] in
             InterfaceToolkit.instance.visualiseTouches = switchView.isOn
-            self?.delegate?.viewModelShouldReloadData()
+            self?.prepareObjects()
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
         return row
     }
-    
+
     var touchDurationSwitch: SwitchAccessoryRow {
         var row: SwitchAccessoryRow = SwitchAccessoryRow()
         row.text = "Show touch duration"
@@ -49,7 +49,7 @@ internal class TouchVisualiserViewModel {
         row.accessoryView = switchView
         return row
     }
-    
+
     var touchRadiusSwitch: SwitchAccessoryRow {
         var row: SwitchAccessoryRow = SwitchAccessoryRow()
         row.text = "Show touch radius"
@@ -64,7 +64,7 @@ internal class TouchVisualiserViewModel {
         row.accessoryView = switchView
         return row
     }
-    
+
     var touchLoggingSwitch: SwitchAccessoryRow {
         var row: SwitchAccessoryRow = SwitchAccessoryRow()
         row.text = "Log screen touches"
@@ -87,9 +87,11 @@ internal class TouchVisualiserViewModel {
         //Setup Section
         var section: Section = Section()
         section.rows.append(visualiseTouchesSwitch)
-        section.rows.append(touchDurationSwitch)
-        section.rows.append(touchRadiusSwitch)
-        section.rows.append(touchLoggingSwitch)
+        if InterfaceToolkit.instance.visualiseTouches {
+            section.rows.append(touchDurationSwitch)
+            section.rows.append(touchRadiusSwitch)
+            section.rows.append(touchLoggingSwitch)
+        }
 
         //Setup Data
         sections.append(section)
