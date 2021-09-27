@@ -5,12 +5,16 @@
 //  Created by Brandon Stillitano on 12/2/21.
 //
 
+import CoreLocation
 import Scyther
 import UIKit
 import UserNotifications
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
+
+    let location: GetLocation = GetLocation()
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         /// Run Scyther only on non AppStore builds to avoid introducing potential security issues into our app.
         if !AppEnvironment.isAppStore {
@@ -20,6 +24,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         //Register for Push
         registerForPushNotifications()
 
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.location.run { location in
+                print(location)
+            }
+        }
         return true
     }
 
@@ -57,5 +66,15 @@ extension AppDelegate {
 extension AppDelegate: UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         Scyther.notificationTester.processNotification(response.notification.request.content.userInfo)
+    }
+}
+
+extension AppDelegate: CLLocationManagerDelegate {
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        print(locations)
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print(error)
     }
 }

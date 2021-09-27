@@ -8,60 +8,96 @@
 import Foundation
 import CoreLocation
 
-class LocationSpoofer: NSObject {
-    // MARK: - Notifications
-    internal static var LocationSpooferSimulatedLatitudeDefaultsKey: String = "Scyther_Location_Spoofer_Simulated_Latitude"
-    internal static var LocationSpooferSimulatedLongitudeDefaultsKey: String = "Scyther_Location_Spoofer_Simulated_Longitude"
+struct LocationSpooferConfiguration {
+    static var updateInterval = 0.5
+    static var GpxFileName: String?
+}
 
+internal class LocationSpoofer: CLLocationManager {
     // MARK: - Singleton
-    private override init() { }
-    static let instance: LocationSpoofer = LocationSpoofer()
+    private override init() {
+        locations = Queue<CLLocation>()
+    }
+    static let instance = LocationSpoofer()
 
     // MARK: - Data
-    internal var simulatedLocation: CLLocation? {
-        get {
-            guard let latitude: Double = UserDefaults.standard.object(forKey: LocationSpoofer.LocationSpooferSimulatedLatitudeDefaultsKey) as? Double else {
-                return nil
-            }
-            guard let longitude: Double = UserDefaults.standard.object(forKey: LocationSpoofer.LocationSpooferSimulatedLongitudeDefaultsKey) as? Double else {
-                return nil
-            }
-            return CLLocation(latitude: latitude, longitude: longitude)
-        }
-        set {
-            guard let location: CLLocation = newValue else {
-                UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpooferSimulatedLatitudeDefaultsKey)
-                UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpooferSimulatedLongitudeDefaultsKey)
-                return
-            }
-            UserDefaults.standard.set(location.coordinate.latitude, forKey: LocationSpoofer.LocationSpooferSimulatedLatitudeDefaultsKey)
-            UserDefaults.standard.set(location.coordinate.longitude, forKey: LocationSpoofer.LocationSpooferSimulatedLongitudeDefaultsKey)
+    private var parser: GPXParser?
+    private var timer: Timer?
+    private var locations: Queue<CLLocation>?
+    var updateInterval: TimeInterval = 0.5
+    var isRunning: Bool = false
+
+    // MARK: - Lifecycle
+    override func startUpdatingLocation() {
+        timer = Timer(timeInterval: updateInterval, repeats: true, block: {
+            [unowned self](_) in
+            self.updateLocation()
+        })
+        if let timer = timer {
+            RunLoop.main.add(timer, forMode: .default)
         }
     }
 
-    // MARK: - Lifecycle
-    internal func start() {
-        CLLocationManager.swizzle
-        simulatedLocation = CLLocation(latitude: Location.sydneyAustralia.latitude,
-                                       longitude: Location.sydneyAustralia.longitude)
+    override func stopUpdatingLocation() {
+        timer?.invalidate()
+        isRunning = false
+    }
+
+    override func requestLocation() {
+        if let location = locations?.peek() {
+            delegate?.locationManager?(self, didUpdateLocations: [location])
+        }
+    }
+}
+
+// MARK: - Spoofing
+extension LocationSpoofer {
+    func startMocks(usingGPX fileName: String) {
+        if let fileName = LocationSpooferConfiguration.GpxFileName {
+            parser = GPXParser(forResource: fileName, ofType: "gpx")
+            parser?.delegate = self
+            parser?.parse()
+        }
+    }
+
+    func stopMocking() {
+        self.stopUpdatingLocation()
+    }
+
+    private func updateLocation() {
+        if let location = locations?.dequeue() {
+            isRunning = true
+            delegate?.locationManager?(self, didUpdateLocations: [location])
+            if let isEmpty = locations?.isEmpty(), isEmpty {
+                print("stopping at: \(location.coordinate)")
+                stopUpdatingLocation()
+            }
+        }
+    }
+}
+
+extension LocationSpoofer: GPXParsingProtocol {
+    func parser(_ parser: GPXParser, didCompleteParsing locations: Queue<CLLocation>) {
+        self.locations = locations
+        self.startUpdatingLocation()
     }
 }
 
 extension LocationSpoofer {
     internal var presetLocations: [Location] {
         return [
-            .sydneyAustralia,
-            .hongKongChina,
-            .londonEngland,
-            .johannesburgSouthAfica,
-            .moscowRussia,
-            .mumbaiIndia,
-            .tokyoJapan,
-            .honoluluUSA,
-            .sanFranciscoUSA,
-            .mexicoCityMexico,
-            .newYorkUSA,
-            .rioDeJaneiroBrazil
+                .sydneyAustralia,
+                .hongKongChina,
+                .londonEngland,
+                .johannesburgSouthAfica,
+                .moscowRussia,
+                .mumbaiIndia,
+                .tokyoJapan,
+                .honoluluUSA,
+                .sanFranciscoUSA,
+                .mexicoCityMexico,
+                .newYorkUSA,
+                .rioDeJaneiroBrazil
         ]
     }
 }

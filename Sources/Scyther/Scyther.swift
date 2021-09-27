@@ -81,7 +81,7 @@ public class Scyther {
         InterfaceToolkit.instance.start()
         
         /// Sets up location spoofing
-        LocationSpoofer.instance.start()
+        LocationSpoofer.instance.startMocks(usingGPX: "Marrickville_Sydney")
     }
 
     /// Convenience function for manually showing the Scyther menu. Would be used when no gesture is wanted to invoke the menu.

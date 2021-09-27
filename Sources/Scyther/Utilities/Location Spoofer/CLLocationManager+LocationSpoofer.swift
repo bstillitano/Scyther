@@ -5,63 +5,43 @@
 //  Created by Brandon Stillitano on 27/9/21.
 //
 
-import CoreLocation
 import Foundation
+import MapKit
 
-// MARK: - Swizzle Event Location
-internal extension CLLocationManager {
-    static let swizzle: Void = {
-        swizzleEventLocation
-        swizzleEventLocationForceMappingMatchType
-    }()
-    
-    static let swizzleEventLocation: Void = {
-        let selectorString: String = String(data: Data(bytes: [0x6f, 0x6e, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x4c, 0x6f, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x3a],
-                                                       count: 22),
-                                            encoding: .ascii) ?? ""
-        guard let originalMethod = class_getInstanceMethod(CLLocationManager.self,
-                                                           Selector(selectorString)) else {
-            return
-        }
-        guard let swizzledMethod = class_getInstanceMethod(CLLocationManager.self,
-                                                           #selector(scyther_onClientEventLocationSelector(dictionary:))) else {
-            return
-        }
+private let swizzling: (AnyClass, Selector, Selector) -> () = { forClass, originalSelector, swizzledSelector in
+    if let originalMethod = class_getInstanceMethod(forClass, originalSelector),
+        let swizzledMethod = class_getInstanceMethod(forClass, swizzledSelector) {
         method_exchangeImplementations(originalMethod, swizzledMethod)
+    }
+}
+
+extension CLLocationManager {
+    static let classInit: Void = {
+        let originalSelector = #selector(CLLocationManager.startUpdatingLocation)
+        let swizzledSelector = #selector(swizzledStartLocation)
+        swizzling(CLLocationManager.self, originalSelector, swizzledSelector)
+
+        let originalStopSelector = #selector(CLLocationManager.stopUpdatingLocation)
+        let swizzledStopSelector = #selector(swizzledStopLocation)
+        swizzling(CLLocationManager.self, originalStopSelector, swizzledStopSelector)
     }()
 
-    static let swizzleEventLocationForceMappingMatchType: Void = {
-        let selectorString: String = String(data: Data(bytes: [0x6f, 0x6e, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x4c, 0x6f, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x66, 0x6f, 0x72, 0x63, 0x65, 0x4d, 0x61, 0x70, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x69, 0x6e, 0x67, 0x3a, 0x74, 0x79, 0x70, 0x65, 0x3a],
-                                                       count: 44),
-                                            encoding: .ascii) ?? ""
-        guard let originalMethod = class_getInstanceMethod(CLLocationManager.self,
-                                                           Selector(selectorString)) else {
-            return
+    @objc func swizzledStartLocation() {
+        print("swizzled start location")
+        if !LocationSpoofer.instance.isRunning {
+            LocationSpoofer.instance.startMocks(usingGPX: "Marrickville_Sydney")
         }
-        guard let swizzledMethod = class_getInstanceMethod(CLLocationManager.self,
-                                                           #selector(scyther_onClientEventLocationSelector(dictionary:forceMapMatching:type:))) else {
-            return
-        }
-        method_exchangeImplementations(originalMethod, swizzledMethod)
-    }()
-
-    /// Swizzled implementation of `onClientEventLocation`
-    @objc
-    private func scyther_onClientEventLocationSelector(dictionary: NSDictionary) {
-        guard let location: CLLocation = LocationSpoofer.instance.simulatedLocation else {
-            scyther_onClientEventLocationSelector(dictionary: dictionary)
-            return
-        }
-        delegate?.locationManager?(self, didUpdateLocations: [location])
+        LocationSpoofer.instance.delegate = self.delegate
+        LocationSpoofer.instance.startUpdatingLocation()
     }
 
-    /// Swizzled implementation of `onClientEventLocation:forceMapMatching:type`
-    @objc
-    private func scyther_onClientEventLocationSelector(dictionary: NSDictionary, forceMapMatching: Bool, type: Any) {
-        guard let location: CLLocation = LocationSpoofer.instance.simulatedLocation else {
-            scyther_onClientEventLocationSelector(dictionary: dictionary, forceMapMatching: forceMapMatching, type: type)
-            return
-        }
-        delegate?.locationManager?(self, didUpdateLocations: [location])
+    @objc func swizzledStopLocation() {
+        print("swizzled stop location")
+        LocationSpoofer.instance.stopUpdatingLocation()
+    }
+
+    @objc func swizzedRequestLocation() {
+        print("swizzled request location")
+        LocationSpoofer.instance.requestLocation()
     }
 }
