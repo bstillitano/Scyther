@@ -52,6 +52,10 @@ internal class LocationSpoofer: CLLocationManager {
 
 // MARK: - Spoofing
 extension LocationSpoofer {
+    internal func start() {
+        CLLocationManager.classInit
+    }
+
     func startMocks(usingGPX fileName: String) {
         if let fileName = LocationSpooferConfiguration.GpxFileName {
             parser = GPXParser(forResource: fileName, ofType: "gpx")
