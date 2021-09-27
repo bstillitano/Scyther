@@ -34,12 +34,21 @@ internal class LocationSpoofer: CLLocationManager {
     private var locations: Queue<CLLocation>?
     var updateInterval: TimeInterval = 0.5
     var isRunning: Bool = false
+    internal var spoofingEnabled: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
+        }
+        set {
+            UserDefaults.standard.setValue(newValue, forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
+            NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingEnabledChangeNotification,
+                                            object: newValue)
+        }
+    }
 
     // MARK: - Lifecycle
     override func startUpdatingLocation() {
-        timer = Timer(timeInterval: updateInterval, repeats: true, block: {
-            [unowned self](_) in
-            self.updateLocation()
+        timer = Timer(timeInterval: updateInterval, repeats: true, block: { [weak self] _ in
+            self?.updateLocation()
         })
         if let timer = timer {
             RunLoop.main.add(timer, forMode: .default)
@@ -61,7 +70,9 @@ internal class LocationSpoofer: CLLocationManager {
 // MARK: - Spoofing
 extension LocationSpoofer {
     internal func start() {
-        CLLocationManager.swizzleLocationUpdates
+        if spoofingEnabled {
+            CLLocationManager.swizzleLocationUpdates
+        }
     }
 
     func startMocks(usingGPX fileName: String) {

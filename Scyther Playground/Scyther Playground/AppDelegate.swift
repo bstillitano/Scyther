@@ -24,11 +24,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         //Register for Push
         registerForPushNotifications()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.location.run { location in
-                print(location)
-            }
-        }
         return true
     }
 
