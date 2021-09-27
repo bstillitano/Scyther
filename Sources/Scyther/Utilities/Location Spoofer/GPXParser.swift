@@ -20,7 +20,7 @@ class GPXParser: NSObject, XMLParserDelegate {
     init(forResource file: String, ofType typeName: String) {
         self.locations = Queue<CLLocation>()
         super.init()
-        if let content = try? String(contentsOfFile: Bundle.main.path(forResource: file, ofType: typeName)!) {
+        if let content = try? String(contentsOfFile: Bundle.module.path(forResource: file, ofType: typeName) ?? "") {
             let data = content.data(using: .utf8)
             parser = XMLParser.init(data: data!)
             parser?.delegate = self
