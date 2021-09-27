@@ -57,11 +57,9 @@ extension LocationSpoofer {
     }
 
     func startMocks(usingGPX fileName: String) {
-        if let fileName = LocationSpooferConfiguration.GpxFileName {
-            parser = GPXParser(forResource: fileName, ofType: "gpx")
-            parser?.delegate = self
-            parser?.parse()
-        }
+        parser = GPXParser(forResource: fileName, ofType: "gpx")
+        parser?.delegate = self
+        parser?.parse()
     }
 
     func stopMocking() {
