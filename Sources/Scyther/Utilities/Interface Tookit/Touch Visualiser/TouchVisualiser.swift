@@ -207,6 +207,6 @@ extension TouchVisualiser {
             return
         }
         previousLog = log
-        print(log, terminator: "")
+        logMessage(log)
     }
 }
