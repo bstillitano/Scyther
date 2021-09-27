@@ -2,15 +2,6 @@
   "object": {
     "pins": [
       {
-        "package": "SDWebImage",
-        "repositoryURL": "https://github.com/SDWebImage/SDWebImage",
-        "state": {
-          "branch": null,
-          "revision": "a6b6e44eadf0d39250c10a7cc0e3b91d0bdb0e94",
-          "version": "5.10.4"
-        }
-      },
-      {
         "package": "SnapKit",
         "repositoryURL": "https://github.com/SnapKit/SnapKit",
         "state": {

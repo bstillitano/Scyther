@@ -6,7 +6,6 @@
 //
 
 #if !os(macOS)
-import SDWebImage
 import SnapKit
 import UIKit
 
@@ -116,10 +115,10 @@ extension MenuViewController: UITableViewDataSource {
 
         /// Set image
         if let url = row.imageURL {
-            cell.imageView?.sd_setImage(with: url, completed: { (_, _, _, _) in
+            cell.imageView?.loadImage(fromURL: url) { _ in
                 cell.setNeedsLayout()
-            })
-        } else if #available(iOS 13.0, *), let icon = row.image {
+            }
+        } else if let icon = row.image {
             cell.imageView?.image = icon
         }
 
@@ -140,6 +139,22 @@ extension MenuViewController: UITableViewDelegate {
             return
         }
         viewModel?.performAction(for: row, indexPath: indexPath)
+    }
+    
+    func tableView(_ tableView: UITableView, shouldShowMenuForRowAt indexPath: IndexPath) -> Bool {
+        guard let row = viewModel?.row(at: indexPath) else { return false }
+        return row.shouldShowMenuForRow ?? false
+    }
+
+    func tableView(_ tableView: UITableView, canPerformAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) -> Bool {
+        return (action == #selector(copy(_:)))
+    }
+
+    func tableView(_ tableView: UITableView, performAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) {
+        if action == #selector(copy(_:)) {
+            guard let cell = tableView.cellForRow(at: indexPath), let key = cell.textLabel?.text else { return }
+            UIPasteboard.general.string = "\(key): \(cell.detailTextLabel?.text ?? "")"
+        }
     }
 }
 

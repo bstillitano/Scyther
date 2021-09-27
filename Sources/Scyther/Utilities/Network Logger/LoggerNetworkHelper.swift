@@ -142,7 +142,7 @@ extension String {
             do {
                 try contentToAppend.write(toFile: filePath, atomically: true, encoding: String.Encoding.utf8)
             } catch {
-                print("Error creating \(filePath)")
+                logMessage("Error creating \(filePath)")
             }
         }
     }

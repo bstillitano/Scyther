@@ -8,7 +8,7 @@
 #if !os(macOS)
 import UIKit
 
-internal protocol GridOverlayViewModelProtocol: class {
+internal protocol GridOverlayViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
 }
 

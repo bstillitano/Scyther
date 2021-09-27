@@ -14,7 +14,7 @@ enum NotificationTextField: String {
     case payload
 }
 
-internal protocol NotitificationTesterProtocol: class {
+internal protocol NotitificationTesterProtocol: AnyObject {
     func viewModelShouldReloadData()
 }
 

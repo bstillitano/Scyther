@@ -20,5 +20,6 @@ class SubtitleRow: Row {
     var image: UIImage?
     var imageURL: URL?
     var accessoryType: UITableViewCell.AccessoryType?
+    var shouldShowMenuForRow: Bool? = false
 }
 #endif

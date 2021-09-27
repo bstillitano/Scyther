@@ -8,7 +8,7 @@
 #if os(iOS)
 import UIKit
 
-protocol SliderCellDelegate: class {
+protocol SliderCellDelegate: AnyObject {
     func sliderValueChanged(slider: UISlider?, label: UILabel)
 }
 

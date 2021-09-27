@@ -79,10 +79,10 @@ public class Toggler {
      
      - Complexity: O(*n*) where *n* is the first index of `name` in the array of toggles.
      */
-    internal func localValue(forToggle name: String) -> Bool {
+    internal func localValue(forToggle name: String) -> Bool? {
         /// Check for toggle in local array
         guard let toggle = toggles.first(where: { $0.name == name }) else {
-            return false
+            return nil
         }
         
         /// Check for local value

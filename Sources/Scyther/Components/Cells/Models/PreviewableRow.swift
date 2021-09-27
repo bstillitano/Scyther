@@ -23,5 +23,6 @@ internal struct PreviewableRow: Row {
     var imageURL: URL?
     var accessoryType: UITableViewCell.AccessoryType?
     var previewView: UIView = UIView()
+    var shouldShowMenuForRow: Bool? = false
 }
 #endif

@@ -28,5 +28,21 @@ extension UIImage {
         }
         return UIImage(named: lastIcon)
     }
+    
+    internal static func touchIndicatorImage(withColor color: UIColor, andSize size: CGSize) -> UIImage? {
+        let rect = CGRect(x: 0.0,
+                          y: 0.0,
+                          width: size.width,
+                          height: size.height)
+        UIGraphicsBeginImageContextWithOptions(rect.size,
+                                               false,
+                                               0.0)
+        let contextRef = UIGraphicsGetCurrentContext()
+        contextRef?.setFillColor(color.cgColor)
+        contextRef?.fillEllipse(in: rect)
+        let image = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        return image?.withRenderingMode(.alwaysTemplate)
+    }
 }
 #endif

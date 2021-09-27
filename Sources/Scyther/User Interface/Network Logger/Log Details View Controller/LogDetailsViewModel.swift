@@ -8,7 +8,7 @@
 #if !os(macOS)
 import UIKit
 
-internal protocol LogDetailsViewModelProtocol: class {
+internal protocol LogDetailsViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
     func viewModel(viewModel: LogDetailsViewModel?, shouldShowViewController viewController: UIViewController?)
 }
@@ -80,11 +80,24 @@ internal class LogDetailsViewModel {
     /// Button item for opening a view controller that contains a UILabel with the response body set
     var viewResponseButtonRow: ButtonRow {
         var row: ButtonRow = ButtonRow()
-        row.text = "View reponse body"
+        row.text = "View response body"
         row.actionBlock = { [weak self] in
             let viewController: TextReaderViewController = TextReaderViewController()
             viewController.title = "Response body"
             viewController.text = self?.httpModel?.getResponseBody() as String?
+            self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
+        }
+
+        return row
+    }
+    
+    /// Button for opening a data browser for the response body
+    var browseResponseButtonRow: ButtonRow {
+        var row: ButtonRow = ButtonRow()
+        row.text = "Browse response body"
+        row.actionBlock = { [weak self] in
+            let viewController: DataBrowserViewController = DataBrowserViewController(data: self?.httpModel?.getResponseBodyDictionary() ?? [:])
+            viewController.title = "Response body"
             self?.delegate?.viewModel(viewModel: self, shouldShowViewController: viewController)
         }
 
@@ -157,6 +170,7 @@ internal class LogDetailsViewModel {
         if String(httpModel?.getResponseBody() ?? "").isEmpty {
             responseBodySection.rows.append(emptyRow(text: "No data received"))
         } else {
+            responseBodySection.rows.append(browseResponseButtonRow)
             responseBodySection.rows.append(viewResponseButtonRow)
         }
         

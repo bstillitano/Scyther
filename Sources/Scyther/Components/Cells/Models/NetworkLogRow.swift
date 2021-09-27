@@ -20,6 +20,7 @@ class NetworkLogRow: Row {
     var image: UIImage?
     var imageURL: URL?
     var accessoryType: UITableViewCell.AccessoryType? = .disclosureIndicator
+    var shouldShowMenuForRow: Bool? = false
     
     /// Color representing the response code of the network request
     var httpStatusColor: UIColor = .systemGray

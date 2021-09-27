@@ -193,6 +193,16 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
 
         return prettyOutput(data, contentType: responseType)
     }
+    
+    @objc public func getResponseBodyDictionary() -> [String: [String: Any]] {
+        guard let data = readRawData(getResponseBodyFilepath()) else {
+            return [:]
+        }
+
+        return [
+            "JSON Body": (prettyOutput(data, contentType: responseType) as String).dictionaryRepresentation ?? [:]
+        ]
+    }
 
     @objc public func getRandomHash() -> NSString {
         if !(self.randomHash != nil) {
@@ -227,7 +237,7 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
         do {
             try dataString.write(toFile: toFile, atomically: false, encoding: String.Encoding.utf8.rawValue)
         } catch {
-            print("catch !!!")
+            logMessage("catch !!!")
         }
     }
 
