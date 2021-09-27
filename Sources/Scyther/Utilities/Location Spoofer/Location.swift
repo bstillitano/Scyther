@@ -7,12 +7,28 @@
 
 import UIKit
 
+/// Data struct used for conveniently forming geolocations
 struct Location {
     var name: String = ""
     var latitude: CGFloat = 0.00
     var longitude: CGFloat = 0.00
 }
 
+// MARK: - Helper Functions
+extension Location {
+    /// Forms a valid GPX XML string using the given `Location` objects internal objects.
+    var gpxString: String? {
+        guard var xmlContentString = try? String(contentsOfFile: Bundle.module.path(forResource: "GenericPlace", ofType: "gpx") ?? "") else {
+            return nil
+        }
+        xmlContentString = xmlContentString.replacingOccurrences(of: "CITY_NAME_GOES_HERE", with: "\(name)")
+        xmlContentString = xmlContentString.replacingOccurrences(of: "LATITUDE_GOES_HERE", with: "\(latitude)")
+        xmlContentString = xmlContentString.replacingOccurrences(of: "LONGITUDE_GOES_HERE", with: "\(longitude)")
+        return xmlContentString
+    }
+}
+
+// MARK: - Presets
 extension Location {
     static var sydneyAustralia: Location = Location(name: "Sydney, Australia",
                                                     latitude: -33.868800,

@@ -14,6 +14,14 @@ struct LocationSpooferConfiguration {
 }
 
 internal class LocationSpoofer: CLLocationManager {
+    // MARK: - Static Data
+    internal static var LocationSpoofingEnabledChangeNotification: NSNotification.Name = NSNotification.Name("LocationSpoofingEnabledChangeNotification")
+    internal static var LocationSpoofingLocationChangeNotification: NSNotification.Name = NSNotification.Name("LocationSpoofingLocationChangeNotification")
+    internal static var LocationSpoofingEnabledDefaultsKey: String = "Scyther_Interface_Toolkit_Slow_Animations_Enabled"
+    internal static var LocationSpoofingCityNameKey: String = "Scyther_Interface_Toolkit_View_Borders_Enabled"
+    internal static var LocationSpoofingCityLatitudeKey: String = "Scyther_Interface_Toolkit_Visualise_Touches_Enabled"
+    internal static var LocationSpoofingCityLongitudeKey: String = "Scyther_Interface_Toolkit_Visualise_Touches_Enabled"
+
     // MARK: - Singleton
     private override init() {
         locations = Queue<CLLocation>()
@@ -53,7 +61,7 @@ internal class LocationSpoofer: CLLocationManager {
 // MARK: - Spoofing
 extension LocationSpoofer {
     internal func start() {
-        CLLocationManager.classInit
+        CLLocationManager.swizzleLocationUpdates
     }
 
     func startMocks(usingGPX fileName: String) {

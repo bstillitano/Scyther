@@ -8,26 +8,19 @@
 import Foundation
 import MapKit
 
-private let swizzling: (AnyClass, Selector, Selector) -> () = { forClass, originalSelector, swizzledSelector in
-    if let originalMethod = class_getInstanceMethod(forClass, originalSelector),
-        let swizzledMethod = class_getInstanceMethod(forClass, swizzledSelector) {
-        method_exchangeImplementations(originalMethod, swizzledMethod)
-    }
-}
-
 extension CLLocationManager {
-    static let classInit: Void = {
+    internal static let swizzleLocationUpdates: Void = {
         let originalSelector = #selector(CLLocationManager.startUpdatingLocation)
         let swizzledSelector = #selector(swizzledStartLocation)
-        swizzling(CLLocationManager.self, originalSelector, swizzledSelector)
+        swizzle(CLLocationManager.self, originalSelector, swizzledSelector)
 
         let originalStopSelector = #selector(CLLocationManager.stopUpdatingLocation)
         let swizzledStopSelector = #selector(swizzledStopLocation)
-        swizzling(CLLocationManager.self, originalStopSelector, swizzledStopSelector)
+        swizzle(CLLocationManager.self, originalStopSelector, swizzledStopSelector)
     }()
 
-    @objc func swizzledStartLocation() {
-        print("swizzled start location")
+    @objc
+    func swizzledStartLocation() {
         if !LocationSpoofer.instance.isRunning {
             LocationSpoofer.instance.startMocks(usingGPX: "Marrickville_Sydney")
         }
@@ -35,13 +28,13 @@ extension CLLocationManager {
         LocationSpoofer.instance.startUpdatingLocation()
     }
 
-    @objc func swizzledStopLocation() {
-        print("swizzled stop location")
+    @objc
+    func swizzledStopLocation() {
         LocationSpoofer.instance.stopUpdatingLocation()
     }
 
-    @objc func swizzedRequestLocation() {
-        print("swizzled request location")
+    @objc
+    func swizzedRequestLocation() {
         LocationSpoofer.instance.requestLocation()
     }
 }
