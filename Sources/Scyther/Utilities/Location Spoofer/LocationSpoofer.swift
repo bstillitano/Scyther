@@ -38,53 +38,30 @@ class LocationSpoofer: NSObject {
             UserDefaults.standard.set(location.coordinate.longitude, forKey: LocationSpoofer.LocationSpooferSimulatedLongitudeDefaultsKey)
         }
     }
-    
+
     // MARK: - Lifecycle
     internal func start() {
         CLLocationManager.swizzle
-        simulatedLocation = CLLocation(latitude: presetLocations.first?.latitude ?? 0, longitude: presetLocations.first?.longitude ?? 0)
+        simulatedLocation = CLLocation(latitude: Location.sydneyAustralia.latitude,
+                                       longitude: Location.sydneyAustralia.longitude)
     }
 }
 
 extension LocationSpoofer {
-    internal var presetLocations: [Location]  {
-        var locations: [Location] = []
-        locations.append(Location(name: "Sydney, Australia",
-                                  latitude: -33.868800,
-                                  longitude: 151.209300))
-        locations.append(Location(name: "Hong Kong, China",
-                                  latitude: 22.284681,
-                                  longitude: 114.158177))
-        locations.append(Location(name: "London, England",
-                                  latitude: 51.509980,
-                                  longitude: -0.133700))
-        locations.append(Location(name: "Johannesburg, South Africa",
-                                  latitude: -26.204103,
-                                  longitude: 28.047305))
-        locations.append(Location(name: "Moscow, Russia",
-                                  latitude: 55.755786,
-                                  longitude: 37.617633))
-        locations.append(Location(name: "Mumbai, India",
-                                  latitude: 19.017615,
-                                  longitude: 72.856164))
-        locations.append(Location(name: "Tokyo, Japan",
-                                  latitude: 35.702069,
-                                  longitude: 139.775327))
-        locations.append(Location(name: "Honolulu, HI, USA",
-                                  latitude: 21.282778,
-                                  longitude: -157.829444))
-        locations.append(Location(name: "San Francisco, CA, USA",
-                                  latitude: 37.787359,
-                                  longitude: -122.408227))
-        locations.append(Location(name: "Mexico City, Mexico",
-                                  latitude: 19.435478,
-                                  longitude: -99.136479))
-        locations.append(Location(name: "New York, NY, USA",
-                                  latitude: 40.759211,
-                                  longitude: -73.984638))
-        locations.append(Location(name: "Rio de Janeiro, Brazil",
-                                  latitude: -22.903539,
-                                  longitude: -43.209587))
-        return locations
+    internal var presetLocations: [Location] {
+        return [
+            .sydneyAustralia,
+            .hongKongChina,
+            .londonEngland,
+            .johannesburgSouthAfica,
+            .moscowRussia,
+            .mumbaiIndia,
+            .tokyoJapan,
+            .honoluluUSA,
+            .sanFranciscoUSA,
+            .mexicoCityMexico,
+            .newYorkUSA,
+            .rioDeJaneiroBrazil
+        ]
     }
 }
