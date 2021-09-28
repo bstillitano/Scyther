@@ -139,6 +139,7 @@ internal extension LocationSpoofer {
 
     @objc
     func spoofingEnabledChanged() {
+        swizzle()
         guard spoofingEnabled else {
             locations = nil
             requestLocation()
