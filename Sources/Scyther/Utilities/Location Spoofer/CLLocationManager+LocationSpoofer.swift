@@ -9,6 +9,10 @@ import Foundation
 import MapKit
 
 extension CLLocationManager {
+    internal static var isSwizzling: Bool = false
+}
+
+extension CLLocationManager {
     internal static let swizzleLocationUpdates: Void = {
         let originalSelector = #selector(CLLocationManager.startUpdatingLocation)
         let swizzledSelector = #selector(swizzledStartLocation)
@@ -21,9 +25,15 @@ extension CLLocationManager {
         let originalRequestSelector = #selector(CLLocationManager.requestLocation)
         let swizzledRequestSelector = #selector(swizzedRequestLocation)
         swizzle(CLLocationManager.self, originalStopSelector, swizzledStopSelector)
+
+        isSwizzling = true
     }()
-    
+
     internal static let unswizzleLocationUpdates: Void = {
+        guard isSwizzling else {
+            return
+        }
+
         let originalSelector = #selector(CLLocationManager.startUpdatingLocation)
         let swizzledSelector = #selector(swizzledStartLocation)
         unswizzle(CLLocationManager.self, originalSelector, swizzledSelector)
@@ -35,6 +45,8 @@ extension CLLocationManager {
         let originalRequestSelector = #selector(CLLocationManager.requestLocation)
         let swizzledRequestSelector = #selector(swizzedRequestLocation)
         unswizzle(CLLocationManager.self, originalStopSelector, swizzledStopSelector)
+
+        isSwizzling = false
     }()
 
     @objc

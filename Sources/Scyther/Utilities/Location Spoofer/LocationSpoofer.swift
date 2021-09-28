@@ -139,8 +139,6 @@ internal extension LocationSpoofer {
     func spoofingEnabledChanged() {
         swizzle()
         guard spoofingEnabled else {
-            stopMocking()
-            CLLocationManager().startUpdatingLocation()
             return
         }
         startMocks(usingLocation: spoofedLocation ?? .sydneyAustralia)
