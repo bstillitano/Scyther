@@ -139,12 +139,13 @@ internal extension LocationSpoofer {
 
     @objc
     func spoofingEnabledChanged() {
+        stopUpdatingLocation()
         swizzle()
-        requestLocation()
         guard spoofingEnabled else {
+            requestLocation()
             return
         }
-        startUpdatingLocation()
+        startMocks(usingLocation: spoofedLocation)
     }
 }
 
