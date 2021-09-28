@@ -95,9 +95,13 @@ extension LocationSpoofer {
         registerForLocationChangeNotifications()
         swizzle()
     }
-    
+
     private func swizzle() {
-        spoofingEnabled ? CLLocationManager.swizzleLocationUpdates : CLLocationManager.unswizzleLocationUpdates
+        if spoofingEnabled {
+            CLLocationManager.swizzleLocationUpdates
+        } else {
+            CLLocationManager.unswizzleLocationUpdates
+        }
     }
 
     func startMocks(usingGPX fileName: String) {
@@ -145,8 +149,8 @@ internal extension LocationSpoofer {
             requestLocation()
             return
         }
-        locations?.enqueue(CLLocation(latitude: spoofedLocation.latitude, longitude: spoofedLocation.longitude))
-        requestLocation()
+        stopUpdatingLocation()
+        startMocks(usingLocation: spoofedLocation)        
     }
 }
 
