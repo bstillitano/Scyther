@@ -48,6 +48,14 @@ internal class LocationSpooferViewModel {
         }
         return value
     }
+    
+    /// Empty row that contains text in a 'disabled' style
+    func emptyRow(text: String) -> EmptyRow {
+        var row: EmptyRow = EmptyRow()
+        row.text = text
+
+        return row
+    }
 
     func prepareObjects() {
         //Clear Data
@@ -64,6 +72,11 @@ internal class LocationSpooferViewModel {
         LocationSpoofer.instance.presetLocations.sorted(by: { $0.name < $1.name }).forEach { location in
             locationsSection.rows.append(locationRow(for: location))
         }
+        
+        //Setup Routs Section
+        var routesSection: Section = Section()
+        routesSection.title = "Routes"
+        routesSection.rows.append(emptyRow(text: "More coming soon"))
 
         //Setup Data
         sections.append(enabledSection)

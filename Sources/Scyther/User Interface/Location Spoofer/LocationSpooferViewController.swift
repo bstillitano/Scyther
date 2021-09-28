@@ -33,6 +33,7 @@ internal class LocationSpooferViewController: UIViewController {
         view.addSubview(tableView)
 
         //Register Table View Cells
+        tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
         tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
         tableView.register(SwitchCell.self, forCellReuseIdentifier: RowStyle.switchAccessory.rawValue)
     }
