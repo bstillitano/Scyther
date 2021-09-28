@@ -93,10 +93,13 @@ extension LocationSpoofer {
     internal func start() {
         registerForSpoofingEnabledNotifications()
         registerForLocationChangeNotifications()
-        swizzle()
+        swizzle(withOverride: true)
     }
 
-    private func swizzle() {
+    private func swizzle(withOverride: Bool = false) {
+        if withOverride {
+            CLLocationManager.swizzleLocationUpdates
+        }
         if spoofingEnabled {
             CLLocationManager.swizzleLocationUpdates
         } else {
