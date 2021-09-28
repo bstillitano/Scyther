@@ -14,6 +14,10 @@ extension CLLocationManager {
 
 extension CLLocationManager {
     internal static let swizzleLocationUpdates: Void = {
+        guard !isSwizzling else {
+            return
+        }
+        
         let originalSelector = #selector(CLLocationManager.startUpdatingLocation)
         let swizzledSelector = #selector(swizzledStartLocation)
         swizzle(CLLocationManager.self, originalSelector, swizzledSelector)
@@ -51,9 +55,10 @@ extension CLLocationManager {
 
     @objc
     func swizzledStartLocation() {
-        if LocationSpoofer.instance.spoofingEnabled {
+        if LocationSpoofer.instance.spoofingEnabled || !LocationSpoofer.instance.hasInitialised {
             LocationSpoofer.instance.startMocks(usingLocation: LocationSpoofer.instance.spoofedLocation)
         }
+        LocationSpoofer.instance.hasInitialised = true
         LocationSpoofer.instance.delegate = self.delegate
         LocationSpoofer.instance.startUpdatingLocation()
     }

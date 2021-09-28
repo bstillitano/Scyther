@@ -27,6 +27,7 @@ internal class LocationSpoofer: CLLocationManager {
     static let instance = LocationSpoofer()
 
     // MARK: - Data
+    internal var hasInitialised: Bool = false
     private var parser: GPXParser?
     private var timer: Timer?
     private var locations: Queue<CLLocation>?
