@@ -48,9 +48,11 @@ internal class LocationSpoofer: CLLocationManager {
         }
         set {
             guard newValue != nil else {
+                stopMocking()
                 UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingIdKey)
                 return
             }
+            updateLocation()
             UserDefaults.standard.setValue(newValue?.id, forKey: LocationSpoofer.LocationSpoofingIdKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification,
                                             object: newValue)
@@ -112,6 +114,36 @@ extension LocationSpoofer {
                 stopUpdatingLocation()
             }
         }
+    }
+}
+
+// MARK: - Spoofing Enabled Notifications
+internal extension UIView {
+    func registerForSpoofingEnabledNotifications() {
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(spoofedLocationChanged),
+                                               name: LocationSpoofer.LocationSpoofingEnabledChangeNotification,
+                                               object: nil)
+    }
+
+    @objc
+    func spoofingEnabledChanged() {
+        refreshDebugBorders()
+    }
+}
+
+// MARK: - Location Change Notifications
+internal extension UIView {
+    func registerForLocationChangeNotifications() {
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(spoofedLocationChanged),
+                                               name: LocationSpoofer.LocationSpoofingLocationChangeNotification,
+                                               object: nil)
+    }
+
+    @objc
+    func spoofedLocationChanged() {
+        refreshDebugBorders()
     }
 }
 
