@@ -66,10 +66,11 @@ internal class LocationSpoofer: CLLocationManager {
         if let timer = timer {
             RunLoop.main.add(timer, forMode: .default)
         }
+        hasInitialised = true
     }
 
     override func stopUpdatingLocation() {
-        guard spoofingEnabled || !hasInitialised else {
+        guard spoofingEnabled else {
             super.stopUpdatingLocation()
             return
         }
@@ -86,6 +87,7 @@ internal class LocationSpoofer: CLLocationManager {
         if let location = locations?.peek() {
             delegate?.locationManager?(self, didUpdateLocations: [location])
         }
+        hasInitialised = true
     }
 }
 

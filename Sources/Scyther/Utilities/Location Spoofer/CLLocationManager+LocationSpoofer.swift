@@ -58,7 +58,6 @@ extension CLLocationManager {
         if LocationSpoofer.instance.spoofingEnabled || !LocationSpoofer.instance.hasInitialised {
             LocationSpoofer.instance.startMocks(usingLocation: LocationSpoofer.instance.spoofedLocation)
         }
-        LocationSpoofer.instance.hasInitialised = true
         LocationSpoofer.instance.delegate = self.delegate
         LocationSpoofer.instance.startUpdatingLocation()
     }
