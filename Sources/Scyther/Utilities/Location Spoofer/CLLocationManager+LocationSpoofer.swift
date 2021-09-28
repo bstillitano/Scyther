@@ -21,8 +21,8 @@ extension CLLocationManager {
 
     @objc
     func swizzledStartLocation() {
-        if !LocationSpoofer.instance.isRunning {
-            LocationSpoofer.instance.startMocks(usingGPX: "Marrickville_Sydney")
+        if let location: Location = LocationSpoofer.instance.spoofedLocation, !LocationSpoofer.instance.isRunning {
+            LocationSpoofer.instance.startMocks(usingLocation: location)
         }
         LocationSpoofer.instance.delegate = self.delegate
         LocationSpoofer.instance.startUpdatingLocation()

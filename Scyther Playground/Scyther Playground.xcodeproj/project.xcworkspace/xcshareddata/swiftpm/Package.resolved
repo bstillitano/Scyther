@@ -3,10 +3,10 @@
     "pins": [
       {
         "package": "Scyther",
-        "repositoryURL": "https://github.com/bstillitano/Scyther.git",
+        "repositoryURL": "https://github.com/bstillitano/scyther",
         "state": {
           "branch": "feature/location-spoofer",
-          "revision": "426af35fa2cd37b499090981326c80c66c22c518",
+          "revision": "1af1801a5b0bd774c05c12fc6bb20b33f4613c54",
           "version": null
         }
       },

@@ -1,16 +1,16 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Brandon Stillitano on 27/9/21.
 //
 
 import UIKit
 
-internal class TouchVisualiserViewController: UIViewController {
+internal class LocationSpooferViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
-    private var viewModel: TouchVisualiserViewModel = TouchVisualiserViewModel()
+    private var viewModel: LocationSpooferViewModel = LocationSpooferViewModel()
 
     // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -35,7 +35,6 @@ internal class TouchVisualiserViewController: UIViewController {
         //Register Table View Cells
         tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
         tableView.register(SwitchCell.self, forCellReuseIdentifier: RowStyle.switchAccessory.rawValue)
-        tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
     }
 
     private func setupConstraints() {
@@ -49,7 +48,7 @@ internal class TouchVisualiserViewController: UIViewController {
                                                            metrics: nil,
                                                            views: ["subview": tableView]))
     }
-    
+
     private func setupData() {
         self.viewModel.delegate = self
         self.viewModel.prepareObjects()
@@ -68,7 +67,7 @@ internal class TouchVisualiserViewController: UIViewController {
     }
 }
 
-extension TouchVisualiserViewController: UITableViewDataSource {
+extension LocationSpooferViewController: UITableViewDataSource {
 
     func numberOfSections(in tableView: UITableView) -> Int {
         return viewModel.numberOfSections
@@ -101,7 +100,7 @@ extension TouchVisualiserViewController: UITableViewDataSource {
 
 }
 
-extension TouchVisualiserViewController: UITableViewDelegate {
+extension LocationSpooferViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         // Deselect Cell
         defer { tableView.deselectRow(at: indexPath, animated: true) }
@@ -114,7 +113,7 @@ extension TouchVisualiserViewController: UITableViewDelegate {
     }
 }
 
-extension TouchVisualiserViewController: TouchVisualiserViewModelProtocol {
+extension LocationSpooferViewController: LocationSpooferViewModelProtocol {
     func viewModelShouldReloadData() {
         self.tableView.reloadData()
     }

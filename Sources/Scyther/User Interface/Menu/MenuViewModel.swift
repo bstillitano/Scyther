@@ -190,10 +190,10 @@ internal class MenuViewModel {
                                              actionBlock: { [weak self] in
                                                  self?.delegate?.viewModel(viewModel: self, shouldShowViewController: ConsoleLoggerViewController())
                                              }))
-        supportSection.rows.append(actionRow(name: "Location Spoofer",
+        systemSection.rows.append(actionRow(name: "Location Spoofer",
                                              icon: UIImage(systemImage: "location.circle"),
                                              actionBlock: { [weak self] in
-                                                 self?.delegate?.viewModel(viewModel: self, shouldShowViewController: ConsoleLoggerViewController())
+                                                 self?.delegate?.viewModel(viewModel: self, shouldShowViewController: LocationSpooferViewController())
                                              }))
         systemSection.rows.append(emptyRow(text: "More coming soon"))
 

@@ -17,10 +17,8 @@ internal class LocationSpoofer: CLLocationManager {
     // MARK: - Static Data
     internal static var LocationSpoofingEnabledChangeNotification: NSNotification.Name = NSNotification.Name("LocationSpoofingEnabledChangeNotification")
     internal static var LocationSpoofingLocationChangeNotification: NSNotification.Name = NSNotification.Name("LocationSpoofingLocationChangeNotification")
-    internal static var LocationSpoofingEnabledDefaultsKey: String = "Scyther_Interface_Toolkit_Slow_Animations_Enabled"
-    internal static var LocationSpoofingCityNameKey: String = "Scyther_Interface_Toolkit_View_Borders_Enabled"
-    internal static var LocationSpoofingCityLatitudeKey: String = "Scyther_Interface_Toolkit_Visualise_Touches_Enabled"
-    internal static var LocationSpoofingCityLongitudeKey: String = "Scyther_Interface_Toolkit_Visualise_Touches_Enabled"
+    internal static var LocationSpoofingEnabledDefaultsKey: String = "Scyther_Location_Spoofing_Enabled"
+    internal static var LocationSpoofingIdKey: String = "Scyther_Location_Spoofing_Id"
 
     // MARK: - Singleton
     private override init() {
@@ -41,6 +39,20 @@ internal class LocationSpoofer: CLLocationManager {
         set {
             UserDefaults.standard.setValue(newValue, forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingEnabledChangeNotification,
+                                            object: newValue)
+        }
+    }
+    internal var spoofedLocation: Location? {
+        get {
+            return presetLocations.first(where: { $0.id == UserDefaults.standard.string(forKey: LocationSpoofer.LocationSpoofingIdKey) })
+        }
+        set {
+            guard newValue != nil else {
+                UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingIdKey)
+                return
+            }
+            UserDefaults.standard.setValue(newValue?.id, forKey: LocationSpoofer.LocationSpoofingIdKey)
+            NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification,
                                             object: newValue)
         }
     }
@@ -81,6 +93,12 @@ extension LocationSpoofer {
         parser?.parse()
     }
 
+    func startMocks(usingLocation location: Location) {
+        parser = GPXParser(forLocation: location)
+        parser?.delegate = self
+        parser?.parse()
+    }
+
     func stopMocking() {
         self.stopUpdatingLocation()
     }
@@ -90,7 +108,7 @@ extension LocationSpoofer {
             isRunning = true
             delegate?.locationManager?(self, didUpdateLocations: [location])
             if let isEmpty = locations?.isEmpty(), isEmpty {
-                print("stopping at: \(location.coordinate)")
+                logMessage("stopping at: \(location.coordinate)")
                 stopUpdatingLocation()
             }
         }
