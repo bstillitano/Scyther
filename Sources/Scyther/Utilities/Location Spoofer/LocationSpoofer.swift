@@ -136,10 +136,7 @@ internal extension LocationSpoofer {
             return
         }
         start()
-        if spoofedLocation == nil {
-            spoofedLocation = .sydneyAustralia
-        }
-        startMocks(usingLocation: spoofedLocation!)
+        spoofedLocation = spoofedLocation ?? .sydneyAustralia
     }
 }
 
