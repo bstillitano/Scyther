@@ -42,18 +42,12 @@ internal class LocationSpoofer: CLLocationManager {
                                             object: newValue)
         }
     }
-    internal var spoofedLocation: Location? {
+    internal var spoofedLocation: Location {
         get {
-            return presetLocations.first(where: { $0.id == UserDefaults.standard.string(forKey: LocationSpoofer.LocationSpoofingIdKey) })
+            return presetLocations.first(where: { $0.id == UserDefaults.standard.string(forKey: LocationSpoofer.LocationSpoofingIdKey) }) ?? .sydneyAustralia
         }
         set {
-            guard newValue != nil else {
-                UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingIdKey)
-                NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification,
-                                                object: newValue)
-                return
-            }
-            UserDefaults.standard.setValue(newValue?.id, forKey: LocationSpoofer.LocationSpoofingIdKey)
+            UserDefaults.standard.setValue(newValue.id, forKey: LocationSpoofer.LocationSpoofingIdKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification,
                                             object: newValue)
         }
@@ -146,7 +140,7 @@ internal extension LocationSpoofer {
             requestLocation()
             return
         }
-        startMocks(usingLocation: spoofedLocation ?? .sydneyAustralia)
+        startMocks(usingLocation: spoofedLocation)
     }
 }
 
@@ -161,7 +155,7 @@ internal extension LocationSpoofer {
 
     @objc
     func spoofedLocationChanged() {
-        startMocks(usingLocation: spoofedLocation ?? .sydneyAustralia)
+        startMocks(usingLocation: spoofedLocation)
     }
 }
 
