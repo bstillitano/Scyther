@@ -27,10 +27,6 @@ internal class LocationSpoofer: CLLocationManager {
     static let instance = LocationSpoofer()
 
     // MARK: - Data
-    private var callsSuper: Bool {
-        return hasInitialised && !spoofingEnabled
-    }
-    internal var hasInitialised: Bool = false
     private var parser: GPXParser?
     private var timer: Timer?
     private var locations: Queue<CLLocation>?
@@ -59,7 +55,7 @@ internal class LocationSpoofer: CLLocationManager {
 
     // MARK: - Lifecycle
     override func startUpdatingLocation() {
-        guard !callsSuper else {
+        guard spoofingEnabled else {
             super.startUpdatingLocation()
             return
         }
@@ -72,7 +68,7 @@ internal class LocationSpoofer: CLLocationManager {
     }
 
     override func stopUpdatingLocation() {
-        guard !callsSuper else {
+        guard spoofingEnabled else {
             super.stopUpdatingLocation()
             return
         }
@@ -82,7 +78,7 @@ internal class LocationSpoofer: CLLocationManager {
     }
 
     override func requestLocation() {
-        guard !callsSuper else {
+        guard spoofingEnabled else {
             super.requestLocation()
             return
         }
@@ -101,15 +97,11 @@ extension LocationSpoofer {
     }
 
     private func swizzle() {
-        if spoofingEnabled || !hasInitialised {
+        if spoofingEnabled {
             CLLocationManager.swizzleLocationUpdates
         } else {
             CLLocationManager.unswizzleLocationUpdates
         }
-        if !hasInitialised {
-            spoofingEnabled = spoofingEnabled
-        }
-        hasInitialised = true
     }
 
     func startMocks(usingGPX fileName: String) {
