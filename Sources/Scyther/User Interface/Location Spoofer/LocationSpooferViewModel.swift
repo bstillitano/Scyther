@@ -37,7 +37,7 @@ internal class LocationSpooferViewModel {
 
     func locationRow(for location: Location) -> DefaultRow {
         let value: DefaultRow = DefaultRow()
-        value.text = location.name.capitalized
+        value.text = location.name
         value.accessoryType = LocationSpoofer.instance.spoofedLocation == location ? .checkmark : .none
         value.actionBlock = { [weak self] in
             LocationSpoofer.instance.spoofedLocation = location

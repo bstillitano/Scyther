@@ -145,7 +145,6 @@ internal extension LocationSpoofer {
     func spoofingEnabledChanged() {
         swizzle()
         guard spoofingEnabled else {
-            locations = nil
             requestLocation()
             return
         }
