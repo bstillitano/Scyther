@@ -50,7 +50,7 @@ public extension String {
                 let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any]
                 return json
             } catch {
-                print("Something went wrong")
+                logMessage("Something went wrong")
             }
         }
         return nil

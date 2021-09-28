@@ -32,28 +32,28 @@ public class TouchVisualiser: NSObject {
     internal func start() {
         //Set data
         if config.loggingEnabled {
-            print("Scyther.TouchVisualiser: Starting")
+            logMessage("TouchVisualiser: Starting")
         }
         enabled = true
         removeAllTouchViews()
 
         //Log successful startup
         if config.loggingEnabled {
-            print("Scyther.TouchVisualiser: Started")
+            logMessage("TouchVisualiser: Started")
         }
     }
 
     internal func stop() {
         //Set Data
         if config.loggingEnabled {
-            print("Scyther.TouchVisualiser: Stopping")
+            logMessage("TouchVisualiser: Stopping")
         }
         enabled = false
         removeAllTouchViews()
 
         //Log successful shutdown
         if config.loggingEnabled {
-            print("Scyther.TouchVisualiser: Stopped")
+            logMessage("TouchVisualiser: Stopped")
         }
     }
 
@@ -73,7 +73,7 @@ public class TouchVisualiser: NSObject {
 
     internal func validateEnvironment() {
         if AppEnvironment.isSimulator {
-            print("Scyther.TouchVisualiser: Touch radius doesn't work on the simulator because it is not possible to read touch radius on it.")
+            logMessage("TouchVisualiser: Touch radius doesn't work on the simulator because it is not possible to read touch radius on it.")
         }
     }
 }

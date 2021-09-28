@@ -116,10 +116,6 @@ extension LocationSpoofer {
         parser?.parse()
     }
 
-    func stopMocking() {
-        self.stopUpdatingLocation()
-    }
-
     private func updateLocation() {
         if let location = locations?.dequeue() {
             isRunning = true
@@ -148,7 +144,6 @@ internal extension LocationSpoofer {
             requestLocation()
             return
         }
-        startMocks(usingLocation: spoofedLocation)
         startUpdatingLocation()
     }
 }
