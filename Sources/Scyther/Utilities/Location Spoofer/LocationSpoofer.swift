@@ -56,7 +56,7 @@ internal class LocationSpoofer: CLLocationManager {
 
     // MARK: - Lifecycle
     override func startUpdatingLocation() {
-        guard spoofingEnabled else {
+        guard spoofingEnabled || !hasInitialised else {
             super.startUpdatingLocation()
             return
         }
@@ -69,7 +69,7 @@ internal class LocationSpoofer: CLLocationManager {
     }
 
     override func stopUpdatingLocation() {
-        guard spoofingEnabled else {
+        guard spoofingEnabled || !hasInitialised else {
             super.stopUpdatingLocation()
             return
         }
@@ -79,7 +79,7 @@ internal class LocationSpoofer: CLLocationManager {
     }
 
     override func requestLocation() {
-        guard spoofingEnabled else {
+        guard spoofingEnabled || !hasInitialised else {
             super.requestLocation()
             return
         }
