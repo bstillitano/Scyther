@@ -145,7 +145,8 @@ internal extension LocationSpoofer {
             requestLocation()
             return
         }
-        startUpdatingLocation()
+        locations?.enqueue(CLLocation(latitude: spoofedLocation.latitude, longitude: spoofedLocation.longitude))
+        requestLocation()
     }
 }
 
