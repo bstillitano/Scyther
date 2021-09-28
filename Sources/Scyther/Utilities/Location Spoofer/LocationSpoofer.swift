@@ -124,7 +124,7 @@ extension LocationSpoofer {
 internal extension LocationSpoofer {
     func registerForSpoofingEnabledNotifications() {
         NotificationCenter.default.addObserver(self,
-                                               selector: #selector(spoofedLocationChanged),
+                                               selector: #selector(spoofingEnabledChanged),
                                                name: LocationSpoofer.LocationSpoofingEnabledChangeNotification,
                                                object: nil)
     }
