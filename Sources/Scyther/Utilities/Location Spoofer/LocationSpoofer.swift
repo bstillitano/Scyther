@@ -140,8 +140,8 @@ internal extension LocationSpoofer {
     @objc
     func spoofingEnabledChanged() {
         swizzle()
+        requestLocation()
         guard spoofingEnabled else {
-            requestLocation()
             return
         }
         startUpdatingLocation()
