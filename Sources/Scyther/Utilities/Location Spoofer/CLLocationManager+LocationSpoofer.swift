@@ -22,6 +22,20 @@ extension CLLocationManager {
         let swizzledRequestSelector = #selector(swizzedRequestLocation)
         swizzle(CLLocationManager.self, originalStopSelector, swizzledStopSelector)
     }()
+    
+    internal static let unswizzleLocationUpdates: Void = {
+        let originalSelector = #selector(swizzledStartLocation)
+        let swizzledSelector = #selector(CLLocationManager.startUpdatingLocation)
+        swizzle(CLLocationManager.self, originalSelector, swizzledSelector)
+
+        let originalStopSelector = #selector(swizzledStopLocation)
+        let swizzledStopSelector = #selector(CLLocationManager.stopUpdatingLocation)
+        swizzle(CLLocationManager.self, originalStopSelector, swizzledStopSelector)
+
+        let originalRequestSelector = #selector(swizzedRequestLocation)
+        let swizzledRequestSelector = #selector(CLLocationManager.requestLocation)
+        swizzle(CLLocationManager.self, originalStopSelector, swizzledStopSelector)
+    }()
 
     @objc
     func swizzledStartLocation() {

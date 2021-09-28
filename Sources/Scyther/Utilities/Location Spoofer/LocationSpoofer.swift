@@ -37,10 +37,10 @@ internal class LocationSpoofer: CLLocationManager {
             UserDefaults.standard.bool(forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
         }
         set {
-            CLLocationManager.swizzleLocationUpdates
             UserDefaults.standard.setValue(newValue, forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingEnabledChangeNotification,
                                             object: newValue)
+            newValue ? CLLocationManager.swizzleLocationUpdates : CLLocationManager.unswizzleLocationUpdates
         }
     }
     internal var spoofedLocation: Location? {
