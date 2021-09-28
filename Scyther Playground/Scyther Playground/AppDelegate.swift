@@ -12,9 +12,6 @@ import UserNotifications
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
-
-    let location: GetLocation = GetLocation()
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         /// Run Scyther only on non AppStore builds to avoid introducing potential security issues into our app.
         if !AppEnvironment.isAppStore {
@@ -61,15 +58,5 @@ extension AppDelegate {
 extension AppDelegate: UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         Scyther.notificationTester.processNotification(response.notification.request.content.userInfo)
-    }
-}
-
-extension AppDelegate: CLLocationManagerDelegate {
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        print(locations)
-    }
-
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print(error)
     }
 }

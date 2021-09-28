@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		CA3FB7062701DAE600FC5829 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3FB7052701DAE600FC5829 /* LocationManager.swift */; };
 		CA73FCE825D690D2007FA627 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCE725D690D2007FA627 /* AppDelegate.swift */; };
 		CA73FCEA25D690D2007FA627 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCE925D690D2007FA627 /* SceneDelegate.swift */; };
 		CA73FCEC25D690D2007FA627 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCEB25D690D2007FA627 /* ViewController.swift */; };
@@ -43,7 +42,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		CA3FB7052701DAE600FC5829 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		CA73FCE425D690D2007FA627 /* Scyther Playground.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Scyther Playground.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA73FCE725D690D2007FA627 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		CA73FCE925D690D2007FA627 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -119,7 +117,6 @@
 			children = (
 				CA9F908025DFEA66000FA677 /* Scyther Playground.entitlements */,
 				CA73FCE725D690D2007FA627 /* AppDelegate.swift */,
-				CA3FB7052701DAE600FC5829 /* LocationManager.swift */,
 				CA73FCE925D690D2007FA627 /* SceneDelegate.swift */,
 				CA73FCEB25D690D2007FA627 /* ViewController.swift */,
 				CA9F8FC625DE0A88000FA677 /* RedViewController.swift */,
@@ -294,7 +291,6 @@
 			files = (
 				CA9F8FD925DE0F6D000FA677 /* ButtonPreviews.swift in Sources */,
 				CA9F8FD425DE0EFF000FA677 /* Button.swift in Sources */,
-				CA3FB7062701DAE600FC5829 /* LocationManager.swift in Sources */,
 				CA9F8FC725DE0A88000FA677 /* RedViewController.swift in Sources */,
 				CA73FCEC25D690D2007FA627 /* ViewController.swift in Sources */,
 				CA9F8FC225DE08E5000FA677 /* Environments.swift in Sources */,
