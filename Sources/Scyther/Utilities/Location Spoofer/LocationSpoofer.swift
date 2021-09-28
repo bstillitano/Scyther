@@ -145,7 +145,6 @@ internal extension LocationSpoofer {
             requestLocation()
             return
         }
-        startMocks(usingLocation: spoofedLocation)
         startUpdatingLocation()
     }
 }
