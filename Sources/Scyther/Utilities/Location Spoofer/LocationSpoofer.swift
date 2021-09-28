@@ -106,7 +106,9 @@ extension LocationSpoofer {
         } else {
             CLLocationManager.unswizzleLocationUpdates
         }
-        spoofingEnabled = spoofingEnabled
+        if !hasInitialised {
+            spoofingEnabled = spoofingEnabled
+        }
         hasInitialised = true
     }
 
