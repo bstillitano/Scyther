@@ -49,6 +49,8 @@ internal class LocationSpoofer: CLLocationManager {
         set {
             guard newValue != nil else {
                 UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingIdKey)
+                NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification,
+                                                object: newValue)
                 return
             }
             UserDefaults.standard.setValue(newValue?.id, forKey: LocationSpoofer.LocationSpoofingIdKey)
