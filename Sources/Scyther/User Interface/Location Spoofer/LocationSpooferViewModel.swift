@@ -25,7 +25,7 @@ internal class LocationSpooferViewModel {
 
         //Setup Accessory
         let switchView = UIActionSwitch()
-        switchView.isOn = InterfaceToolkit.instance.visualiseTouches
+        switchView.isOn = LocationSpoofer.instance.spoofingEnabled
         switchView.actionBlock = { [weak self] in
             LocationSpoofer.instance.spoofingEnabled = switchView.isOn
             self?.prepareObjects()

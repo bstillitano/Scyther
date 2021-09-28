@@ -17,11 +17,15 @@ extension CLLocationManager {
         let originalStopSelector = #selector(CLLocationManager.stopUpdatingLocation)
         let swizzledStopSelector = #selector(swizzledStopLocation)
         swizzle(CLLocationManager.self, originalStopSelector, swizzledStopSelector)
+
+        let originalRequestSelector = #selector(CLLocationManager.requestLocation)
+        let swizzledRequestSelector = #selector(swizzedRequestLocation)
+        swizzle(CLLocationManager.self, originalStopSelector, swizzledStopSelector)
     }()
 
     @objc
     func swizzledStartLocation() {
-        if let location: Location = LocationSpoofer.instance.spoofedLocation, !LocationSpoofer.instance.isRunning {
+        if let location: Location = LocationSpoofer.instance.spoofedLocation {
             LocationSpoofer.instance.startMocks(usingLocation: location)
         }
         LocationSpoofer.instance.delegate = self.delegate
