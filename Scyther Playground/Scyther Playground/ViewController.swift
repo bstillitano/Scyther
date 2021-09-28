@@ -37,6 +37,7 @@ class ViewController: UIViewController, MKMapViewDelegate
         self.view.addSubview(tableView)
 
         //Setup MapView
+        locationManager.delegate = self
         locationManager.allowsBackgroundLocationUpdates = true
         locationManager.requestAlwaysAuthorization()
         mapView.delegate = self

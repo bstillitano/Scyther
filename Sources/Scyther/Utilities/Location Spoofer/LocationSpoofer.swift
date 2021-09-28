@@ -98,7 +98,9 @@ extension LocationSpoofer {
             CLLocationManager.unswizzleLocationUpdates
         }
         if withOverride {
-            spoofingEnabled = spoofingEnabled
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.spoofingEnabled = self?.spoofingEnabled ?? false
+            }
         }
     }
 
