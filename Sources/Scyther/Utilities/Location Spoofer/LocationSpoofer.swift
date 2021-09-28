@@ -74,7 +74,6 @@ internal class LocationSpoofer: CLLocationManager {
         }
         timer?.invalidate()
         isRunning = false
-        locations = nil
     }
 
     override func requestLocation() {
