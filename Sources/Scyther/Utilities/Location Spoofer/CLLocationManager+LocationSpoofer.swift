@@ -8,8 +8,14 @@
 import Foundation
 import MapKit
 
+private var isSwizzled = false
+
 extension CLLocationManager {
     internal static let swizzleLocationUpdates: Void = {
+        guard !isSwizzled else {
+            return
+        }
+
         let originalSelector = #selector(CLLocationManager.startUpdatingLocation)
         let swizzledSelector = #selector(swizzledStartLocation)
         swizzle(CLLocationManager.self, originalSelector, swizzledSelector)
