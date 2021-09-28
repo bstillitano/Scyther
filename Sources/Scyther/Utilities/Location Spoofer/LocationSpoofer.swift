@@ -61,6 +61,10 @@ internal class LocationSpoofer: CLLocationManager {
 
     // MARK: - Lifecycle
     override func startUpdatingLocation() {
+        guard spoofingEnabled else {
+            super.startUpdatingLocation()
+            return
+        }
         timer = Timer(timeInterval: updateInterval, repeats: true, block: { [weak self] _ in
             self?.updateLocation()
         })
@@ -70,12 +74,20 @@ internal class LocationSpoofer: CLLocationManager {
     }
 
     override func stopUpdatingLocation() {
+        guard spoofingEnabled else {
+            super.stopUpdatingLocation()
+            return
+        }
         timer?.invalidate()
         isRunning = false
         locations = nil
     }
 
     override func requestLocation() {
+        guard spoofingEnabled else {
+            super.requestLocation()
+            return
+        }
         if let location = locations?.peek() {
             delegate?.locationManager?(self, didUpdateLocations: [location])
         }
@@ -87,15 +99,7 @@ extension LocationSpoofer {
     internal func start() {
         registerForSpoofingEnabledNotifications()
         registerForLocationChangeNotifications()
-        swizzle()
-    }
-    
-    private func swizzle() {
-        if spoofingEnabled {
-            CLLocationManager.swizzleLocationUpdates
-        } else {
-            CLLocationManager.unswizzleLocationUpdates
-        }
+        CLLocationManager.swizzleLocationUpdates
     }
 
     func startMocks(usingGPX fileName: String) {
@@ -122,8 +126,6 @@ extension LocationSpoofer {
                 logMessage("stopping at: \(location.coordinate)")
                 stopUpdatingLocation()
             }
-        } else {
-            delegate?.locationManager?(self, didUpdateLocations: location)
         }
     }
 }
@@ -139,9 +141,9 @@ internal extension LocationSpoofer {
 
     @objc
     func spoofingEnabledChanged() {
-        swizzle()
         guard spoofingEnabled else {
             locations = nil
+            requestLocation()
             return
         }
         startMocks(usingLocation: spoofedLocation ?? .sydneyAustralia)
