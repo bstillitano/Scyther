@@ -48,11 +48,9 @@ internal class LocationSpoofer: CLLocationManager {
         }
         set {
             guard newValue != nil else {
-                stopMocking()
                 UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingIdKey)
                 return
             }
-            updateLocation()
             UserDefaults.standard.setValue(newValue?.id, forKey: LocationSpoofer.LocationSpoofingIdKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification,
                                             object: newValue)
@@ -84,6 +82,8 @@ internal class LocationSpoofer: CLLocationManager {
 // MARK: - Spoofing
 extension LocationSpoofer {
     internal func start() {
+        registerForSpoofingEnabledNotifications()
+        registerForLocationChangeNotifications()
         if spoofingEnabled {
             CLLocationManager.swizzleLocationUpdates
         }
@@ -118,7 +118,7 @@ extension LocationSpoofer {
 }
 
 // MARK: - Spoofing Enabled Notifications
-internal extension UIView {
+internal extension LocationSpoofer {
     func registerForSpoofingEnabledNotifications() {
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(spoofedLocationChanged),
@@ -128,12 +128,16 @@ internal extension UIView {
 
     @objc
     func spoofingEnabledChanged() {
-        refreshDebugBorders()
+        guard spoofingEnabled else {
+            stopMocking()
+            return
+        }
+        spoofedLocationChanged()
     }
 }
 
 // MARK: - Location Change Notifications
-internal extension UIView {
+internal extension LocationSpoofer {
     func registerForLocationChangeNotifications() {
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(spoofedLocationChanged),
@@ -143,7 +147,11 @@ internal extension UIView {
 
     @objc
     func spoofedLocationChanged() {
-        refreshDebugBorders()
+        guard let location: Location = spoofedLocation else {
+            stopMocking()
+            return
+        }
+        startMocks(usingLocation: location)
     }
 }
 
