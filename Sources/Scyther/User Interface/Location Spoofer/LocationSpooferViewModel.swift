@@ -82,6 +82,7 @@ internal class LocationSpooferViewModel {
         sections.append(enabledSection)
         if LocationSpoofer.instance.spoofingEnabled {
             sections.append(locationsSection)
+            sections.append(routesSection)
         }
 
         //Call Delegate

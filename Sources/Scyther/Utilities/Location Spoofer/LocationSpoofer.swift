@@ -122,6 +122,8 @@ extension LocationSpoofer {
                 logMessage("stopping at: \(location.coordinate)")
                 stopUpdatingLocation()
             }
+        } else {
+            delegate?.locationManager?(self, didUpdateLocations: location)
         }
     }
 }
@@ -139,6 +141,7 @@ internal extension LocationSpoofer {
     func spoofingEnabledChanged() {
         swizzle()
         guard spoofingEnabled else {
+            locations = nil
             return
         }
         startMocks(usingLocation: spoofedLocation ?? .sydneyAustralia)
