@@ -8,11 +8,6 @@
 import Foundation
 import CoreLocation
 
-struct LocationSpooferConfiguration {
-    static var updateInterval = 0.5
-    static var GpxFileName: String?
-}
-
 internal class LocationSpoofer: CLLocationManager {
     // MARK: - Static Data
     internal static var LocationSpoofingEnabledChangeNotification: NSNotification.Name = NSNotification.Name("LocationSpoofingEnabledChangeNotification")
@@ -30,7 +25,7 @@ internal class LocationSpoofer: CLLocationManager {
     private var parser: GPXParser?
     private var timer: Timer?
     private var locations: Queue<CLLocation>?
-    var updateInterval: TimeInterval = 0.5
+    var updateInterval: TimeInterval = 1.0
     var isRunning: Bool = false
     internal var spoofingEnabled: Bool {
         get {
@@ -93,14 +88,17 @@ extension LocationSpoofer {
     internal func start() {
         registerForSpoofingEnabledNotifications()
         registerForLocationChangeNotifications()
-        swizzle()
+        swizzle(withOverride: true)
     }
 
-    private func swizzle() {
-        if spoofingEnabled {
+    private func swizzle(withOverride: Bool = false) {
+        if spoofingEnabled || withOverride {
             CLLocationManager.swizzleLocationUpdates
         } else {
             CLLocationManager.unswizzleLocationUpdates
+        }
+        if withOverride {
+            spoofingEnabled = spoofingEnabled
         }
     }
 

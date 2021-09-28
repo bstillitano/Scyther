@@ -9,6 +9,7 @@ import Foundation
 import MapKit
 
 extension CLLocationManager {
+    internal static var hasBeenInitialisedForSwizzling: Bool = false
     internal static var isSwizzling: Bool = false
 }
 
@@ -55,8 +56,9 @@ extension CLLocationManager {
 
     @objc
     func swizzledStartLocation() {
-        if LocationSpoofer.instance.spoofingEnabled || !LocationSpoofer.instance.hasInitialised {
+        if LocationSpoofer.instance.spoofingEnabled || !CLLocationManager.hasBeenInitialisedForSwizzling {
             LocationSpoofer.instance.startMocks(usingLocation: LocationSpoofer.instance.spoofedLocation)
+            CLLocationManager.hasBeenInitialisedForSwizzling = true
         }
         LocationSpoofer.instance.delegate = self.delegate
         LocationSpoofer.instance.startUpdatingLocation()
