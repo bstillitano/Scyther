@@ -480,6 +480,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "Scyther Playground/Scyther Playground.entitlements";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = G4W688LHXL;
 				INFOPLIST_FILE = "Scyther Playground/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -503,6 +504,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "Scyther Playground/Scyther Playground.entitlements";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = G4W688LHXL;
 				INFOPLIST_FILE = "Scyther Playground/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

@@ -129,8 +129,11 @@ internal extension LocationSpoofer {
     @objc
     func spoofingEnabledChanged() {
         guard spoofingEnabled else {
-            stopMocking()
+            spoofedLocationChanged()
             return
+        }
+        if spoofedLocation == nil {
+            spoofedLocation = .sydneyAustralia
         }
         spoofedLocationChanged()
     }
@@ -149,6 +152,7 @@ internal extension LocationSpoofer {
     func spoofedLocationChanged() {
         guard let location: Location = spoofedLocation else {
             stopMocking()
+            updateLocation()
             return
         }
         startMocks(usingLocation: location)
