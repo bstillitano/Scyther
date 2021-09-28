@@ -27,7 +27,6 @@ internal class LocationSpoofer: CLLocationManager {
     static let instance = LocationSpoofer()
 
     // MARK: - Data
-    internal var hasInitialised: Bool = false
     private var parser: GPXParser?
     private var timer: Timer?
     private var locations: Queue<CLLocation>?
@@ -56,7 +55,7 @@ internal class LocationSpoofer: CLLocationManager {
 
     // MARK: - Lifecycle
     override func startUpdatingLocation() {
-        guard spoofingEnabled || !hasInitialised else {
+        guard spoofingEnabled else {
             super.startUpdatingLocation()
             return
         }
@@ -66,7 +65,6 @@ internal class LocationSpoofer: CLLocationManager {
         if let timer = timer {
             RunLoop.main.add(timer, forMode: .default)
         }
-        hasInitialised = true
     }
 
     override func stopUpdatingLocation() {
@@ -80,14 +78,13 @@ internal class LocationSpoofer: CLLocationManager {
     }
 
     override func requestLocation() {
-        guard spoofingEnabled || !hasInitialised else {
+        guard spoofingEnabled else {
             super.requestLocation()
             return
         }
         if let location = locations?.peek() {
             delegate?.locationManager?(self, didUpdateLocations: [location])
         }
-        hasInitialised = true
     }
 }
 
@@ -100,9 +97,6 @@ extension LocationSpoofer {
     }
 
     private func swizzle(withOverride: Bool = false) {
-        if withOverride {
-            CLLocationManager.swizzleLocationUpdates
-        }
         if spoofingEnabled {
             CLLocationManager.swizzleLocationUpdates
         } else {
