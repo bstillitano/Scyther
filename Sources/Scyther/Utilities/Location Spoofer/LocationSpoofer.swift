@@ -72,6 +72,7 @@ internal class LocationSpoofer: CLLocationManager {
     override func stopUpdatingLocation() {
         timer?.invalidate()
         isRunning = false
+        locations = nil
     }
 
     override func requestLocation() {
@@ -150,7 +151,6 @@ internal extension LocationSpoofer {
     func spoofedLocationChanged() {
         guard let location: Location = spoofedLocation else {
             stopMocking()
-            updateLocation()
             return
         }
         startMocks(usingLocation: location)
