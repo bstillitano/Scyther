@@ -37,6 +37,7 @@ internal class LocationSpoofer: CLLocationManager {
             UserDefaults.standard.bool(forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
         }
         set {
+            start()
             UserDefaults.standard.setValue(newValue, forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingEnabledChangeNotification,
                                             object: newValue)
