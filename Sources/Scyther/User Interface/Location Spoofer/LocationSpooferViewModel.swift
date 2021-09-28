@@ -28,6 +28,9 @@ internal class LocationSpooferViewModel {
         switchView.isOn = LocationSpoofer.instance.spoofingEnabled
         switchView.actionBlock = { [weak self] in
             LocationSpoofer.instance.spoofingEnabled = switchView.isOn
+            if switchView.isOn {
+                LocationSpoofer.instance.spoofedLocation = LocationSpoofer.instance.spoofedLocation ?? .sydneyAustralia
+            }
             self?.prepareObjects()
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)

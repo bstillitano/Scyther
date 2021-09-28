@@ -37,6 +37,7 @@ internal class LocationSpoofer: CLLocationManager {
             UserDefaults.standard.bool(forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
         }
         set {
+            CLLocationManager.swizzleLocationUpdates
             UserDefaults.standard.setValue(newValue, forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingEnabledChangeNotification,
                                             object: newValue)
@@ -132,11 +133,8 @@ internal extension LocationSpoofer {
     func spoofingEnabledChanged() {
         guard spoofingEnabled else {
             stopMocking()
-            spoofedLocationChanged()
             return
         }
-        start()
-        spoofedLocation = spoofedLocation ?? .sydneyAustralia
     }
 }
 
