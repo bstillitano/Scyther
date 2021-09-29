@@ -83,9 +83,9 @@ public class Scyther {
         /// Sets up location
         let spoofingEnabled: Bool = LocationSpoofer.instance.spoofingEnabled
         LocationSpoofer.instance.spoofingEnabled = true
-        LocationSpoofer.instance.start()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             LocationSpoofer.instance.spoofingEnabled = spoofingEnabled
+            LocationSpoofer.instance.start()
         }
     }
 
