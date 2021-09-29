@@ -108,7 +108,7 @@ extension Location {
                                            latitude: 19.435478,
                                            longitude: -99.136479)
     static var stJulians: Location = Location(id: "stJulians",
-                                              name: "St. Julians, Malta",
+                                              name: "St. Julian, Malta",
                                               latitude: 35.9181,
                                               longitude: 14.4883)
     static var valletta: Location = Location(id: "valletta",

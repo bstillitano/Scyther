@@ -128,6 +128,16 @@ extension LocationSpoofer {
         parser?.delegate = self
         parser?.parse()
     }
+    
+    func startMocks() {
+        guard let route: Route = spoofedRoute else {
+            updateInterval = 0.5
+            startMocks(usingLocation: spoofedLocation)
+            return
+        }
+        updateInterval = route.updateInterval
+        startMocks(usingGPX: spoofedRoute.fileName)
+    }
 
     private func updateLocation() {
         if let location = locations?.dequeue() {
@@ -171,13 +181,7 @@ internal extension LocationSpoofer {
 
     @objc
     func spoofedLocationChanged() {
-        if let spoofedRoute: Route = spoofedRoute {
-            updateInterval = spoofedRoute.updateInterval
-            startMocks(usingGPX: spoofedRoute.fileName)
-            return
-        }
-        updateInterval = 0.5
-        startMocks(usingLocation: spoofedLocation)
+        startMocks()
     }
 }
 
