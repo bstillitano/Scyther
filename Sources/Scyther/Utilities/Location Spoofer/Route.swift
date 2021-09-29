@@ -20,7 +20,7 @@ extension Route {
     static var driveCityToSuburb: Route = Route(id: "cityToSuburb",
                                                 name: "Drive from city to suburb",
                                                 fileName: "DriveCityToSuburb",
-                                                updateInterval: 5.0)
+                                                updateInterval: 0.001)
 }
 
 extension Route: Equatable {
