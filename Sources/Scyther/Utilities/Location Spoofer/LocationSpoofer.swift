@@ -90,7 +90,7 @@ extension LocationSpoofer {
     internal func start() {
         registerForSpoofingEnabledNotifications()
         registerForLocationChangeNotifications()
-//        swizzle()
+        swizzle()
     }
 
     private func swizzle() {
