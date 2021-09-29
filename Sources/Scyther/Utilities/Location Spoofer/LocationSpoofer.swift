@@ -43,7 +43,7 @@ internal class LocationSpoofer: CLLocationManager {
     }
     internal var spoofedLocation: Location {
         get {
-            return presetLocations.first(where: { $0.id == UserDefaults.standard.string(forKey: LocationSpoofer.LocationSpoofingIdKey) }) ?? .sydneyAustralia
+            return presetLocations.first(where: { $0.id == UserDefaults.standard.string(forKey: LocationSpoofer.LocationSpoofingIdKey) }) ?? .sydney
         }
         set {
             UserDefaults.standard.setValue(newValue.id, forKey: LocationSpoofer.LocationSpoofingIdKey)
@@ -169,18 +169,27 @@ extension LocationSpoofer: GPXParsingProtocol {
 extension LocationSpoofer {
     internal var presetLocations: [Location] {
         return [
-                .sydneyAustralia,
-                .hongKongChina,
-                .londonEngland,
-                .johannesburgSouthAfica,
-                .moscowRussia,
-                .mumbaiIndia,
-                .tokyoJapan,
-                .honoluluUSA,
-                .sanFranciscoUSA,
-                .mexicoCityMexico,
-                .newYorkUSA,
-                .rioDeJaneiroBrazil
+                .sydney,
+                .helsinki,
+                .santiago,
+                .rio,
+                .denver,
+                .cincinatti,
+                .moscow,
+                .tokyo,
+                .palermo,
+                .bogota,
+                .berlin,
+                .oslo,
+                .nairobi,
+                .marseille,
+                .manila,
+                .newYork,
+                .mumbai,
+                .sanFrancisco,
+                .mexico,
+                .stJulians,
+                .valletta
         ]
     }
 }
