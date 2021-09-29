@@ -33,7 +33,7 @@ internal class LocationSpoofer: CLLocationManager {
     var updateInterval: TimeInterval = 0.5
     internal var spoofingEnabled: Bool {
         get {
-            true
+            UserDefaults.standard.bool(forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
         }
         set {
             UserDefaults.standard.setValue(newValue, forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)

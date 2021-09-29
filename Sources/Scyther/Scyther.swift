@@ -80,7 +80,8 @@ public class Scyther {
         /// Sets up the interface toolkit plugins
         InterfaceToolkit.instance.start()
         
-        /// Sets up location spoofing
+        /// Sets up location
+        LocationSpoofer.instance.spoofingEnabled = true
         LocationSpoofer.instance.start()
     }
 
