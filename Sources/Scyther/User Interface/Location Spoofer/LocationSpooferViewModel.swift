@@ -72,6 +72,13 @@ internal class LocationSpooferViewModel {
         var enabledSection: Section = Section()
         enabledSection.title = "Location Spoofing"
         enabledSection.rows.append(enableSpoofingSwitch)
+        
+        //Setup Routes Section
+        var routesSection: Section = Section()
+        routesSection.title = "Routes"
+        LocationSpoofer.instance.presetRoutes.sorted(by: { $0.name < $1.name }).forEach { route in
+            routesSection.rows.append(routeRow(for: route))
+        }
 
         //Setup Locations Section
         var locationsSection: Section = Section()
@@ -79,18 +86,12 @@ internal class LocationSpooferViewModel {
         LocationSpoofer.instance.presetLocations.sorted(by: { $0.name < $1.name }).forEach { location in
             locationsSection.rows.append(locationRow(for: location))
         }
-
-        //Setup Routs Section
-        var routesSection: Section = Section()
-        routesSection.title = "Routes"
-        LocationSpoofer.instance.presetRoutes.sorted(by: { $0.name < $1.name }).forEach { route in
-            routesSection.rows.append(routeRow(for: route))
-        }
+        
         //Setup Data
         sections.append(enabledSection)
         if LocationSpoofer.instance.spoofingEnabled {
-            sections.append(locationsSection)
             sections.append(routesSection)
+            sections.append(locationsSection)
         }
 
         //Call Delegate
