@@ -7,6 +7,7 @@
 
 #if !os(macOS)
 import UIKit
+import CoreLocation
 
 /// Optional delegate that can be implemented to allow an app/caller to know that certain actions have been performed. This `protocol`is not required to be implemented in order for Scyther to work properly, it should be used primarily as a UI convenience; i.e. When switching environments, show a `UIAlertController`
 public protocol ScytherDelegate: AnyObject {
@@ -81,6 +82,7 @@ public class Scyther {
         InterfaceToolkit.instance.start()
         
         /// Sets up location spoofing
+        CLLocationManager.swizzleLocationUpdates
         LocationSpoofer.instance.start()
     }
 

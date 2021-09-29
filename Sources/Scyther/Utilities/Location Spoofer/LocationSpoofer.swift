@@ -31,7 +31,6 @@ internal class LocationSpoofer: CLLocationManager {
     private var timer: Timer?
     private var locations: Queue<CLLocation>?
     var updateInterval: TimeInterval = 0.5
-    var isRunning: Bool = false
     internal var spoofingEnabled: Bool {
         get {
             UserDefaults.standard.bool(forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
@@ -73,7 +72,6 @@ internal class LocationSpoofer: CLLocationManager {
             return
         }
         timer?.invalidate()
-        isRunning = false
     }
 
     override func requestLocation() {
@@ -117,7 +115,6 @@ extension LocationSpoofer {
 
     private func updateLocation() {
         if let location = locations?.dequeue() {
-            isRunning = true
             delegate?.locationManager?(self, didUpdateLocations: [location])
             if let isEmpty = locations?.isEmpty(), isEmpty {
                 logMessage("stopping at: \(location.coordinate)")
