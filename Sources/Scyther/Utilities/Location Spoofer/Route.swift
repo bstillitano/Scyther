@@ -12,7 +12,7 @@ struct Route {
     var id: String!
     var name: String = ""
     var fileName: String = ""
-    var updateInterval: TimeInterval = 0.5
+    var updateInterval: TimeInterval = 5.0
 }
 
 // MARK: - Presets
@@ -20,7 +20,7 @@ extension Route {
     static var driveCityToSuburb: Route = Route(id: "cityToSuburb",
                                                 name: "Drive from city to suburb",
                                                 fileName: "DriveCityToSuburb",
-                                                updateInterval: 0.5)
+                                                updateInterval: 5.0)
 }
 
 extension Route: Equatable {
