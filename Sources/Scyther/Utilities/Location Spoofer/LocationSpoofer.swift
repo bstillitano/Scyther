@@ -58,7 +58,7 @@ internal class LocationSpoofer: CLLocationManager {
             return presetRoutes.first(where: { $0.id == UserDefaults.standard.string(forKey: LocationSpoofer.LocationSpoofingRouteIdKey) })
         }
         set {
-            guard spoofedRoute != nil else {
+            guard newValue != nil else {
                 UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
                 return
             }
