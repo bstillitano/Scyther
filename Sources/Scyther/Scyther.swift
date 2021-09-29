@@ -80,12 +80,13 @@ public class Scyther {
         /// Sets up the interface toolkit plugins
         InterfaceToolkit.instance.start()
         
-        /// Sets up location
+        /// Sets up location spoofing after a one second delay. Delay exists here to allow time for applications with a map view in their initial view state
+        /// time to register for CLLocationManager updates. This is a bit hacky because of the way that map view registers its own delegate.
         let spoofingEnabled: Bool = LocationSpoofer.instance.spoofingEnabled
         LocationSpoofer.instance.spoofingEnabled = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+        LocationSpoofer.instance.start()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             LocationSpoofer.instance.spoofingEnabled = spoofingEnabled
-            LocationSpoofer.instance.start()
         }
     }
 
