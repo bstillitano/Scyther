@@ -136,7 +136,7 @@ extension LocationSpoofer {
             return
         }
         updateInterval = route.updateInterval
-        startMocks(usingGPX: spoofedRoute.fileName)
+        startMocks(usingGPX: route.fileName)
     }
 
     private func updateLocation() {
