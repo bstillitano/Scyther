@@ -82,8 +82,8 @@ public class Scyther {
         InterfaceToolkit.instance.start()
         
         /// Sets up location spoofing
-        CLLocationManager.swizzleLocationUpdates
         LocationSpoofer.instance.start()
+        CLLocationManager.swizzleLocationUpdates
     }
 
     /// Convenience function for manually showing the Scyther menu. Would be used when no gesture is wanted to invoke the menu.
