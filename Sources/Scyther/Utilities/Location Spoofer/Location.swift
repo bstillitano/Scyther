@@ -41,7 +41,7 @@ extension Location {
                                              longitude: 24.9384)
     static var santiago: Location = Location(id: "santiago",
                                              name: "Santiago, Chile",
-                                             latitude: 33.4489,
+                                             latitude: -33.4489,
                                              longitude: -70.669)
     static var rio: Location = Location(id: "rio",
                                         name: "Rio de Janeiro, Brazil",
@@ -49,11 +49,11 @@ extension Location {
                                         longitude: -43.1729)
     static var denver: Location = Location(id: "denver",
                                            name: "Denver, USA",
-                                           latitude: -39.7392,
+                                           latitude: 39.7392,
                                            longitude: -104.9903)
     static var cincinatti: Location = Location(id: "cincinatti",
                                                name: "Cincinnati, USA",
-                                               latitude: -39.1031,
+                                               latitude: 39.1031,
                                                longitude: -84.5120)
     static var moscow: Location = Location(id: "moscow",
                                            name: "Moscow, Russia",
@@ -81,7 +81,7 @@ extension Location {
                                          longitude: 10.7522)
     static var nairobi: Location = Location(id: "nairobi",
                                             name: "Nairobi, Kenya",
-                                            latitude: 1.2921,
+                                            latitude: -1.2921,
                                             longitude: 36.8219)
     static var marseille: Location = Location(id: "maresille",
                                               name: "Marseille, France",
