@@ -84,7 +84,7 @@ internal class LocationSpooferViewModel {
         var routesSection: Section = Section()
         routesSection.title = "Routes"
         LocationSpoofer.instance.presetRoutes.sorted(by: { $0.name < $1.name }).forEach { route in
-            locationsSection.rows.append(routeRow(for: route))
+            routesSection.rows.append(routeRow(for: route))
         }
         //Setup Data
         sections.append(enabledSection)
