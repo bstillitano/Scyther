@@ -81,8 +81,12 @@ public class Scyther {
         InterfaceToolkit.instance.start()
         
         /// Sets up location
+        let spoofingEnabled: Bool = LocationSpoofer.instance.spoofingEnabled
         LocationSpoofer.instance.spoofingEnabled = true
         LocationSpoofer.instance.start()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            LocationSpoofer.instance.spoofingEnabled = spoofingEnabled
+        }
     }
 
     /// Convenience function for manually showing the Scyther menu. Would be used when no gesture is wanted to invoke the menu.
