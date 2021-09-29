@@ -45,7 +45,7 @@ internal class LocationSpooferViewModel {
         }
         return value
     }
-    
+
     func routeRow(for route: Route) -> DefaultRow {
         let value: DefaultRow = DefaultRow()
         value.text = route.name
@@ -79,12 +79,13 @@ internal class LocationSpooferViewModel {
         LocationSpoofer.instance.presetLocations.sorted(by: { $0.name < $1.name }).forEach { location in
             locationsSection.rows.append(locationRow(for: location))
         }
-        
+
         //Setup Routs Section
         var routesSection: Section = Section()
         routesSection.title = "Routes"
-        routesSection.rows.append(emptyRow(text: "More coming soon"))
-
+        LocationSpoofer.instance.presetRoutes.sorted(by: { $0.name < $1.name }).forEach { route in
+            locationsSection.rows.append(routeRow(for: route))
+        }
         //Setup Data
         sections.append(enabledSection)
         if LocationSpoofer.instance.spoofingEnabled {
