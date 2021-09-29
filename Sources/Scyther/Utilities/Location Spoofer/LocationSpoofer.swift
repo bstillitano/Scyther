@@ -189,7 +189,8 @@ extension LocationSpoofer {
                 .sanFrancisco,
                 .mexico,
                 .stJulians,
-                .valletta
+                .valletta,
+                .stockholm
         ]
     }
 }

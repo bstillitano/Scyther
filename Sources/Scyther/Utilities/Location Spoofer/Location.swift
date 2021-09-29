@@ -115,6 +115,10 @@ extension Location {
                                              name: "Valletta, Malta",
                                              latitude: 35.8989,
                                              longitude: 14.5146)
+    static var stockholm: Location = Location(id: "stockholm",
+                                             name: "Stockholm, Sweden",
+                                             latitude: 59.3293,
+                                             longitude: 18.0686)
 }
 
 extension Location: Equatable {
