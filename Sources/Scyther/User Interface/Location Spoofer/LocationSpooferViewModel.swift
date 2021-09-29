@@ -46,6 +46,16 @@ internal class LocationSpooferViewModel {
         return value
     }
     
+    func routeRow(for route: Route) -> DefaultRow {
+        let value: DefaultRow = DefaultRow()
+        value.text = location.name
+        value.accessoryType = LocationSpoofer.instance.spoofedRoute == route ? .checkmark : .none
+        value.actionBlock = { [weak self] in
+            LocationSpoofer.instance.spoofedRoute = route
+            self?.prepareObjects()
+        }
+        return value
+    }
     /// Empty row that contains text in a 'disabled' style
     func emptyRow(text: String) -> EmptyRow {
         var row: EmptyRow = EmptyRow()

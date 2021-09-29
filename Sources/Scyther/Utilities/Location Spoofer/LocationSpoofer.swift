@@ -19,6 +19,7 @@ internal class LocationSpoofer: CLLocationManager {
     internal static var LocationSpoofingLocationChangeNotification: NSNotification.Name = NSNotification.Name("LocationSpoofingLocationChangeNotification")
     internal static var LocationSpoofingEnabledDefaultsKey: String = "Scyther_Location_Spoofing_Enabled"
     internal static var LocationSpoofingIdKey: String = "Scyther_Location_Spoofing_Id"
+    internal static var LocationSpoofingRouteIdKey: String = "Scyther_Location_Spoofing_Route_Id"
 
     // MARK: - Singleton
     private override init() {
@@ -46,7 +47,22 @@ internal class LocationSpoofer: CLLocationManager {
             return presetLocations.first(where: { $0.id == UserDefaults.standard.string(forKey: LocationSpoofer.LocationSpoofingIdKey) }) ?? .sydney
         }
         set {
+            UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
             UserDefaults.standard.setValue(newValue.id, forKey: LocationSpoofer.LocationSpoofingIdKey)
+            NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification,
+                                            object: newValue)
+        }
+    }
+    internal var spoofedRoute: Route? {
+        get {
+            return presetRoutes.first(where: { $0.id == UserDefaults.standard.string(forKey: LocationSpoofer.LocationSpoofingRouteIdKey) })
+        }
+        set {
+            guard spoofedRoute != nil else {
+                UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
+                return
+            }
+            UserDefaults.standard.setValue(newValue?.id, forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification,
                                             object: newValue)
         }
@@ -140,7 +156,7 @@ internal extension LocationSpoofer {
             requestLocation()
             return
         }
-        startMocks(usingLocation: spoofedLocation)
+        spoofedLocationChanged()
     }
 }
 
@@ -155,6 +171,12 @@ internal extension LocationSpoofer {
 
     @objc
     func spoofedLocationChanged() {
+        if let spoofedRoute: Route = spoofedRoute {
+            updateInterval = spoofedRoute.updateInterval
+            startMocks(usingGPX: spoofedRoute.fileName)
+            return
+        }
+        updateInterval = 0.5
         startMocks(usingLocation: spoofedLocation)
     }
 }
@@ -191,6 +213,12 @@ extension LocationSpoofer {
                 .stJulians,
                 .valletta,
                 .stockholm
+        ]
+    }
+
+    internal var presetRoutes: [Route] {
+        return [
+                .driveCityToSuburb
         ]
     }
 }
