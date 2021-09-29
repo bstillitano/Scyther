@@ -212,7 +212,8 @@ extension LocationSpoofer {
                 .mexico,
                 .stJulians,
                 .valletta,
-                .stockholm
+                .stockholm,
+                .lisbon
         ]
     }
 
