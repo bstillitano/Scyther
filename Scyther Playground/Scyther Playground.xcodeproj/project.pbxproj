@@ -641,7 +641,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/bstillitano/scyther";
 			requirement = {
-				branch = "feature/location-spoofer";
+				branch = main;
 				kind = branch;
 			};
 		};

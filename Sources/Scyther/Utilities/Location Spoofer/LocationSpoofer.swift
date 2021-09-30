@@ -70,6 +70,9 @@ internal class LocationSpoofer: CLLocationManager {
 
     // MARK: - Lifecycle
     override func startUpdatingLocation() {
+        guard delegate != nil else {
+            return
+        }
         guard spoofingEnabled else {
             super.startUpdatingLocation()
             return
@@ -96,9 +99,7 @@ internal class LocationSpoofer: CLLocationManager {
             return
         }
         if let location = locations?.peek() {
-            if delegate?.locationManager?(self, didUpdateLocations: [location]) != nil{
-                delegate?.locationManager?(self, didUpdateLocations: [location])
-            }
+            delegate?.locationManager?(self, didUpdateLocations: [location])
         }
     }
 }
@@ -143,9 +144,7 @@ extension LocationSpoofer {
 
     private func updateLocation() {
         if let location = locations?.dequeue() {
-            if delegate?.locationManager?(self, didUpdateLocations: [location]) != nil{
-                delegate?.locationManager?(self, didUpdateLocations: [location])
-            }
+            delegate?.locationManager?(self, didUpdateLocations: [location])
             if let isEmpty = locations?.isEmpty(), isEmpty {
                 logMessage("stopping at: \(location.coordinate)")
                 stopUpdatingLocation()
@@ -167,6 +166,9 @@ internal extension LocationSpoofer {
     func spoofingEnabledChanged() {
         swizzle()
         guard spoofingEnabled else {
+            guard delegate != nil else {
+                return
+            }
             requestLocation()
             return
         }
