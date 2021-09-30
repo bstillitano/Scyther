@@ -51,7 +51,7 @@ extension CLLocationManager {
         unswizzle(CLLocationManager.self, originalStopSelector, swizzledStopSelector)
 
         isSwizzling = false
-        LocationSpoofer.instance.startUpdatingLocation()
+        LocationSpoofer.instance.requestLocation()
     }()
 
     @objc
