@@ -56,7 +56,9 @@ extension CLLocationManager {
 
     @objc
     func swizzledStartLocation() {
-        LocationSpoofer.instance.startMocks()
+        if LocationSpoofer.instance.spoofingEnabled {
+            LocationSpoofer.instance.startMocks()
+        }
         LocationSpoofer.instance.delegate = self.delegate
         LocationSpoofer.instance.startUpdatingLocation()
     }
