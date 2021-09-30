@@ -183,14 +183,19 @@ internal class MenuViewModel {
                                               }))
 
         /// Setup Support Section
-        var supportSection: Section = Section()
-        supportSection.title = "Support"
-        supportSection.rows.append(actionRow(name: "Console Logs",
+        var systemSection: Section = Section()
+        systemSection.title = "System Tools"
+        systemSection.rows.append(actionRow(name: "Console Logs",
                                              icon: UIImage(systemImage: "terminal"),
                                              actionBlock: { [weak self] in
                                                  self?.delegate?.viewModel(viewModel: self, shouldShowViewController: ConsoleLoggerViewController())
                                              }))
-        supportSection.rows.append(emptyRow(text: "More coming soon"))
+        systemSection.rows.append(actionRow(name: "Location Spoofer",
+                                             icon: UIImage(systemImage: "location.circle"),
+                                             actionBlock: { [weak self] in
+                                                 self?.delegate?.viewModel(viewModel: self, shouldShowViewController: LocationSpooferViewController())
+                                             }))
+        systemSection.rows.append(emptyRow(text: "More coming soon"))
 
         /// Setup Notifications Section
         var notificationsSection: Section = Section()
@@ -261,7 +266,7 @@ internal class MenuViewModel {
         sections.append(networkSection)
         sections.append(environmentSection)
         sections.append(securitySection)
-        sections.append(supportSection)
+        sections.append(systemSection)
         sections.append(notificationsSection)
         sections.append(uiUxSection)
         sections.append(developmentSection)

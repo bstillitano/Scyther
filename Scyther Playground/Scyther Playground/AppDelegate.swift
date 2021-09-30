@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 12/2/21.
 //
 
+import CoreLocation
 import Scyther
 import UIKit
 import UserNotifications

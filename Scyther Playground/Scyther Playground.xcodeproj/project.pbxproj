@@ -15,12 +15,12 @@
 		CA73FCF425D690D2007FA627 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CA73FCF225D690D2007FA627 /* LaunchScreen.storyboard */; };
 		CA73FCFF25D690D2007FA627 /* Scyther_PlaygroundTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FCFE25D690D2007FA627 /* Scyther_PlaygroundTests.swift */; };
 		CA73FD0A25D690D2007FA627 /* Scyther_PlaygroundUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA73FD0925D690D2007FA627 /* Scyther_PlaygroundUITests.swift */; };
-		CA73FDDD25DA22E8007FA627 /* Scyther in Frameworks */ = {isa = PBXBuildFile; productRef = CA73FDDC25DA22E8007FA627 /* Scyther */; };
 		CA9F8FC225DE08E5000FA677 /* Environments.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FC125DE08E5000FA677 /* Environments.swift */; };
 		CA9F8FC725DE0A88000FA677 /* RedViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FC625DE0A88000FA677 /* RedViewController.swift */; };
 		CA9F8FCF25DE0B5F000FA677 /* BlueViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FCE25DE0B5F000FA677 /* BlueViewController.swift */; };
 		CA9F8FD425DE0EFF000FA677 /* Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FD325DE0EFF000FA677 /* Button.swift */; };
 		CA9F8FD925DE0F6D000FA677 /* ButtonPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9F8FD825DE0F6D000FA677 /* ButtonPreviews.swift */; };
+		CAA2982027029BB90020FDBB /* Scyther in Frameworks */ = {isa = PBXBuildFile; productRef = CAA2981F27029BB90020FDBB /* Scyther */; };
 		CABAC83926F7542000BA8CFD /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = CABAC83826F7542000BA8CFD /* Keychain.swift */; };
 /* End PBXBuildFile section */
 
@@ -71,7 +71,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CA73FDDD25DA22E8007FA627 /* Scyther in Frameworks */,
+				CAA2982027029BB90020FDBB /* Scyther in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -169,7 +169,7 @@
 			);
 			name = "Scyther Playground";
 			packageProductDependencies = (
-				CA73FDDC25DA22E8007FA627 /* Scyther */,
+				CAA2981F27029BB90020FDBB /* Scyther */,
 			);
 			productName = "Scyther Playground";
 			productReference = CA73FCE425D690D2007FA627 /* Scyther Playground.app */;
@@ -244,7 +244,7 @@
 			);
 			mainGroup = CA73FCDB25D690D2007FA627;
 			packageReferences = (
-				CA73FDDB25DA22E8007FA627 /* XCRemoteSwiftPackageReference "Scyther" */,
+				CAA2981E27029BB90020FDBB /* XCRemoteSwiftPackageReference "scyther" */,
 			);
 			productRefGroup = CA73FCE525D690D2007FA627 /* Products */;
 			projectDirPath = "";
@@ -476,6 +476,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "Scyther Playground/Scyther Playground.entitlements";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = G4W688LHXL;
 				INFOPLIST_FILE = "Scyther Playground/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -499,6 +500,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "Scyther Playground/Scyther Playground.entitlements";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = G4W688LHXL;
 				INFOPLIST_FILE = "Scyther Playground/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -635,20 +637,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		CA73FDDB25DA22E8007FA627 /* XCRemoteSwiftPackageReference "Scyther" */ = {
+		CAA2981E27029BB90020FDBB /* XCRemoteSwiftPackageReference "scyther" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/bstillitano/Scyther.git";
+			repositoryURL = "https://github.com/bstillitano/scyther";
 			requirement = {
-				branch = "feature/keychain-browser";
+				branch = "feature/location-spoofer";
 				kind = branch;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		CA73FDDC25DA22E8007FA627 /* Scyther */ = {
+		CAA2981F27029BB90020FDBB /* Scyther */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CA73FDDB25DA22E8007FA627 /* XCRemoteSwiftPackageReference "Scyther" */;
+			package = CAA2981E27029BB90020FDBB /* XCRemoteSwiftPackageReference "scyther" */;
 			productName = Scyther;
 		};
 /* End XCSwiftPackageProductDependency section */

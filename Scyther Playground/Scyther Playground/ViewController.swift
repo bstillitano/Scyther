@@ -5,13 +5,19 @@
 //  Created by Brandon Stillitano on 12/2/21.
 //
 
+import MapKit
 import Security
 import Scyther
 import UIKit
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, MKMapViewDelegate
+{
+    // MARK: - Data
+    private let locationManager: CLLocationManager = CLLocationManager()
+
     // MARK: - UI Elements
     var tableView: UITableView = UITableView()
+    var mapView: MKMapView = MKMapView()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -29,12 +35,27 @@ class ViewController: UIViewController {
         tableView.dataSource = self
         tableView.rowHeight = UITableView.automaticDimension
         self.view.addSubview(tableView)
+
+        //Setup MapView
+        locationManager.delegate = self
+        locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.requestAlwaysAuthorization()
+        mapView.delegate = self
+        mapView.showsUserLocation = true
+        mapView.setUserTrackingMode(.follow, animated: true)
+        self.view.addSubview(mapView)
     }
 
     func setupConstraints() {
         //Setup Table View Constraints
         tableView.snp.makeConstraints { (make) in
             make.edges.equalToSuperview()
+        }
+
+        //Setup MapView Constraints
+        mapView.snp.makeConstraints { (make) in
+            make.center.equalToSuperview()
+            make.width.height.equalTo(350)
         }
     }
 }
@@ -209,5 +230,12 @@ extension ViewController {
         blueOption.icon = UIImage(systemImage: "location.circle")
         blueOption.viewController = BlueViewController()
         Scyther.instance.developerOptions.append(blueOption)
+    }
+}
+
+extension ViewController: CLLocationManagerDelegate {
+    func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
+        let region = MKCoordinateRegion.init(center: userLocation.coordinate, span: MKCoordinateSpan.init(latitudeDelta: 0.01, longitudeDelta: 0.01))
+        mapView.setRegion(region, animated: true)
     }
 }

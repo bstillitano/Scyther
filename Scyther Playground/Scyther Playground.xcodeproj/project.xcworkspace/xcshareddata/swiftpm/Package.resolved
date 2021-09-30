@@ -3,10 +3,10 @@
     "pins": [
       {
         "package": "Scyther",
-        "repositoryURL": "https://github.com/bstillitano/Scyther.git",
+        "repositoryURL": "https://github.com/bstillitano/scyther",
         "state": {
-          "branch": "feature/keychain-browser",
-          "revision": "9ed42a41a8ed34cff021af11c0f7131946bc6eeb",
+          "branch": "feature/location-spoofer",
+          "revision": "d4817830c368cfbdd5179938fd088b80abca6769",
           "version": null
         }
       },

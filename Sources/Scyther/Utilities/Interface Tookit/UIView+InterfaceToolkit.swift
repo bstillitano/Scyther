@@ -112,20 +112,9 @@ internal extension UIView {
 internal extension UIView {
     /// Replaces the original `layoutSubviews` implementation with the swizzled version
     static let swizzleLayout: Void = {
-        /// Get original selector
-        guard let originalMethod = class_getInstanceMethod(UIView.self,
-                                                           #selector(layoutSubviews)) else {
-            return
-        }
-
-        /// Get swizzled selector
-        guard let swizzledMethod = class_getInstanceMethod(UIView.self,
-                                                           #selector(swizzledLayoutSubviews)) else {
-            return
-        }
-
-        /// Excahnge implementations
-        method_exchangeImplementations(originalMethod, swizzledMethod)
+        let originalSelector = #selector(layoutSubviews)
+        let swizzledSelector = #selector(swizzledLayoutSubviews)
+        swizzle(UIView.self, originalSelector, swizzledSelector)
     }()
 
     /// Swizzled implementation of layout subviews
