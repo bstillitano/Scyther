@@ -51,12 +51,11 @@ extension CLLocationManager {
         unswizzle(CLLocationManager.self, originalStopSelector, swizzledStopSelector)
 
         isSwizzling = false
-        LocationSpoofer.instance.startUpdatingLocation()
     }()
 
     @objc
     func swizzledStartLocation() {
-        LocationSpoofer.instance.startMocks()
+        LocationSpoofer.instance.startMocks(usingLocation: LocationSpoofer.instance.spoofedLocation)
         LocationSpoofer.instance.delegate = self.delegate
         LocationSpoofer.instance.startUpdatingLocation()
     }
