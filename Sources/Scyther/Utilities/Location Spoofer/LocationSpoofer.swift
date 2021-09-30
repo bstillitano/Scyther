@@ -96,7 +96,9 @@ internal class LocationSpoofer: CLLocationManager {
             return
         }
         if let location = locations?.peek() {
-            delegate?.locationManager?(self, didUpdateLocations: [location])
+            if delegate?.locationManager?(self, didUpdateLocations: [location]) != nil{
+                delegate?.locationManager?(self, didUpdateLocations: [location])
+            }
         }
     }
 }
@@ -141,7 +143,9 @@ extension LocationSpoofer {
 
     private func updateLocation() {
         if let location = locations?.dequeue() {
-            delegate?.locationManager?(self, didUpdateLocations: [location])
+            if delegate?.locationManager?(self, didUpdateLocations: [location]) != nil{
+                delegate?.locationManager?(self, didUpdateLocations: [location])
+            }
             if let isEmpty = locations?.isEmpty(), isEmpty {
                 logMessage("stopping at: \(location.coordinate)")
                 stopUpdatingLocation()
