@@ -38,7 +38,7 @@ func application(_ application: UIApplication, didFinishLaunchingWithOptions lau
     }
 ```
 
-Once you have added the above code to your `AppDelegate.swift` file, simply run your app on a simulator or physical device. Once it's running, simply shake your device (`Cmd + Option + Z`) on the simulator) and you'll be presented with the Scyther debug menu for your app.
+Once you have added the above code to your `AppDelegate.swift` file, simply run your app on a simulator or physical device. Once it's running, simply shake your device (`Cmd + Ctrl + Z`) on the simulator) and you'll be presented with the Scyther debug menu for your app.
 
 ## Demo
 
