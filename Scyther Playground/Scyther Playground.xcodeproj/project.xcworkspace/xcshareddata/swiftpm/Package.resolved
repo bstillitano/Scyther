@@ -5,8 +5,8 @@
         "package": "Scyther",
         "repositoryURL": "https://github.com/bstillitano/scyther",
         "state": {
-          "branch": "feature/location-spoofer",
-          "revision": "d4817830c368cfbdd5179938fd088b80abca6769",
+          "branch": "main",
+          "revision": "790d03db89973b4ced00ab71a10c67cde479a9c7",
           "version": null
         }
       },

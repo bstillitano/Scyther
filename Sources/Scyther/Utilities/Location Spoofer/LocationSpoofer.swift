@@ -70,6 +70,9 @@ internal class LocationSpoofer: CLLocationManager {
 
     // MARK: - Lifecycle
     override func startUpdatingLocation() {
+        guard delegate != nil else {
+            return
+        }
         guard spoofingEnabled else {
             super.startUpdatingLocation()
             return
@@ -163,6 +166,9 @@ internal extension LocationSpoofer {
     func spoofingEnabledChanged() {
         swizzle()
         guard spoofingEnabled else {
+            guard delegate != nil else {
+                return
+            }
             requestLocation()
             return
         }
