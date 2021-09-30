@@ -130,6 +130,9 @@ extension LocationSpoofer {
     }
     
     func startMocks() {
+        guard spoofingEnabled else {
+            return
+        }
         guard let route: Route = spoofedRoute else {
             updateInterval = 0.5
             startMocks(usingLocation: spoofedLocation)
