@@ -79,7 +79,7 @@ There is a full-featured demo included in this repo. See the [Scyther Playground
 - [ ] Console Logs (Coming Soon)
 - [ ] Performance Logs (Coming Soon)
 - [ ] Crash Logs (Coming Soon)
-- [ ] Location Spoofing (Coming Soon)
+- [x] Location Spoofing
 
 #### Support
 
