@@ -30,7 +30,7 @@ public class Scyther {
     internal var presented: Bool = false
     
     /// The gesture that is to be used to invoke the Scyther menu. Defaults to `shake`.
-    internal var selectedGesture: ScytherGesture = .shake
+    public var selectedGesture: ScytherGesture = .shake
     
     /// `Toggler` utility class. Used for local toggle/feature flag overrides.
     public static let toggler: Toggler = Toggler.instance
