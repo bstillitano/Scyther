@@ -132,7 +132,7 @@ dependencies: [
 [CocoaPods](https://cocoapods.org) is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate Scyther into your Xcode project using CocoaPods, specify it in your `Podfile`:
 
 ```ruby
-pod 'Scyther', '~> 1.1.1'
+pod 'Scyther', '~> 1.2.0'
 ```
 
 ## FAQ
