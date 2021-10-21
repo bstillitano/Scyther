@@ -27,11 +27,11 @@ extension Bundle {
     }
 }
 
-/// Cocoapods/Carthage Specific Extensions
+/// Cocoapods Specific Extensions
 #if !SWIFT_PACKAGE
 extension Bundle {
     static var module: Bundle {
-        Bundle(identifier: "Scyther")!
+        Bundle(identifier: "org.cocoapods.Scyther")!
     }
 }
 #endif
