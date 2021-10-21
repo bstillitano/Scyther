@@ -5,7 +5,7 @@
 # Scyther
 
 [![bitrise-build-badge](https://app.bitrise.io/app/ea64d6f99435533d/status.svg?token=a5U0AgWUxliydR5tNHrPyw&branch=main)](https://app.bitrise.io/app/ea64d6f99435533d)
- [![documentation-badge](https://raw.githubusercontent.com/bstillitano/Scyther/main/docs/badge.svg)](https://scyther.io) ![platform-badge](https://img.shields.io/badge/platform-iOS-blue) ![spm-badge](https://img.shields.io/badge/spm-main-black) ![license-badge](https://img.shields.io/github/license/bstillitano/Scyther)
+ [![documentation-badge](https://raw.githubusercontent.com/bstillitano/Scyther/main/docs/badge.svg)](https://scyther.io) ![platform-badge](https://img.shields.io/badge/platform-iOS-blue) ![spm-badge](https://img.shields.io/badge/spm-main-black) ![license-badge](https://img.shields.io/github/license/bstillitano/Scyther)![spm-badge](https://img.shields.io/badge/spm-main-black) ![cocoapods-badge](https://img.shields.io/badge/cocoapods-1.2.0-blueviolet)
 
 Just like scyther, this menu helps you cut through bugs, in your iOS app. Scyther is a fully fledged debug menu that provides tools for developers, UAT (QA) members/testers, UI/UX teams, backend developers and even frontend developers who use your app. Made with 💙 in Sydney, Australia 🇦🇺.
 
@@ -125,6 +125,14 @@ Once you have your Swift package set up, adding Scyther as a dependency is as ea
 dependencies: [
     .package(url: "https://github.com/bstillitano/Scyther.git", branch: "main")
 ]
+```
+
+### CocoaPods
+
+[CocoaPods](https://cocoapods.org) is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate Scyther into your Xcode project using CocoaPods, specify it in your `Podfile`:
+
+```ruby
+pod 'Scyther', '~> 1.1.1'
 ```
 
 ## FAQ
