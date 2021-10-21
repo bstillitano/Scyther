@@ -12,4 +12,7 @@ Pod::Spec.new do |s|
   s.swift_version = '5.0'
 
   s.source_files = 'Sources/Scyther/**/*'
+  s.resources = "Sources/Scyther/**/*.{gpx,xml}"
+  
+  s.dependency 'SnapKit', '~> 5.0.1'
 end

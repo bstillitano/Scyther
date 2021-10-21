@@ -26,3 +26,12 @@ extension Bundle {
         return infoAttributes[.modificationDate] as? Date ?? Date()
     }
 }
+
+/// Cocoapods/Carthage Specific Extensions
+#if !SWIFT_PACKAGE
+extension Bundle {
+    static var module: Bundle {
+        Bundle(identifier: "Scyther")!
+    }
+}
+#endif
