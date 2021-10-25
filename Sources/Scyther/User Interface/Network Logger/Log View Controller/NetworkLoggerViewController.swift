@@ -82,9 +82,10 @@ internal class NetworkLoggerViewController: UIViewController {
     
     @objc
     private func prepareObjects() {
-        var searchText: String?
-        searchText = searchController?.searchBar.text
-        viewModel.prepareObjects(filteredOn: searchText)
+        DispatchQueue.main.async {
+            let searchText = self.searchController?.searchBar.text
+            self.viewModel.prepareObjects(filteredOn: searchText)
+        }
     }
 
     // MARK: - Lifecycle
