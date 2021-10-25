@@ -22,17 +22,16 @@ Just like scyther, this menu helps you cut through bugs, in your iOS app. Scythe
 
 ## Quick Start
 
-I recommend only running Scyther on non release/App Store builds of your iOS application. Running the library on public facing versions of your app has the potential to introduce security issues if you store/transmit secure data over a network. To achieve this, for developers of all skill levels, I have included a convenience which abstracts that logic into a single line. See below:
+We recommend only running Scyther on non release/App Store builds of your iOS application. Running the library on public facing versions of your app has the potential to introduce security issues if you store/transmit secure data over a network. To achieve this, for developers of all skill levels, Scyther defaults to only running on non App-Store builds. We have included a convenience which abstracts that logic into a single line if you wish to override this logic. See below:
 
 ``` swift
 import Scyther
 
 // AppDelegate.swift
 func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        /// Run Scyther only on non AppStore builds to avoid introducing potential security issues into our app.
-        if !AppEnvironment.isAppStore {
-            Scyther.instance.start()
-        }
+        /// Override for running Scyther on Production/AppStore Builds. Uncomment this line only if you know what risks are involved.
+        /// Scyther.instance.runsOnProductionBuilds = true
+        Scyther.instance.start()
 
         return true
     }
