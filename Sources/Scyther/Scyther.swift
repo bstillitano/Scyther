@@ -23,6 +23,9 @@ public class Scyther {
     /// Delegate instance for listening to key events and performing subsequent actions
     public weak var delegate: ScytherDelegate? = nil
     
+    /// Boolean value for controlling whether or not the Scyther library should be run on builds installed via the AppStore and builds that contain a production installation receipt. Must be set before calling `Scyther.instance.start`
+    public var runsOnProductionBuilds: Bool = false
+
     /// Indicates whether or not Scyther has been initialised by the client implementing the framework.
     internal var started: Bool = false
     
@@ -59,8 +62,13 @@ public class Scyther {
     /// Variable length device token registerd with FCM. Example: dEoOEdh9yEy5sK-BeTxzJR:APA91bH0bNeYvYadpl98frTc6FYY1DbicXc40QrTDj5aOFxPNZF-JLEGvawxWl6g9GXgZod04_UV95zBlzdYFnxByHSCcySmzyrqfPk1IQC7aIfefBTL7a3FX9dQVNnG4x1igi317YUf
     public var fcmToken: String?
     
-    /// Initialises the Scyther library and sets the required data to properly intercept network calls and console logs.
+    /// Initialises the Scyther library and sets the required data to properly intercept network calls and console logs. This will not run on Production/AppStore builds if `runsOnProductionBuilds` is not set to true.
     public func start() {
+        /// Check for production build
+        guard !AppEnvironment.isAppStore || runsOnProductionBuilds else {
+            return
+        }
+        
         /// Set data
         self.started = true
         
