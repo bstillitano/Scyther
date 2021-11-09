@@ -115,6 +115,10 @@ internal class MenuViewModel {
         deviceSection.rows.append(valueRow(name: "Hardware",
                                            value: UIDevice.current.modelName,
                                            icon: nil))
+        deviceSection.rows.append(valueRow(name: "UDID",
+                                           value: UIDevice.current.identifierForVendor?.uuidString,
+                                           icon: nil,
+                                           showMenu: true))
         //Setup Application Section
         var applicationSection: Section = Section()
         applicationSection.title = "Application"
