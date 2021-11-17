@@ -126,6 +126,20 @@ public class Scyther {
         }
         Scyther.instance.presentingViewController?.present(navigationController, animated: true, completion: nil)
     }
+    
+    public static func dismissMenu(animated: Bool, completion: (() -> Void)? = nil) {
+        /// Check if Scyther is showing the menu. If not, don't do anything, it's not Scythers to touch.
+        guard Scyther.instance.presented else {
+            return
+        }
+        
+        /// Get topmost navigation controller and dismiss it
+        guard let viewContoller: UIViewController = Scyther.instance.presentingViewController else {
+            return
+        }
+        viewContoller.dismiss(animated: animated, completion: completion)
+        Scyther.instance.presented = false
+    }
 }
 
 extension Scyther {
