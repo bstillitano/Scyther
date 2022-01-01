@@ -116,7 +116,7 @@ There is a full-featured demo included in this repo. See the [Scyther Playground
 
 ### Swift Package Manager
 
-The [Swift Package Manager](https://swift.org/package-manager/) is a tool for managing the distribution of Swift code. It’s integrated with the Swift build system to automate the process of downloading, compiling, and linking dependencies. 
+The [Swift Package Manager](https://swift.org/package-manager/) is a tool for managing the distribution of Swift code. It’s integrated with the Swift build system to automate the process of downloading, compiling, and linking dependencies.
 
 Once you have your Swift package set up, adding Scyther as a dependency is as easy as adding it to the `dependencies` value of your `Package.swift`.
 
@@ -142,7 +142,7 @@ If you want to be blunt, `resumé`. But, to be a little more philosophical, I my
 
 ### Will Scyther get my app rejected by the App Store?
 
-Scyther uses no private APIs and has been developed with shipability in mind. Scyhter is being, and has been for some time, on production applications without issues from the App Store© review team. If your app does get rejected ***specifically*** for using Scyther, raise an issue, and it will be looked into with top priority.
+Scyther uses no private APIs and has been developed with shipability in mind. Scyther is being, and has been for some time, on production applications without issues from the App Store© review team. If your app does get rejected ***specifically*** for using Scyther, raise an issue, and it will be looked into with top priority.
 
 ### What's the origin of the name Scyther?
 
