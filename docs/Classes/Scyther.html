@@ -17,18 +17,18 @@
     <a title="Scyther Class Reference"></a>
     <header>
       <div class="content-wrapper">
-        <p><a href="../index.html">Scyther Docs</a> (53% documented)</p>
-        <p class="header-right">
+        <p><a href="../index.html">Scyther 1.2.2 Docs</a> (50% documented)</p>
+        <div class="header-right">
           <form role="search" action="../search.json">
             <input type="text" placeholder="Search documentation" data-typeahead>
           </form>
-        </p>
+        </div>
       </div>
     </header>
     <div class="content-wrapper">
       <p id="breadcrumbs">
         <a href="../index.html">Scyther Reference</a>
-        <img id="carat" src="../img/carat.png" />
+        <img id="carat" src="../img/carat.png" alt=""/>
         Scyther Class Reference
       </p>
     </div>
@@ -68,6 +68,12 @@
               <li class="nav-group-task">
                 <a href="../Classes/Toggler.html">Toggler</a>
               </li>
+              <li class="nav-group-task">
+                <a href="../Classes/TouchView.html">TouchView</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/TouchVisualiser.html">TouchVisualiser</a>
+              </li>
             </ul>
           </li>
           <li class="nav-group-name">
@@ -104,6 +110,9 @@
               </li>
               <li class="nav-group-task">
                 <a href="../Extensions/Date.html">Date</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Extensions/Dictionary.html">Dictionary</a>
               </li>
               <li class="nav-group-task">
                 <a href="../Extensions/NSNotification.html">NSNotification</a>
@@ -158,10 +167,22 @@
                 <a href="../Structs/LinkedList/Index.html">– Index</a>
               </li>
               <li class="nav-group-task">
+                <a href="../Structs/PushNotification.html">PushNotification</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/PushNotificationAPS.html">PushNotificationAPS</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/PushNotificationAPSAlert.html">PushNotificationAPSAlert</a>
+              </li>
+              <li class="nav-group-task">
                 <a href="../Structs/ServerConfiguration.html">ServerConfiguration</a>
               </li>
               <li class="nav-group-task">
                 <a href="../Structs/Stack.html">Stack</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/TouchVisualiserConfiguration.html">TouchVisualiserConfiguration</a>
               </li>
               <li class="nav-group-task">
                 <a href="../Structs/Validation.html">Validation</a>
@@ -249,6 +270,60 @@
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">weak</span> <span class="k">var</span> <span class="nv">delegate</span><span class="p">:</span> <span class="kt"><a href="../Protocols/ScytherDelegate.html">ScytherDelegate</a></span><span class="p">?</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7ScytherAAC22runsOnProductionBuildsSbvp"></a>
+                    <a name="//apple_ref/swift/Property/runsOnProductionBuilds" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7ScytherAAC22runsOnProductionBuildsSbvp">runsOnProductionBuilds</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Boolean value for controlling whether or not the Scyther library should be run on builds installed via the AppStore and builds that contain a production installation receipt. Must be set before calling <code>Scyther.instance.start</code></p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">runsOnProductionBuilds</span><span class="p">:</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7ScytherAAC15selectedGestureAA0aC0Ovp"></a>
+                    <a name="//apple_ref/swift/Property/selectedGesture" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7ScytherAAC15selectedGestureAA0aC0Ovp">selectedGesture</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>The gesture that is to be used to invoke the Scyther menu. Defaults to <code>shake</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">selectedGesture</span><span class="p">:</span> <span class="kt"><a href="../Enums/ScytherGesture.html">ScytherGesture</a></span></code></pre>
 
                         </div>
                       </div>
@@ -430,7 +505,7 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Developer options that will be displayed on the main manue</p>
+                        <p>Developer options that will be displayed on the main menu</p>
 
                       </div>
                       <div class="declaration">
@@ -438,6 +513,60 @@
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">developerOptions</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Structs/DeveloperOption.html">DeveloperOption</a></span><span class="p">]</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7ScytherAAC9apnsTokenSSSgvp"></a>
+                    <a name="//apple_ref/swift/Property/apnsToken" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7ScytherAAC9apnsTokenSSSgvp">apnsToken</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>64 Character device token registered with APNS. Example: 30eee4d53612de08c61477d4503b23220d76d74efed258230ef3536afd4504f2</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">apnsToken</span><span class="p">:</span> <span class="kt">String</span><span class="p">?</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7ScytherAAC8fcmTokenSSSgvp"></a>
+                    <a name="//apple_ref/swift/Property/fcmToken" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7ScytherAAC8fcmTokenSSSgvp">fcmToken</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Variable length device token registerd with FCM. Example: dEoOEdh9yEy5sK-BeTxzJR:APA91bH0bNeYvYadpl98frTc6FYY1DbicXc40QrTDj5aOFxPNZF-JLEGvawxWl6g9GXgZod04_UV95zBlzdYFnxByHSCcySmzyrqfPk1IQC7aIfefBTL7a3FX9dQVNnG4x1igi317YUf</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">fcmToken</span><span class="p">:</span> <span class="kt">String</span><span class="p">?</span></code></pre>
 
                         </div>
                       </div>
@@ -457,7 +586,7 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Initialises the Scyther library and sets the required data to properly intercept network calls and console logs.</p>
+                        <p>Initialises the Scyther library and sets the required data to properly intercept network calls and console logs. This will not run on Production/AppStore builds if <code><a href="../Classes/Scyther.html#/s:7ScytherAAC22runsOnProductionBuildsSbvp">runsOnProductionBuilds</a></code> is not set to true.</p>
 
                       </div>
                       <div class="declaration">
@@ -498,16 +627,42 @@
                     </section>
                   </div>
                 </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7ScytherAAC11dismissMenu8animated10completionySb_yycSgtFZ"></a>
+                    <a name="//apple_ref/swift/Method/dismissMenu(animated:completion:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7ScytherAAC11dismissMenu8animated10completionySb_yycSgtFZ">dismissMenu(animated:<wbr>completion:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">static</span> <span class="kd">func</span> <span class="nf">dismissMenu</span><span class="p">(</span><span class="nv">animated</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="p">(()</span> <span class="o">-&gt;</span> <span class="kt">Void</span><span class="p">)?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">)</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
               </ul>
             </div>
           </section>
         </section>
         <section id="footer">
-          <p>&copy; 2021 <a class="link" href="" target="_blank" rel="external"></a>. All rights reserved. (Last updated: 2021-05-16)</p>
-          <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external">jazzy ♪♫ v0.13.6</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external">Realm</a> project.</p>
+          <p>&copy; 2022 <a class="link" href="https://github.com/bstillitano/Scyther" target="_blank" rel="external noopener">Brandon Stillitano</a>. All rights reserved. (Last updated: 2022-01-02)</p>
+          <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.1</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
         </section>
       </article>
     </div>
   </body>
-</div>
 </html>
