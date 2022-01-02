@@ -78,13 +78,6 @@
       "warning": "undocumented"
     },
     {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Extensions/Dictionary+Extensions.swift",
-      "line": 11,
-      "symbol": "Dictionary.jsonString",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Extensions/UIWindow+Extensions.swift",
       "line": 11,
       "symbol": "UIEventSubtype",
@@ -197,13 +190,6 @@
       "warning": "undocumented"
     },
     {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Scyther.swift",
-      "line": 130,
-      "symbol": "Scyther.dismissMenu(animated:completion:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Configuration Switcher/ServerConfiguration.swift",
       "line": 10,
       "symbol": "ServerConfiguration",
@@ -240,64 +226,8 @@
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Interface Tookit/InterfaceToolkit.swift",
-      "line": 27,
-      "symbol": "InterfaceToolkit.touchVisualiser",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Interface Tookit/InterfaceToolkit.swift",
-      "line": 129,
+      "line": 95,
       "symbol": "InterfaceToolkit.observeValue(forKeyPath:of:change:context:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Interface Tookit/Touch Visualiser/TouchView.swift",
-      "line": 10,
-      "symbol": "TouchView",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Interface Tookit/Touch Visualiser/TouchView.swift",
-      "line": 60,
-      "symbol": "TouchView.init(coder:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Interface Tookit/Touch Visualiser/TouchVisualiser.swift",
-      "line": 10,
-      "symbol": "TouchVisualiser",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Interface Tookit/Touch Visualiser/TouchVisualiser.swift",
-      "line": 13,
-      "symbol": "TouchVisualiser.config",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Interface Tookit/Touch Visualiser/TouchVisualiserConfiguration.swift",
-      "line": 49,
-      "symbol": "TouchVisualiserConfiguration.init()",
-      "symbol_kind": "source.lang.swift.decl.function.method.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Interface Tookit/UIWindow+InterfaceToolkit.swift",
-      "line": 13,
-      "symbol": "UIWindow.swizzle()",
-      "symbol_kind": "source.lang.swift.decl.function.method.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Interface Tookit/UIWindow+InterfaceToolkit.swift",
-      "line": 34,
-      "symbol": "UIWindow.swizzledSendEvent(_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
@@ -325,97 +255,90 @@
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
       "line": 197,
-      "symbol": "LoggerHTTPModel.getResponseBodyDictionary()",
-      "symbol_kind": "source.lang.swift.decl.function.method.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
-      "line": 207,
       "symbol": "LoggerHTTPModel.getRandomHash()",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
-      "line": 214,
+      "line": 204,
       "symbol": "LoggerHTTPModel.getRequestBodyFilepath()",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
-      "line": 219,
+      "line": 209,
       "symbol": "LoggerHTTPModel.getRequestBodyFilename()",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
-      "line": 223,
+      "line": 213,
       "symbol": "LoggerHTTPModel.getResponseBodyFilepath()",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
-      "line": 228,
+      "line": 218,
       "symbol": "LoggerHTTPModel.getResponseBodyFilename()",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
-      "line": 232,
+      "line": 222,
       "symbol": "LoggerHTTPModel.getDocumentsPath()",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
-      "line": 236,
+      "line": 226,
       "symbol": "LoggerHTTPModel.saveData(_:toFile:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
-      "line": 244,
+      "line": 234,
       "symbol": "LoggerHTTPModel.readRawData(_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
-      "line": 248,
+      "line": 238,
       "symbol": "LoggerHTTPModel.getTimeFromDate(_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
-      "line": 261,
+      "line": 251,
       "symbol": "LoggerHTTPModel.getShortTypeFrom(_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
-      "line": 282,
+      "line": 272,
       "symbol": "LoggerHTTPModel.prettyPrint(_:type:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
-      "line": 297,
+      "line": 287,
       "symbol": "LoggerHTTPModel.formattedRequestLogEntry()",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Network Logger/LoggerHTTPModel.swift",
-      "line": 337,
+      "line": 327,
       "symbol": "LoggerHTTPModel.formattedResponseLogEntry()",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
@@ -576,142 +499,9 @@
     },
     {
       "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/NotificationTester.swift",
-      "line": 15,
+      "line": 12,
       "symbol": "NotificationTester",
       "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/NotificationTester.swift",
-      "line": 109,
-      "symbol": "NSNotification.Name.NotificationLoggerLoggedData",
-      "symbol_kind": "source.lang.swift.decl.var.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 10,
-      "symbol": "PushNotification",
-      "symbol_kind": "source.lang.swift.decl.struct",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 11,
-      "symbol": "PushNotification.init()",
-      "symbol_kind": "source.lang.swift.decl.function.method.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 13,
-      "symbol": "PushNotification.receivedAt",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 14,
-      "symbol": "PushNotification.aps",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 15,
-      "symbol": "PushNotification.additionalData",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 16,
-      "symbol": "PushNotification.rawPayload",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 19,
-      "symbol": "PushNotificationAPS",
-      "symbol_kind": "source.lang.swift.decl.struct",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 20,
-      "symbol": "PushNotificationAPS.init()",
-      "symbol_kind": "source.lang.swift.decl.function.method.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 22,
-      "symbol": "PushNotificationAPS.alert",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 23,
-      "symbol": "PushNotificationAPS.category",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 24,
-      "symbol": "PushNotificationAPS.contentAvailable",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 25,
-      "symbol": "PushNotificationAPS.badge",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 26,
-      "symbol": "PushNotificationAPS.sound",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 29,
-      "symbol": "PushNotificationAPSAlert",
-      "symbol_kind": "source.lang.swift.decl.struct",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 30,
-      "symbol": "PushNotificationAPSAlert.init()",
-      "symbol_kind": "source.lang.swift.decl.function.method.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 32,
-      "symbol": "PushNotificationAPSAlert.title",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 33,
-      "symbol": "PushNotificationAPSAlert.subtitle",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/brandon/Scyther/Sources/Scyther/Utilities/Notification Tester/PushNotification.swift",
-      "line": 34,
-      "symbol": "PushNotificationAPSAlert.body",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
