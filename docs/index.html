@@ -7,7 +7,7 @@
     <meta charset='utf-8'>
     <script src="js/jquery.min.js" defer></script>
     <script src="js/jazzy.js" defer></script>
-
+    
     <script src="js/lunr.min.js" defer></script>
     <script src="js/typeahead.jquery.js" defer></script>
     <script src="js/jazzy.search.js" defer></script>
@@ -16,18 +16,18 @@
     <a title="Scyther  Reference"></a>
     <header>
       <div class="content-wrapper">
-        <p><a href="index.html">Scyther Docs</a> (53% documented)</p>
-        <p class="header-right">
+        <p><a href="index.html">Scyther 1.2.2 Docs</a> (50% documented)</p>
+        <div class="header-right">
           <form role="search" action="search.json">
             <input type="text" placeholder="Search documentation" data-typeahead>
           </form>
-        </p>
+        </div>
       </div>
     </header>
     <div class="content-wrapper">
       <p id="breadcrumbs">
         <a href="index.html">Scyther Reference</a>
-        <img id="carat" src="img/carat.png" />
+        <img id="carat" src="img/carat.png" alt=""/>
         Scyther  Reference
       </p>
     </div>
@@ -67,6 +67,12 @@
               <li class="nav-group-task">
                 <a href="Classes/Toggler.html">Toggler</a>
               </li>
+              <li class="nav-group-task">
+                <a href="Classes/TouchView.html">TouchView</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Classes/TouchVisualiser.html">TouchVisualiser</a>
+              </li>
             </ul>
           </li>
           <li class="nav-group-name">
@@ -103,6 +109,9 @@
               </li>
               <li class="nav-group-task">
                 <a href="Extensions/Date.html">Date</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Extensions/Dictionary.html">Dictionary</a>
               </li>
               <li class="nav-group-task">
                 <a href="Extensions/NSNotification.html">NSNotification</a>
@@ -157,10 +166,22 @@
                 <a href="Structs/LinkedList/Index.html">– Index</a>
               </li>
               <li class="nav-group-task">
+                <a href="Structs/PushNotification.html">PushNotification</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Structs/PushNotificationAPS.html">PushNotificationAPS</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Structs/PushNotificationAPSAlert.html">PushNotificationAPSAlert</a>
+              </li>
+              <li class="nav-group-task">
                 <a href="Structs/ServerConfiguration.html">ServerConfiguration</a>
               </li>
               <li class="nav-group-task">
                 <a href="Structs/Stack.html">Stack</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Structs/TouchVisualiserConfiguration.html">TouchVisualiserConfiguration</a>
               </li>
               <li class="nav-group-task">
                 <a href="Structs/Validation.html">Validation</a>
@@ -186,14 +207,14 @@
       <article class="main-content">
         <section>
           <section class="section">
-
+            
             <p align="center">
   <img width="200" height="200" src="https://github.com/bstillitano/Scyther/raw/main/Scyther.png">
 </p>
 <h1 id='scyther' class='heading'>Scyther</h1>
 
 <p><a href="https://app.bitrise.io/app/ea64d6f99435533d"><img src="https://app.bitrise.io/app/ea64d6f99435533d/status.svg?token=a5U0AgWUxliydR5tNHrPyw&branch=main" alt="bitrise-build-badge"></a>
- <a href="https://scyther.io"><img src="https://raw.githubusercontent.com/bstillitano/Scyther/main/docs/badge.svg" alt="documentation-badge"></a> <img src="https://img.shields.io/badge/platform-iOS-blue" alt="platform-badge"> <img src="https://img.shields.io/badge/spm-main-black" alt="spm-badge"> <img src="https://img.shields.io/github/license/bstillitano/Scyther" alt="license-badge"></p>
+ <a href="https://scyther.io"><img src="https://raw.githubusercontent.com/bstillitano/Scyther/main/docs/badge.svg" alt="documentation-badge"></a> <img src="https://img.shields.io/badge/platform-iOS-blue" alt="platform-badge"> <img src="https://img.shields.io/github/license/bstillitano/Scyther" alt="license-badge"> <img src="https://img.shields.io/badge/spm-main-black" alt="spm-badge"> <img src="https://img.shields.io/badge/cocoapods-1.2.0-blueviolet" alt="cocoapods-badge"></p>
 
 <p>Just like scyther, this menu helps you cut through bugs, in your iOS app. Scyther is a fully fledged debug menu that provides tools for developers, UAT (QA) members/testers, UI/UX teams, backend developers and even frontend developers who use your app. Made with 💙 in Sydney, Australia 🇦🇺.</p>
 
@@ -211,21 +232,20 @@
 </ul>
 <h2 id='quick-start' class='heading'>Quick Start</h2>
 
-<p>I recommend only running Scyther on non release/App Store builds of your iOS application. Running the library on public facing versions of your app has the potential to introduce security issues if you store/transmit secure data over a network. To achieve this, for developers of all skill levels, I have included a convenience which abstracts that logic into a single line. See below:</p>
+<p>We recommend only running Scyther on non release/App Store builds of your iOS application. Running the library on public facing versions of your app has the potential to introduce security issues if you store/transmit secure data over a network. To achieve this, for developers of all skill levels, Scyther defaults to only running on non App-Store builds. We have included a convenience which abstracts that logic into a single line if you wish to override this logic. See below:</p>
 <pre class="highlight swift"><code><span class="kd">import</span> <span class="kt">Scyther</span>
 
 <span class="c1">// AppDelegate.swift</span>
 <span class="kd">func</span> <span class="nf">application</span><span class="p">(</span><span class="n">_</span> <span class="nv">application</span><span class="p">:</span> <span class="kt">UIApplication</span><span class="p">,</span> <span class="n">didFinishLaunchingWithOptions</span> <span class="nv">launchOptions</span><span class="p">:</span> <span class="p">[</span><span class="kt">UIApplication</span><span class="o">.</span><span class="kt">LaunchOptionsKey</span><span class="p">:</span> <span class="kt">Any</span><span class="p">]?)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span> <span class="p">{</span>
-        <span class="c1">/// Run Scyther only on non AppStore builds to avoid introducing potential security issues into our app.</span>
-        <span class="k">if</span> <span class="o">!</span><span class="kt">AppEnvironment</span><span class="o">.</span><span class="n">isAppStore</span> <span class="p">{</span>
-            <span class="kt">Scyther</span><span class="o">.</span><span class="n">instance</span><span class="o">.</span><span class="nf">start</span><span class="p">()</span>
-        <span class="p">}</span>
+        <span class="c1">/// Override for running Scyther on Production/AppStore Builds. Uncomment this line only if you know what risks are involved.</span>
+        <span class="c1">/// Scyther.instance.runsOnProductionBuilds = true</span>
+        <span class="kt">Scyther</span><span class="o">.</span><span class="n">instance</span><span class="o">.</span><span class="nf">start</span><span class="p">()</span>
 
         <span class="k">return</span> <span class="kc">true</span>
     <span class="p">}</span>
 </code></pre>
 
-<p>Once you have added the above code to your <code>AppDelegate.swift</code> file, simply run your app on a simulator or physical device. Once it&rsquo;s running, simply shake your device (<code>Cmd + Option + Z</code>) on the simulator) and you&rsquo;ll be presented with the Scyther debug menu for your app.</p>
+<p>Once you have added the above code to your <code>AppDelegate.swift</code> file, simply run your app on a simulator or physical device. Once it&rsquo;s running, simply shake your device (<code>Cmd + Ctrl + Z</code>) on the simulator) and you&rsquo;ll be presented with the Scyther debug menu for your app.</p>
 <h2 id='demo' class='heading'>Demo</h2>
 
 <p>There is a full-featured demo included in this repo. See the <a href="https://github.com/bstillitano/Scyther/tree/improvement/readme/Scyther%20Playground">Scyther Playground</a> project. Note that some of the features included in the demo may not be required for your implementation. They&rsquo;ve been included only as a reference for what Scyther is capable of and how to implement said features.</p>
@@ -260,7 +280,7 @@
 <h4 id='security' class='heading'>Security</h4>
 
 <ul>
-<li>[ ] Manage Keychain Items (Coming Soon)</li>
+<li>[x] Manage Keychain Items</li>
 </ul>
 <h4 id='system' class='heading'>System</h4>
 
@@ -268,7 +288,7 @@
 <li>[ ] Console Logs (Coming Soon)</li>
 <li>[ ] Performance Logs (Coming Soon)</li>
 <li>[ ] Crash Logs (Coming Soon)</li>
-<li>[ ] Location Spoofing (Coming Soon)</li>
+<li>[x] Location Spoofing</li>
 </ul>
 <h4 id='support' class='heading'>Support</h4>
 
@@ -284,7 +304,7 @@
 <li>[x] Grid Overlay</li>
 <li>[x] Show View Frames</li>
 <li>[x] Slow Animations</li>
-<li>[ ] Show Screen Touches (Coming Soon)</li>
+<li>[x] Show Screen Touches</li>
 </ul>
 <h4 id='development-tools' class='heading'>Development Tools</h4>
 
@@ -310,12 +330,17 @@
 <h2 id='installation' class='heading'>Installation</h2>
 <h3 id='swift-package-manager' class='heading'>Swift Package Manager</h3>
 
-<p>The <a href="https://swift.org/package-manager/">Swift Package Manager</a> is a tool for managing the distribution of Swift code. It’s integrated with the Swift build system to automate the process of downloading, compiling, and linking dependencies. </p>
+<p>The <a href="https://swift.org/package-manager/">Swift Package Manager</a> is a tool for managing the distribution of Swift code. It’s integrated with the Swift build system to automate the process of downloading, compiling, and linking dependencies.</p>
 
 <p>Once you have your Swift package set up, adding Scyther as a dependency is as easy as adding it to the <code>dependencies</code> value of your <code>Package.swift</code>.</p>
 <pre class="highlight swift"><code><span class="nv">dependencies</span><span class="p">:</span> <span class="p">[</span>
     <span class="o">.</span><span class="nf">package</span><span class="p">(</span><span class="nv">url</span><span class="p">:</span> <span class="s">"https://github.com/bstillitano/Scyther.git"</span><span class="p">,</span> <span class="nv">branch</span><span class="p">:</span> <span class="s">"main"</span><span class="p">)</span>
 <span class="p">]</span>
+</code></pre>
+<h3 id='cocoapods' class='heading'>CocoaPods</h3>
+
+<p><a href="https://cocoapods.org">CocoaPods</a> is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate Scyther into your Xcode project using CocoaPods, specify it in your <code>Podfile</code>:</p>
+<pre class="highlight ruby"><code><span class="n">pod</span> <span class="s1">'Scyther'</span><span class="p">,</span> <span class="s1">'~&gt; 1.2.0'</span>
 </code></pre>
 <h2 id='faq' class='heading'>FAQ</h2>
 <h3 id='why-is-scyther-free' class='heading'>Why is Scyther free?</h3>
@@ -343,11 +368,10 @@
           </section>
         </section>
         <section id="footer">
-          <p>&copy; 2021 <a class="link" href="" target="_blank" rel="external"></a>. All rights reserved. (Last updated: 2021-05-16)</p>
-          <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external">jazzy ♪♫ v0.13.6</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external">Realm</a> project.</p>
+          <p>&copy; 2022 <a class="link" href="https://github.com/bstillitano/Scyther" target="_blank" rel="external noopener">Brandon Stillitano</a>. All rights reserved. (Last updated: 2022-01-02)</p>
+          <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.1</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
         </section>
       </article>
     </div>
   </body>
-</div>
 </html>
