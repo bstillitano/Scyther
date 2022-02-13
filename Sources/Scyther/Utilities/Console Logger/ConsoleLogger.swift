@@ -85,7 +85,6 @@ extension ConsoleLogger {
             try? FileManager.default.createDirectory(at: Self.logDirectory, withIntermediateDirectories: true, attributes: nil)
         }
         guard FileManager.default.createFile(atPath: logFile.path, contents: nil, attributes: nil) else {
-            assertionFailure("Unable to create the log file")
             return nil
         }
         try? (logFile as NSURL).setResourceValue(URLFileProtection.completeUnlessOpen, forKey: .fileProtectionKey)
@@ -148,7 +147,7 @@ internal extension ConsoleLogger {
 
     private func log(message: String, file: String = #file, function: String = #function, line: UInt = #line) {
         guard logFileHandle != nil else {
-            return assertionFailure("Trying to log while we don't currently have a file handle")
+            return
         }
         processingQueue.async { [weak self] in
             let date = Self.formatter.string(from: Date())
@@ -160,7 +159,7 @@ internal extension ConsoleLogger {
 
     func log(_ message: ConsoleLog) {
         guard logFileHandle != nil else {
-            return assertionFailure("Trying to log while we don't currently have a file handle")
+            return
         }
         providerQueue.async { [weak self] in
             self?.log(message.formattedMessage)
@@ -172,7 +171,7 @@ internal extension ConsoleLogger {
         guard let data = output.data(using: .utf8),
             let fileHandle = logFileHandle,
             availableDiskSace > minmumRequiredDiskSpace else {
-            return assertionFailure("Missing file handle or invalid input attepted to be logged")
+            return
         }
 
         // Write `output` to file
@@ -196,14 +195,14 @@ internal extension ConsoleLogger {
         do {
             logFileData = try Data(contentsOf: logFile, options: .mappedIfSafe)
         } catch {
-            return assertionFailure("Reading the current log file was unsuccessful, Error: \(error)")
+            return
         }
 
         // Ensure data is valid amd ready for processing
         guard var data = logFileData,
             data.isEmpty == false,
             let newLine = "\n".data(using: .utf8) else {
-            return assertionFailure("Trimming the current log file was unsuccessful")
+            return
         }
 
         // Get log size down to a managable size
@@ -217,7 +216,7 @@ internal extension ConsoleLogger {
 
         // Write data to log
         guard (try? data.write(to: logFile, options: .atomic)) != nil else {
-            return assertionFailure("Failed to write trimmed log to target file location: \(logFile)")
+            return
         }
     }
 }

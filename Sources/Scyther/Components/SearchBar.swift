@@ -22,6 +22,8 @@ class SearchBar: UIView {
     // MARK: - UI Elements
     private lazy var textField: UITextField = {
         let value: UITextField = UITextField()
+        value.delegate = self
+        value.returnKeyType = .search
         value.placeholder = placeholder
         value.borderStyle = .roundedRect
         value.translatesAutoresizingMaskIntoConstraints = false
@@ -221,11 +223,16 @@ extension SearchBar {
     }
 }
 
-// MARK: - Helper Functions
-extension SearchBar {
+// MARK: - UITextFieldDelegate
+extension SearchBar: UITextFieldDelegate {
     @objc
     func textFieldDidChange(_ textField: UITextField) {
         ranges = dataSource?.searchableString?.ranges(of: textField.text ?? "")
         selectedRange = ranges?.first
+    }
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
     }
 }
