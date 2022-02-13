@@ -64,7 +64,7 @@ internal class ConsoleLoggerViewController: UIViewController {
         return value
     }()
 
-// MARK: - Data
+    // MARK: - Data
     private var fileHandle: FileHandle!
     private var automaticallyScrollsToBottom: Bool = true {
         didSet {
@@ -84,10 +84,10 @@ internal class ConsoleLoggerViewController: UIViewController {
         }
     }
 
-// MARK: - Constraints
+    // MARK: - Constraints
     private var subviewConstraints: [NSLayoutConstraint] = []
 
-// MARK: Lifecycle
+    // MARK: Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Console Logger"
