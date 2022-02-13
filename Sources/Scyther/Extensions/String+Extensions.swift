@@ -31,18 +31,6 @@ public extension String {
         return newValue
     }
 
-    /**
-     The current app version for the running application.
-     */
-    static var appVersion: String? {
-        return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-    }
-
-    /// The current build number for the running application.
-    static var buildNumber: String? {
-        return Bundle.main.infoDictionary?["CFBundleVersion"] as? String
-    }
-
     /// Parses this string into a dicrionary of values
     var dictionaryRepresentation: [String: Any]? {
         if let data = self.data(using: .utf8) {
@@ -54,5 +42,13 @@ public extension String {
             }
         }
         return nil
+    }
+    
+    internal func ranges(of substring: String, options: CompareOptions = [], locale: Locale? = nil) -> [Range<Index>] {
+        var ranges: [Range<Index>] = []
+        while let range = range(of: substring, options: options, range: (ranges.last?.upperBound ?? self.startIndex)..<self.endIndex, locale: locale) {
+            ranges.append(range)
+        }
+        return ranges
     }
 }

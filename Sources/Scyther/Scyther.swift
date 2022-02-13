@@ -83,7 +83,7 @@ public class Scyther {
         }
         
         /// Starts the console logger and allows it intercept `stderr` output from `NSLog`
-//        ConsoleLogger.instance.start()
+        ConsoleLogger.instance.start()
         
         /// Sets up the interface toolkit plugins
         InterfaceToolkit.instance.start()

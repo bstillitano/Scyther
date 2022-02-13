@@ -10,14 +10,16 @@ import UIKit
 
 /// `AppEnvironment` is a handy utility for determining the environment that the library is being run from. Beyond providing Scyther functionality, clients implementing Scyther may also find it useful.
 public struct AppEnvironment {
-    /**
-     Indicates whether the `appStoreReceiptURL` at `Bundle.main.appStoreReceiptURL` is a sandbox receipt.
-     */
-    public static let isTestFlight = Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt" && !AppEnvironment.isDebug
+    /// Indicates whether the `appStoreReceiptURL` at `Bundle.main.appStoreReceiptURL` is a sandbox receipt.
+    public static var isTestFlight: Bool{
+        return Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt" && !AppEnvironment.isDebug
+    }
 
-    /**
-     Returns a `Bool` value indicating whether or not `#if DEBUG` is true for the current build.
-     */
+    /// Returns a `Bool` value indicating whether or not the current process is being run as part of a test case
+    public static var isTestCase: Bool {
+        return ProcessInfo.processInfo.isRunningInTestEnvironment
+    }
+    /// Returns a `Bool` value indicating whether or not `#if DEBUG` is true for the current build.
     public static var isDebug: Bool {
         #if DEBUG
             return true
@@ -26,9 +28,7 @@ public struct AppEnvironment {
         #endif
     }
     
-    /**
-     Returns a `Bool` value indicating whether or not the current build is being run via the iOS Simulator.
-    */
+    /// Returns a `Bool` value indicating whether or not the current build is being run via the iOS Simulator.
     public static var isSimulator: Bool {
         #if targetEnvironment(simulator)
             return true
@@ -37,23 +37,17 @@ public struct AppEnvironment {
         #endif
     }
 
-    /**
-     Returns a `Bool` value indicating whether or not the current build is being run via XCode or TestFlight.
-    */
+    /// Returns a `Bool` value indicating whether or not the current build is being run via XCode or TestFlight.
     public static var isDevelopment: Bool {
         return isTestFlight || isSimulator || isDebug
     }
 
-    /**
-     Returns a `Bool` value indicating whether or not the current build is being run via an App Store installation.
-    */
+    /// Returns a `Bool` value indicating whether or not the current build is being run via an App Store installation.
     public static var isAppStore: Bool {
         return !isDevelopment
     }
 
-    /**
-     Returns a `BuildType` value representing the current build environment.
-     */
+    /// Returns a `BuildType` value representing the current build environment.
     public static func configuration(testValue: BuildType? = nil) -> BuildType {
         if isTestFlight || testValue == .testFlight {
             return .testFlight
@@ -64,11 +58,7 @@ public struct AppEnvironment {
         }
     }
     
-    /**
-     Returns a `Bool` value indicating whether or not the current device is jailbroken by determining whether
-     or not `Cydia` or `Sileo` is installed. It also checks for multiple other red flags that would indicate
-     root/ssh access on the device. These checks will not apply if the device is a simulator.
-    */
+    /// Returns a `Bool` value indicating whether or not the current device is jailbroken by determining whether or not `Cydia` or `Sileo` is installed. It also checks for multiple other red flags that would indicate  root/ssh access on the device. These checks will not apply if the device is a simulator.
     public static var isJailbroken: Bool {
         // Check if the device is not a simulator
         guard !AppEnvironment.isSimulator else {
@@ -146,9 +136,7 @@ extension AppEnvironment {
     }
 }
 
-/**
-Enum class used for strongly tpying the current build environment. Conditions must be listed here to be used as conditions on the AppConfig object.
-*/
+/// Enum class used for strongly tpying the current build environment. Conditions must be listed here to be used as conditions on the AppConfig object.
 public enum BuildType: String {
     /**
     Indicates that the current build is being run in debug mode. This means that the build was installed via Xcode and is connected to a debugger.
