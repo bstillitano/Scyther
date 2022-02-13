@@ -169,24 +169,24 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
 
     }
 
-    fileprivate func prettyOutput(_ rawData: Data, contentType: String? = nil) -> NSString {
+    fileprivate func prettyOutput(_ rawData: Data, contentType: String? = nil) -> String {
         if let contentType = contentType {
             let shortType = getShortTypeFrom(contentType)
             if let output = prettyPrint(rawData, type: shortType) {
-                return output as NSString
+                return output
             }
         }
-        return NSString(data: rawData, encoding: String.Encoding.utf8.rawValue) ?? ""
+        return String(decoding: rawData, as: UTF8.self)
     }
 
-    @objc public func getRequestBody() -> NSString {
+    @objc public func getRequestBody() -> String {
         guard let data = readRawData(getRequestBodyFilepath()) else {
             return ""
         }
         return prettyOutput(data, contentType: requestType)
     }
 
-    @objc public func getResponseBody() -> NSString {
+    @objc public func getResponseBody() -> String {
         guard let data = readRawData(getResponseBodyFilepath()) else {
             return ""
         }
@@ -279,13 +279,13 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
         return .OTHER
     }
 
-    public func prettyPrint(_ rawData: Data, type: HTTPModelShortType) -> NSString? {
+    public func prettyPrint(_ rawData: Data, type: HTTPModelShortType) -> String? {
         switch type {
         case .JSON:
             do {
-                let rawJsonData = try JSONSerialization.jsonObject(with: rawData, options: [])
-                let prettyPrintedString = try JSONSerialization.data(withJSONObject: rawJsonData, options: [.prettyPrinted])
-                return NSString(data: prettyPrintedString, encoding: String.Encoding.utf8.rawValue)
+                let json = try JSONSerialization.jsonObject(with: rawData, options: [.mutableContainers])
+                let jsonData = try JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted])
+                return String(decoding: jsonData, as: UTF8.self)
             } catch {
                 return nil
             }

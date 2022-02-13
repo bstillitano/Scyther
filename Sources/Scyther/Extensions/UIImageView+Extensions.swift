@@ -18,9 +18,9 @@ extension UIImageView {
         - completion: called with true if ether the loaded or the defaultImage is set, false if no image is set.
      */
     func loadImage(fromURL url: URL, completion: ((Bool) -> Void)? = nil) {
-        DispatchQueue.global().async { [weak self] in
+        DispatchQueue.global().async {
             if let data = try? Data(contentsOf: url), let image =  UIImage(data: data) {
-                DispatchQueue.main.async {
+                Task { @MainActor [weak self] in
                     self?.image = image
                     completion?(true)
                 }

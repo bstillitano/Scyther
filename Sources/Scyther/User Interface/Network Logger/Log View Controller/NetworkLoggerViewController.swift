@@ -82,7 +82,7 @@ internal class NetworkLoggerViewController: UIViewController {
     
     @objc
     private func prepareObjects() {
-        DispatchQueue.main.async { [weak self] in
+        Task { @MainActor [weak self] in
             let searchText = self?.searchController?.searchBar.text
             self?.viewModel.prepareObjects(filteredOn: searchText)
         }
@@ -171,8 +171,8 @@ extension NetworkLoggerViewController: UITableViewDelegate {
 
 extension NetworkLoggerViewController: NetworkLoggerViewModelProtocol {
     func viewModelShouldReloadData() {
-        DispatchQueue.main.async {
-            self.tableView.reloadData()
+        Task { @MainActor [weak self] in
+            self?.tableView.reloadData()
         }
     }
     

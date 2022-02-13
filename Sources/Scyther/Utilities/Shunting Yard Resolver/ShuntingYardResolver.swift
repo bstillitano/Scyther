@@ -302,7 +302,7 @@ public class ShuntingYardResolver {
             guard let rhs: Float = Float(rhs) else {
                 return false
             }
-            guard let lhs: Float = Float(String.appVersion ?? "") else {
+            guard let lhs: Float = Float(UIApplication.shared.appVersion ?? "") else {
                 return false
             }
             return self.compare(lhs: lhs, rhs: rhs, operation: operation)
@@ -311,7 +311,7 @@ public class ShuntingYardResolver {
             guard let rhs: Int = Int(rhs) else {
                 return false
             }
-            guard let lhs: Int = Int(String.buildNumber ?? "") else {
+            guard let lhs: Int = Int(UIApplication.shared.buildNumber ?? "") else {
                 return false
             }
             return self.compare(lhs: lhs, rhs: rhs, operation: operation)
@@ -515,10 +515,10 @@ public class ShuntingYardResolver {
     public func valueFor(condition: Condition) -> String? {
         switch condition {
         case .appVersion:
-            return String.appVersion
+            return UIApplication.shared.appVersion
 
         case .buildNumber:
-            return String.buildNumber
+            return UIApplication.shared.buildNumber
 
         case .deviceModel:
             return UIDevice.current.modelName
