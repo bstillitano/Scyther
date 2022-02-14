@@ -376,7 +376,6 @@ extension ConsoleLoggerViewController: SearchBarDataSource {
     }
 }
 
-
 // MARK: - SearchBarDelegate
 extension ConsoleLoggerViewController: SearchBarDelegate {
     func searchBar(_ searchBar: SearchBar?, didFindRanges ranges: [Range<String.Index>]?) {
