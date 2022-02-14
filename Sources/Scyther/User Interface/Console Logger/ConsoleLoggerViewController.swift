@@ -218,6 +218,7 @@ extension ConsoleLoggerViewController {
             }
             queuedValues.removeAll()
             self?.textView.text.append(text)
+            self?.textView.text = self?.textView.text.suffix(10000)
             guard let endIndex: String.Index = self?.textView.text.endIndex else {
                 return
             }
