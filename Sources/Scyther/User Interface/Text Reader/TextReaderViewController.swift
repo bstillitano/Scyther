@@ -65,7 +65,8 @@ class TextReaderViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        view.backgroundColor = .systemBackground
+        
         /// Setup interface
         setupUI()
         setupNavigationBar()
