@@ -23,7 +23,6 @@ class TextReaderViewController: UIViewController {
         value.isSelectable = true
         value.isEditable = false
         value.textColor = .green
-        value.backgroundColor = .clear
         value.font = UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)
         value.translatesAutoresizingMaskIntoConstraints = false
         return value
