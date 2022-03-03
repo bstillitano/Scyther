@@ -189,11 +189,6 @@ internal class MenuViewModel {
         /// Setup Support Section
         var systemSection: Section = Section()
         systemSection.title = "System Tools"
-        systemSection.rows.append(actionRow(name: "Console Logs",
-                                             icon: UIImage(systemImage: "terminal"),
-                                             actionBlock: { [weak self] in
-                                                 self?.delegate?.viewModel(viewModel: self, shouldShowViewController: ConsoleLoggerViewController())
-                                             }))
         systemSection.rows.append(actionRow(name: "Location Spoofer",
                                              icon: UIImage(systemImage: "location.circle"),
                                              actionBlock: { [weak self] in
