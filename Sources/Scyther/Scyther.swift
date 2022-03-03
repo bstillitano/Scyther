@@ -44,9 +44,6 @@ public class Scyther {
     /// `Logger` utility class. Used for local network logging.
     public static let logger: Logger = Logger.instance
     
-    /// `ConsoleLogger` utility class. Used for intercepting local console output.
-    public static let consoleLogger: ConsoleLogger = ConsoleLogger.instance
-    
     /// `NotificationTester` utility class. Used for testing push notification functionality.
     public static let notificationTester: NotificationTester = NotificationTester.instance
     
@@ -81,9 +78,6 @@ public class Scyther {
         Logger.getIPAddress { (ipAddress) in
             Logger.instance.ipAddress = ipAddress
         }
-        
-        /// Starts the console logger and allows it intercept `stderr` output from `NSLog`
-        ConsoleLogger.instance.start()
         
         /// Sets up the interface toolkit plugins
         InterfaceToolkit.instance.start()
