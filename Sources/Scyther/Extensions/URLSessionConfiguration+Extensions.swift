@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Non-Swizzling Constants
 public extension String {
     /// Constant string value used to tell Scyther that a given URLSessionConfiguration should not be swizzled. Useful for webhooks as injecting a class protocol will mean a webhook can't connect. Any URLSessionConfiguration that has an identifier that contains this string, will not be swizzled. E.g. "do_not_swizzle_ABC123"  & "ABC123_do_not_swizzle" will not be swizzled.
-    var noSwizzle: String {
+    static var noSwizzle: String {
         return "do_not_swizzle"
     }
 }
