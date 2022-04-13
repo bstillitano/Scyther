@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Brandon Stillitano on 1/1/21.
 //
@@ -32,7 +32,7 @@ internal extension URLSessionConfiguration {
         let defaultSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(getter: URLSessionConfiguration.default))
         let swizzledDefaultSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(URLSessionConfiguration.swizzledDefaultSessionConfiguration))
         method_exchangeImplementations(defaultSessionConfiguration!, swizzledDefaultSessionConfiguration!)
-        
+
         let defaultWithIdentifierSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(URLSessionConfiguration.default(withIdentifier:)))
         let swizzledDefaultWithIdentifierSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(URLSessionConfiguration.swizzledDefault(withIdentifier:)))
         method_exchangeImplementations(defaultWithIdentifierSessionConfiguration!, swizzledDefaultWithIdentifierSessionConfiguration!)
@@ -56,11 +56,11 @@ internal extension URLSessionConfiguration {
         Logger.enable(true, sessionConfiguration: configuration)
         return configuration
     }
-    
+
     @objc
     class func swizzledDefault(withIdentifier identifier: String) -> URLSessionConfiguration {
         let configuration = swizzledDefault(withIdentifier: identifier)
-        Logger.enable(!(configuration.sharedContainerIdentifier?.contains(identifier) ?? false), sessionConfiguration: configuration)
+        Logger.enable(!(configuration.sharedContainerIdentifier?.contains(String.noSwizzle) ?? false), sessionConfiguration: configuration)
         return configuration
     }
 
@@ -74,7 +74,7 @@ internal extension URLSessionConfiguration {
     @objc
     class func swizzledBackground(withIdentifier identifier: String) -> URLSessionConfiguration {
         let configuration = swizzledBackground(withIdentifier: identifier)
-        Logger.enable(!(configuration.sharedContainerIdentifier?.contains(identifier) ?? false), sessionConfiguration: configuration)
+        Logger.enable(!(configuration.identifier?.contains(String.noSwizzle) ?? false), sessionConfiguration: configuration)
         return configuration
     }
 
