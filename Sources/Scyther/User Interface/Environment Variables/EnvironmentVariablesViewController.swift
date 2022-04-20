@@ -1,16 +1,17 @@
 //
-//  LogDetailsViewController.swift
+//  File.swift
 //  
 //
-//  Created by Brandon Stillitano on 27/12/20.
+//  Created by Brandon Stillitano on 14/4/2022.
 //
 
+#if !os(macOS)
 import UIKit
 
-internal class LogDetailsViewController: UIViewController {
+internal class EnvironmentVariablesViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
-    private var viewModel: LogDetailsViewModel = LogDetailsViewModel()
+    private var viewModel: EnvironmentVariablesViewModel = EnvironmentVariablesViewModel()
     
     // MARK: - Constraints
     var tableViewConstraints: [NSLayoutConstraint] = []
@@ -22,11 +23,6 @@ internal class LogDetailsViewController: UIViewController {
         setupUI()
         setupConstraints()
         setupData()
-    }
-    
-    convenience init(httpModel: LoggerHTTPModel) {
-        self.init(nibName: nil, bundle: nil)
-        self.viewModel.httpModel = httpModel
     }
 
     required init?(coder: NSCoder) {
@@ -43,10 +39,10 @@ internal class LogDetailsViewController: UIViewController {
 
         //Register Table View Cells
         tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
-        tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
         tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
+        tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
     }
-    
+
     private func setupConstraints() {
         // Clear Existing Constraints
         NSLayoutConstraint.deactivate(tableViewConstraints)
@@ -72,13 +68,19 @@ internal class LogDetailsViewController: UIViewController {
     
     private func setupData() {
         self.viewModel.delegate = self
+        self.viewModel.prepareObjects()
 
         title = viewModel.title
         navigationItem.title = viewModel.title
     }
+
+    // MARK: - Lifecycle
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+    }
 }
 
-extension LogDetailsViewController: UITableViewDataSource {
+extension EnvironmentVariablesViewController: UITableViewDataSource {
 
     func numberOfSections(in tableView: UITableView) -> Int {
         return viewModel.numberOfSections
@@ -104,14 +106,24 @@ extension LogDetailsViewController: UITableViewDataSource {
         cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
         cell.accessoryView = row.accessoryView
-        cell.accessoryType = row.accessoryType ?? .none
-        cell.detailTextLabel?.adjustsFontSizeToFitWidth = false
+
+        // Setup Accessory
+        switch row.style {
+        case .checkmarkAccessory:
+            guard let checkRow: CheckmarkRow = row as? CheckmarkRow else {
+                break
+            }
+            cell.accessoryType = checkRow.checked ? .checkmark : .none
+        default:
+            break
+        }
 
         return cell
     }
+
 }
 
-extension LogDetailsViewController: UITableViewDelegate {
+extension EnvironmentVariablesViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         // Deselect Cell
         defer { tableView.deselectRow(at: indexPath, animated: true) }
@@ -122,37 +134,11 @@ extension LogDetailsViewController: UITableViewDelegate {
         }
         row.actionBlock?()
     }
-    
-    func tableView(_ tableView: UITableView, shouldShowMenuForRowAt indexPath: IndexPath) -> Bool {
-        guard let row = viewModel.row(at: indexPath) else { return false }
-        return row.style != .button
-    }
-
-    func tableView(_ tableView: UITableView, canPerformAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) -> Bool {
-        return (action == #selector(copy(_:)))
-    }
-
-    func tableView(_ tableView: UITableView, performAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) {
-        if action == #selector(copy(_:)) {
-            guard let cell = tableView.cellForRow(at: indexPath), let key = cell.textLabel?.text else { return }
-            UIPasteboard.general.string = "\(key): \(cell.detailTextLabel?.text ?? "")"
-        }
-    }
 }
 
-extension LogDetailsViewController: LogDetailsViewModelProtocol {
+extension EnvironmentVariablesViewController: EnvironmentVariablesViewModelProtocol {
     func viewModelShouldReloadData() {
         self.tableView.reloadData()
     }
-    
-    func viewModel(viewModel: LogDetailsViewModel?, shouldShowViewController viewController: UIViewController?) {
-        guard let viewController = viewController else {
-            return
-        }
-        guard viewController.isKind(of: UIActivityViewController.self) else {
-            self.navigationController?.pushViewController(viewController, animated: true)
-            return
-        }
-        self.present(viewController, animated: true)
-    }
 }
+#endif

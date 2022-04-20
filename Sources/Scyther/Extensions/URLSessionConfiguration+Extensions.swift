@@ -18,7 +18,7 @@ public extension String {
 // MARK: - Custom Init
 public extension URLSessionConfiguration {
     @objc class func `default`(withIdentifier identifier: String) -> URLSessionConfiguration {
-        var configuration: URLSessionConfiguration = .default
+        let configuration: URLSessionConfiguration = .default
         configuration.sharedContainerIdentifier = identifier
         return configuration
     }

@@ -12,6 +12,9 @@ internal class CookieDetailsViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
     private var viewModel: CookieDetailsViewModel = CookieDetailsViewModel()
+    
+    // MARK: - Constraints
+    var tableViewConstraints: [NSLayoutConstraint] = []
 
     // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -37,6 +40,7 @@ internal class CookieDetailsViewController: UIViewController {
     // MARK: - Setup
     private func setupUI() {
         //Setup Table View
+        tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.delegate = self
         tableView.dataSource = self
         view.addSubview(tableView)
@@ -47,11 +51,28 @@ internal class CookieDetailsViewController: UIViewController {
         tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
         tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
     }
-
+    
     private func setupConstraints() {
-        tableView.snp.makeConstraints { (make) in
-            make.edges.equalToSuperview()
-        }
+        // Clear Existing Constraints
+        NSLayoutConstraint.deactivate(tableViewConstraints)
+        tableViewConstraints.removeAll()
+
+        // Setup Table View Constraints
+        tableViewConstraints.append(tableView
+            .topAnchor
+            .constraint(equalTo: view.topAnchor))
+        tableViewConstraints.append(tableView
+            .leadingAnchor
+            .constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor))
+        tableViewConstraints.append(tableView
+            .bottomAnchor
+            .constraint(equalTo: view.bottomAnchor))
+        tableViewConstraints.append(tableView
+            .trailingAnchor
+            .constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor))
+
+        // Activate Constraints
+        NSLayoutConstraint.activate(tableViewConstraints)
     }
     
     private func setupData() {

@@ -13,6 +13,9 @@ internal class NetworkLoggerViewController: UIViewController {
     private let tableView = UITableView(frame: .zero, style: .plain)
     private var searchController: UISearchController?
     
+    // MARK: - Constraints
+    var tableViewConstraints: [NSLayoutConstraint] = []
+    
     // MARK: - Data
     private var viewModel: NetworkLoggerViewModel = NetworkLoggerViewModel()
 
@@ -43,6 +46,7 @@ internal class NetworkLoggerViewController: UIViewController {
     // MARK: - Setup
     private func setupUI() {
         /// Setup Table View
+        tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.delegate = self
         tableView.dataSource = self
         tableView.tableFooterView = UIView()
@@ -65,11 +69,28 @@ internal class NetworkLoggerViewController: UIViewController {
         /// Setup Close button
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: #selector(clearLogs))
     }
-
+    
     private func setupConstraints() {
-        tableView.snp.makeConstraints { (make) in
-            make.edges.equalToSuperview()
-        }
+        // Clear Existing Constraints
+        NSLayoutConstraint.deactivate(tableViewConstraints)
+        tableViewConstraints.removeAll()
+
+        // Setup Table View Constraints
+        tableViewConstraints.append(tableView
+            .topAnchor
+            .constraint(equalTo: view.topAnchor))
+        tableViewConstraints.append(tableView
+            .leadingAnchor
+            .constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor))
+        tableViewConstraints.append(tableView
+            .bottomAnchor
+            .constraint(equalTo: view.bottomAnchor))
+        tableViewConstraints.append(tableView
+            .trailingAnchor
+            .constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor))
+
+        // Activate Constraints
+        NSLayoutConstraint.activate(tableViewConstraints)
     }
 
     private func setupData() {

@@ -12,6 +12,9 @@ internal class NotificationTesterViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
     private var viewModel: NotitifcationTesterViewModel = NotitifcationTesterViewModel()
+    
+    // MARK: - Constraints
+    var tableViewConstraints: [NSLayoutConstraint] = []
 
     // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -29,6 +32,7 @@ internal class NotificationTesterViewController: UIViewController {
     // MARK: - Setup
     private func setupUI() {
         //Setup Table View
+        tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.delegate = self
         tableView.dataSource = self
         view.addSubview(tableView)
@@ -40,15 +44,26 @@ internal class NotificationTesterViewController: UIViewController {
     }
 
     private func setupConstraints() {
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:|-0-[subview]-0-|",
-                                                           options: .directionLeadingToTrailing,
-                                                           metrics: nil,
-                                                           views: ["subview": tableView]))
-        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|-0-[subview]-0-|",
-                                                           options: .directionLeadingToTrailing,
-                                                           metrics: nil,
-                                                           views: ["subview": tableView]))
+        // Clear Existing Constraints
+        NSLayoutConstraint.deactivate(tableViewConstraints)
+        tableViewConstraints.removeAll()
+
+        // Setup Table View Constraints
+        tableViewConstraints.append(tableView
+            .topAnchor
+            .constraint(equalTo: view.topAnchor))
+        tableViewConstraints.append(tableView
+            .leadingAnchor
+            .constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor))
+        tableViewConstraints.append(tableView
+            .bottomAnchor
+            .constraint(equalTo: view.bottomAnchor))
+        tableViewConstraints.append(tableView
+            .trailingAnchor
+            .constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor))
+
+        // Activate Constraints
+        NSLayoutConstraint.activate(tableViewConstraints)
     }
     
     private func setupData() {
@@ -62,10 +77,6 @@ internal class NotificationTesterViewController: UIViewController {
     // MARK: - Lifecycle
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-
-        UIView.setAnimationsEnabled(false)
-        UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
-        UIView.setAnimationsEnabled(true)
     }
 }
 
@@ -117,7 +128,14 @@ extension NotificationTesterViewController: UITableViewDelegate {
 
 extension NotificationTesterViewController: NotitificationTesterProtocol {
     func viewModelShouldReloadData() {
-        self.tableView.reloadData()
+        Task { @MainActor in
+            UIView.transition(with: self.tableView,
+                              duration: 0.35,
+                              options: .transitionCrossDissolve,
+                              animations: {
+                                    self.tableView.reloadData()
+            })
+        }
     }
 }
 #endif

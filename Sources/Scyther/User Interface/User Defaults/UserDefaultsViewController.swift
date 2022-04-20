@@ -1,17 +1,19 @@
 //
 //  UserDefaultsViewController.swift
-//  
+//
 //
 //  Created by Brandon Stillitano on 18/12/20.
 //
 
-#if !os(macOS)
 import UIKit
 
 internal class UserDefaultsViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
     private var viewModel: UserDefaultsViewModel = UserDefaultsViewModel()
+
+    // MARK: - Constraints
+    var tableViewConstraints: [NSLayoutConstraint] = []
 
     // MARK: - Init
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -29,6 +31,7 @@ internal class UserDefaultsViewController: UIViewController {
     // MARK: - Setup
     private func setupUI() {
         //Setup Table View
+        tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.delegate = self
         tableView.dataSource = self
         view.addSubview(tableView)
@@ -36,18 +39,6 @@ internal class UserDefaultsViewController: UIViewController {
         //Register Table View Cells
         tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
         tableView.register(CheckmarkCell.self, forCellReuseIdentifier: RowStyle.checkmarkAccessory.rawValue)
-    }
-
-    private func setupConstraints() {
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:|-0-[subview]-0-|",
-                                                           options: .directionLeadingToTrailing,
-                                                           metrics: nil,
-                                                           views: ["subview": tableView]))
-        view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|-0-[subview]-0-|",
-                                                           options: .directionLeadingToTrailing,
-                                                           metrics: nil,
-                                                           views: ["subview": tableView]))
     }
     
     private func setupData() {
@@ -58,13 +49,27 @@ internal class UserDefaultsViewController: UIViewController {
         navigationItem.title = viewModel.title
     }
 
-    // MARK: - Lifecycle
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
+    private func setupConstraints() {
+        // Clear Existing Constraints
+        NSLayoutConstraint.deactivate(tableViewConstraints)
+        tableViewConstraints.removeAll()
 
-        UIView.setAnimationsEnabled(false)
-        UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
-        UIView.setAnimationsEnabled(true)
+        // Setup Table View Constraints
+        tableViewConstraints.append(tableView
+            .topAnchor
+            .constraint(equalTo: view.topAnchor))
+        tableViewConstraints.append(tableView
+            .leadingAnchor
+            .constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor))
+        tableViewConstraints.append(tableView
+            .bottomAnchor
+            .constraint(equalTo: view.bottomAnchor))
+        tableViewConstraints.append(tableView
+            .trailingAnchor
+            .constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor))
+
+        // Activate Constraints
+        NSLayoutConstraint.activate(tableViewConstraints)
     }
 }
 
@@ -122,7 +127,7 @@ extension UserDefaultsViewController: UITableViewDelegate {
         }
         row.actionBlock?()
     }
-    
+
     func tableView(_ tableView: UITableView, shouldShowMenuForRowAt indexPath: IndexPath) -> Bool {
         guard let row = viewModel.row(at: indexPath) else { return false }
         return row.style != .button
@@ -145,4 +150,3 @@ extension UserDefaultsViewController: UserDefaultsViewModelProtocol {
         self.tableView.reloadData()
     }
 }
-#endif

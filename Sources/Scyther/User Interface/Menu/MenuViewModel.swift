@@ -100,10 +100,10 @@ internal class MenuViewModel {
     }
 
     func prepareObjects() {
-        //Clear Data
+        // Clear Data
         sections.removeAll()
 
-        //Setup Device Section
+        // Setup Device Section
         var deviceSection: Section = Section()
         deviceSection.title = "Device"
         deviceSection.rows.append(headerRow(name: UIDevice.current.name,
@@ -119,7 +119,7 @@ internal class MenuViewModel {
                                            value: UIDevice.current.identifierForVendor?.uuidString,
                                            icon: nil,
                                            showMenu: true))
-        //Setup Application Section
+        // Setup Application Section
         var applicationSection: Section = Section()
         applicationSection.title = "Application"
         applicationSection.rows.append(valueRow(name: "Bundle Identifier",
@@ -141,7 +141,7 @@ internal class MenuViewModel {
                                                 value: Bundle.main.buildDate.formatted(),
                                                 icon: nil))
 
-        /// Setup Networking Section
+        // Setup Networking Section
         var networkSection: Section = Section()
         networkSection.title = "Networking"
         networkSection.rows.append(valueRow(name: "IP Address",
@@ -157,8 +157,13 @@ internal class MenuViewModel {
                                              actionBlock: { [weak self] in
                                                  self?.delegate?.viewModel(viewModel: self, shouldShowViewController: ServerConfigurationViewController())
                                              }))
+//        networkSection.rows.append(actionRow(name: "Environment Variables",
+//                                             icon: UIImage(systemImage: "x.squareroot"),
+//                                             actionBlock: { [weak self] in
+//                                                 self?.delegate?.viewModel(viewModel: self, shouldShowViewController: EnvironmentVariablesViewController())
+//                                             }))
 
-        /// Setup Environment Section
+        // Setup Environment Section
         var environmentSection: Section = Section()
         environmentSection.title = "Data"
         environmentSection.rows.append(actionRow(name: "Feature Flags",
@@ -177,7 +182,7 @@ internal class MenuViewModel {
                                                      self?.delegate?.viewModel(viewModel: self, shouldShowViewController: CookieBrowserViewController())
                                                  }))
 
-        /// Setup Security Section
+        // Setup Security Section
         var securitySection: Section = Section()
         securitySection.title = "Security"
         securitySection.rows.append(actionRow(name: "Keychain Browser",
@@ -186,7 +191,7 @@ internal class MenuViewModel {
                                                   self?.delegate?.viewModel(viewModel: self, shouldShowViewController: DataBrowserViewController(data: KeychainBrowser.keychainItems))
                                               }))
 
-        /// Setup Support Section
+        // Setup Support Section
         var systemSection: Section = Section()
         systemSection.title = "System Tools"
         systemSection.rows.append(actionRow(name: "Location Spoofer",
@@ -196,7 +201,7 @@ internal class MenuViewModel {
                                              }))
         systemSection.rows.append(emptyRow(text: "More coming soon"))
 
-        /// Setup Notifications Section
+        // Setup Notifications Section
         var notificationsSection: Section = Section()
         notificationsSection.title = "Notifications"
         notificationsSection.rows.append(actionRow(name: "Notification Logger",
@@ -218,7 +223,7 @@ internal class MenuViewModel {
                                                   icon: UIImage(systemImage: "flame"),
                                                   showMenu: true))
 
-        /// Setup UI/UX Section
+        // Setup UI/UX Section
         var uiUxSection: Section = Section()
         uiUxSection.title = "UI/UX"
         uiUxSection.rows.append(actionRow(name: "Fonts",
@@ -244,7 +249,7 @@ internal class MenuViewModel {
         uiUxSection.rows.append(viewFramesSwitch)
         uiUxSection.rows.append(slowAnimationsSwitch)
 
-        /// Setup Development Section
+        // Setup Development Section
         var developmentSection: Section = Section()
         developmentSection.title = "Development Tools"
         if Scyther.instance.developerOptions.isEmpty {
@@ -259,7 +264,7 @@ internal class MenuViewModel {
             }
         }
 
-        /// Setup Data
+        // Setup Data
         sections.append(deviceSection)
         sections.append(applicationSection)
         sections.append(networkSection)
@@ -270,7 +275,7 @@ internal class MenuViewModel {
         sections.append(uiUxSection)
         sections.append(developmentSection)
 
-        /// Call Delegate
+        // Call Delegate
         delegate?.viewModelShouldReloadData()
     }
 }

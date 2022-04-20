@@ -5,8 +5,6 @@
 //  Created by Brandon Stillitano on 10/12/20.
 //
 
-#if !os(macOS)
-import SnapKit
 import UIKit
 
 internal class MenuViewController: UIViewController {
@@ -14,16 +12,19 @@ internal class MenuViewController: UIViewController {
     private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
     private var viewModel: MenuViewModel?
 
+    // MARK: - Constraints
+    var tableViewConstraints: [NSLayoutConstraint] = []
+
     // MARK: - Init
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
 
         setupUI()
         setupConstraints()
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
     }
 
     // MARK: - Setup
@@ -46,7 +47,7 @@ internal class MenuViewController: UIViewController {
         } else {
             navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(dismissMenu))
         }
-        
+
         /// Disable interactive dismissal
         if #available(iOS 13.0, *) {
             isModalInPresentation = true
@@ -54,9 +55,26 @@ internal class MenuViewController: UIViewController {
     }
 
     private func setupConstraints() {
-        tableView.snp.makeConstraints { (make) in
-            make.edges.equalToSuperview()
-        }
+        // Clear Existing Constraints
+        NSLayoutConstraint.deactivate(tableViewConstraints)
+        tableViewConstraints.removeAll()
+
+        // Setup Table View Constraints
+        tableViewConstraints.append(tableView
+            .topAnchor
+            .constraint(equalTo: view.topAnchor))
+        tableViewConstraints.append(tableView
+            .leadingAnchor
+            .constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor))
+        tableViewConstraints.append(tableView
+            .bottomAnchor
+            .constraint(equalTo: view.bottomAnchor))
+        tableViewConstraints.append(tableView
+            .trailingAnchor
+            .constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor))
+
+        // Activate Constraints
+        NSLayoutConstraint.activate(tableViewConstraints)
     }
 
     // MARK: - Lifecycle
@@ -140,7 +158,7 @@ extension MenuViewController: UITableViewDelegate {
         }
         viewModel?.performAction(for: row, indexPath: indexPath)
     }
-    
+
     func tableView(_ tableView: UITableView, shouldShowMenuForRowAt indexPath: IndexPath) -> Bool {
         guard let row = viewModel?.row(at: indexPath) else { return false }
         return row.shouldShowMenuForRow ?? false
@@ -170,4 +188,3 @@ extension MenuViewController: MenuViewModelProtocol {
         self.navigationController?.pushViewController(viewController, animated: true)
     }
 }
-#endif

@@ -27,6 +27,7 @@ internal class NotitifcationTesterViewModel {
     private var pushBody: String = "This is a dummy notification powered by Scyther."
     private var pushPayload: String? = nil
     private var playSound: Bool = true
+    private var delay: Bool = false
     private var repeatNotification: Bool = false
     private var increaseBadge: Bool = true
 
@@ -74,6 +75,27 @@ internal class NotitifcationTesterViewModel {
         switchView.isOn = repeatNotification
         switchView.actionBlock = { [weak self] in
             self?.repeatNotification = switchView.isOn
+            self?.delay = switchView.isOn ? true : self?.delay ?? false
+            self?.prepareObjects()
+        }
+        switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        row.accessoryView = switchView
+
+        return row
+    }
+    
+    /// Switch representing whether the notification that is sent should be delayed by 20 seconds
+    var delaySwitch: SwitchAccessoryRow {
+        //Setup Row
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = "Delay (\(repeatNotification ? "60s" : "10s"))"
+
+        //Setup Accessory
+        let switchView = UIActionSwitch()
+        switchView.isEnabled = !repeatNotification
+        switchView.isOn = delay
+        switchView.actionBlock = { [weak self] in
+            self?.delay = switchView.isOn
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
@@ -140,7 +162,7 @@ internal class NotitifcationTesterViewModel {
             NotificationTester.instance.scheduleNotification(withTitle: self?.pushTitle ?? "",
                                                              withBody: self?.pushBody ?? "",
                                                              withSound: self?.playSound ?? true,
-                                                             withDelay: self?.repeatNotification ?? false ? 60 : 5,
+                                                             withDelay: self?.repeatNotification ?? false ? 60 : self?.delay ?? false ? 10 : 1,
                                                              withRepeat: self?.repeatNotification ?? false,
                                                              andIncreaseBadge: self?.increaseBadge ?? true)
         }
@@ -175,6 +197,7 @@ internal class NotitifcationTesterViewModel {
                                          inputField: .payload))
         sendSection.rows.append(playSoundSwitch)
         sendSection.rows.append(repeatSwitch)
+        sendSection.rows.append(delaySwitch)
         sendSection.rows.append(incrementBadgeSwitch)
         sendSection.rows.append(sendNotifcation)
 
