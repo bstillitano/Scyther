@@ -17,9 +17,9 @@ public extension String {
 
 // MARK: - Custom Init
 public extension URLSessionConfiguration {
-    @objc class func `default`(withIdentifier identifier: String) -> URLSessionConfiguration {
+    @objc class func `default`(withSwizzlingAllowed allowsSwizzling: Bool) -> URLSessionConfiguration {
         let configuration: URLSessionConfiguration = .default
-        configuration.sharedContainerIdentifier = identifier
+        configuration.setValue(!allowsSwizzling, forKey: .noSwizzle)
         return configuration
     }
 }
@@ -33,9 +33,9 @@ internal extension URLSessionConfiguration {
         let swizzledDefaultSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(URLSessionConfiguration.swizzledDefaultSessionConfiguration))
         method_exchangeImplementations(defaultSessionConfiguration!, swizzledDefaultSessionConfiguration!)
 
-        let defaultWithIdentifierSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(URLSessionConfiguration.default(withIdentifier:)))
-        let swizzledDefaultWithIdentifierSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(URLSessionConfiguration.swizzledDefault(withIdentifier:)))
-        method_exchangeImplementations(defaultWithIdentifierSessionConfiguration!, swizzledDefaultWithIdentifierSessionConfiguration!)
+        let defaultWithSwizzlingAllowedSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(URLSessionConfiguration.default(withSwizzlingAllowed:)))
+        let swizzledDefaultWithSwizzlingAllowedSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(URLSessionConfiguration.swizzledDefault(withSwizzlingAllowed:)))
+        method_exchangeImplementations(defaultWithSwizzlingAllowedSessionConfiguration!, swizzledDefaultWithSwizzlingAllowedSessionConfiguration!)
 
         let ephemeralSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(getter: URLSessionConfiguration.ephemeral))
         let swizzledEphemeralSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(URLSessionConfiguration.swizzledEphemeralSessionConfiguration))
@@ -58,9 +58,10 @@ internal extension URLSessionConfiguration {
     }
 
     @objc
-    class func swizzledDefault(withIdentifier identifier: String) -> URLSessionConfiguration {
-        let configuration = swizzledDefault(withIdentifier: identifier)
-        Logger.enable(!(configuration.sharedContainerIdentifier?.contains(String.noSwizzle) ?? false), sessionConfiguration: configuration)
+    class func swizzledDefault(withSwizzlingAllowed allowsSwizzling: Bool) -> URLSessionConfiguration {
+        let configuration = swizzledDefault(withSwizzlingAllowed: allowsSwizzling)
+        let shouldSwizzle = (configuration.value(forKey: .noSwizzle) as? Bool) == false
+        Logger.enable(shouldSwizzle, sessionConfiguration: configuration)
         return configuration
     }
 
