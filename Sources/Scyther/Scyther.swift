@@ -53,6 +53,9 @@ public class Scyther {
     /// Developer options that will be displayed on the main menu
     public var developerOptions: [DeveloperOption] = []
     
+    /// Array of custom key/values shown inside the `Environment Variables` screen. This value is up to the developer to maintain the lifecycle of, that is to say, this is a stored property and not a computed one. Provided purely as a convenience
+    public var customEnvironmentVariables: [String: String] = [:]
+    
     /// 64 Character device token registered with APNS. Example: 30eee4d53612de08c61477d4503b23220d76d74efed258230ef3536afd4504f2
     public var apnsToken: String?
     

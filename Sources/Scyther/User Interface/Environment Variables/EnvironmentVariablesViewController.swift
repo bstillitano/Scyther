@@ -41,6 +41,7 @@ internal class EnvironmentVariablesViewController: UIViewController {
         tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
         tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
         tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
+        tableView.register(SubtitleCell.self, forCellReuseIdentifier: RowStyle.subtitle.rawValue)
     }
 
     private func setupConstraints() {
@@ -105,6 +106,12 @@ extension EnvironmentVariablesViewController: UITableViewDataSource {
                                                  for: indexPath)
         cell.textLabel?.text = viewModel.title(for: row, indexPath: indexPath)
         cell.detailTextLabel?.text = row.detailText
+        cell.detailTextLabel?.numberOfLines = 0
+        if #available(iOS 15.0, *) {
+            cell.detailTextLabel?.textColor = .tintColor
+        } else {
+            cell.detailTextLabel?.textColor = .systemFill
+        }
         cell.accessoryView = row.accessoryView
 
         // Setup Accessory
@@ -133,6 +140,22 @@ extension EnvironmentVariablesViewController: UITableViewDelegate {
             return
         }
         row.actionBlock?()
+    }
+    
+    func tableView(_ tableView: UITableView, shouldShowMenuForRowAt indexPath: IndexPath) -> Bool {
+        guard let row = viewModel.row(at: indexPath) else { return false }
+        return row.style != .button
+    }
+
+    func tableView(_ tableView: UITableView, canPerformAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) -> Bool {
+        return (action == #selector(copy(_:)))
+    }
+
+    func tableView(_ tableView: UITableView, performAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) {
+        if action == #selector(copy(_:)) {
+            guard let cell = tableView.cellForRow(at: indexPath), let key = cell.textLabel?.text else { return }
+            UIPasteboard.general.string = "\(key): \(cell.detailTextLabel?.text ?? "")"
+        }
     }
 }
 

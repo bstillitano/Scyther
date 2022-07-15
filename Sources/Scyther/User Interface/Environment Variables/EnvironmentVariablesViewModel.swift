@@ -33,11 +33,10 @@ internal class EnvironmentVariablesViewModel {
     }
 
     /// Single row representing a single environment variable
-    func environmentVariable(name: String, value: String) -> DefaultRow {
-        let row: DefaultRow = DefaultRow()
+    func environmentVariable(name: String, value: String) -> SubtitleRow {
+        let row: SubtitleRow = SubtitleRow()
         row.text = name
         row.detailText = value
-
         return row
     }
     
@@ -46,16 +45,6 @@ internal class EnvironmentVariablesViewModel {
         var row: EmptyRow = EmptyRow()
         row.text = text
 
-        return row
-    }
-    
-    var addVariableButton: ButtonRow {
-        //Setup Row
-        var row: ButtonRow = ButtonRow()
-        row.text = "Add key/value pair"
-        row.actionBlock = {[weak self] in
-            print("TODO")
-        }
         return row
     }
 
@@ -74,9 +63,11 @@ internal class EnvironmentVariablesViewModel {
         // Setup Custom Section
         var variablesSection: Section = Section()
         variablesSection.title = "Custom Key/Values"
-        variablesSection.rows = ConfigurationSwitcher.instance.environmentVariables.map({ environmentVariable(name: $0.key, value: $0.value) })
-        variablesSection.rows.append(addVariableButton)
-
+        variablesSection.rows = Scyther.instance.customEnvironmentVariables.map({ environmentVariable(name: $0.key, value: $0.value) })
+        if variablesSection.rows.isEmpty {
+            variablesSection.rows.append(emptyRow(text: "No variables configured"))
+        }
+        
         //Setup Data
         sections.append(staticSection)
         sections.append(variablesSection)

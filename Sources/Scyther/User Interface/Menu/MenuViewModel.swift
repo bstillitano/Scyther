@@ -157,11 +157,11 @@ internal class MenuViewModel {
                                              actionBlock: { [weak self] in
                                                  self?.delegate?.viewModel(viewModel: self, shouldShowViewController: ServerConfigurationViewController())
                                              }))
-//        networkSection.rows.append(actionRow(name: "Environment Variables",
-//                                             icon: UIImage(systemImage: "x.squareroot"),
-//                                             actionBlock: { [weak self] in
-//                                                 self?.delegate?.viewModel(viewModel: self, shouldShowViewController: EnvironmentVariablesViewController())
-//                                             }))
+        networkSection.rows.append(actionRow(name: "Environment Variables",
+                                             icon: UIImage(systemImage: "x.squareroot"),
+                                             actionBlock: { [weak self] in
+                                                 self?.delegate?.viewModel(viewModel: self, shouldShowViewController: EnvironmentVariablesViewController())
+                                             }))
 
         // Setup Environment Section
         var environmentSection: Section = Section()
