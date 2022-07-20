@@ -25,7 +25,7 @@ internal class NetworkLoggerViewModel {
         let row: NetworkLogRow = NetworkLogRow()
         row.httpMethod = httpModel.requestMethod
         row.httpStatusCode = httpModel.responseStatus
-        row.httpRequestTime = String(format: "%.2fs", httpModel.requestDuration ?? 0)
+        row.httpRequestTime = String(format: "%.0fms", httpModel.requestDuration ?? 0)
         row.httpStatusColor = httpStatusColor(for: httpModel.responseStatus ?? 0)
         row.httpRequestURL = httpModel.requestURL
         row.httpModel = httpModel

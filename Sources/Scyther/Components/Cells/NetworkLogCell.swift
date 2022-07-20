@@ -55,6 +55,7 @@ class NetworkLogCell: UITableViewCell {
         /// Setup `timeLabel`
         timeLabel.textAlignment = .center
         timeLabel.font = .systemFont(ofSize: 11)
+        timeLabel.numberOfLines = 2
         contentView.addSubview(timeLabel)
     }
 

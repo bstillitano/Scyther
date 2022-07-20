@@ -129,7 +129,7 @@ internal class LogDetailsViewModel {
         overviewSection.rows.append(defaultRow(name: "Date",
                                                value: httpModel?.requestDate?.formatted()))
         overviewSection.rows.append(defaultRow(name: "Duration",
-                                               value: String(format: "%.2fs", httpModel?.requestDuration ?? 0)))
+                                               value: String(format: "%.0fms", httpModel?.requestDuration ?? 0)))
 
         /// Setup Request Headers Section
         var requestHeadersSection: Section = Section()

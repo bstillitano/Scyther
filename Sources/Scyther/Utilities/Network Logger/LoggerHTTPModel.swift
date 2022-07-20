@@ -133,7 +133,9 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
             self.shortType = getShortTypeFrom(self.responseType ?? "").rawValue
         }
 
-        self.requestDuration = Float(self.responseDate!.timeIntervalSince(self.requestDate!))
+        if let responseDate = responseDate, let requestDate = requestDate {
+            self.requestDuration = Float(responseDate.timeIntervalSince(requestDate) * 1000)
+        }
 
         saveResponseBodyData(data)
         formattedResponseLogEntry().appendToFile(filePath: LoggerFilePath.SessionLog)
