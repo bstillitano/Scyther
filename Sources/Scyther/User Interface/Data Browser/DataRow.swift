@@ -43,8 +43,21 @@ internal enum DataRow {
             self = .dictionary(title: title, data: inputData)
         } else if input is NSNull {
             self = .string(title: title, data: "null")
+        } else if input is NSArray {
+            self = .string(title: nil, data: nil)
+            if let jsonString = json(from: input as Any), let data = jsonString.data(using: .utf8), let json = try? JSONSerialization.jsonObject(with: data, options: []) {
+                self = .json(title: title, data: json)
+            } else {
+                self = .string(title: title, data: "Unsupported (\(type(of: input)))")
+            }
         } else {
             self = .string(title: title, data: "Unsupported (\(type(of: input)))")
         }
     }
+
+    private func json(from object: Any) -> String? {
+        guard let data = try? JSONSerialization.data(withJSONObject: object, options: []) else { return nil }
+        return String(data: data, encoding: String.Encoding.utf8)
+    }
+
 }

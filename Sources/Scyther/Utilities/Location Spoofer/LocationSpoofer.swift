@@ -200,8 +200,7 @@ extension LocationSpoofer: GPXParsingProtocol {
 
 extension LocationSpoofer {
     internal var presetLocations: [Location] {
-        return [
-                .sydney,
+        return [.sydney,
                 .helsinki,
                 .santiago,
                 .rio,
@@ -223,13 +222,10 @@ extension LocationSpoofer {
                 .stJulians,
                 .valletta,
                 .stockholm,
-                .lisbon
-        ]
+                .lisbon]
     }
 
     internal var presetRoutes: [Route] {
-        return [
-                .driveCityToSuburb
-        ]
+        return [.driveCityToSuburb]
     }
 }
