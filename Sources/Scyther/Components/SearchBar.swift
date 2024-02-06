@@ -73,7 +73,7 @@ class SearchBar: UIView {
     }
     var ranges: [Range<String.Index>]? = nil {
         didSet {
-            delegate?.searchBar(self, didFindRanges: dataSource?.searchableString?.ranges(of: textField.text ?? ""))
+            delegate?.searchBar(self, didFindRanges: dataSource?.searchableString?.ranges(of: textField.text ?? "", options: .caseInsensitive))
             Task { @MainActor in
                 guard let selectedRange = selectedRange else {
                     counterLabel.text = nil
@@ -227,7 +227,7 @@ extension SearchBar {
 extension SearchBar: UITextFieldDelegate {
     @objc
     func textFieldDidChange(_ textField: UITextField) {
-        ranges = dataSource?.searchableString?.ranges(of: textField.text ?? "")
+        ranges = dataSource?.searchableString?.ranges(of: textField.text ?? "", options: .caseInsensitive)
         selectedRange = ranges?.first
     }
     
