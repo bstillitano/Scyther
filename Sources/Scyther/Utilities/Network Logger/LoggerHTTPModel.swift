@@ -27,55 +27,55 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
 @objc public class LoggerHTTPModel: NSObject {
     /// The remote URL that the response was sent to
     @objc public var requestURL: String?
-    
+
     /// `URLComponents` objcet representing the different components of the `requestURL
     @objc public var requestURLComponents: URLComponents?
-    
+
     /// Array of `URLQueryItem`'s appended onto the `requestURL`
     @objc public var requestURLQueryItems: [URLQueryItem]?
-    
+
     /// HTTP method that the request used to connect to the remote
     @objc public var requestMethod: String?
-    
+
     /// Cache policy used to fetch/store the request and its corresponding response
     @objc public var requestCachePolicy: String?
-    
+
     /// The date that the request was executed
     @objc public var requestDate: Date?
-    
+
     /// The time that the request was executed
     @objc public var requestTime: String?
-    
+
     /// The timeout of the response
     @objc public var requestTimeout: String?
-    
+
     /// The headers that were sent with the response
     @objc public var requestHeaders: [AnyHashable: Any]?
-    
+
     /// The length of the body that was sent with the request
     public var requestBodyLength: Int?
-    
+
     /// The type of the request that was made eg: `application/x-protobuf`
     @objc public var requestType: String?
-    
+
     /// A `String` representation of this request formatted as a cURL request
     @objc public var requestCurl: String?
 
     /// The response code returned from the server for this request
     public var responseStatus: Int?
-    
+
     /// The type of the response that was sent eg: `application/x-protobuf`
     @objc public var responseType: String?
-    
+
     /// The date that the response was received
     @objc public var responseDate: Date?
-    
+
     /// The time that the response was received
     @objc public var responseTime: String?
-    
+
     /// The headers that were received with the response
     @objc public var responseHeaders: [AnyHashable: Any]?
-    
+
     /// The length of the body that was sent with the request
     public var responseBodyLength: Int?
 
@@ -192,18 +192,13 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
         guard let data = readRawData(getResponseBodyFilepath()) else {
             return ""
         }
-
         return prettyOutput(data, contentType: responseType)
     }
-    
-    @objc public func getResponseBodyDictionary() -> [String: [String: Any]] {
-        guard let data = readRawData(getResponseBodyFilepath()) else {
-            return [:]
-        }
 
-        return [
-            "JSON Body": (prettyOutput(data, contentType: responseType) as String).dictionaryRepresentation ?? [:]
-        ]
+    @objc public func getResponseBodyDictionary() -> [String: [String: Any]] {
+        guard let data = readRawData(getResponseBodyFilepath()) else { return [:] }
+        let structuredResponse = ["JSON Body": (prettyOutput(data, contentType: responseType) as String).dictionaryRepresentation ?? [:]]
+        return structuredResponse
     }
 
     @objc public func getRandomHash() -> NSString {
@@ -262,7 +257,7 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
 
     public func getShortTypeFrom(_ contentType: String) -> HTTPModelShortType {
         if NSPredicate(format: "SELF MATCHES %@",
-            "^application/(vnd\\.(.*)\\+)?json$").evaluate(with: contentType) {
+                       "^application/(vnd\\.(.*)\\+)?json$").evaluate(with: contentType) {
             return .JSON
         }
 
@@ -333,7 +328,7 @@ fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
             log.append("-------END REQUEST - \(requestURL) -------\n\n")
         }
 
-        return log;
+        return log
     }
 
     @objc public func formattedResponseLogEntry() -> String {
