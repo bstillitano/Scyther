@@ -38,6 +38,7 @@ internal class UserDefaultsViewController: UIViewController {
 
         //Register Table View Cells
         tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
+        tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
         tableView.register(CheckmarkCell.self, forCellReuseIdentifier: RowStyle.checkmarkAccessory.rawValue)
     }
     
@@ -114,6 +115,14 @@ extension UserDefaultsViewController: UITableViewDataSource {
         return cell
     }
 
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        guard let row = viewModel.row(at: indexPath) else { return .none }
+        return row.trailingSwipeActionsConfiguration
+    }
+    
+    func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
+        return viewModel.footer(forSection: section)
+    }
 }
 
 extension UserDefaultsViewController: UITableViewDelegate {

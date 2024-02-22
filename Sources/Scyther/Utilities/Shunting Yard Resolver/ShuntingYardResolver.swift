@@ -268,7 +268,7 @@ public class ShuntingYardResolver {
      Value calculated by generating a UUID and hasing it followed by a mutation into a percentage value.
      This value is stored in UserDefaults and will persist between sessions.
      */
-    public func cohortPercentage(override key: String = "abTestingPercentageValue") -> Float {
+    public func cohortPercentage(override key: String = "Scyther_abTestingPercentageValue") -> Float {
         //Check if Value is Set in UserDefaults
         if UserDefaults.standard.object(forKey: key) != nil {
             return UserDefaults.standard.float(forKey: key)

@@ -22,5 +22,6 @@ internal struct SwitchAccessoryRow: Row {
     var imageURL: URL?
     var accessoryType: UITableViewCell.AccessoryType?
     var shouldShowMenuForRow: Bool? = false
+    var trailingSwipeActionsConfiguration: UISwipeActionsConfiguration?
 }
 #endif

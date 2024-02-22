@@ -52,7 +52,7 @@ internal struct Toggle {
      - Complexity: O(1)
      */
     private var defaultsKey: String {
-        return "toggler_local_value_\(name.lowercased().replacingOccurences(of: [" "], with: "_"))"
+        return "Scyther_toggler_local_value_\(name.lowercased().replacingOccurences(of: [" "], with: "_"))"
     }
 
     /**

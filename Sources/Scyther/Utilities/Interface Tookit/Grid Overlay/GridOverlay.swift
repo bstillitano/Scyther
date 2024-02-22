@@ -10,10 +10,10 @@ import UIKit
 
 internal class GridOverlay {
     // MARK: - Static Data
-    static let EnabledDefaultsKey: String = "scyther_grid_overlay_enabled"
-    static let ColorDefaultsKey: String = "scyther_grid_overlay_color"
-    static let OpacityDefaultsKey: String = "scyther_grid_overlay_opacity"
-    static let SizeDefaultsKey: String = "scyther_grid_overlay_size"
+    static let EnabledDefaultsKey: String = "Scyther_grid_overlay_enabled"
+    static let ColorDefaultsKey: String = "Scyther_grid_overlay_color"
+    static let OpacityDefaultsKey: String = "Scyther_grid_overlay_opacity"
+    static let SizeDefaultsKey: String = "Scyther_grid_overlay_size"
 
     /// Private Init to Stop re-initialisation and allow singleton creation.
     private init() { }

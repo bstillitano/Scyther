@@ -24,5 +24,6 @@ internal struct PreviewableRow: Row {
     var accessoryType: UITableViewCell.AccessoryType?
     var previewView: UIView = UIView()
     var shouldShowMenuForRow: Bool? = false
+    var trailingSwipeActionsConfiguration: UISwipeActionsConfiguration?
 }
 #endif

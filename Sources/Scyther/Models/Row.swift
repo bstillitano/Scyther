@@ -34,6 +34,7 @@ internal protocol Row {
     var imageURL: URL? { get set }
     var accessoryType: UITableViewCell.AccessoryType? { get set }
     var shouldShowMenuForRow: Bool? { get set }
+    var trailingSwipeActionsConfiguration: UISwipeActionsConfiguration? { get set }
 }
 
 extension Row {

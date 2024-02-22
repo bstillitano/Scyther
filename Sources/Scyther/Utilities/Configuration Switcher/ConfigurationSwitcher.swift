@@ -37,7 +37,7 @@ public class ConfigurationSwitcher {
      - Complexity: O(1)
      */
     internal var defaultsKey: String {
-        return "configuration_switcher_identity"
+        return "Scyther_configuration_switcher_identity"
     }
 
     /**
