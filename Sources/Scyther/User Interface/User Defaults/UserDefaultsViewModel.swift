@@ -24,6 +24,25 @@ internal class UserDefaultsViewModel {
         let row: DefaultRow = DefaultRow()
         row.text = name
         row.detailText = value ?? "NaS"
+        row.trailingSwipeActionsConfiguration = UISwipeActionsConfiguration(actions: [
+            .deleteAction(withActionBlock: { [weak self] in
+                UserDefaults.standard.removeObject(forKey: name)
+                self?.prepareObjects()
+        })
+    ])
+        return row
+    }
+    
+    var clearDefaultsRow: ButtonRow {
+        var row: ButtonRow = ButtonRow()
+        row.text = "Reset UserDefaults.standard"
+        row.actionBlock = { [weak self] in
+            UserDefaults.standard.dictionaryRepresentation().keys.filter({
+                !$0.lowercased().hasPrefix("scyther")
+            }).forEach(UserDefaults.standard.removeObject(forKey:))
+            UserDefaults.standard.synchronize()
+            self?.prepareObjects()
+        }
 
         return row
     }
@@ -37,9 +56,14 @@ internal class UserDefaultsViewModel {
         var keyValuesSection: Section = Section()
         keyValuesSection.title = "Key/Values"
         keyValuesSection.rows = keyValues.compactMap( { defaultRow(name: $0.key, value: $0.value) })
+        
+        var deleteAllSection: Section = Section()
+        deleteAllSection.rows.append(clearDefaultsRow)
+        deleteAllSection.footer = "This will delete all values stored inside `UserDefaults.standard`, created by your app. This will not clear any values created internally by Scyther that are used for debug/feature purposes."
 
         //Setup Data
         sections.append(keyValuesSection)
+        sections.append(deleteAllSection)
 
         //Call Delegate
         delegate?.viewModelShouldReloadData()
@@ -58,6 +82,10 @@ extension UserDefaultsViewModel {
 
     func title(forSection index: Int) -> String? {
         return sections[index].title
+    }
+    
+    func footer(forSection index: Int) -> String? {
+        return sections[index].footer
     }
 
     func numberOfRows(inSection index: Int) -> Int {

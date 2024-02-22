@@ -24,5 +24,6 @@ class SliderRow: Row {
     var sliderValueLabel: UILabel = UILabel()
     weak var sliderCellDelegate: SliderCellDelegate?
     var shouldShowMenuForRow: Bool? = false
+    var trailingSwipeActionsConfiguration: UISwipeActionsConfiguration?
 }
 #endif

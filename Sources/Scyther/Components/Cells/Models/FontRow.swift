@@ -22,5 +22,6 @@ class FontRow: Row {
     var accessoryType: UITableViewCell.AccessoryType?
     var font: UIFont?
     var shouldShowMenuForRow: Bool? = false
+    var trailingSwipeActionsConfiguration: UISwipeActionsConfiguration?
 }
 #endif

@@ -27,7 +27,7 @@ public class Toggler {
      - Complexity: O(1)
      */
     private var defaultsKey: String {
-        return "toggler_local_overrides_enabled"
+        return "Scyther_toggler_local_overrides_enabled"
     }
 
     /**

@@ -9,5 +9,6 @@ import Foundation
 
 struct Section {
     var title: String?
+    var footer: String?
     var rows: [Row] = []
 }
