@@ -38,7 +38,6 @@ internal class UserDefaultsViewModel {
         row.text = "Reset UserDefaults.standard"
         row.actionBlock = { [weak self] in
             UserDefaults.standard.dictionaryRepresentation().keys.filter({
-                !$0.lowercased().hasPrefix("toggler_") &&
                 !$0.lowercased().hasPrefix("scyther")
             }).forEach(UserDefaults.standard.removeObject(forKey:))
             UserDefaults.standard.synchronize()
