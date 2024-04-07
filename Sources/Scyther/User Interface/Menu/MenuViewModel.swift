@@ -115,16 +115,26 @@ internal class MenuViewModel {
         deviceSection.rows.append(valueRow(name: "Hardware",
                                            value: UIDevice.current.modelName,
                                            icon: nil))
+        deviceSection.rows.append(valueRow(name: "Release Year",
+                                           value: String(UIDevice.current.generation),
+                                           icon: nil,
+                                           showMenu: true))
         deviceSection.rows.append(valueRow(name: "UDID",
                                            value: UIDevice.current.identifierForVendor?.uuidString,
                                            icon: nil,
                                            showMenu: true))
+        
         // Setup Application Section
         var applicationSection: Section = Section()
         applicationSection.title = "Application"
-        applicationSection.rows.append(valueRow(name: "Bundle Identifier",
+        applicationSection.rows.append(valueRow(name: "Bundle ID",
                                                 value: Bundle.main.bundleIdentifier,
                                                 icon: nil))
+        if let value = Bundle.main.seedId {
+            applicationSection.rows.append(valueRow(name: "App ID Prefix",
+                                                    value: Bundle.main.bundleIdentifier,
+                                                    icon: nil))
+        }
         applicationSection.rows.append(valueRow(name: "Version",
                                                 value: Bundle.main.versionNumber,
                                                 icon: nil))

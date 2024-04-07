@@ -14,7 +14,7 @@ public extension UIDevice {
         /// Get System Info
         var systemInfo = utsname()
         uname(&systemInfo)
-
+        
         /// Determine Device Identifier
         let machineMirror = Mirror(reflecting: systemInfo.machine)
         let identifier = machineMirror.children.reduce("") { identifier, element in
@@ -23,20 +23,20 @@ public extension UIDevice {
             }
             return identifier + String(UnicodeScalar(UInt8(value)))
         }
-
+        
         return identifier
     }
-
+    
     /// Determines the type of device that this code is running on. Returns one of the following: `phone` or `tablet`
     var deviceType: String {
         //Check Type
         if UIDevice.current.userInterfaceIdiom == .pad {
             return "tablet"
         }
-
+        
         return "phone"
     }
-
+    
     /// Determines the generation of the running device.
     var generation: Float {
         /// Setup Data
@@ -45,7 +45,7 @@ public extension UIDevice {
         value = value.replacingOccurences(of: ["iphone", "ipad", "ipod", "watch"], with: "")
         value = value.replacingOccurences(of: ["x86_64", "i386"], with: "99.9")
         value = value.replacingOccurrences(of: ",", with: ".")
-
+        
         /// Add 2007 to the value as that was the year of release for the first generation of iOS
         return (Float(value) ?? 0) + 2007
     }
