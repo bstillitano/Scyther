@@ -116,7 +116,7 @@ internal class MenuViewModel {
                                            value: UIDevice.current.modelName,
                                            icon: nil))
         deviceSection.rows.append(valueRow(name: "Release Year",
-                                           value: String(UIDevice.current.generation),
+                                           value: UIDevice.current.generation.clean,
                                            icon: nil,
                                            showMenu: true))
         deviceSection.rows.append(valueRow(name: "UDID",
@@ -132,7 +132,7 @@ internal class MenuViewModel {
                                                 icon: nil))
         if let value = Bundle.main.seedId {
             applicationSection.rows.append(valueRow(name: "App ID Prefix",
-                                                    value: Bundle.main.bundleIdentifier,
+                                                    value: value,
                                                     icon: nil))
         }
         applicationSection.rows.append(valueRow(name: "Version",
