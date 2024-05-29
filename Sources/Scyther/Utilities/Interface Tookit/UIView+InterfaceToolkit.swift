@@ -119,15 +119,17 @@ internal extension UIView {
         /// Set data and backup current settings
         previousMasksToBounds = layer.masksToBounds
         
-        /// Build and add sublayer
+        /// Build and add sublayer.
+        /// Setting max width of sublayer to 200 here as an arbitrary number that seems to sort of be the happy middle ground between going off the screen and views being too narrow to meaningfully display anything.
+        /// Pretty crappy still, needs to be improved.
         let textLayer = CATextLayer()
-        textLayer.frame = CGRect(x: 0, y: -10, width: max(frame.width, 200), height: 60)
+        textLayer.frame = CGRect(x: 0, y: -12, width: max(frame.width, 200), height: 60)
         textLayer.font = UIFont.systemFont(ofSize: UIFont.smallSystemFontSize)
         textLayer.fontSize = UIFont.smallSystemFontSize
         textLayer.contentsScale = UIScreen.main.scale
         textLayer.isWrapped = true
         textLayer.truncationMode = .none
-        textLayer.string = "x: \(frame.minX.rounded()), y: \(frame.minY.rounded()), w: \(frame.width.rounded()), h: \(frame.height.rounded())"
+        textLayer.string = "w:\(frame.width.rounded()), h:\(frame.height.rounded())"
         textLayer.foregroundColor = layer.borderColor ?? UIColor.random.cgColor
         textLayer.name = "Scyther_Debug_Frame_Label"
         layer.masksToBounds = false
