@@ -91,6 +91,7 @@ There is a full-featured demo included in this repo. See the [Scyther Playground
 - [x] Interface Component Catalog
 - [x] Grid Overlay
 - [x] Show View Frames
+- [x] Show View Sizes
 - [x] Slow Animations
 - [x] Show Screen Touches
 

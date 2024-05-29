@@ -9,6 +9,7 @@
 import UIKit
 
 // MARK: - Static Data
+private let UIViewPreviousMasksToBoundsKey = "Scyther_previousMasksToBounds"
 private let UIViewPreviousBorderColorKey = "Scyther_previousBorderColor"
 private let UIViewPreviousBorderWidthKey = "Scyther_previousBorderWidth"
 
@@ -25,6 +26,17 @@ extension UIView: InterfaceToolkitPrivate {
         return UIColor.random.cgColor
     }
 
+    var previousMasksToBounds: Bool? {
+        get {
+            let value: Bool? = objc_getAssociatedObject(self, UIViewPreviousMasksToBoundsKey) as? Bool
+            return value
+        }
+        set {
+            objc_setAssociatedObject(self, UIViewPreviousMasksToBoundsKey, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+
+    
     var previousBorderColor: String? {
         get {
             let hexCode: String? = objc_getAssociatedObject(self, UIViewPreviousBorderColorKey) as? String
@@ -74,6 +86,7 @@ internal extension UIView {
     }
 }
 
+
 // MARK: - Debug Border Notifications
 internal extension UIView {
     func registerForDebugBorderNotifications() {
@@ -86,6 +99,60 @@ internal extension UIView {
     @objc
     func debugBordersChanged() {
         refreshDebugBorders()
+    }
+}
+
+// MARK: - Show/Hide View Frames
+internal extension UIView {
+    func refreshDebugViewSizes() {
+        if InterfaceToolkit.instance.showsViewSizes {
+            enableDebugViewSizes()
+        } else {
+            disableDebugViewSizes()
+        }
+    }
+
+    func enableDebugViewSizes() {
+        /// Check that we haven't already added a sublayer
+        guard layer.sublayers?.contains(where: {$0.name == "Scyther_Debug_Frame_Label" }) != true else { return }
+        
+        /// Set data and backup current settings
+        previousMasksToBounds = layer.masksToBounds
+        
+        /// Build and add sublayer
+        let textLayer = CATextLayer()
+        textLayer.frame = CGRect(x: 0, y: -10, width: max(frame.width, 200), height: 60)
+        textLayer.font = UIFont.systemFont(ofSize: UIFont.smallSystemFontSize)
+        textLayer.fontSize = UIFont.smallSystemFontSize
+        textLayer.contentsScale = UIScreen.main.scale
+        textLayer.isWrapped = true
+        textLayer.truncationMode = .none
+        textLayer.string = "x: \(frame.minX.rounded()), y: \(frame.minY.rounded()), w: \(frame.width.rounded()), h: \(frame.height.rounded())"
+        textLayer.foregroundColor = layer.borderColor ?? UIColor.random.cgColor
+        textLayer.name = "Scyther_Debug_Frame_Label"
+        layer.masksToBounds = false
+        layer.addSublayer(textLayer)
+    }
+
+    func disableDebugViewSizes() {
+        layer.sublayers?.removeAll(where: { $0.name == "Scyther_Debug_Frame_Label" })
+        layer.masksToBounds = previousMasksToBounds ?? true
+    }
+}
+
+
+// MARK: - Debug View Size Notifications
+internal extension UIView {
+    func registerForDebugViewSizeNotifications() {
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(debugViewSizesChanged),
+                                               name: InterfaceToolkit.DebugSizesChangeNotification,
+                                               object: nil)
+    }
+
+    @objc
+    func debugViewSizesChanged() {
+        refreshDebugViewSizes()
     }
 }
 
@@ -129,6 +196,9 @@ internal extension UIView {
         
         refreshDebugBorders()
         registerForDebugBorderNotifications()
+        
+        refreshDebugViewSizes()
+        registerForDebugViewSizeNotifications()
     }
 }
 #endif

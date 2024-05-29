@@ -64,7 +64,7 @@ internal class MenuViewModel {
         //Setup Row
         var row: SwitchAccessoryRow = SwitchAccessoryRow()
         row.text = "Show View Frames"
-        row.image = UIImage(systemImage: "viewfinder")
+        row.image = UIImage(systemImage: "rectangle.3.group")
 
         //Setup Accessory
         let switchView = UIActionSwitch()
@@ -72,6 +72,26 @@ internal class MenuViewModel {
         switchView.actionBlock = {
             InterfaceToolkit.instance.swizzleLayout()
             InterfaceToolkit.instance.showsViewBorders = switchView.isOn
+        }
+        switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        row.accessoryView = switchView
+
+        return row
+    }
+    
+    /// Switch to enable/disable showing view frames
+    var viewSizesSwitch: SwitchAccessoryRow {
+        //Setup Row
+        var row: SwitchAccessoryRow = SwitchAccessoryRow()
+        row.text = "Show View Sizes"
+        row.image = UIImage(systemImage: "ruler")
+
+        //Setup Accessory
+        let switchView = UIActionSwitch()
+        switchView.isOn = InterfaceToolkit.instance.showsViewSizes
+        switchView.actionBlock = {
+            InterfaceToolkit.instance.swizzleLayout()
+            InterfaceToolkit.instance.showsViewSizes = switchView.isOn
         }
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
@@ -257,6 +277,7 @@ internal class MenuViewModel {
                                               self?.delegate?.viewModel(viewModel: self, shouldShowViewController: TouchVisualiserViewController())
                                           }))
         uiUxSection.rows.append(viewFramesSwitch)
+        uiUxSection.rows.append(viewSizesSwitch)
         uiUxSection.rows.append(slowAnimationsSwitch)
 
         // Setup Development Section
