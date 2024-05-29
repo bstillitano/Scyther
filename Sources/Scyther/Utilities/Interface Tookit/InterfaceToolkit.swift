@@ -12,9 +12,11 @@ import UIKit
 public class InterfaceToolkit: NSObject {
     // MARK: - Static Data
     internal static var DebugBordersChangeNotification: NSNotification.Name = NSNotification.Name("DebugBordersChangeNotification")
+    internal static var DebugSizesChangeNotification: NSNotification.Name = NSNotification.Name("DebugSizesChangeNotification")
     internal static var VisualiseTouchesChangeNotification: NSNotification.Name = NSNotification.Name("VisualiseTouchesChangeNotification")
     internal static var SlowAnimationsUserDefaultsKey: String = "Scyther_Interface_Toolkit_Slow_Animations_Enabled"
     internal static var ViewFramesUserDefaultsKey: String = "Scyther_Interface_Toolkit_View_Borders_Enabled"
+    internal static var ViewSizesUserDefaultsKey: String = "Scyther_Interface_Toolkit_View_Sizes_Enabled"
     internal static var VisualiseTouchesUserDefaultsKey: String = "Scyther_Interface_Toolkit_Visualise_Touches_Enabled"
 
     /// Private Init to Stop re-initialisation and allow singleton creation.
@@ -46,6 +48,16 @@ public class InterfaceToolkit: NSObject {
         set {
             UserDefaults.standard.setValue(newValue, forKey: InterfaceToolkit.ViewFramesUserDefaultsKey)
             NotificationCenter.default.post(name: InterfaceToolkit.DebugBordersChangeNotification,
+                                            object: newValue)
+        }
+    }
+    internal var showsViewSizes: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: InterfaceToolkit.ViewSizesUserDefaultsKey)
+        }
+        set {
+            UserDefaults.standard.setValue(newValue, forKey: InterfaceToolkit.ViewSizesUserDefaultsKey)
+            NotificationCenter.default.post(name: InterfaceToolkit.DebugSizesChangeNotification,
                                             object: newValue)
         }
     }
