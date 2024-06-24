@@ -287,11 +287,18 @@ internal class MenuViewModel {
             developmentSection.rows.append(emptyRow(text: "No tools configured"))
         } else {
             for tool: DeveloperOption in Scyther.instance.developerOptions {
-                developmentSection.rows.append(actionRow(name: tool.name ?? "",
-                                                         icon: tool.icon,
-                                                         actionBlock: { [weak self] in
-                                                             self?.delegate?.viewModel(viewModel: self, shouldShowViewController: tool.viewController)
-                                                         }))
+                if tool.type == .value {
+                    notificationsSection.rows.append(valueRow(name: tool.name,
+                                                              value: tool.value,
+                                                              icon: tool.icon,
+                                                              showMenu: true))
+                } else if tool.type == .viewController {
+                    developmentSection.rows.append(actionRow(name: tool.name,
+                                                             icon: tool.icon,
+                                                             actionBlock: { [weak self] in
+                                                                 self?.delegate?.viewModel(viewModel: self, shouldShowViewController: tool.viewController)
+                                                             }))
+                }
             }
         }
 
