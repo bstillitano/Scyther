@@ -157,7 +157,7 @@ public class InterfaceToolkit: NSObject {
 
 // MARK: - Grid Overlay
 extension InterfaceToolkit {
-    internal func setupGridOverlay() {
+    @MainActor internal func setupGridOverlay() {
         gridOverlayView.opacity = CGFloat(GridOverlay.instance.opacity)
         gridOverlayView.isHidden = true
         gridOverlayView.gridSize = GridOverlay.instance.size
@@ -166,7 +166,7 @@ extension InterfaceToolkit {
         showGridOverlay()
     }
 
-    internal func showGridOverlay() {
+    @MainActor internal func showGridOverlay() {
         gridOverlayView.opacity = GridOverlay.instance.enabled ? CGFloat(GridOverlay.instance.opacity) : 0.0
         gridOverlayView.isHidden = !GridOverlay.instance.enabled
     }

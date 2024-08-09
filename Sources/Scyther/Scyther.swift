@@ -63,7 +63,7 @@ public class Scyther {
     public var fcmToken: String?
     
     /// Initialises the Scyther library and sets the required data to properly intercept network calls and console logs. This will not run on Production/AppStore builds if `runsOnProductionBuilds` is not set to true.
-    public func start() {
+    @MainActor public func start() {
         /// Check for production build
         guard !AppEnvironment.isAppStore || runsOnProductionBuilds else {
             return

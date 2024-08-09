@@ -29,7 +29,7 @@ internal class GridOverlay {
         }
         set {
             UserDefaults.standard.setValue(newValue, forKey: GridOverlay.EnabledDefaultsKey)
-            InterfaceToolkit.instance.showGridOverlay()
+            Task { @MainActor in InterfaceToolkit.instance.showGridOverlay() }
         }
     }
 

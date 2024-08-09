@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import SwiftUI
 
 internal class MenuViewController: UIViewController {
     // MARK: - Data
@@ -19,7 +20,7 @@ internal class MenuViewController: UIViewController {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
 
@@ -186,5 +187,18 @@ extension MenuViewController: MenuViewModelProtocol {
             return
         }
         self.navigationController?.pushViewController(viewController, animated: true)
+    }
+}
+
+// MARK: - SwiftUI
+public struct MenuView: UIViewControllerRepresentable {
+    public init() { }
+
+    public func makeUIViewController(context: Context) -> some UIViewController {
+        return MenuViewController()
+    }
+
+    public func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {
+        // Intentionally unimplemented
     }
 }
