@@ -101,8 +101,8 @@ There is a full-featured demo included in this repo. See the [Scyther Playground
 
 ### Requirements
 
-- iOS 11.0+
-- Xcode 11+
+- iOS 15.0+
+- Xcode 13+
 - Swift 5.1+
 
 ### Communication
