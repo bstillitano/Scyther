@@ -9,6 +9,7 @@ import UIKit
 
 internal protocol LocationSpooferViewModelProtocol: AnyObject {
     func viewModelShouldReloadData()
+    func viewModel(viewModel: LocationSpooferViewModel?, shouldShowViewController viewController: UIViewController?)
 }
 
 internal class LocationSpooferViewModel {
@@ -33,6 +34,30 @@ internal class LocationSpooferViewModel {
         switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
         row.accessoryView = switchView
         return row
+    }
+
+    var updateCustomLocationButton: ButtonRow {
+        var row: ButtonRow = ButtonRow()
+        row.text = "Update Custom Location"
+        row.actionBlock = { [weak self] in
+            self?.delegate?.viewModel(viewModel: self, shouldShowViewController: LocationPickerViewController(rootView: LocationPickerView()))
+        }
+        return row
+    }
+
+    var customLocationRow: SwitchAccessoryRow {
+        var value: SwitchAccessoryRow = SwitchAccessoryRow()
+        value.text = "Use Custom Location"
+
+        let switchView = UIActionSwitch()
+        switchView.isOn = LocationSpoofer.instance.useCustomLocation
+        switchView.actionBlock = { [weak self] in
+            LocationSpoofer.instance.useCustomLocation.toggle()
+            self?.prepareObjects()
+        }
+        switchView.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+        value.accessoryView = switchView
+        return value
     }
 
     func locationRow(for location: Location) -> DefaultRow {
@@ -72,7 +97,7 @@ internal class LocationSpooferViewModel {
         var enabledSection: Section = Section()
         enabledSection.title = "Location Spoofing"
         enabledSection.rows.append(enableSpoofingSwitch)
-        
+
         //Setup Routes Section
         var routesSection: Section = Section()
         routesSection.title = "Routes"
@@ -80,17 +105,34 @@ internal class LocationSpooferViewModel {
             routesSection.rows.append(routeRow(for: route))
         }
 
+        //Setup Custom Location Section
+        var customLocationSection: Section = Section()
+        customLocationSection.title = "Custom Location"
+        customLocationSection.rows.append(customLocationRow)
+        customLocationSection.rows.append(updateCustomLocationButton)
+
+        // Setup Developer Locations Section
+        var developerLocationsSection: Section = Section()
+        developerLocationsSection.title = "Developer Locations"
+        LocationSpoofer.instance.developerLocations.sorted(by: { $0.name < $1.name }).forEach { location in
+            developerLocationsSection.rows.append(locationRow(for: location))
+        }
+
         //Setup Locations Section
         var locationsSection: Section = Section()
-        locationsSection.title = "Locations"
+        locationsSection.title = "Preset Locations"
         LocationSpoofer.instance.presetLocations.sorted(by: { $0.name < $1.name }).forEach { location in
             locationsSection.rows.append(locationRow(for: location))
         }
-        
+
         //Setup Data
         sections.append(enabledSection)
         if LocationSpoofer.instance.spoofingEnabled {
             sections.append(routesSection)
+            sections.append(customLocationSection)
+            if !LocationSpoofer.instance.developerLocations.isEmpty {
+                sections.append(developerLocationsSection)
+            }
             sections.append(locationsSection)
         }
 

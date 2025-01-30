@@ -40,6 +40,7 @@ internal class LocationSpooferViewController: UIViewController {
         tableView.register(EmptyCell.self, forCellReuseIdentifier: RowStyle.emptyRow.rawValue)
         tableView.register(DefaultCell.self, forCellReuseIdentifier: RowStyle.default.rawValue)
         tableView.register(SwitchCell.self, forCellReuseIdentifier: RowStyle.switchAccessory.rawValue)
+        tableView.register(ButtonCell.self, forCellReuseIdentifier: RowStyle.button.rawValue)
     }
 
     private func setupConstraints() {
@@ -132,5 +133,12 @@ extension LocationSpooferViewController: UITableViewDelegate {
 extension LocationSpooferViewController: LocationSpooferViewModelProtocol {
     func viewModelShouldReloadData() {
         self.tableView.reloadData()
+    }
+    
+    func viewModel(viewModel: LocationSpooferViewModel?, shouldShowViewController viewController: UIViewController?) {
+        guard let viewController = viewController else {
+            return
+        }
+        self.navigationController?.pushViewController(viewController, animated: true)
     }
 }
