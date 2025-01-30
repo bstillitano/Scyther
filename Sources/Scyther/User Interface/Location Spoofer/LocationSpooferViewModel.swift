@@ -112,12 +112,10 @@ internal class LocationSpooferViewModel {
         customLocationSection.rows.append(updateCustomLocationButton)
 
         // Setup Developer Locations Section
-        if !LocationSpoofer.instance.developerLocations.isEmpty {
-            var developerLocationsSection: Section = Section()
-            developerLocationsSection.title = "Developer Locations"
-            LocationSpoofer.instance.developerLocations.sorted(by: { $0.name < $1.name }).forEach { location in
-                developerLocationsSection.rows.append(locationRow(for: location))
-            }
+        var developerLocationsSection: Section = Section()
+        developerLocationsSection.title = "Developer Locations"
+        LocationSpoofer.instance.developerLocations.sorted(by: { $0.name < $1.name }).forEach { location in
+            developerLocationsSection.rows.append(locationRow(for: location))
         }
 
         //Setup Locations Section
@@ -132,6 +130,9 @@ internal class LocationSpooferViewModel {
         if LocationSpoofer.instance.spoofingEnabled {
             sections.append(routesSection)
             sections.append(customLocationSection)
+            if !LocationSpoofer.instance.developerLocations.isEmpty {
+                sections.append(developerLocationsSection)
+            }
             sections.append(locationsSection)
         }
 
