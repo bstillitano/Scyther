@@ -9,10 +9,10 @@ import UIKit
 
 /// Data struct used for conveniently forming geolocations
 struct Location {
-    var id: String!
+    var id: String
     var name: String = ""
-    var latitude: CGFloat = 0.00
-    var longitude: CGFloat = 0.00
+    var latitude: Double = 0.00
+    var longitude: Double = 0.00
 }
 
 // MARK: - Helper Functions
