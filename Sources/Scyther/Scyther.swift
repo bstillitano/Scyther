@@ -38,6 +38,9 @@ public class Scyther {
     /// `Toggler` utility class. Used for local toggle/feature flag overrides.
     public static let toggler: Toggler = Toggler.instance
     
+    /// `LocationSpoofer` utility class. Used for location spoofing features.
+    public static let locationSpoofer: LocationSpoofer = LocationSpoofer.instance
+    
     /// `ConfigurationSwitcher` utility class. Used for local toggle/feature flag overrides.
     public static let configSwitcher: ConfigurationSwitcher = ConfigurationSwitcher.instance
     

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public class Toggler {
+public final class Toggler {
     /// Private Init to Stop re-initialisation and allow singleton creation.
     private init() { }
 

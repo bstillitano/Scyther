@@ -13,7 +13,7 @@ struct LocationSpooferConfiguration {
     static var GpxFileName: String?
 }
 
-internal class LocationSpoofer: CLLocationManager {
+public final class LocationSpoofer: CLLocationManager {
     // MARK: - Static Data
     internal static var LocationSpoofingEnabledChangeNotification: NSNotification.Name = NSNotification.Name("LocationSpoofingEnabledChangeNotification")
     internal static var LocationSpoofingLocationChangeNotification: NSNotification.Name = NSNotification.Name("LocationSpoofingLocationChangeNotification")
@@ -106,7 +106,7 @@ internal class LocationSpoofer: CLLocationManager {
     }
 
     // MARK: - Lifecycle
-    override func startUpdatingLocation() {
+    public override func startUpdatingLocation() {
         guard delegate != nil else {
             return
         }
@@ -122,7 +122,7 @@ internal class LocationSpoofer: CLLocationManager {
         }
     }
 
-    override func stopUpdatingLocation() {
+    public override func stopUpdatingLocation() {
         guard spoofingEnabled else {
             super.stopUpdatingLocation()
             return
@@ -130,7 +130,7 @@ internal class LocationSpoofer: CLLocationManager {
         timer?.invalidate()
     }
 
-    override func requestLocation() {
+    public override func requestLocation() {
         guard spoofingEnabled else {
             super.requestLocation()
             return

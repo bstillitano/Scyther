@@ -8,11 +8,18 @@
 import UIKit
 
 /// Data struct used for conveniently forming geolocations
-struct Location {
+public struct Location {
     var id: String
     var name: String = ""
     var latitude: Double = 0.00
     var longitude: Double = 0.00
+    
+    public init(id: String, name: String, latitude: Double, longitude: Double) {
+        self.id = id
+        self.name = name
+        self.latitude = latitude
+        self.longitude = longitude
+    }
 }
 
 // MARK: - Helper Functions
