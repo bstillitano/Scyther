@@ -108,15 +108,26 @@ public class InterfaceToolkit: NSObject {
     }
     
     internal func swizzleWindow() {
-        UIApplication.shared.keyWindow?.swizzle()
+        Self.keyWindow?.swizzle()
     }
 
     private func setupTopLevelViewsWrapper() {
-        guard let keyWindow: UIWindow = UIApplication.shared.keyWindow else {
-            logMessage("Scyther.InterfaceToolkit failed to setup the top level views wrapper. There is no keyWindow available at UIApplication.shared.keyWindow")
+        guard let keyWindow = Self.keyWindow else {
+            logMessage("Scyther.InterfaceToolkit failed to setup the top level views wrapper. There is no keyWindow available.")
             return
         }
         addTopLevelViewsWrapperToWindow(window: keyWindow)
+    }
+
+    private static var keyWindow: UIWindow? {
+        if #available(iOS 15.0, *) {
+            return UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+                .first { $0.isKeyWindow }
+        } else {
+            return UIApplication.shared.windows.first { $0.isKeyWindow }
+        }
     }
 
     private func addTopLevelViewsWrapperToWindow(window: UIWindow) {
@@ -176,8 +187,17 @@ extension InterfaceToolkit {
 extension InterfaceToolkit {
     internal func setWindowSpeed() {
         let speed: Float = slowAnimationsEnabled ? 0.1 : 1.0
-        for window in UIApplication.shared.windows {
-            window.layer.speed = speed
+        if #available(iOS 15.0, *) {
+            for scene in UIApplication.shared.connectedScenes {
+                guard let windowScene = scene as? UIWindowScene else { continue }
+                for window in windowScene.windows {
+                    window.layer.speed = speed
+                }
+            }
+        } else {
+            for window in UIApplication.shared.windows {
+                window.layer.speed = speed
+            }
         }
     }
 }
