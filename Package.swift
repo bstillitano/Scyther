@@ -6,16 +6,13 @@ import PackageDescription
 let package = Package(
     name: "Scyther",
     platforms: [
-        .iOS(.v15)
+        .iOS(.v16)
     ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
             name: "Scyther",
             targets: ["Scyther"]),
-        .library(
-            name: "ScytherSwiftUI",
-            targets: ["ScytherSwiftUI"]),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -30,13 +27,6 @@ let package = Package(
             resources: [
                 .process("Resources")
             ]
-        ),
-        .target(
-            name: "ScytherSwiftUI",
-            dependencies: [
-                .target(name: "Scyther")
-            ],
-            path: "Sources/ScytherSwiftUI"
         ),
         .testTarget(
             name: "ScytherTests",
