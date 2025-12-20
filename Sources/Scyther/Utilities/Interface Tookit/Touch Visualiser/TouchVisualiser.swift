@@ -62,12 +62,33 @@ public class TouchVisualiser: NSObject {
         for view in self.touchViews {
             view.removeFromSuperview()
         }
-        if let window = UIApplication.shared.keyWindow {
+        if let window = Self.keyWindow {
             for subview in window.subviews {
                 if let subview = subview as? TouchView {
                     subview.removeFromSuperview()
                 }
             }
+        }
+    }
+
+    private static var keyWindow: UIWindow? {
+        if #available(iOS 15.0, *) {
+            return UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+                .first { $0.isKeyWindow }
+        } else {
+            return UIApplication.shared.windows.first { $0.isKeyWindow }
+        }
+    }
+
+    private static var allWindows: [UIWindow] {
+        if #available(iOS 15.0, *) {
+            return UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+        } else {
+            return UIApplication.shared.windows
         }
     }
 
@@ -106,10 +127,10 @@ extension TouchVisualiser {
         }
 
         //Get top most key window
-        guard var topWindow = UIApplication.shared.keyWindow else {
+        guard var topWindow = Self.keyWindow else {
             return
         }
-        UIApplication.shared.windows.forEach { window in
+        Self.allWindows.forEach { window in
             if window.isHidden == false && window.windowLevel > topWindow.windowLevel {
                 topWindow = window
             }
