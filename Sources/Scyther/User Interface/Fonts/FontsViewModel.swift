@@ -14,7 +14,7 @@ internal protocol FontsViewModelProtocol: AnyObject {
 
 internal class FontsViewModel {
     // MARK: - Data
-    private var sections: [Section] = []
+    private var sections: [TableSection] = []
 
     // MARK: - Delegate
     weak var delegate: FontsViewModelProtocol?
@@ -34,7 +34,7 @@ internal class FontsViewModel {
 
         //Setup Font Sections
         UIFont.familyNames.forEach({ familyName in
-            var fontSection: Section = Section()
+            var fontSection: TableSection = TableSection()
             fontSection.title = familyName
             fontSection.rows = UIFont.fontNames(forFamilyName: familyName).map( { valueRow(font: UIFont(name: $0, size: 16.0)) } )
             sections.append(fontSection)
@@ -80,7 +80,7 @@ extension FontsViewModel {
 
 // MARK: - Private data accessors
 extension FontsViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         return sections[index]
     }
 

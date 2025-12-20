@@ -12,4 +12,9 @@ extension Float {
     var clean: String {
         return self.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", self) : String(self)
     }
+    
+    /// Returns the integer part of the float as a string, without rounding.
+    var withoutDecimals: String {
+        return String(Int(self))
+    }
 }

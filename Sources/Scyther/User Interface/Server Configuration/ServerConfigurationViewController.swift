@@ -11,7 +11,7 @@ import UIKit
 internal class ServerConfigurationViewController: UIViewController {
     // MARK: - Data
     private let tableView = UITableView(frame: .zero, style: .insetGroupedSafe)
-    private var viewModel: ServerConfigurationViewModel = ServerConfigurationViewModel()
+    private var viewModel: OLDServerConfigurationViewModel = OLDServerConfigurationViewModel()
     
     // MARK: - Constraints
     var tableViewConstraints: [NSLayoutConstraint] = []

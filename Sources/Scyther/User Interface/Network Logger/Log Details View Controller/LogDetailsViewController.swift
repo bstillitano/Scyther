@@ -24,7 +24,7 @@ internal class LogDetailsViewController: UIViewController {
         setupData()
     }
     
-    convenience init(httpModel: LoggerHTTPModel) {
+    convenience init(httpModel: HTTPRequest) {
         self.init(nibName: nil, bundle: nil)
         self.viewModel.httpModel = httpModel
     }

@@ -14,7 +14,7 @@ internal protocol FeatureFlagsViewModelProtocol: AnyObject {
 
 internal class FeatureFlagsViewModel {
     // MARK: - Data
-    private var sections: [Section] = []
+    private var sections: [TableSection] = []
 
     // MARK: - Delegate
     weak var delegate: FeatureFlagsViewModelProtocol?
@@ -37,13 +37,13 @@ internal class FeatureFlagsViewModel {
         return row
     }
 
-    /// Button item that allows the caller to restore all `Toggle` values to their remote value
+    /// Button item that allows the caller to restore all `FeatureToggle` values to their remote value
     var restoreDefaults: ButtonRow {
         //Setup Row
         var row: ButtonRow = ButtonRow()
         row.text = "Restore remote values"
         row.actionBlock = {[weak self] in
-            for toggle: Toggle in Toggler.instance.toggles {
+            for toggle: FeatureToggle in Toggler.instance.toggles {
                 Toggler.instance.setLocalValue(value: toggle.remoteValue, forToggleWithName: toggle.name)
             }
             self?.prepareObjects()
@@ -82,12 +82,12 @@ internal class FeatureFlagsViewModel {
         sections.removeAll()
 
         //Setup Global Section
-        var globalSection: Section = Section()
+        var globalSection: TableSection = TableSection()
         globalSection.title = "Global Settings"
         globalSection.rows = [enableOverrrides, restoreDefaults]
 
         //Setup Toggles Section
-        var togglesSection: Section = Section()
+        var togglesSection: TableSection = TableSection()
         togglesSection.title = "Toggles"
         togglesSection.rows = Toggler.instance.toggles.sorted(by: { $0.name.lowercased() < $1.name.lowercased() })
             .map({ toggleSwitch(for: $0.name) })
@@ -139,7 +139,7 @@ extension FeatureFlagsViewModel {
 
 // MARK: - Private data accessors
 extension FeatureFlagsViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         return sections[index]
     }
 

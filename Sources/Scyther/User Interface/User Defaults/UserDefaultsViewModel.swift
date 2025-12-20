@@ -14,7 +14,7 @@ internal protocol UserDefaultsViewModelProtocol: AnyObject {
 
 internal class UserDefaultsViewModel {
     // MARK: - Data
-    private var sections: [Section] = []
+    private var sections: [TableSection] = []
 
     // MARK: - Delegate
     weak var delegate: UserDefaultsViewModelProtocol?
@@ -53,11 +53,11 @@ internal class UserDefaultsViewModel {
 
         //Setup KeyValues Section
         let keyValues = UserDefaults.standard.stringStringDictionaryRepresentation.sorted(by: { $0.key.lowercased() < $1.key.lowercased() })
-        var keyValuesSection: Section = Section()
+        var keyValuesSection: TableSection = TableSection()
         keyValuesSection.title = "Key/Values"
         keyValuesSection.rows = keyValues.compactMap( { defaultRow(name: $0.key, value: $0.value) })
         
-        var deleteAllSection: Section = Section()
+        var deleteAllSection: TableSection = TableSection()
         deleteAllSection.rows.append(clearDefaultsRow)
         deleteAllSection.footer = "This will delete all values stored inside `UserDefaults.standard`, created by your app. This will not clear any values created internally by Scyther that are used for debug/feature purposes."
 
@@ -109,7 +109,7 @@ extension UserDefaultsViewModel {
 
 // MARK: - Private data accessors
 extension UserDefaultsViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         return sections[index]
     }
 

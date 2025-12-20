@@ -15,8 +15,8 @@ internal protocol LogDetailsViewModelProtocol: AnyObject {
 
 internal class LogDetailsViewModel {
     // MARK: - Data
-    private var sections: [Section] = []
-    internal var httpModel: LoggerHTTPModel? = nil {
+    private var sections: [TableSection] = []
+    internal var httpModel: HTTPRequest? = nil {
         didSet {
             prepareObjects()
         }
@@ -117,13 +117,13 @@ internal class LogDetailsViewModel {
         sections.removeAll()
 
         /// Setup Overview Section
-        var overviewSection: Section = Section()
+        var overviewSection: TableSection = TableSection()
         overviewSection.title = "Overview"
         overviewSection.rows.append(urlRow(url: httpModel?.requestURL ?? ""))
         overviewSection.rows.append(defaultRow(name: "Method",
                                                value: httpModel?.requestMethod))
         overviewSection.rows.append(defaultRow(name: "Response Code",
-                                               value: "\(httpModel?.responseStatus ?? 0)"))
+                                               value: "\(httpModel?.responseCode ?? 0)"))
         overviewSection.rows.append(defaultRow(name: "Response Size",
                                                value: "\(httpModel?.responseBodyLength ?? 0) bytes"))
         overviewSection.rows.append(defaultRow(name: "Date",
@@ -132,7 +132,7 @@ internal class LogDetailsViewModel {
                                                value: String(format: "%.0fms", httpModel?.requestDuration ?? 0)))
 
         /// Setup Request Headers Section
-        var requestHeadersSection: Section = Section()
+        var requestHeadersSection: TableSection = TableSection()
         requestHeadersSection.title = "Request Headers"
         if httpModel?.requestHeaders?.isEmpty ?? true {
             requestHeadersSection.rows.append(emptyRow(text: "No headers sent"))
@@ -144,7 +144,7 @@ internal class LogDetailsViewModel {
         }
         
         /// Setup Request Body Section
-        var requestBodySection: Section = Section()
+        var requestBodySection: TableSection = TableSection()
         requestBodySection.title = "Request Body"
         if String(httpModel?.getRequestBody() ?? "").isEmpty {
             requestBodySection.rows.append(emptyRow(text: "No content sent"))
@@ -153,7 +153,7 @@ internal class LogDetailsViewModel {
         }
         
         /// Setup Response Headers Section
-        var responseHeadersSection: Section = Section()
+        var responseHeadersSection: TableSection = TableSection()
         responseHeadersSection.title = "Response Headers"
         if httpModel?.responseHeaders?.isEmpty ?? true {
             responseHeadersSection.rows.append(emptyRow(text: "No headers received"))
@@ -165,7 +165,7 @@ internal class LogDetailsViewModel {
         }
         
         /// Setup Response Body Section
-        var responseBodySection: Section = Section()
+        var responseBodySection: TableSection = TableSection()
         responseBodySection.title = "Response Body"
         if String(httpModel?.getResponseBody() ?? "").isEmpty {
             responseBodySection.rows.append(emptyRow(text: "No data received"))
@@ -175,7 +175,7 @@ internal class LogDetailsViewModel {
         }
         
         /// Setup Developer Section
-        var developerSection: Section = Section()
+        var developerSection: TableSection = TableSection()
         developerSection.title = "Developer Info"
         developerSection.rows.append(defaultRow(name: "Request time",
                                                 value: httpModel?.requestTime))
@@ -235,7 +235,7 @@ extension LogDetailsViewModel {
 
 // MARK: - Private data accessors
 extension LogDetailsViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         return sections[index]
     }
 

@@ -15,7 +15,7 @@
 
     internal class MenuViewModel {
         // MARK: - Data
-        private var sections: [Section] = []
+        private var sections: [TableSection] = []
 
         // MARK: - Delegate
         weak var delegate: MenuViewModelProtocol?
@@ -124,7 +124,7 @@
             sections.removeAll()
 
             // Setup Device Section
-            var deviceSection: Section = Section()
+            var deviceSection: TableSection = TableSection()
             deviceSection.title = "Device"
             deviceSection.rows.append(headerRow(name: UIDevice.current.name,
                                                 value: UIDevice.current.model,
@@ -145,7 +145,7 @@
                                                showMenu: true))
 
             // Setup Application Section
-            var applicationSection: Section = Section()
+            var applicationSection: TableSection = TableSection()
             applicationSection.title = "Application"
             applicationSection.rows.append(valueRow(name: "Bundle ID",
                                                     value: Bundle.main.bundleIdentifier,
@@ -172,15 +172,16 @@
                                                     icon: nil))
 
             // Setup Networking Section
-            var networkSection: Section = Section()
+            var networkSection: TableSection = TableSection()
             networkSection.title = "Networking"
-            networkSection.rows.append(valueRow(name: "IP Address",
-                                                value: Scyther.logger.ipAddress,
-                                                icon: UIImage(systemImage: "network")))
+//            networkSection.rows.append(valueRow(name: "IP Address",
+//                                                value: Scyther.logger.ipAddress,
+//                                                icon: UIImage(systemImage: "network")))
             networkSection.rows.append(actionRow(name: "Network Logs",
                                                  icon: UIImage(systemImage: "doc.append"),
                                                  actionBlock: { [weak self] in
                                                      self?.delegate?.viewModel(viewModel: self, shouldShowViewController: NetworkLoggerViewController())
+//                HostedViewController(rootView: NetworkLogsView()))
                                                  }))
             networkSection.rows.append(actionRow(name: "Server Configuration",
                                                  icon: UIImage(systemImage: "externaldrive.badge.icloud"),
@@ -194,7 +195,7 @@
                                                  }))
 
             // Setup Environment Section
-            var environmentSection: Section = Section()
+            var environmentSection: TableSection = TableSection()
             environmentSection.title = "Data"
             environmentSection.rows.append(actionRow(name: "Feature Flags",
                                                      icon: UIImage(systemImage: "flag"),
@@ -213,7 +214,7 @@
                                                      }))
 
             // Setup Security Section
-            var securitySection: Section = Section()
+            var securitySection: TableSection = TableSection()
             securitySection.title = "Security"
             securitySection.rows.append(actionRow(name: "Keychain Browser",
                                                   icon: UIImage(systemImage: "key"),
@@ -222,17 +223,17 @@
                                                   }))
 
             // Setup Support Section
-            var systemSection: Section = Section()
+            var systemSection: TableSection = TableSection()
             systemSection.title = "System Tools"
             systemSection.rows.append(actionRow(name: "Location Spoofer",
                                                 icon: UIImage(systemImage: "location.circle"),
                                                 actionBlock: { [weak self] in
-                                                    self?.delegate?.viewModel(viewModel: self, shouldShowViewController: LocationSpooferViewController())
+                                                    self?.delegate?.viewModel(viewModel: self, shouldShowViewController: HostedViewController(rootView: LocationSpooferView()))
                                                 }))
             systemSection.rows.append(emptyRow(text: "More coming soon"))
 
             // Setup Notifications Section
-            var notificationsSection: Section = Section()
+            var notificationsSection: TableSection = TableSection()
             notificationsSection.title = "Notifications"
             notificationsSection.rows.append(actionRow(name: "Notification Logger",
                                                        icon: UIImage(systemImage: "list.bullet"),
@@ -254,7 +255,7 @@
                                                       showMenu: true))
 
             // Setup UI/UX Section
-            var uiUxSection: Section = Section()
+            var uiUxSection: TableSection = TableSection()
             uiUxSection.title = "UI/UX"
             uiUxSection.rows.append(actionRow(name: "Fonts",
                                               icon: UIImage(systemImage: "textformat"),
@@ -281,7 +282,7 @@
             uiUxSection.rows.append(slowAnimationsSwitch)
 
             // Setup Development Section
-            var developmentSection: Section = Section()
+            var developmentSection: TableSection = TableSection()
             developmentSection.title = "Development Tools"
             if Scyther.instance.developerOptions.isEmpty {
                 developmentSection.rows.append(emptyRow(text: "No tools configured"))
@@ -353,7 +354,7 @@
 
 // MARK: - Private data accessors
     extension MenuViewModel {
-        private func section(for index: Int) -> Section? {
+        private func section(for index: Int) -> TableSection? {
             return sections[index]
         }
 

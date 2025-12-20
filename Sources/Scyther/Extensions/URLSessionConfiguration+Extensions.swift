@@ -53,35 +53,35 @@ internal extension URLSessionConfiguration {
     @objc
     class func swizzledDefaultSessionConfiguration() -> URLSessionConfiguration {
         let configuration = swizzledDefaultSessionConfiguration()
-        Logger.enable(true, sessionConfiguration: configuration)
+        NetworkHelper.instance.enable(true, sessionConfiguration: configuration)
         return configuration
     }
 
     @objc
     class func swizzledDefault(withIdentifier identifier: String) -> URLSessionConfiguration {
         let configuration = swizzledDefault(withIdentifier: identifier)
-        Logger.enable(!(configuration.sharedContainerIdentifier?.contains(String.noSwizzle) ?? false), sessionConfiguration: configuration)
+        NetworkHelper.instance.enable(!(configuration.sharedContainerIdentifier?.contains(String.noSwizzle) ?? false), sessionConfiguration: configuration)
         return configuration
     }
 
     @objc
     class func swizzledEphemeralSessionConfiguration() -> URLSessionConfiguration {
         let configuration = swizzledEphemeralSessionConfiguration()
-        Logger.enable(true, sessionConfiguration: configuration)
+        NetworkHelper.instance.enable(true, sessionConfiguration: configuration)
         return configuration
     }
 
     @objc
     class func swizzledBackground(withIdentifier identifier: String) -> URLSessionConfiguration {
         let configuration = swizzledBackground(withIdentifier: identifier)
-        Logger.enable(!(configuration.identifier?.contains(String.noSwizzle) ?? false), sessionConfiguration: configuration)
+        NetworkHelper.instance.enable(!(configuration.identifier?.contains(String.noSwizzle) ?? false), sessionConfiguration: configuration)
         return configuration
     }
 
     @objc
     class func swizzledInit() -> URLSessionConfiguration {
         let configuration = swizzledInit()
-        Logger.enable(true, sessionConfiguration: configuration)
+        NetworkHelper.instance.enable(true, sessionConfiguration: configuration)
         return configuration
     }
 }

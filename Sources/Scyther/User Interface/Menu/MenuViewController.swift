@@ -189,16 +189,3 @@ extension MenuViewController: MenuViewModelProtocol {
         self.navigationController?.pushViewController(viewController, animated: true)
     }
 }
-
-// MARK: - SwiftUI
-public struct MenuView: UIViewControllerRepresentable {
-    public init() { }
-
-    public func makeUIViewController(context: Context) -> some UIViewController {
-        return MenuViewController()
-    }
-
-    public func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {
-        // Intentionally unimplemented
-    }
-}

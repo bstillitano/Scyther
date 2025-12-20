@@ -20,7 +20,7 @@ internal protocol NotitificationTesterProtocol: AnyObject {
 
 internal class NotitifcationTesterViewModel {
     // MARK: - Data
-    private var sections: [Section] = []
+    private var sections: [TableSection] = []
     
     // MARK: - Notification Params
     private var pushTitle: String = "Scyther Notification"
@@ -184,7 +184,7 @@ internal class NotitifcationTesterViewModel {
         sections.removeAll()
 
         //Setup Send Section
-        var sendSection: Section = Section()
+        var sendSection: TableSection = TableSection()
         sendSection.title = "Send a test"
         sendSection.rows.append(valueRow(title: "Title",
                                          text: pushTitle,
@@ -202,7 +202,7 @@ internal class NotitifcationTesterViewModel {
         sendSection.rows.append(sendNotifcation)
 
         //Setup Badge Section
-        var badgeSection: Section = Section()
+        var badgeSection: TableSection = TableSection()
         badgeSection.title = "App badge"
         badgeSection.rows.append(incrementBadge)
         badgeSection.rows.append(decreaseBadge)
@@ -253,7 +253,7 @@ extension NotitifcationTesterViewModel {
 
 // MARK: - Private data accessors
 extension NotitifcationTesterViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         return sections[index]
     }
 

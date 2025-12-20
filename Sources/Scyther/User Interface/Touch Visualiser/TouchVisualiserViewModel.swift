@@ -13,7 +13,7 @@ internal protocol TouchVisualiserViewModelProtocol: AnyObject {
 
 internal class TouchVisualiserViewModel {
     // MARK: - Data
-    private var sections: [Section] = []
+    private var sections: [TableSection] = []
 
     // MARK: - Delegate
     weak var delegate: TouchVisualiserViewModelProtocol?
@@ -85,7 +85,7 @@ internal class TouchVisualiserViewModel {
         sections.removeAll()
 
         //Setup Section
-        var section: Section = Section()
+        var section: TableSection = TableSection()
         section.rows.append(visualiseTouchesSwitch)
         if InterfaceToolkit.instance.visualiseTouches {
             section.rows.append(touchDurationSwitch)
@@ -136,7 +136,7 @@ extension TouchVisualiserViewModel {
 
 // MARK: - Private data accessors
 extension TouchVisualiserViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         return sections[index]
     }
 

@@ -80,7 +80,8 @@ struct LocationPickerView: View {
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 }
             }
-        }.navigationTitle("Custom Location")
+        }
+        .navigationTitle("Custom Location")
             .navigationBarTitleDisplayMode(.inline)
     }
     

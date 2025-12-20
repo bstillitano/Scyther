@@ -15,7 +15,7 @@ internal protocol NotificationLoggerViewModelProtocol: AnyObject {
 
 internal class NotificationLoggerViewModel {
     // MARK: - Data
-    private var sections: [Section] = []
+    private var sections: [TableSection] = []
 
     // MARK: - Delegate
     weak var delegate: NotificationLoggerViewModelProtocol?
@@ -69,7 +69,7 @@ internal class NotificationLoggerViewModel {
 
         //Setup Notification Sections
         for notification: PushNotification in NotificationTester.instance.notifications.sorted(by: { $0.receivedAt ?? Date() > $1.receivedAt ?? Date() }) {
-            var section: Section = Section()
+            var section: TableSection = TableSection()
             section.title = notification.receivedAt?.formatted(format: "dd MMM yyyy h:mm:ss a")
             section.rows.append(defaultRow(name: "Title", value: notification.aps.alert.title))
             section.rows.append(defaultRow(name: "Subtitle", value: notification.aps.alert.subtitle))
@@ -92,7 +92,7 @@ internal class NotificationLoggerViewModel {
         }
         
         //Setup Empty Section
-        var emptySection: Section = Section()
+        var emptySection: TableSection = TableSection()
         emptySection.rows.append(emptyRow(text: "No notifications received"))
         if sections.isEmpty {
             sections.append(emptySection)
@@ -138,7 +138,7 @@ extension NotificationLoggerViewModel {
 
 // MARK: - Private data accessors
 extension NotificationLoggerViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         return sections[index]
     }
 

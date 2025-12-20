@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct ServerConfiguration {
-    public var identifier: String
+public struct ServerConfiguration: Sendable, Identifiable {
+    public var id: String
     public var variables: [String: String] = [:]
 }

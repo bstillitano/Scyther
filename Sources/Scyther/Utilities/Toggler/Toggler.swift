@@ -15,9 +15,9 @@ public final class Toggler {
     static let instance = Toggler()
 
     /**
-     Array of `Toggle` objects representing the flags/toggles that have been set by the client instantiating the `Scyther` library.
+     Array of `FeatureToggle` objects representing the flags/toggles that have been set by the client instantiating the `Scyther` library.
      */
-    internal var toggles: [Toggle] = []
+    internal var toggles: [FeatureToggle] = []
 
     /**
      The `UserDefaults` key that `Toggler` uses to determine whether or not values should be overriden/intercepted.
@@ -31,9 +31,9 @@ public final class Toggler {
     }
 
     /**
-     Getter/Setter for this `Toggle` object's local override. When setting this value it will write to `UserDefaults` using the `defaultsKey` value as the key.
+     Getter/Setter for this `FeatureToggle` object's local override. When setting this value it will write to `UserDefaults` using the `defaultsKey` value as the key.
 
-     - Returns: A bool value representing the whether or not the local value should be used when accessing this `Toggle`.
+     - Returns: A bool value representing the whether or not the local value should be used when accessing this `FeatureToggle`.
      
      - Complexity: O(1)
      */
@@ -47,9 +47,9 @@ public final class Toggler {
     }
 
     /**
-     Getter for a given `Toggle` object's `value`. Must use this getter as `name` is marked `internal` for API purposes.
+     Getter for a given `FeatureToggle` object's `value`. Must use this getter as `name` is marked `internal` for API purposes.
      
-     - Returns: A bool value representing whether or not the local value should be used when accessing this `Toggle`.
+     - Returns: A bool value representing whether or not the local value should be used when accessing this `FeatureToggle`.
      
      - Parameter name: The name of the toggle that the caller is attempting to access the `value` of.
      
@@ -71,9 +71,9 @@ public final class Toggler {
     }
     
     /**
-     Getter for a given `Toggle` object's `localValue`. Must use this getter as `name` is marked `internal` for API purposes.
+     Getter for a given `FeatureToggle` object's `localValue`. Must use this getter as `name` is marked `internal` for API purposes.
      
-     - Returns: A bool value representing the local value for this `Toggle`.
+     - Returns: A bool value representing the local value for this `FeatureToggle`.
      
      - Parameter name: The name of the toggle that the caller is attempting to access the `localValue` of.
      
@@ -90,9 +90,9 @@ public final class Toggler {
     }
     
     /**
-     Getter for a given `Toggle` object's `remoteValue`. Must use this getter as `name` is marked `internal` for API purposes.
+     Getter for a given `FeatureToggle` object's `remoteValue`. Must use this getter as `name` is marked `internal` for API purposes.
      
-     - Returns: A bool value representing the local value for this `Toggle`.
+     - Returns: A bool value representing the local value for this `FeatureToggle`.
      
      - Parameter name: The name of the toggle that the caller is attempting to access the `localValue` of.
      
@@ -109,7 +109,7 @@ public final class Toggler {
     }
 
     /**
-     Setter for a given `Toggle` object's `value`. Must use this setter as `Toggler.init()` is marked `internal` for API purposes. Calling this function will remove all duplicate `Toggle` objects based on the `name` that is passed in.
+     Setter for a given `FeatureToggle` object's `value`. Must use this setter as `Toggler.init()` is marked `internal` for API purposes. Calling this function will remove all duplicate `FeatureToggle` objects based on the `name` that is passed in.
      
      - Parameters:
         - name: The name of the toggle that the caller is attempting to set the `value` of.
@@ -123,18 +123,18 @@ public final class Toggler {
         toggles.removeAll(where: { $0.name == name })
 
         /// Construct & insert toggle into local array
-        let toggle: Toggle = Toggle(name: name, remoteValue: remoteValue, abValue: abValue)
+        let toggle: FeatureToggle = FeatureToggle(name: name, remoteValue: remoteValue, abValue: abValue)
         toggles.append(toggle)
     }
 
     /**
-     Setter for a given `Toggle` object's `localValue`. Must use this setter as `Toggler.init()` is marked `internal` for API purposes.
+     Setter for a given `FeatureToggle` object's `localValue`. Must use this setter as `Toggler.init()` is marked `internal` for API purposes.
      
      - Parameters:
         - name: The name of the toggle that the caller is attempting to set the `value` of.
         - value: The value that the should be set locally for this toggle.
      
-     - Complexity: O(*n*) where *n* is the number of `Toggle` objects inside the `toggles` array that have  the `name`
+     - Complexity: O(*n*) where *n* is the number of `FeatureToggle` objects inside the `toggles` array that have  the `name`
      */
     public func setLocalValue(value: Bool, forToggleWithName name: String) {
         /// Check for toggle in local array
@@ -142,7 +142,7 @@ public final class Toggler {
             return
         }
 
-        /// Set Toggle Value
+        /// Set FeatureToggle Value
         toggle.localValue = value
     }
 }

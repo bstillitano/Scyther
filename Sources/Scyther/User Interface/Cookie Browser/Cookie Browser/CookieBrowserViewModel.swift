@@ -15,7 +15,7 @@ internal protocol CookieBrowserViewModelProtocol: AnyObject {
 
 internal class CookieBrowserViewModel {
     // MARK: - Data
-    private var sections: [Section] = []
+    private var sections: [TableSection] = []
 
     // MARK: - Delegate
     weak var delegate: CookieBrowserViewModelProtocol?
@@ -61,7 +61,7 @@ internal class CookieBrowserViewModel {
         sections.removeAll()
 
         //Setup Cookies Section
-        var coookiesSection: Section = Section()
+        var coookiesSection: TableSection = TableSection()
         coookiesSection.title = "HTTPCookieStorage Cookies"
         for cookie: HTTPCookie in CookieBrowser.instance.cookies {
             coookiesSection.rows.append(subtitleRow(cookie: cookie))
@@ -71,7 +71,7 @@ internal class CookieBrowserViewModel {
         }
         
         //Setup Clear Section
-        var clearSection: Section = Section()
+        var clearSection: TableSection = TableSection()
         clearSection.rows.append(clearAllCookies)
         
         //Setup Data
@@ -124,7 +124,7 @@ extension CookieBrowserViewModel {
 
 // MARK: - Private data accessors
 extension CookieBrowserViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         return sections[index]
     }
 

@@ -2,124 +2,75 @@
 //  ServerConfigurationViewModel.swift
 //  Scyther
 //
-//  Created by Brandon Stillitano on 11/12/20.
+//  Created by Brandon Stillitano on 22/6/2025.
 //
 
-#if !os(macOS)
-import UIKit
+import Foundation
+import ScytherExtensions
 
-internal protocol ServerConfigurationViewModelProtocol: AnyObject {
-    func viewModelShouldReloadData()
-}
+class ServerConfigurationViewModel: ViewModel {
+    @Published var configurations: [ServerConfigurationListItem] = []
+    @Published var variables: [String: String] = [:]
 
-internal class ServerConfigurationViewModel {
-    // MARK: - Data
-    private var sections: [Section] = []
-
-    // MARK: - Delegate
-    weak var delegate: ServerConfigurationViewModelProtocol?
-
-    /// Single checkable row value representing a single environment
-    func checkmarkRow(identifier: String) -> CheckmarkRow {
-        var row: CheckmarkRow = CheckmarkRow()
-        row.text = identifier
-        row.checked = ConfigurationSwitcher.instance.configuration == identifier
-        row.actionBlock = { [weak self] in
-            ConfigurationSwitcher.instance.configuration = identifier
-            Scyther.instance.delegate?.scyther(didSwitchToEnvironment: identifier)
-            self?.prepareObjects()
+    private var searchTerm: String = "" {
+        didSet {
+            Task { await updateData() }
         }
-        return row
     }
 
-    /// Single row representing a single environment variable
-    func environmentVariable(name: String, value: String) -> DefaultRow {
-        let row: DefaultRow = DefaultRow()
-        row.text = name
-        row.detailText = value
+    private var items: [ServerConfiguration] = [] {
+        didSet {
+            Task { await updateData() }
+        }
+    }
 
-        return row
+    override func onFirstAppear() async {
+        await super.onFirstAppear()
+
+        items = await ConfigurationSwitcher.instance.configurations.sorted(by: { $0.id < $1.id })
+    }
+
+    func setSearchTerm(to searchTerm: String) {
+        self.searchTerm = searchTerm
+    }
+
+    private func updateData() async {
+        if searchTerm.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let items = await listItems(from: items)
+            let currentConfiguration = await ConfigurationSwitcher.instance.configuration
+            let currentVariables = configurations.first { $0.id == currentConfiguration }?.variables ?? [:]
+            await MainActor.run {
+                configurations = items
+                variables = currentVariables
+            }
+        } else {
+            let predicate = searchTerm.lowercased()
+            let filteredItems = items.filter { item in
+                item.id.description.lowercased().contains(predicate) ||
+                    item.variables.keys.filter { $0.lowercased().contains(predicate) }.isEmpty == false ||
+                    item.variables.values.filter { $0.lowercased().contains(predicate) }.isEmpty == false
+            }
+            let items = await listItems(from: filteredItems)
+            await MainActor.run {
+                configurations = items
+            }
+        }
+    }
+
+    private func listItems(from items: [ServerConfiguration]) async -> [ServerConfigurationListItem] {
+        let currentConfiguration = await ConfigurationSwitcher.instance.configuration
+        return items.map { configuration in
+            ServerConfigurationListItem(
+                id: configuration.id,
+                name: configuration.id,
+                isChecked: configuration.id == currentConfiguration,
+                variables: configuration.variables
+            )
+        }
     }
     
-    /// Empty row that contains text in a 'disabled' style
-    func emptyRow(text: String) -> EmptyRow {
-        var row: EmptyRow = EmptyRow()
-        row.text = text
-
-        return row
-    }
-
-    func prepareObjects() {
-        //Clear Data
-        sections.removeAll()
-
-        //Setup Environments Section
-        var environmentSection: Section = Section()
-        environmentSection.title = "Environment"
-        environmentSection.rows = ConfigurationSwitcher.instance.configurations.sorted(by: { $0.identifier < $1.identifier }).map({ checkmarkRow(identifier: $0.identifier) })
-        if environmentSection.rows.isEmpty {
-            environmentSection.rows.append(emptyRow(text: "No environments configured"))
-        }
-
-        //Setup Variables Section
-        var variablesSection: Section = Section()
-        variablesSection.title = "Variables"
-        variablesSection.rows = ConfigurationSwitcher.instance.environmentVariables.map({ environmentVariable(name: $0.key, value: $0.value) })
-        if variablesSection.rows.isEmpty {
-            variablesSection.rows.append(emptyRow(text: "No variables configured"))
-        }
-
-        //Setup Data
-        sections.append(environmentSection)
-        sections.append(variablesSection)
-
-        //Call Delegate
-        delegate?.viewModelShouldReloadData()
+    func didSelectConfiguration(_ configuration: ServerConfigurationListItem) async {
+        await ConfigurationSwitcher.instance.setConfiguration(configuration.id)
+        await updateData()
     }
 }
-
-// MARK: - Public data accessors
-extension ServerConfigurationViewModel {
-    var title: String {
-        return "Server Configuration"
-    }
-
-    var numberOfSections: Int {
-        return sections.count
-    }
-
-    func title(forSection index: Int) -> String? {
-        return sections[index].title
-    }
-
-    func numberOfRows(inSection index: Int) -> Int {
-        return rows(inSection: index)?.count ?? 0
-    }
-
-    internal func row(at indexPath: IndexPath) -> Row? {
-        guard let rows = rows(inSection: indexPath.section) else { return nil }
-        guard rows.indices.contains(indexPath.row) else { return nil }
-        return rows[indexPath.row]
-    }
-
-    func title(for row: Row, indexPath: IndexPath) -> String? {
-        return row.text
-    }
-
-    func performAction(for row: Row, indexPath: IndexPath) {
-        row.actionBlock?()
-    }
-}
-
-// MARK: - Private data accessors
-extension ServerConfigurationViewModel {
-    private func section(for index: Int) -> Section? {
-        return sections[index]
-    }
-
-    private func rows(inSection index: Int) -> [Row]? {
-        guard let section = section(for: index) else { return nil }
-        return section.rows.filter { !$0.isHidden }
-    }
-}
-#endif

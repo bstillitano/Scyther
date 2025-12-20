@@ -8,15 +8,15 @@
 import Foundation
 
 /// `ConfigurationSwitcher` is a singleton that allows for environment/configuration switching when working with staging/production environments. Selections are persistent across sessions and can be updated on the fly.
-public class ConfigurationSwitcher {
-    /// Private Init to Stop re-initialisation and allow singleton creation.
-    private init() { }
-
+public actor ConfigurationSwitcher {
     /// An initialised, shared instance of the `ConfigurationSwitcher` class.
     static let instance = ConfigurationSwitcher()
 
+    /// Private Init to Stop re-initialisation and allow singleton creation.
+    private init() {}
+
     /// Array of `ServerConfiguration` objects representing the environments that have been set by the client instantiating the `Scyther` library.
-    internal var configurations: [ServerConfiguration] = [] {
+    var configurations: [ServerConfiguration] = [] {
         didSet {
             /// Set default value
             guard configuration.isEmpty else {
@@ -25,7 +25,7 @@ public class ConfigurationSwitcher {
             guard let newConfig = configurations.first else {
                 return
             }
-            configuration = newConfig.identifier
+            configuration = newConfig.id
         }
     }
     
@@ -36,7 +36,7 @@ public class ConfigurationSwitcher {
      
      - Complexity: O(1)
      */
-    internal var defaultsKey: String {
+    var defaultsKey: String {
         return "Scyther_configuration_switcher_identity"
     }
 
@@ -56,6 +56,11 @@ public class ConfigurationSwitcher {
         }
     }
     
+    public func setConfiguration(_ configuration: String) {
+        self.configuration = configuration
+        Scyther.instance.delegate?.scyther(didSwitchToEnvironment: configuration)
+    }
+    
     /**
      Getter for the current `ServerConfiguration` environment variables.
      
@@ -64,7 +69,7 @@ public class ConfigurationSwitcher {
      - Complexity: O(1)
      */
     public var environmentVariables: [String: String] {
-        return configurations.first(where: { $0.identifier == configuration })?.variables ?? [:]
+        return configurations.first(where: { $0.id == configuration })?.variables ?? [:]
     }
     
     /**
@@ -78,11 +83,11 @@ public class ConfigurationSwitcher {
      */
     public func configureEnvironment(withIdentifier identifier: String, variables: [String: String] = [:]) {
         /// Remove Duplicate Toggles
-        configurations.removeAll(where: { $0.identifier == identifier })
+        configurations.removeAll(where: { $0.id == identifier })
 
         /// Construct & insert environment into local array
-        let environment: ServerConfiguration = ServerConfiguration(identifier: identifier,
-                                                                   variables: variables)
+        let environment = ServerConfiguration(id: identifier,
+                                              variables: variables)
         configurations.append(environment)
     }
 }

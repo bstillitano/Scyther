@@ -121,7 +121,7 @@ internal class NetworkLoggerViewController: UIViewController {
 
 extension NetworkLoggerViewController {
     @objc private func clearLogs() {
-        LoggerHTTPModelManager.sharedInstance.clear()
+        NetworkLogger.instance.clear()
     }
 }
 

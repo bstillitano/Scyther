@@ -15,18 +15,18 @@ internal protocol NetworkLoggerViewModelProtocol: AnyObject {
 
 internal class NetworkLoggerViewModel {
     // MARK: - Data
-    private var sections: [Section] = []
+    private var sections: [TableSection] = []
 
     // MARK: - Delegate
     weak var delegate: NetworkLoggerViewModelProtocol?
 
     /// Single row representing a network request
-    func networkRow(httpModel: LoggerHTTPModel) -> NetworkLogRow {
+    func networkRow(httpModel: HTTPRequest) -> NetworkLogRow {
         let row: NetworkLogRow = NetworkLogRow()
         row.httpMethod = httpModel.requestMethod
-        row.httpStatusCode = httpModel.responseStatus
+        row.httpStatusCode = httpModel.responseCode
         row.httpRequestTime = String(format: "%.0fms", httpModel.requestDuration ?? 0)
-        row.httpStatusColor = httpStatusColor(for: httpModel.responseStatus ?? 0)
+        row.httpStatusColor = httpStatusColor(for: httpModel.responseCode ?? 0)
         row.httpRequestURL = httpModel.requestURL
         row.httpModel = httpModel
         row.accessoryType = .disclosureIndicator
@@ -62,19 +62,19 @@ internal class NetworkLoggerViewModel {
         sections.removeAll()
 
         /// Setup Logs Section
-        var logsSection: Section = Section()
+        var logsSection: TableSection = TableSection()
         logsSection.title = nil
         
         /// Check for Filtered Data
-        if searchString != nil && !(searchString?.isEmpty ?? true) {
-            for log in LoggerHTTPModelManager.sharedInstance.models.filter( { ($0.requestURL?.lowercased().contains(searchString?.lowercased() ?? "") ?? false) || ($0.responseStatus ?? 0 == Int(searchString ?? "") ?? 0) } ) {
-                logsSection.rows.append(networkRow(httpModel: log))
-            }
-        } else {
-            for log in LoggerHTTPModelManager.sharedInstance.models {
-                logsSection.rows.append(networkRow(httpModel: log))
-            }
-        }
+//        if searchString != nil && !(searchString?.isEmpty ?? true) {
+//            for log in NetworkLogger.instance.models.filter( { ($0.requestURL?.lowercased().contains(searchString?.lowercased() ?? "") ?? false) || ($0.responseCode ?? 0 == Int(searchString ?? "") ?? 0) } ) {
+//                logsSection.rows.append(networkRow(httpModel: log))
+//            }
+//        } else {
+//            for log in NetworkLogger.instance.models {
+//                logsSection.rows.append(networkRow(httpModel: log))
+//            }
+//        }
 
         /// Setup Data
         sections.append(logsSection)
@@ -119,7 +119,7 @@ extension NetworkLoggerViewModel {
 
 // MARK: - Private data accessors
 extension NetworkLoggerViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         guard sections.indices.contains(index) else {
             return nil
         }

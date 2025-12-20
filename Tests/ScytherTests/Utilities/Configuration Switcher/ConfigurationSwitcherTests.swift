@@ -33,6 +33,6 @@ class ConfigurationSwitcherTests: XCTestCase {
     func testConfigureDuplicateEnvironmentNoVariables() {
         ConfigurationSwitcher.instance.configureEnvironment(withIdentifier: "UNIT_TEST_DUPLICATE")
         ConfigurationSwitcher.instance.configureEnvironment(withIdentifier: "UNIT_TEST_DUPLICATE")
-        XCTAssertTrue(ConfigurationSwitcher.instance.configurations.filter( { $0.identifier == "UNIT_TEST_DUPLICATE" }).count == 1)
+        XCTAssertTrue(ConfigurationSwitcher.instance.configurations.filter( { $0.id == "UNIT_TEST_DUPLICATE" }).count == 1)
     }
 }

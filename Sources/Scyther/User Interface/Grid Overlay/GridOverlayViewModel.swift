@@ -14,7 +14,7 @@ internal protocol GridOverlayViewModelProtocol: AnyObject {
 
 internal class GridOverlayViewModel {
     // MARK: - Data
-    private var sections: [Section] = []
+    private var sections: [TableSection] = []
 
     // MARK: - Delegate
     weak var delegate: GridOverlayViewModelProtocol?
@@ -87,17 +87,17 @@ internal class GridOverlayViewModel {
         sections.removeAll()
 
         //Setup Overlay Section
-        var overlaySection: Section = Section()
+        var overlaySection: TableSection = TableSection()
         overlaySection.title = nil
         overlaySection.rows = [enableGrid]
         
         //Setup Options Section
-        var optionsSection: Section = Section()
+        var optionsSection: TableSection = TableSection()
         optionsSection.title = "Grid Options"
         optionsSection.rows = [sizeSlider, opacitySlider]
         
         //Setup Colors Section
-        var colorSection: Section = Section()
+        var colorSection: TableSection = TableSection()
         colorSection.title = "Grid Color"
         colorSection.rows = GridOverlayColorScheme.allCases.map( { colorRow(color: $0) })
 
@@ -148,7 +148,7 @@ extension GridOverlayViewModel {
 
 // MARK: - Private data accessors
 extension GridOverlayViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         return sections[index]
     }
 

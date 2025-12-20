@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Section {
+struct TableSection {
     var title: String?
     var footer: String?
     var rows: [Row] = []

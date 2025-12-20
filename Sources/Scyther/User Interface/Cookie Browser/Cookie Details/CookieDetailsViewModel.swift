@@ -14,7 +14,7 @@ internal protocol CookieDetailsViewModelProtocol: AnyObject {
 
 internal class CookieDetailsViewModel {
     // MARK: - Data
-    private var sections: [Section] = []
+    private var sections: [TableSection] = []
     internal var cookie: HTTPCookie? = nil {
         didSet {
             prepareObjects()
@@ -54,7 +54,7 @@ internal class CookieDetailsViewModel {
         sections.removeAll()
 
         /// Setup Key/Values Section
-        var keyValuesSection: Section = Section()
+        var keyValuesSection: TableSection = TableSection()
         keyValuesSection.title = "Key/Values"
         keyValuesSection.rows.append(cookieRow(key: "Name",
                                                value: cookie?.name))
@@ -85,7 +85,7 @@ internal class CookieDetailsViewModel {
         
         
         /// Setup Properties Section
-        var propertiesSection: Section = Section()
+        var propertiesSection: TableSection = TableSection()
         propertiesSection.title = "Properties"
         for value in cookie?.properties ?? [:] {
             propertiesSection.rows.append(cookieRow(key: value.key.rawValue,
@@ -139,7 +139,7 @@ extension CookieDetailsViewModel {
 
 // MARK: - Private data accessors
 extension CookieDetailsViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         return sections[index]
     }
 

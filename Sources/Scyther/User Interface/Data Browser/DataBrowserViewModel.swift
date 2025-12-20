@@ -15,7 +15,7 @@ internal protocol DataBrowserViewModelProtocol: AnyObject {
 
 internal class DataBrowserViewModel {
     // MARK: - Data
-    private var sections: [Section] = []
+    private var sections: [TableSection] = []
     internal var data: [String: [String: Any]] = [:] {
         didSet {
             prepareObjects()
@@ -59,7 +59,7 @@ internal class DataBrowserViewModel {
 
         //Setup Sections
         for value in data {
-            var section: Section = Section()
+            var section: TableSection = TableSection()
             section.title = value.key
             let dataRows: [Row] = value.value.map { object in
                 let dataRow: DataRow = DataRow(title: object.key, from: object.value)
@@ -164,7 +164,7 @@ extension DataBrowserViewModel {
 
 // MARK: - Private data accessors
 extension DataBrowserViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         return sections[index]
     }
 

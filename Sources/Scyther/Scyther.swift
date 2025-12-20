@@ -7,6 +7,7 @@
 
 #if !os(macOS)
 import UIKit
+import SwiftUI
 
 /// Optional delegate that can be implemented to allow an app/caller to know that certain actions have been performed. This `protocol`is not required to be implemented in order for Scyther to work properly, it should be used primarily as a UI convenience; i.e. When switching environments, show a `UIAlertController`
 public protocol ScytherDelegate: AnyObject {
@@ -44,8 +45,8 @@ public class Scyther {
     /// `ConfigurationSwitcher` utility class. Used for local toggle/feature flag overrides.
     public static let configSwitcher: ConfigurationSwitcher = ConfigurationSwitcher.instance
     
-    /// `Logger` utility class. Used for local network logging.
-    public static let logger: Logger = Logger.instance
+    /// `NetworkHelper` utility class. Used for local network logging.
+    public static let logger: NetworkHelper = NetworkHelper.instance
     
     /// `NotificationTester` utility class. Used for testing push notification functionality.
     public static let notificationTester: NotificationTester = NotificationTester.instance
@@ -75,15 +76,8 @@ public class Scyther {
         /// Set data
         self.started = true
         
-        /// Register `URLProtocol` class for network logging to intercept requests. Swizzling required because libraries like
-        /// Alamofire don't use the shared NSURLSession instance but instead use their own instance.
-        URLSessionConfiguration.swizzleDefaultSessionConfiguration()
-        Logger.enable(true)
-        
-        /// Get IP Address and store it in singleton instance for display on the menu
-        Logger.getIPAddress { (ipAddress) in
-            Logger.instance.ipAddress = ipAddress
-        }
+        // Setup Networking Tools
+        NetworkHelper.instance.start()
         
         /// Sets up the interface toolkit plugins
         InterfaceToolkit.instance.start()
@@ -114,7 +108,8 @@ public class Scyther {
         let viewModel = MenuViewModel()
         let menuViewController: MenuViewController = MenuViewController()
         menuViewController.configure(with: viewModel)
-        let navigationController: UINavigationController = UINavigationController(rootViewController: menuViewController)
+        let menu = UIHostingController(rootView: MenuView())
+        let navigationController: UINavigationController = UINavigationController(rootViewController: menu)
         
         /// Set data
         Scyther.instance.presented = true

@@ -14,7 +14,7 @@ internal protocol EnvironmentVariablesViewModelProtocol: AnyObject {
 
 internal class EnvironmentVariablesViewModel {
     // MARK: - Data
-    private var sections: [Section] = []
+    private var sections: [TableSection] = []
 
     // MARK: - Delegate
     weak var delegate: EnvironmentVariablesViewModelProtocol?
@@ -23,12 +23,12 @@ internal class EnvironmentVariablesViewModel {
     func checkmarkRow(identifier: String) -> CheckmarkRow {
         var row: CheckmarkRow = CheckmarkRow()
         row.text = identifier
-        row.checked = ConfigurationSwitcher.instance.configuration == identifier
-        row.actionBlock = { [weak self] in
-            ConfigurationSwitcher.instance.configuration = identifier
-            Scyther.instance.delegate?.scyther(didSwitchToEnvironment: identifier)
-            self?.prepareObjects()
-        }
+//        row.checked = ConfigurationSwitcher.instance.configuration == identifier
+//        row.actionBlock = { [weak self] in
+//            ConfigurationSwitcher.instance.configuration = identifier
+//            Scyther.instance.delegate?.scyther(didSwitchToEnvironment: identifier)
+//            self?.prepareObjects()
+//        }
         return row
     }
 
@@ -53,15 +53,15 @@ internal class EnvironmentVariablesViewModel {
         sections.removeAll()
 
         // Setup Static Section
-        var staticSection: Section = Section()
-        staticSection.title = "\(ConfigurationSwitcher.instance.configuration) variables"
-        staticSection.rows = ConfigurationSwitcher.instance.environmentVariables.map({ environmentVariable(name: $0.key, value: $0.value) })
+        var staticSection: TableSection = TableSection()
+//        staticSection.title = "\(ConfigurationSwitcher.instance.configuration) variables"
+//        staticSection.rows = ConfigurationSwitcher.instance.environmentVariables.map({ environmentVariable(name: $0.key, value: $0.value) })
         if staticSection.rows.isEmpty {
             staticSection.rows.append(emptyRow(text: "No variables configured"))
         }
 
         // Setup Custom Section
-        var variablesSection: Section = Section()
+        var variablesSection: TableSection = TableSection()
         variablesSection.title = "Custom Key/Values"
         variablesSection.rows = Scyther.instance.customEnvironmentVariables.map({ environmentVariable(name: $0.key, value: $0.value) })
         if variablesSection.rows.isEmpty {
@@ -112,7 +112,7 @@ extension EnvironmentVariablesViewModel {
 
 // MARK: - Private data accessors
 extension EnvironmentVariablesViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         return sections[index]
     }
 

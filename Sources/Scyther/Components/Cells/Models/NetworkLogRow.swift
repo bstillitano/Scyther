@@ -39,6 +39,6 @@ class NetworkLogRow: Row {
     var httpRequestURL: String?
     
     /// The `HTTPModel` that represents this request
-    var httpModel: LoggerHTTPModel?
+    var httpModel: HTTPRequest?
 }
 #endif

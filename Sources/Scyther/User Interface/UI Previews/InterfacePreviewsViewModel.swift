@@ -14,7 +14,7 @@ internal protocol InterfacePreviewsViewModelProtocol: AnyObject {
 
 internal class InterfacePreviewsViewModel: NSObject {
     // MARK: - Data
-    private var sections: [Section] = []
+    private var sections: [TableSection] = []
 
     // MARK: - Delegate
     weak var delegate: InterfacePreviewsViewModelProtocol?
@@ -34,7 +34,7 @@ internal class InterfacePreviewsViewModel: NSObject {
         sections.removeAll()
 
         //Setup Preview Views Section
-        var section: Section = Section()
+        var section: TableSection = TableSection()
         section.title = nil
         guard let classes = classesConformingToProtocol(ScytherPreviewable.self) as? [ScytherPreviewable.Type] else {
             delegate?.viewModelShouldReloadData()
@@ -87,7 +87,7 @@ extension InterfacePreviewsViewModel {
 
 // MARK: - Private data accessors
 extension InterfacePreviewsViewModel {
-    private func section(for index: Int) -> Section? {
+    private func section(for index: Int) -> TableSection? {
         return sections[index]
     }
 

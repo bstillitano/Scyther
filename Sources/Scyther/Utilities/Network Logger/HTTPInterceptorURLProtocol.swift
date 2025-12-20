@@ -7,17 +7,16 @@
 
 import Foundation
 
-@objc
-open class LoggerProtocol: URLProtocol {
-    private static let scytherInternalKey = "io.stillitano.ScytherInternal"
+internal let internalNetworkRequestKey = "Scyther_Internal_Network_Request"
 
+open class HTTPInterceptorURLProtocol: URLProtocol {
     private lazy var session: URLSession = { [unowned self] in
         return URLSession(configuration: .default,
                           delegate: self,
                           delegateQueue: nil)
     }()
 
-    private let model: LoggerHTTPModel = LoggerHTTPModel()
+    private let model: HTTPRequest = .init()
     private var response: URLResponse?
     private var responseData: NSMutableData?
 
@@ -37,16 +36,16 @@ open class LoggerProtocol: URLProtocol {
         }
 
         /// Verify that the URL being requested is not a URL that is from our internal  `ScytherProtocol`
-        guard URLProtocol.property(forKey: LoggerProtocol.scytherInternalKey, in: request) == nil else {
+        guard URLProtocol.property(forKey: internalNetworkRequestKey, in: request) == nil else {
             return false
         }
 
         /// Verify that the URL is an `http` and/or `https` URL
-        guard let url = request.url, (url.absoluteString.hasPrefix("http") || url.absoluteString.hasPrefix("https")) else {
+        guard let url = request.url, url.absoluteString.hasPrefix("http") || url.absoluteString.hasPrefix("https") else {
             return false
         }
 
-        /// Confirm that the URL is not a URL that should be ignored by the `Logger` utility class.
+        /// Confirm that the URL is not a URL that should be ignored by the `NetworkHelper` utility class.
         let absoluteString = url.absoluteString
         guard !Scyther.logger.ignoredURLs.contains(where: { absoluteString.hasPrefix($0) }) else {
             return false
@@ -63,7 +62,7 @@ open class LoggerProtocol: URLProtocol {
         guard let mutableRequest = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest else {
             return
         }
-        URLProtocol.setProperty(true, forKey: LoggerProtocol.scytherInternalKey, in: mutableRequest)
+        URLProtocol.setProperty(true, forKey: internalNetworkRequestKey, in: mutableRequest)
         session.dataTask(with: mutableRequest as URLRequest).resume()
     }
 
@@ -78,7 +77,7 @@ open class LoggerProtocol: URLProtocol {
     }
 }
 
-extension LoggerProtocol: URLSessionDataDelegate {
+extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         responseData?.append(data)
 
@@ -87,7 +86,7 @@ extension LoggerProtocol: URLSessionDataDelegate {
 
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         self.response = response
-        self.responseData = NSMutableData()
+        responseData = NSMutableData()
 
         client?.urlProtocol(self,
                             didReceive: response,
@@ -119,16 +118,17 @@ extension LoggerProtocol: URLSessionDataDelegate {
             model.saveResponse(response, data: data)
         }
 
-        LoggerHTTPModelManager.sharedInstance.add(model)
-        NotificationCenter.default.post(name: .LoggerReloadData, object: nil)
+        Task {
+            await NetworkLogger.instance.add(model)
+            NotificationCenter.default.post(name: .LoggerReloadData, object: nil)
+        }
     }
 
     public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
-
         let updatedRequest: URLRequest
-        if URLProtocol.property(forKey: LoggerProtocol.scytherInternalKey, in: request) != nil {
+        if URLProtocol.property(forKey: internalNetworkRequestKey, in: request) != nil {
             let mutableRequest = (request as NSURLRequest).mutableCopy() as! NSMutableURLRequest
-            URLProtocol.removeProperty(forKey: LoggerProtocol.scytherInternalKey, in: mutableRequest)
+            URLProtocol.removeProperty(forKey: internalNetworkRequestKey, in: mutableRequest)
 
             updatedRequest = mutableRequest as URLRequest
         } else {
