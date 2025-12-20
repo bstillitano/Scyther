@@ -37,7 +37,6 @@ public class NotificationTester {
     /// Schedules a local notification that will be delivered in a given time from now
     /// - Parameters:
     ///   - title: Title of the notification that will be sent
-    
     ///   - body: Body/Description of the notification that will be sent
     ///   - withSound: Boolean value representing whether or not a sound should be played
     ///   - delay: Time in seconds until this notitifcaiton should be fired (default is 2 seconds)
@@ -59,13 +58,44 @@ public class NotificationTester {
         //Setup Trigger
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: delay,
                                                         repeats: repeats)
-        
+
         //Schedule Notification
         let identifier = "Local_Scyther_Notification_\(Int.random(in: 0...99999))"
         let request = UNNotificationRequest(identifier: identifier,
                                             content: content,
                                             trigger: trigger)
         notificationCenter.add(request, withCompletionHandler: nil)
+
+        //Log locally scheduled notification
+        logLocalNotification(title: title, body: body, sound: withSound, badge: content.badge as? Int)
+    }
+
+    /// Logs a locally scheduled notification so it appears in the notification logger
+    private func logLocalNotification(title: String, body: String, sound: Bool, badge: Int?) {
+        var notificationApsAlert = PushNotificationAPSAlert()
+        notificationApsAlert.title = title
+        notificationApsAlert.body = body
+
+        var notificationAps = PushNotificationAPS()
+        notificationAps.alert = notificationApsAlert
+        notificationAps.sound = sound ? "default" : nil
+        notificationAps.badge = badge
+
+        var notification = PushNotification()
+        notification.receivedAt = Date()
+        notification.aps = notificationAps
+        notification.additionalData = ["source": "Scyther Local Notification"]
+        notification.rawPayload = [
+            "aps": [
+                "alert": ["title": title, "body": body],
+                "sound": sound ? "default" : nil,
+                "badge": badge as Any
+            ],
+            "source": "Scyther Local Notification"
+        ]
+
+        notifications.append(notification)
+        NotificationCenter.default.post(name: .NotificationLoggerLoggedData, object: nil)
     }
     
     /// Takes a `userInfo` object and casts it to a `PushNotification` object.

@@ -13,45 +13,131 @@ struct NotificationTesterView: View {
 
     var body: some View {
         List {
-            Section("Send a test") {
-                LabeledContent("Title", value: viewModel.pushTitle)
-                LabeledContent("Body", value: viewModel.pushBody)
-                LabeledContent("Payload", value: viewModel.pushPayload ?? "None")
+            Section {
+                HStack {
+                    Text("Permission Status")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(viewModel.permissionStatusText)
+                        .foregroundStyle(viewModel.permissionStatusColor)
+                }
 
+                if viewModel.authorizationStatus == .notDetermined {
+                    Button("Request Permission") {
+                        viewModel.requestPermission()
+                    }
+                } else if viewModel.authorizationStatus == .denied {
+                    Button("Open Settings") {
+                        viewModel.openSettings()
+                    }
+                }
+            } header: {
+                Text("Push Notifications")
+            } footer: {
+                if viewModel.authorizationStatus == .denied {
+                    Text("Permission was denied. You can enable notifications in Settings.")
+                } else if viewModel.authorizationStatus == .notDetermined {
+                    Text("Tap to request permission to send notifications.")
+                }
+            }
+
+            Section("Notification Content") {
+                HStack {
+                    Text("Title")
+                    TextField("Title", text: $viewModel.pushTitle)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                }
+                HStack {
+                    Text("Body")
+                    TextField("Body", text: $viewModel.pushBody)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                }
+                HStack {
+                    Text("Payload")
+                    TextField("Optional JSON", text: Binding(
+                        get: { viewModel.pushPayload ?? "" },
+                        set: { viewModel.pushPayload = $0.isEmpty ? nil : $0 }
+                    ))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+                }
+            }
+
+            Section("Options") {
                 Toggle("Play sound", isOn: $viewModel.playSound)
                 Toggle("Repeat", isOn: $viewModel.repeatNotification)
                 Toggle("Delay (\(viewModel.repeatNotification ? "60s" : "10s"))", isOn: $viewModel.delay)
                     .disabled(viewModel.repeatNotification)
                 Toggle("Increment app badge", isOn: $viewModel.increaseBadge)
+            }
 
+            Section {
                 Button("Send push notification") {
                     viewModel.sendNotification()
                 }
             }
 
-            Section("App badge") {
-                Button("Increment app badge") {
-                    viewModel.incrementBadge()
-                }
+            Section("App Badge") {
+                Stepper("Badge Count: \(viewModel.badgeCount)", value: $viewModel.badgeCount, in: 0...999)
 
-                Button("Decrease app badge") {
-                    viewModel.decreaseBadge()
-                }
-
-                Button("Clear app badge") {
+                Button("Clear Badge & Notifications") {
                     viewModel.clearBadge()
                 }
+            }
 
-                Button("Cancel scheduled notifications") {
+            Section {
+                if viewModel.scheduledNotifications.isEmpty {
+                    Text("No scheduled notifications")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(viewModel.scheduledNotifications) { notification in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(notification.title)
+                                .font(.headline)
+                            Text(notification.body)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Text(notification.triggerDescription)
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+
+                Button("Cancel All Scheduled") {
                     viewModel.cancelPending()
                 }
+                .foregroundStyle(.red)
+            } header: {
+                Text("Scheduled Notifications")
             }
         }
         .navigationTitle("Notification Tester")
+        .onFirstAppear {
+            await viewModel.onAppear()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            Task { await viewModel.refreshScheduledNotifications() }
+        }
     }
 }
 
+struct ScheduledNotificationItem: Identifiable {
+    let id: String
+    let title: String
+    let body: String
+    let triggerDescription: String
+}
+
 class NotificationTesterSwiftUIViewModel: ViewModel {
+    @Published var authorizationStatus: UNAuthorizationStatus = .notDetermined
+    @Published var badgeCount: Int = 0 {
+        didSet {
+            UIApplication.shared.applicationIconBadgeNumber = badgeCount
+        }
+    }
     @Published var pushTitle: String = "Scyther Notification"
     @Published var pushBody: String = "This is a dummy notification powered by Scyther."
     @Published var pushPayload: String? = nil
@@ -65,6 +151,101 @@ class NotificationTesterSwiftUIViewModel: ViewModel {
         }
     }
     @Published var increaseBadge: Bool = true
+    @Published var scheduledNotifications: [ScheduledNotificationItem] = []
+
+    var permissionStatusText: String {
+        switch authorizationStatus {
+        case .notDetermined:
+            return "Not Determined"
+        case .denied:
+            return "Denied"
+        case .authorized:
+            return "Authorized"
+        case .provisional:
+            return "Provisional"
+        case .ephemeral:
+            return "Ephemeral"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+
+    var permissionStatusColor: Color {
+        switch authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            return .green
+        case .denied:
+            return .red
+        case .notDetermined:
+            return .secondary
+        @unknown default:
+            return .secondary
+        }
+    }
+
+    override func onAppear() async {
+        await super.onAppear()
+        await checkAuthorizationStatus()
+        await refreshScheduledNotifications()
+        await MainActor.run {
+            badgeCount = UIApplication.shared.applicationIconBadgeNumber
+        }
+    }
+
+    @MainActor
+    func refreshScheduledNotifications() async {
+        let requests = await UNUserNotificationCenter.current().pendingNotificationRequests()
+        scheduledNotifications = requests.map { request in
+            let title = request.content.title.isEmpty ? "(No title)" : request.content.title
+            let body = request.content.body.isEmpty ? "(No body)" : request.content.body
+
+            var triggerDescription = "Unknown trigger"
+            if let trigger = request.trigger as? UNTimeIntervalNotificationTrigger {
+                let timeLeft = trigger.nextTriggerDate().map { date in
+                    let interval = date.timeIntervalSinceNow
+                    if interval > 0 {
+                        return "Fires in \(Int(interval))s"
+                    } else {
+                        return "Pending"
+                    }
+                } ?? "Pending"
+                triggerDescription = trigger.repeats ? "\(timeLeft) (repeats)" : timeLeft
+            } else if let trigger = request.trigger as? UNCalendarNotificationTrigger {
+                if let date = trigger.nextTriggerDate() {
+                    triggerDescription = "Fires at \(date.formatted(date: .omitted, time: .shortened))"
+                }
+            }
+
+            return ScheduledNotificationItem(
+                id: request.identifier,
+                title: title,
+                body: body,
+                triggerDescription: triggerDescription
+            )
+        }
+    }
+
+    @MainActor
+    func checkAuthorizationStatus() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        authorizationStatus = settings.authorizationStatus
+    }
+
+    @MainActor
+    func requestPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, _ in
+            Task { @MainActor in
+                await self?.checkAuthorizationStatus()
+            }
+        }
+    }
+
+    @MainActor
+    func openSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+    }
 
     @MainActor
     func sendNotification() {
@@ -77,29 +258,23 @@ class NotificationTesterSwiftUIViewModel: ViewModel {
             withRepeat: repeatNotification,
             andIncreaseBadge: increaseBadge
         )
-    }
-
-    @MainActor
-    func incrementBadge() {
-        let badgeCount = UIApplication.shared.applicationIconBadgeNumber
-        UIApplication.shared.applicationIconBadgeNumber = badgeCount + 1
-    }
-
-    @MainActor
-    func decreaseBadge() {
-        let badgeCount = UIApplication.shared.applicationIconBadgeNumber
-        UIApplication.shared.applicationIconBadgeNumber = max(0, badgeCount - 1)
+        Task {
+            await refreshScheduledNotifications()
+        }
     }
 
     @MainActor
     func clearBadge() {
-        UIApplication.shared.applicationIconBadgeNumber = 0
+        badgeCount = 0
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
     }
 
     @MainActor
     func cancelPending() {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        Task {
+            await refreshScheduledNotifications()
+        }
     }
 }
 

@@ -10,7 +10,7 @@ import MapKit
 import SwiftUI
 
 struct LocationSpooferView: View {
-    @State private var isEnabled: Bool = false
+    @State private var isEnabled: Bool = LocationSpoofer.instance.spoofingEnabled
     @State private var region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: Location.sydney.latitude, longitude: Location.sydney.longitude), span: MKCoordinateSpan(latitudeDelta: 0.7, longitudeDelta: 0.7))
     @State private var longitude: String = ""
     @State private var latitude: String = ""
@@ -18,6 +18,8 @@ struct LocationSpooferView: View {
     private var longitudePublisher = PassthroughSubject<String, Never>()
     @Environment(\.presentationMode) var presentationMode
     @State private var presetType: LocationSpooferPresetType = .city
+    @State private var selectedLocation: Location?
+    @State private var selectedRoute: Route?
     
     var body: some View {
         List {
@@ -55,6 +57,9 @@ struct LocationSpooferView: View {
             setLatitude(newValue)
         }.onReceive(longitudePublisher.debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)) { newValue in
             setLongitude(newValue)
+        }
+        .onChange(of: isEnabled) { newValue in
+            LocationSpoofer.instance.spoofingEnabled = newValue
         }
         .navigationTitle("Location Spoofer")
     }
@@ -97,31 +102,39 @@ struct LocationSpooferView: View {
     
     private var citiesContent: some View {
         ForEach(LocationSpooferPresets.allCases.filter { $0.type == .city }, id: \.self) { value in
-            Button {
-                
-            } label: {
-                HStack {
-                    Text(value.location!.name)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            LabeledContent {
+                if selectedLocation == value.location {
                     Image(systemName: "checkmark")
+                        .foregroundStyle(Color.accentColor)
                 }
+            } label: {
+                Text(value.location!.name)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard let location = value.location else { return }
+                selectLocation(location)
             }
         }
     }
-    
+
     private var routesContent: some View {
         ForEach(LocationSpooferPresets.allCases.filter { $0.type == .route }, id: \.self) { value in
-            Button {
-                print("Set route")
-            } label: {
-                HStack {
-                    Text(value.route!.name)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Image(systemName: "mappin")
+            LabeledContent {
+                if selectedRoute == value.route {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(Color.accentColor)
                 }
+            } label: {
+                Text(value.route!.name)
             }
-            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
+            .onTapGesture {
+                guard let route = value.route else { return }
+                selectRoute(route)
+            }
         }
     }
     
@@ -143,21 +156,75 @@ struct LocationSpooferView: View {
     }
     
     func setupRegion() {
-        let location = LocationSpoofer.instance.customLocation
-        region.center.latitude = location.latitude
-        region.center.longitude = location.longitude
+        isEnabled = LocationSpoofer.instance.spoofingEnabled
+
+        // Load current selection
+        if LocationSpoofer.instance.useCustomLocation {
+            presetType = .custom
+            selectedLocation = nil
+            selectedRoute = nil
+            let location = LocationSpoofer.instance.customLocation
+            region.center.latitude = location.latitude
+            region.center.longitude = location.longitude
+            latitude = location.latitude.description
+            longitude = location.longitude.description
+        } else if let route = LocationSpoofer.instance.spoofedRoute {
+            presetType = .route
+            selectedRoute = route
+            selectedLocation = nil
+        } else {
+            presetType = .city
+            let location = LocationSpoofer.instance.spoofedLocation
+            selectedLocation = location
+            selectedRoute = nil
+            region.center.latitude = location.latitude
+            region.center.longitude = location.longitude
+            latitude = location.latitude.description
+            longitude = location.longitude.description
+        }
+    }
+
+    func selectLocation(_ location: Location) {
+        selectedLocation = location
+        selectedRoute = nil
+        LocationSpoofer.instance.spoofedLocation = location
+
+        // Update map
+        withAnimation {
+            region.center.latitude = location.latitude
+            region.center.longitude = location.longitude
+        }
         latitude = location.latitude.description
         longitude = location.longitude.description
+    }
+
+    func selectRoute(_ route: Route) {
+        selectedRoute = route
+        selectedLocation = nil
+        LocationSpoofer.instance.spoofedRoute = route
     }
 
     func setLatitude(_ string: String) {
         guard let double = Double(string) else { return }
         region.center.latitude = double
+        if presetType == .custom {
+            saveCustomLocation()
+        }
     }
 
     func setLongitude(_ string: String) {
         guard let double = Double(string) else { return }
         region.center.longitude = double
+        if presetType == .custom {
+            saveCustomLocation()
+        }
+    }
+
+    func saveCustomLocation() {
+        selectedLocation = nil
+        selectedRoute = nil
+        LocationSpoofer.instance.useCustomLocation = true
+        LocationSpoofer.instance.setCustomLocation(region.center)
     }
 }
 

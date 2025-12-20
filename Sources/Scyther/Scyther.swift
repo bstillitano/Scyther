@@ -104,10 +104,7 @@ public class Scyther {
             return
         }
         
-        /// Construct our `MenuViewController` wrapped inside a `UINavigationController`.
-        let viewModel = MenuViewModel()
-        let menuViewController: MenuViewController = MenuViewController()
-        menuViewController.configure(with: viewModel)
+        /// Construct our `MenuView` wrapped inside a `UINavigationController`.
         let menu = UIHostingController(rootView: MenuView())
         let navigationController: UINavigationController = UINavigationController(rootViewController: menu)
         

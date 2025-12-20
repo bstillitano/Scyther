@@ -37,7 +37,7 @@ public final class LocationSpoofer: CLLocationManager {
     private var locations: Queue<CLLocation>?
     internal var developerLocations: [Location] = []
     var updateInterval: TimeInterval = 0.5
-    internal var spoofingEnabled: Bool {
+    public var spoofingEnabled: Bool {
         get {
             UserDefaults.standard.bool(forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
         }
@@ -46,7 +46,7 @@ public final class LocationSpoofer: CLLocationManager {
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingEnabledChangeNotification, object: newValue)
         }
     }
-    internal var useCustomLocation: Bool {
+    public var useCustomLocation: Bool {
         get {
             UserDefaults.standard.bool(forKey: LocationSpoofer.LocationSpoofingCustomLocationEnabledDefaultsKey)
         } set {
@@ -54,7 +54,7 @@ public final class LocationSpoofer: CLLocationManager {
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification, object: newValue)
         }
     }
-    internal var customLocation: Location {
+    public var customLocation: Location {
         get {
             let latitude = UserDefaults.standard.value(forKey: LocationSpoofer.LocationSpoofingCustomLatitudeKey) as? Double
             let longitude = UserDefaults.standard.value(forKey: LocationSpoofer.LocationSpoofingCustomLongitudeKey) as? Double
@@ -64,6 +64,9 @@ public final class LocationSpoofer: CLLocationManager {
                             longitude: longitude ?? .zero)
         }
         set {
+            // Clear route when setting custom location
+            UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
+            // Set custom location
             UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingCustomLatitudeKey)
             UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingCustomLongitudeKey)
             UserDefaults.standard.setValue(newValue.latitude, forKey: LocationSpoofer.LocationSpoofingCustomLatitudeKey)
@@ -71,7 +74,7 @@ public final class LocationSpoofer: CLLocationManager {
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification, object: newValue)
         }
     }
-    internal var spoofedLocation: Location {
+    public var spoofedLocation: Location {
         get {
             if useCustomLocation {
                 return customLocation
@@ -82,7 +85,10 @@ public final class LocationSpoofer: CLLocationManager {
             }
         }
         set {
+            // Clear other modes
             UserDefaults.standard.setValue(false, forKey: LocationSpoofer.LocationSpoofingCustomLocationEnabledDefaultsKey)
+            UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
+            // Set location
             UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingLatitudeKey)
             UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingLongitudeKey)
             UserDefaults.standard.setValue(newValue.latitude, forKey: LocationSpoofer.LocationSpoofingLatitudeKey)
@@ -90,16 +96,19 @@ public final class LocationSpoofer: CLLocationManager {
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification, object: newValue)
         }
     }
-    internal var spoofedRoute: Route? {
+    public var spoofedRoute: Route? {
         get {
             return presetRoutes.first(where: { $0.id == UserDefaults.standard.string(forKey: LocationSpoofer.LocationSpoofingRouteIdKey) })
         }
         set {
-            guard newValue != nil else {
+            // Clear other modes
+            UserDefaults.standard.setValue(false, forKey: LocationSpoofer.LocationSpoofingCustomLocationEnabledDefaultsKey)
+
+            guard let newValue = newValue else {
                 UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
                 return
             }
-            UserDefaults.standard.setValue(newValue?.id, forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
+            UserDefaults.standard.setValue(newValue.id, forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification,
                                             object: newValue)
         }
@@ -108,10 +117,6 @@ public final class LocationSpoofer: CLLocationManager {
     // MARK: - Lifecycle
     public override func startUpdatingLocation() {
         guard delegate != nil else {
-            return
-        }
-        guard spoofingEnabled else {
-            super.startUpdatingLocation()
             return
         }
         timer = Timer(timeInterval: updateInterval, repeats: true, block: { [weak self] _ in
@@ -123,24 +128,16 @@ public final class LocationSpoofer: CLLocationManager {
     }
 
     public override func stopUpdatingLocation() {
-        guard spoofingEnabled else {
-            super.stopUpdatingLocation()
-            return
-        }
         timer?.invalidate()
     }
 
     public override func requestLocation() {
-        guard spoofingEnabled else {
-            super.requestLocation()
-            return
-        }
         if let location = locations?.peek() {
             delegate?.locationManager?(self, didUpdateLocations: [location])
         }
     }
 
-    internal func setCustomLocation(_ location: CLLocationCoordinate2D) {
+    public func setCustomLocation(_ location: CLLocationCoordinate2D) {
         customLocation = Location(id: "custom",
                                   name: "Custom Location",
                                   latitude: location.latitude,
@@ -158,9 +155,9 @@ extension LocationSpoofer {
 
     private func swizzle() {
         if spoofingEnabled {
-            CLLocationManager.swizzleLocationUpdates
+            CLLocationManager.swizzleLocationUpdates()
         } else {
-            CLLocationManager.unswizzleLocationUpdates
+            CLLocationManager.unswizzleLocationUpdates()
         }
     }
 
@@ -187,9 +184,15 @@ extension LocationSpoofer {
     }
 
     private func updateLocation() {
+        // If queue is empty and no route (single location), re-populate
+        if locations?.isEmpty() == true && spoofedRoute == nil {
+            startMocks(usingLocation: spoofedLocation)
+        }
+
         if let location = locations?.dequeue() {
             delegate?.locationManager?(self, didUpdateLocations: [location])
-            if let isEmpty = locations?.isEmpty(), isEmpty {
+            // Only stop for routes when complete, not for single locations
+            if let isEmpty = locations?.isEmpty(), isEmpty, spoofedRoute != nil {
                 logMessage("stopping at: \(location.coordinate)")
                 stopUpdatingLocation()
             }
@@ -238,7 +241,6 @@ internal extension LocationSpoofer {
 extension LocationSpoofer: GPXParsingProtocol {
     func parser(_ parser: GPXParser, didCompleteParsing locations: Queue<CLLocation>) {
         self.locations = locations
-        self.startUpdatingLocation()
     }
 }
 

@@ -8,11 +8,18 @@
 import Foundation
 
 /// Data struct used for conveniently forming dynamic routes
-struct Route {
-    var id: String!
-    var name: String = ""
-    var fileName: String = ""
-    var updateInterval: TimeInterval = 5.0
+public struct Route {
+    public var id: String!
+    public var name: String = ""
+    public var fileName: String = ""
+    public var updateInterval: TimeInterval = 5.0
+
+    public init(id: String, name: String, fileName: String, updateInterval: TimeInterval) {
+        self.id = id
+        self.name = name
+        self.fileName = fileName
+        self.updateInterval = updateInterval
+    }
 }
 
 // MARK: - Presets
