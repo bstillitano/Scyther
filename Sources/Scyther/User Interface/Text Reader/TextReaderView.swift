@@ -41,32 +41,16 @@ struct TextReaderView: View {
                     }
                 }
             }
-        }
-        .safeAreaInset(edge: .bottom) {
-            if !debouncedSearchText.isEmpty {
-                HStack {
-                    Text(matchCount > 0 ? "\(currentMatchIndex + 1) of \(matchCount)" : "No matches")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Spacer()
-
-                    Button {
-                        previousMatch()
-                    } label: {
-                        Image(systemName: "chevron.up")
-                    }
-                    .disabled(matchCount == 0)
-
-                    Button {
-                        nextMatch()
-                    } label: {
-                        Image(systemName: "chevron.down")
-                    }
-                    .disabled(matchCount == 0)
+            .overlay(alignment: .bottomTrailing) {
+                if !debouncedSearchText.isEmpty && matchCount > 0 {
+                    SearchNavigationButtons(
+                        currentMatch: currentMatchIndex + 1,
+                        totalMatches: matchCount,
+                        onPrevious: previousMatch,
+                        onNext: nextMatch
+                    )
+                    .padding()
                 }
-                .padding()
-                .background(.bar)
             }
         }
         .searchable(text: $searchText, prompt: "Search")
@@ -192,6 +176,62 @@ private struct TextSegment {
     let text: String
     let isMatch: Bool
     let matchIndex: Int?
+}
+
+private struct SearchNavigationButtons: View {
+    let currentMatch: Int
+    let totalMatches: Int
+    let onPrevious: () -> Void
+    let onNext: () -> Void
+
+    @Namespace private var namespace
+
+    var body: some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer {
+                HStack(spacing: 0) {
+                    Button(action: onPrevious) {
+                        Image(systemName: "chevron.up")
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.glass)
+                    .glassEffectUnion(id: "search-nav", namespace: namespace)
+
+                    Text("\(currentMatch) of \(totalMatches)")
+                        .font(.subheadline)
+                        .monospacedDigit()
+                        .padding(.horizontal, 8)
+                        .glassEffect()
+                        .glassEffectUnion(id: "search-nav", namespace: namespace)
+
+                    Button(action: onNext) {
+                        Image(systemName: "chevron.down")
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.glass)
+                    .glassEffectUnion(id: "search-nav", namespace: namespace)
+                }
+            }
+        } else {
+            HStack(spacing: 8) {
+                Button(action: onPrevious) {
+                    Image(systemName: "chevron.up")
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+
+                Text("\(currentMatch) of \(totalMatches)")
+                    .font(.subheadline)
+                    .monospacedDigit()
+
+                Button(action: onNext) {
+                    Image(systemName: "chevron.down")
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+            }
+        }
+    }
 }
 
 #Preview {
