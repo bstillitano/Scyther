@@ -7,8 +7,29 @@
 
 import SwiftUI
 
+/// A SwiftUI view that displays a list of captured network requests.
+///
+/// `NetworkLogsView` provides a searchable list interface for viewing all HTTP requests
+/// captured by the network logger. Each request is displayed as a row showing the HTTP method,
+/// status code, URL, and timing information.
+///
+/// ## Features
+/// - Real-time updates as new requests are captured
+/// - Search functionality across URLs, status codes, and HTTP methods
+/// - Color-coded status indicators
+/// - Navigation to detailed request view
+///
+/// ## Usage
+/// ```swift
+/// NavigationStack {
+///     NetworkLogsView()
+/// }
+/// ```
 struct NetworkLogsView: View {
+    /// Current search text for filtering network requests.
     @State private var searchText: String = ""
+
+    /// View model managing the network logs state and filtering.
     @StateObject private var viewModel: NetworkLogsViewModel = NetworkLogsViewModel()
 
     var body: some View {

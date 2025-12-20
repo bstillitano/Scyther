@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  KeychainBrowser.swift
 //
 //
 //  Created by Brandon Stillitano on 19/9/21.
@@ -7,10 +7,31 @@
 
 import Foundation
 
-/// Utility `struct` used to iterate the Keychain and return all values accessible by the consuming app.
+/// Utility for accessing and managing keychain items stored by the application.
+///
+/// `KeychainBrowser` provides read-only access to view all keychain entries
+/// accessible by the app, organized by security class. It also provides a
+/// method to clear all keychain data for debugging purposes.
+///
+/// ## Topics
+/// ### Accessing Keychain Items
+/// - ``keychainItems``
+///
+/// ### Managing Keychain
+/// - ``clearKeychain()``
 internal struct KeychainBrowser {
-    /// Creates a dictionary of keychain values of differing types
-    /// - Returns: A dictionary containing kSecClassGenericPassword, kSecClassInternetPassword & kSecClassIdentity values
+    /// Retrieves all keychain items accessible by the application.
+    ///
+    /// Returns a dictionary organized by keychain security class:
+    /// - Generic Passwords (`kSecClassGenericPassword`)
+    /// - Internet Passwords (`kSecClassInternetPassword`)
+    /// - Identities (`kSecClassIdentity`)
+    ///
+    /// Each security class maps to a dictionary of key-value pairs representing
+    /// the stored keychain items.
+    ///
+    /// - Returns: A dictionary where keys are security class names and values are
+    ///   dictionaries of keychain items for that class.
     static var keychainItems: [String: [String: Any]] {
         var values: [String: [String: Any]] = [:]
         values["Generic Passwords"] = keychainItems(forClass: kSecClassGenericPassword)
@@ -50,7 +71,17 @@ internal struct KeychainBrowser {
         return values
     }
     
-    /// USE WITH CAUTION - Deletes all items stored in the Keychain for the consuming app.
+    /// Deletes all keychain items stored by the application.
+    ///
+    /// - Warning: This operation cannot be undone. All stored passwords, certificates,
+    ///   keys, and identities will be permanently deleted.
+    ///
+    /// This method removes items from all keychain security classes:
+    /// - Generic passwords
+    /// - Internet passwords
+    /// - Certificates
+    /// - Cryptographic keys
+    /// - Identities
     static internal func clearKeychain() {
         let secItemClasses = [
             kSecClassGenericPassword,

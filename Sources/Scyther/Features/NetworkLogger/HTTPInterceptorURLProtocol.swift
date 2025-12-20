@@ -1,5 +1,5 @@
 //
-//  ScytherProtocol.swift
+//  HTTPInterceptorURLProtocol.swift
 //
 //
 //  Created by Brandon Stillitano on 22/12/20.
@@ -7,8 +7,29 @@
 
 import Foundation
 
+/// Property key used to mark requests as internal to prevent infinite logging loops.
 internal let internalNetworkRequestKey = "Scyther_Internal_Network_Request"
 
+/// A custom `URLProtocol` subclass that intercepts HTTP/HTTPS requests for logging.
+///
+/// `HTTPInterceptorURLProtocol` acts as a man-in-the-middle for network requests,
+/// capturing request and response data without interfering with normal operation.
+/// It stores captured data in `HTTPRequest` objects and adds them to `NetworkLogger`.
+///
+/// ## How It Works
+/// 1. When registered with `URLProtocol.registerClass()`, this class can inspect all URL loading requests
+/// 2. It creates a new URLSession to execute the actual request
+/// 3. As data arrives, it's forwarded to the original client while being captured for logging
+/// 4. Complete request/response data is stored in `HTTPRequest` and logged to `NetworkLogger`
+///
+/// ## Features
+/// - Transparent request/response capture
+/// - Authentication challenge handling
+/// - HTTP redirect support
+/// - Request filtering based on URL patterns
+/// - Automatic prevention of infinite logging loops
+///
+/// - Note: This protocol is automatically registered by `NetworkHelper.start()`.
 open class HTTPInterceptorURLProtocol: URLProtocol {
     private lazy var session: URLSession = { [unowned self] in
         return URLSession(configuration: .default,

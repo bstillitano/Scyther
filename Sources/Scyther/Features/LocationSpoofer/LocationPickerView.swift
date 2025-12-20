@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  LocationPickerView.swift
 //  Scyther
 //
 //  Created by Brandon Stillitano on 30/1/2025.
@@ -9,6 +9,27 @@ import Combine
 import MapKit
 import SwiftUI
 
+/// A SwiftUI view for selecting custom location coordinates.
+///
+/// `LocationPickerView` provides an interactive map interface for choosing a custom
+/// location by either dragging the map or entering latitude/longitude coordinates
+/// directly. Changes are debounced to provide smooth interaction.
+///
+/// ## Features
+/// - Interactive map with centered pin
+/// - Text fields for manual coordinate entry
+/// - Debounced coordinate updates (500ms)
+/// - Real-time synchronization between map and text fields
+/// - Save functionality to persist the selected location
+///
+/// ## Usage
+/// ```swift
+/// NavigationStack {
+///     LocationPickerView()
+/// }
+/// ```
+///
+/// - Note: The view loads the currently selected custom location when it appears.
 struct LocationPickerView: View {
     @State private var region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: Location.sydney.latitude, longitude: Location.sydney.longitude), span: MKCoordinateSpan(latitudeDelta: 0.7, longitudeDelta: 0.7))
     @State private var longitude: String = ""

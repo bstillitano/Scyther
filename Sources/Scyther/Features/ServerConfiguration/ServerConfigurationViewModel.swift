@@ -7,16 +7,25 @@
 
 import Foundation
 
+/// View model for the server configuration view.
+///
+/// Manages loading, filtering, and selecting server configurations. Supports searching
+/// across configuration names and variable keys/values.
 class ServerConfigurationViewModel: ViewModel {
+    /// The list of configurations currently displayed (may be filtered by search).
     @Published var configurations: [ServerConfigurationListItem] = []
+
+    /// Variables for the currently selected configuration.
     @Published var variables: [String: String] = [:]
 
+    /// The current search term used to filter configurations.
     private var searchTerm: String = "" {
         didSet {
             Task { await updateData() }
         }
     }
 
+    /// All available server configurations loaded from Scyther.
     private var items: [ServerConfiguration] = [] {
         didSet {
             Task { await updateData() }
@@ -29,10 +38,17 @@ class ServerConfigurationViewModel: ViewModel {
         items = await Scyther.servers.all.sorted(by: { $0.id < $1.id })
     }
 
+    /// Updates the search term and triggers a data refresh.
+    ///
+    /// - Parameter searchTerm: The new search term to filter by.
     func setSearchTerm(to searchTerm: String) {
         self.searchTerm = searchTerm
     }
 
+    /// Updates the displayed configurations and variables based on the current search term.
+    ///
+    /// Filters configurations by searching across their IDs and variable keys/values.
+    /// Always displays variables for the currently selected configuration, even if filtered out.
     private func updateData() async {
         let currentConfigurationId = await Scyther.servers.currentId
 
@@ -60,6 +76,10 @@ class ServerConfigurationViewModel: ViewModel {
         }
     }
 
+    /// Converts server configurations to list items with selection state.
+    ///
+    /// - Parameter items: The configurations to convert.
+    /// - Returns: List items with the currently selected configuration marked.
     private func listItems(from items: [ServerConfiguration]) async -> [ServerConfigurationListItem] {
         let currentConfiguration = await Scyther.servers.currentId
         return items.map { configuration in
@@ -71,7 +91,10 @@ class ServerConfigurationViewModel: ViewModel {
             )
         }
     }
-    
+
+    /// Selects a new server configuration and refreshes the view.
+    ///
+    /// - Parameter configuration: The configuration to select.
     func didSelectConfiguration(_ configuration: ServerConfigurationListItem) async {
         await Scyther.servers.select(configuration.id)
         await updateData()

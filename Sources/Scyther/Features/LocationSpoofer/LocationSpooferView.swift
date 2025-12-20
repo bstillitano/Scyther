@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  LocationSpooferView.swift
 //  Scyther
 //
 //  Created by Brandon Stillitano on 17/4/2025.
@@ -9,6 +9,26 @@ import Combine
 import MapKit
 import SwiftUI
 
+/// A SwiftUI view for configuring and managing location spoofing.
+///
+/// `LocationSpooferView` provides a comprehensive interface for selecting spoofed locations,
+/// including preset cities, routes, and custom coordinates. It includes an interactive map
+/// and segmented control for switching between location types.
+///
+/// ## Features
+/// - Toggle to enable/disable location spoofing
+/// - Interactive map showing the selected location
+/// - Segmented control for cities, routes, and custom locations
+/// - List of preset cities and routes
+/// - Text fields for entering custom coordinates
+/// - Real-time map updates as locations are selected
+///
+/// ## Usage
+/// ```swift
+/// NavigationStack {
+///     LocationSpooferView()
+/// }
+/// ```
 struct LocationSpooferView: View {
     @State private var isEnabled: Bool = LocationSpoofer.instance.spoofingEnabled
     @State private var region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: Location.sydney.latitude, longitude: Location.sydney.longitude), span: MKCoordinateSpan(latitudeDelta: 0.7, longitudeDelta: 0.7))

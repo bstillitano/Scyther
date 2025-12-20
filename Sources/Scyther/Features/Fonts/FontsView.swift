@@ -7,6 +7,10 @@
 
 import SwiftUI
 
+/// A browser for exploring all fonts available on the device.
+///
+/// Displays all system and custom fonts organized by family, with each
+/// font rendered in its own typeface for easy visual identification.
 struct FontsView: View {
     @StateObject private var viewModel = FontsViewModel()
 
@@ -29,8 +33,12 @@ struct FontsView: View {
     }
 }
 
+/// A row displaying a single font, rendered in its own typeface.
 struct FontRowView: View {
+    /// The PostScript name of the font.
     let fontName: String
+
+    /// The UIFont instance for rendering, if available.
     let font: UIFont?
 
     var body: some View {
@@ -39,18 +47,31 @@ struct FontRowView: View {
     }
 }
 
+/// A group of related fonts sharing the same family name.
 struct FontFamily: Identifiable {
     let id = UUID()
+
+    /// The font family name (e.g., "Helvetica", "San Francisco").
     let name: String
+
+    /// All font variants in this family.
     let fonts: [FontItem]
 }
 
+/// An individual font within a font family.
 struct FontItem: Identifiable {
     let id = UUID()
+
+    /// The PostScript name of the font.
     let name: String
+
+    /// The UIFont instance for this font at 16pt size.
     let uiFont: UIFont?
 }
 
+/// View model managing the fonts list.
+///
+/// Loads all available fonts from the system, organized by family.
 class FontsViewModel: ViewModel {
     @Published var fontFamilies: [FontFamily] = []
 

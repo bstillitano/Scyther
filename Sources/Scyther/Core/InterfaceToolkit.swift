@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  InterfaceToolkit.swift
 //
 //
 //  Created by Brandon Stillitano on 18/2/21.
@@ -9,6 +9,17 @@
 import NotificationCenter
 import UIKit
 
+/// Manages UI debugging tools and overlays.
+///
+/// `InterfaceToolkit` is an internal singleton that coordinates various UI debugging
+/// features including:
+/// - Touch visualisation
+/// - Grid overlay
+/// - Slow animations
+/// - View frame debugging
+///
+/// This class is used internally by ``Interface`` and should not be accessed directly.
+/// Use ``Scyther/interface`` instead.
 public class InterfaceToolkit: NSObject {
     // MARK: - Static Data
     internal static var DebugBordersChangeNotification: NSNotification.Name = NSNotification.Name("DebugBordersChangeNotification")
@@ -180,6 +191,27 @@ extension InterfaceToolkit {
     @MainActor internal func showGridOverlay() {
         gridOverlayView.opacity = GridOverlay.instance.enabled ? CGFloat(GridOverlay.instance.opacity) : 0.0
         gridOverlayView.isHidden = !GridOverlay.instance.enabled
+    }
+}
+
+// MARK: - Static Accessors
+extension InterfaceToolkit {
+    /// Whether slow animations mode is enabled.
+    public static var slowAnimationsEnabled: Bool {
+        get { instance.slowAnimationsEnabled }
+        set { instance.slowAnimationsEnabled = newValue }
+    }
+
+    /// Whether view frames/borders are shown.
+    public static var showViewFrames: Bool {
+        get { instance.showsViewBorders }
+        set { instance.showsViewBorders = newValue }
+    }
+
+    /// Whether view sizes are shown.
+    public static var showViewSizes: Bool {
+        get { instance.showsViewSizes }
+        set { instance.showsViewSizes = newValue }
     }
 }
 

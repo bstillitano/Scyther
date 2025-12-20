@@ -7,6 +7,17 @@
 
 import SwiftUI
 
+/// A SwiftUI view for browsing and switching between server configurations.
+///
+/// This view provides:
+/// - A list of all available server configurations with selection indicators
+/// - The ability to switch between configurations by tapping
+/// - Display of all variables for the currently selected configuration
+/// - Search functionality to filter configurations by name or variable content
+/// - Context menu to copy variable values to the clipboard
+///
+/// The view is useful during development for quickly switching between different
+/// server environments (development, staging, production, etc.).
 struct ServerConfigurationView: View {
     @State private var searchText: String = ""
     @StateObject private var viewModel: ServerConfigurationViewModel = ServerConfigurationViewModel()

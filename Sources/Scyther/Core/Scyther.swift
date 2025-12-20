@@ -11,14 +11,93 @@ import SwiftUI
 
 // MARK: - Delegate
 
-/// Delegate for receiving Scyther events.
+/// A protocol for receiving callbacks when Scyther events occur.
+///
+/// Implement this protocol to respond to events such as server configuration changes.
+///
+/// ## Example
+///
+/// ```swift
+/// class AppCoordinator: ScytherDelegate {
+///     func scytherDidSwitchServer(to serverId: String) {
+///         // Reconfigure your networking layer
+///         APIClient.shared.baseURL = getBaseURL(for: serverId)
+///     }
+/// }
+/// ```
 public protocol ScytherDelegate: AnyObject {
+    /// Called when the user switches to a different server configuration.
+    ///
+    /// Use this callback to update your app's networking configuration, clear caches,
+    /// or perform any other necessary reconfiguration.
+    ///
+    /// - Parameter serverId: The identifier of the newly selected server.
     func scytherDidSwitchServer(to serverId: String)
 }
 
 // MARK: - Scyther
 
-/// Debug menu and developer tools for iOS apps.
+/// The main entry point for the Scyther debugging toolkit.
+///
+/// Scyther provides a comprehensive suite of debugging tools for iOS applications,
+/// including network logging, feature flag management, location spoofing, and more.
+///
+/// ## Getting Started
+///
+/// Start Scyther early in your app's lifecycle:
+///
+/// ```swift
+/// @main
+/// struct MyApp: App {
+///     init() {
+///         Scyther.start()
+///     }
+///
+///     var body: some Scene {
+///         WindowGroup {
+///             ContentView()
+///         }
+///     }
+/// }
+/// ```
+///
+/// ## Available Subsystems
+///
+/// Access Scyther's features through these subsystems:
+///
+/// - ``featureFlags``: Manage and override feature flags
+/// - ``servers``: Switch between server environments
+/// - ``network``: Access network logging data
+/// - ``notifications``: Test push notifications
+/// - ``console``: View captured console output
+/// - ``interface``: Enable UI debugging overlays
+/// - ``location``: Spoof device location
+///
+/// ## Topics
+///
+/// ### Lifecycle
+/// - ``start(allowProductionBuilds:)``
+/// - ``showMenu(from:)``
+/// - ``hideMenu(animated:completion:)``
+///
+/// ### State
+/// - ``isStarted``
+/// - ``isPresented``
+///
+/// ### Subsystems
+/// - ``featureFlags``
+/// - ``servers``
+/// - ``network``
+/// - ``notifications``
+/// - ``console``
+/// - ``interface``
+/// - ``location``
+///
+/// ### Configuration
+/// - ``developerOptions``
+/// - ``environmentVariables``
+/// - ``invocationGesture``
+/// - ``delegate``
 public enum Scyther {
 
     // MARK: - State
@@ -156,17 +235,59 @@ internal func logMessage(_ msg: String) {
 
 // MARK: - Subsystem Namespaces
 
-/// Feature flag management.
+/// Manages feature flags with support for local overrides.
+///
+/// Use `FeatureFlags` to register feature flags from your remote configuration system
+/// and allow developers to override them locally during testing.
+///
+/// ## Registering Feature Flags
+///
+/// Register flags after fetching them from your remote configuration:
+///
+/// ```swift
+/// // After fetching remote config
+/// Scyther.featureFlags.register("new_checkout_flow", remoteValue: true)
+/// Scyther.featureFlags.register("dark_mode_v2", remoteValue: false)
+/// ```
+///
+/// ## Checking Flag Values
+///
+/// Use ``isEnabled(_:)`` to check the effective value of a flag:
+///
+/// ```swift
+/// if Scyther.featureFlags.isEnabled("new_checkout_flow") {
+///     showNewCheckoutFlow()
+/// }
+/// ```
+///
+/// ## Topics
+///
+/// ### Registration
+/// - ``register(_:remoteValue:abValue:)``
+///
+/// ### Querying
+/// - ``isEnabled(_:)``
+/// - ``all``
+///
+/// ### Local Overrides
+/// - ``localOverridesEnabled``
+/// - ``setLocalValue(_:for:)``
 public final class FeatureFlags {
+    /// The shared feature flags instance.
     public static let shared = FeatureFlags()
     private init() {}
 
     private var defaultsKey: String { "scyther.featureFlags.overridesEnabled" }
 
     /// All registered feature flags.
+    ///
+    /// This array contains all flags that have been registered via ``register(_:remoteValue:abValue:)``.
     public private(set) var all: [FeatureToggle] = []
 
     /// Whether local overrides are enabled.
+    ///
+    /// When `true`, the Scyther UI allows users to toggle feature flags locally.
+    /// The ``isEnabled(_:)`` method will return local override values when available.
     public var localOverridesEnabled: Bool {
         get { UserDefaults.standard.bool(forKey: defaultsKey) }
         set { UserDefaults.standard.set(newValue, forKey: defaultsKey) }
@@ -174,10 +295,14 @@ public final class FeatureFlags {
 
     /// Registers a feature flag.
     ///
+    /// Call this method after fetching your remote configuration to make flags
+    /// available in the Scyther UI. Registering a flag with the same name will
+    /// replace any existing registration.
+    ///
     /// - Parameters:
     ///   - name: Unique identifier for the flag.
     ///   - remoteValue: The server-side value for this flag.
-    ///   - abValue: Optional A/B test condition string.
+    ///   - abValue: Optional A/B test condition expression for dynamic evaluation.
     public func register(_ name: String, remoteValue: Bool, abValue: String? = nil) {
         all.removeAll { $0.name == name }
         all.append(FeatureToggle(name: name, remoteValue: remoteValue, abValue: abValue))
@@ -185,8 +310,12 @@ public final class FeatureFlags {
 
     /// Returns whether a feature flag is enabled.
     ///
-    /// - Parameter name: The flag name.
-    /// - Returns: The effective value (local override if enabled, otherwise remote).
+    /// This method returns the effective value considering local overrides:
+    /// - If ``localOverridesEnabled`` is `true` and a local override exists, returns the override.
+    /// - Otherwise, returns the remote value.
+    ///
+    /// - Parameter name: The flag name to check.
+    /// - Returns: `true` if the flag is enabled, `false` otherwise. Returns `false` for unknown flags.
     public func isEnabled(_ name: String) -> Bool {
         guard let flag = all.first(where: { $0.name == name }) else {
             return false
@@ -195,6 +324,10 @@ public final class FeatureFlags {
     }
 
     /// Sets the local override value for a flag.
+    ///
+    /// - Parameters:
+    ///   - value: The override value to set.
+    ///   - name: The flag name to override.
     public func setLocalValue(_ value: Bool, for name: String) {
         guard var flag = all.first(where: { $0.name == name }) else { return }
         flag.localValue = value
@@ -211,14 +344,47 @@ public final class FeatureFlags {
     }
 }
 
-/// Server/environment configuration.
+/// Manages server and environment configurations for easy switching.
+///
+/// Use `Servers` to register different backend environments (development, staging, production)
+/// and switch between them at runtime without recompiling.
+///
+/// ## Registering Servers
+///
+/// ```swift
+/// await Scyther.servers.register(id: "development", variables: [
+///     "API_URL": "https://dev-api.example.com",
+///     "DEBUG": "true"
+/// ])
+/// await Scyther.servers.register(id: "production", variables: [
+///     "API_URL": "https://api.example.com",
+///     "DEBUG": "false"
+/// ])
+/// ```
+///
+/// ## Responding to Server Changes
+///
+/// Implement ``ScytherDelegate`` to respond when the user switches servers:
+///
+/// ```swift
+/// class AppDelegate: ScytherDelegate {
+///     func scytherDidSwitchServer(to serverId: String) {
+///         // Reconfigure networking, clear caches, etc.
+///     }
+/// }
+/// ```
+///
+/// - Note: This type is an actor for thread-safe access to server configurations.
 public actor Servers {
+    /// The shared servers instance.
     public static let shared = Servers()
     private init() {}
 
     private var defaultsKey: String { "scyther.servers.currentId" }
 
     /// All registered server configurations.
+    ///
+    /// Contains all servers registered via ``register(id:variables:)`` or ``register(_:)``.
     public private(set) var all: [ServerConfiguration] = [] {
         didSet {
             if currentId.isEmpty, let first = all.first {
@@ -227,44 +393,76 @@ public actor Servers {
         }
     }
 
-    /// The currently selected server ID.
+    /// The identifier of the currently selected server.
+    ///
+    /// This value is persisted across app launches using `UserDefaults`.
     public var currentId: String {
         get { UserDefaults.standard.string(forKey: defaultsKey) ?? "" }
         set { UserDefaults.standard.set(newValue, forKey: defaultsKey) }
     }
 
     /// The currently selected server configuration.
+    ///
+    /// Returns `nil` if no server matching ``currentId`` is registered.
     public var current: ServerConfiguration? {
         all.first { $0.id == currentId }
     }
 
     /// Environment variables for the current server.
+    ///
+    /// Convenience accessor for `current?.variables`. Returns an empty dictionary
+    /// if no server is selected.
     public var variables: [String: String] {
         current?.variables ?? [:]
     }
 
     /// Registers a server configuration.
+    ///
+    /// If a server with the same ID already exists, it will be replaced.
+    ///
+    /// - Parameters:
+    ///   - id: Unique identifier for the server (e.g., "development", "staging", "production").
+    ///   - variables: Key-value pairs of environment variables for this server.
     public func register(id: String, variables: [String: String] = [:]) {
         all.removeAll { $0.id == id }
         all.append(ServerConfiguration(id: id, variables: variables))
     }
 
-    /// Registers multiple server configurations.
+    /// Registers multiple server configurations at once.
+    ///
+    /// - Parameter configurations: An array of server configurations to register.
     public func register(_ configurations: [ServerConfiguration]) {
         for config in configurations {
             register(id: config.id, variables: config.variables)
         }
     }
 
-    /// Switches to a different server.
+    /// Switches to a different server configuration.
+    ///
+    /// This method updates ``currentId`` and notifies ``Scyther/delegate`` of the change.
+    ///
+    /// - Parameter id: The identifier of the server to switch to.
     public func select(_ id: String) {
         currentId = id
         Scyther.delegate?.scytherDidSwitchServer(to: id)
     }
 }
 
-/// Network logging.
+/// Provides access to network logging data.
+///
+/// The `Network` subsystem automatically intercepts and logs all HTTP requests
+/// made through `URLSession` when Scyther is started.
+///
+/// ## Accessing Network Data
+///
+/// ```swift
+/// // Get the device's IP address
+/// let ip = await Scyther.network.ipAddress
+/// ```
+///
+/// - Note: Network interception is enabled automatically when ``Scyther/start(allowProductionBuilds:)`` is called.
 public final class Network {
+    /// The shared network instance.
     public static let shared = Network()
     private init() {}
 
@@ -273,17 +471,50 @@ public final class Network {
     }
 
     /// The device's current IP address.
+    ///
+    /// Returns the device's external IP address as reported by a network lookup service.
     public var ipAddress: String {
         get async { await NetworkHelper.instance.ipAddress }
     }
 }
 
-/// Push notification testing.
+/// Provides push notification testing capabilities.
+///
+/// Use `Notifications` to schedule test notifications and view logged notification payloads.
+///
+/// ## Scheduling Test Notifications
+///
+/// ```swift
+/// Scyther.notifications.scheduleTest(
+///     title: "Order Shipped!",
+///     body: "Your order #12345 has shipped.",
+///     delay: 5
+/// )
+/// ```
+///
+/// ## Viewing Logged Notifications
+///
+/// ```swift
+/// for notification in Scyther.notifications.logged {
+///     print(notification.aps.alert.title)
+/// }
+/// ```
 public final class Notifications {
+    /// The shared notifications instance.
     public static let shared = Notifications()
     private init() {}
 
     /// Schedules a local test notification.
+    ///
+    /// Use this method to test your app's notification handling without needing
+    /// to send a real push notification from a server.
+    ///
+    /// - Parameters:
+    ///   - title: The notification title.
+    ///   - body: The notification body text.
+    ///   - delay: Seconds to wait before showing the notification.
+    ///   - sound: Whether to play the default notification sound.
+    ///   - incrementBadge: Whether to increment the app's badge number.
     public func scheduleTest(title: String = "Test Notification",
                              body: String = "This is a test notification.",
                              delay: TimeInterval = 5,
@@ -298,14 +529,30 @@ public final class Notifications {
         )
     }
 
-    /// All logged notifications.
+    /// All logged push notifications received by the app.
+    ///
+    /// Contains notifications captured since Scyther was started.
     public var logged: [PushNotification] {
         NotificationTester.instance.notifications
     }
 }
 
-/// Console output capture.
+/// Captures and displays console output.
+///
+/// The `Console` subsystem redirects `stdout` and `stderr` to capture all
+/// `print()` statements and console output for viewing in the Scyther UI.
+///
+/// ## Viewing Console Output
+///
+/// ```swift
+/// for entry in Scyther.console.logs {
+///     print("\(entry.timestamp): \(entry.message)")
+/// }
+/// ```
+///
+/// - Note: Console capture is enabled automatically when ``Scyther/start(allowProductionBuilds:)`` is called.
 public final class Console {
+    /// The shared console instance.
     public static let shared = Console()
     private init() {}
 
@@ -314,23 +561,41 @@ public final class Console {
     }
 
     /// Stops capturing console output.
+    ///
+    /// Call this if you need to temporarily disable console capture.
     public func stopCapturing() {
         ConsoleLogger.instance.stop()
     }
 
-    /// Clears all captured logs.
+    /// Clears all captured log entries.
     public func clear() {
         ConsoleLogger.instance.clear()
     }
 
-    /// All captured log entries.
+    /// All captured console log entries.
     public var logs: [ConsoleLogEntry] {
         ConsoleLogger.instance.allLogs
     }
 }
 
-/// UI overlay tools.
+/// Provides UI debugging overlay tools.
+///
+/// The `Interface` subsystem offers visual debugging aids including a grid overlay
+/// for checking alignment and a touch visualiser for recording interactions.
+///
+/// ## Enabling Grid Overlay
+///
+/// ```swift
+/// Scyther.interface.gridOverlayEnabled = true
+/// ```
+///
+/// ## Enabling Touch Visualiser
+///
+/// ```swift
+/// Scyther.interface.touchVisualizerEnabled = true
+/// ```
 public final class Interface {
+    /// The shared interface instance.
     public static let shared = Interface()
     private init() {}
 
@@ -338,13 +603,19 @@ public final class Interface {
         InterfaceToolkit.instance.start()
     }
 
-    /// Shows or hides the grid overlay.
+    /// Whether the grid overlay is visible.
+    ///
+    /// When enabled, displays a customizable grid over the app's UI for
+    /// verifying element alignment and spacing.
     public var gridOverlayEnabled: Bool {
         get { GridOverlay.instance.enabled }
         set { GridOverlay.instance.enabled = newValue }
     }
 
-    /// Shows or hides the touch visualiser.
+    /// Whether touch visualisation is enabled.
+    ///
+    /// When enabled, displays visual indicators where the user touches the screen.
+    /// Useful for screen recordings and demonstrations.
     public var touchVisualizerEnabled: Bool {
         get { TouchVisualiser.instance.enabled }
         set {
@@ -357,8 +628,27 @@ public final class Interface {
     }
 }
 
-/// Location spoofing.
+/// Provides location spoofing capabilities for testing location-based features.
+///
+/// The `LocationSpoofing` subsystem intercepts `CLLocationManager` calls to return
+/// fake coordinates, allowing you to test location-dependent features without
+/// physically moving.
+///
+/// ## Enabling Location Spoofing
+///
+/// ```swift
+/// Scyther.location.spoofingEnabled = true
+/// Scyther.location.spoofedLocation = Location(
+///     name: "Sydney Opera House",
+///     latitude: -33.8568,
+///     longitude: 151.2153
+/// )
+/// ```
+///
+/// - Important: Location spoofing uses method swizzling on `CLLocationManager`.
+///   This is intended for development and testing only.
 public final class LocationSpoofing {
+    /// The shared location spoofing instance.
     public static let shared = LocationSpoofing()
     private init() {}
 
@@ -371,13 +661,18 @@ public final class LocationSpoofing {
         }
     }
 
-    /// Whether location spoofing is enabled.
+    /// Whether location spoofing is currently enabled.
+    ///
+    /// When `true`, `CLLocationManager` will return ``spoofedLocation`` instead
+    /// of the device's actual location.
     public var spoofingEnabled: Bool {
         get { LocationSpoofer.instance.spoofingEnabled }
         set { LocationSpoofer.instance.spoofingEnabled = newValue }
     }
 
-    /// The current spoofed location.
+    /// The location to report when spoofing is enabled.
+    ///
+    /// Set this to the coordinates you want `CLLocationManager` to return.
     public var spoofedLocation: Location {
         get { LocationSpoofer.instance.spoofedLocation }
         set { LocationSpoofer.instance.spoofedLocation = newValue }

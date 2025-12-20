@@ -8,6 +8,17 @@
 import SwiftUI
 import Combine
 
+/// A SwiftUI view for browsing and managing feature flags.
+///
+/// This view provides a searchable list of all registered feature toggles with the ability to:
+/// - Enable/disable local overrides globally
+/// - Toggle individual feature flags on/off
+/// - Pin frequently used toggles to the top
+/// - Search toggles by name
+/// - Restore all toggles to their remote values
+///
+/// The view displays both remote and local values for each toggle, making it easy to see
+/// which features have been overridden during development.
 struct FeatureFlagsView: View {
     @StateObject private var viewModel = FeatureFlagsViewModel()
     @State private var searchText: String = ""
@@ -112,32 +123,53 @@ struct FeatureFlagsView: View {
     }
 }
 
+/// A view model item representing a single feature toggle in the list.
 struct FeatureToggleItem: Identifiable {
+    /// Unique identifier for this toggle item.
     let id = UUID()
+
+    /// The name of the feature toggle.
     let name: String
+
+    /// The local override value.
     var localValue: Bool
+
+    /// The remote value from the server.
     let remoteValue: Bool
+
+    /// Whether this toggle is pinned to the top of the list.
     var isPinned: Bool
 }
 
+/// View model for the feature flags view.
+///
+/// Manages the state and business logic for displaying and modifying feature toggles,
+/// including pinning, searching, and restoring defaults.
 class FeatureFlagsViewModel: ViewModel {
+    /// UserDefaults key for storing pinned toggle names.
     private static let pinnedTogglesKey = "Scyther.FeatureFlags.PinnedToggles"
 
+    /// Whether local overrides are globally enabled.
     @Published var overridesEnabled: Bool = false {
         didSet {
             Scyther.featureFlags.localOverridesEnabled = overridesEnabled
         }
     }
+
+    /// All feature toggles currently displayed.
     @Published var toggles: [FeatureToggleItem] = []
 
+    /// Toggles that have been pinned to the top of the list.
     var pinnedToggles: [FeatureToggleItem] {
         toggles.filter { $0.isPinned }
     }
 
+    /// Toggles that are not pinned.
     var unpinnedToggles: [FeatureToggleItem] {
         toggles.filter { !$0.isPinned }
     }
 
+    /// The set of toggle names that have been pinned, persisted in UserDefaults.
     private var pinnedToggleNames: Set<String> {
         get {
             Set(UserDefaults.standard.stringArray(forKey: Self.pinnedTogglesKey) ?? [])
@@ -152,6 +184,7 @@ class FeatureFlagsViewModel: ViewModel {
         await loadToggles()
     }
 
+    /// Loads all feature toggles from Scyther and updates the view state.
     @MainActor
     private func loadToggles() async {
         overridesEnabled = Scyther.featureFlags.localOverridesEnabled
@@ -169,6 +202,11 @@ class FeatureFlagsViewModel: ViewModel {
             }
     }
 
+    /// Sets the local override value for a specific toggle.
+    ///
+    /// - Parameters:
+    ///   - value: The new local value.
+    ///   - name: The name of the toggle to update.
     @MainActor
     func setLocalValue(_ value: Bool, forToggle name: String) {
         Scyther.featureFlags.setLocalValue(value, for: name)
@@ -177,6 +215,10 @@ class FeatureFlagsViewModel: ViewModel {
         }
     }
 
+    /// Creates a binding for a toggle's local value.
+    ///
+    /// - Parameter name: The name of the toggle.
+    /// - Returns: A binding that reads and writes the toggle's local value.
     func binding(for name: String) -> Binding<Bool> {
         Binding(
             get: {
@@ -188,6 +230,9 @@ class FeatureFlagsViewModel: ViewModel {
         )
     }
 
+    /// Toggles the pinned state of a feature toggle.
+    ///
+    /// - Parameter name: The name of the toggle to pin or unpin.
     @MainActor
     func togglePin(for name: String) {
         guard let index = toggles.firstIndex(where: { $0.name == name }) else { return }
@@ -203,6 +248,10 @@ class FeatureFlagsViewModel: ViewModel {
         toggles[index].isPinned.toggle()
     }
 
+    /// Restores all toggles to their remote values.
+    ///
+    /// This resets all local overrides, setting each toggle's local value to match
+    /// its remote value from the server.
     @MainActor
     func restoreDefaults() {
         for toggle in Scyther.featureFlags.all {

@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+/// A view displaying custom environment variables configured in the application.
+///
+/// Shows key-value pairs of environment variables registered with Scyther,
+/// typically used for displaying configuration values, API endpoints, or
+/// feature flags. Values can be copied to the clipboard via context menu.
 struct EnvironmentVariablesView: View {
     @StateObject private var viewModel = EnvironmentVariablesViewModel()
 
@@ -44,6 +49,9 @@ struct EnvironmentVariablesView: View {
     }
 }
 
+/// View model managing the environment variables display.
+///
+/// Loads and sorts environment variables from `Scyther.environmentVariables`.
 class EnvironmentVariablesViewModel: ViewModel {
     @Published var variables: [(key: String, value: String)] = []
 

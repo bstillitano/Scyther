@@ -8,7 +8,51 @@
 #if !os(macOS)
 import UIKit
 
-/// `AppEnvironment` is a handy utility for determining the environment that the library is being run from. Beyond providing Scyther functionality, clients implementing Scyther may also find it useful.
+/// A utility for detecting the current build and runtime environment.
+///
+/// `AppEnvironment` provides static properties to determine how your app was installed
+/// and what environment it's running in. This is useful for:
+/// - Conditionally enabling debug features
+/// - Adjusting behavior based on TestFlight vs App Store
+/// - Detecting simulator builds
+/// - Checking for jailbroken devices
+///
+/// ## Example Usage
+///
+/// ```swift
+/// if AppEnvironment.isDevelopment {
+///     enableDebugMenu()
+/// }
+///
+/// if AppEnvironment.isJailbroken {
+///     showSecurityWarning()
+/// }
+///
+/// switch AppEnvironment.configuration() {
+/// case .debug:
+///     print("Running in Xcode")
+/// case .testFlight:
+///     print("Running via TestFlight")
+/// case .appStore:
+///     print("Running from App Store")
+/// }
+/// ```
+///
+/// ## Topics
+///
+/// ### Build Detection
+/// - ``isDebug``
+/// - ``isSimulator``
+/// - ``isTestFlight``
+/// - ``isTestCase``
+///
+/// ### Environment Classification
+/// - ``isDevelopment``
+/// - ``isAppStore``
+/// - ``configuration(testValue:)``
+///
+/// ### Security
+/// - ``isJailbroken``
 public struct AppEnvironment {
     /// Indicates whether the `appStoreReceiptURL` at `Bundle.main.appStoreReceiptURL` is a sandbox receipt.
     public static var isTestFlight: Bool{
@@ -136,21 +180,25 @@ extension AppEnvironment {
     }
 }
 
-/// Enum class used for strongly tpying the current build environment. Conditions must be listed here to be used as conditions on the AppConfig object.
+/// Represents the type of build environment the app is running in.
+///
+/// Use ``AppEnvironment/configuration(testValue:)`` to get the current build type.
 public enum BuildType: String {
-    /**
-    Indicates that the current build is being run in debug mode. This means that the build was installed via Xcode and is connected to a debugger.
-    */
+    /// The app was installed via Xcode and is running in debug mode.
+    ///
+    /// This typically means a developer is actively working on the app
+    /// with a debugger attached.
     case debug = "Debug"
 
-    /**
-    Indicates that the current build was installed via TestFlight and contains a sandbox receipt.
-    */
+    /// The app was installed via TestFlight.
+    ///
+    /// TestFlight builds contain a sandbox receipt and are used for
+    /// beta testing before App Store release.
     case testFlight = "TestFlight"
 
-    /**
-    Indicates that the current build was installed via the AppStore and contains a production receipt.
-    */
+    /// The app was installed from the App Store.
+    ///
+    /// This is a production build downloaded by end users.
     case appStore = "App Store"
 }
 #endif

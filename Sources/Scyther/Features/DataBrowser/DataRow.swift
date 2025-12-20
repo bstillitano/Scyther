@@ -7,13 +7,64 @@
 
 import Foundation
 
-/// Internal enum used to represent different types of presentable data
+/// Internal enum representing different types of data for presentation in the data browser.
+///
+/// `DataRow` intelligently parses various data types (strings, JSON, arrays, dictionaries, etc.)
+/// and converts them into a consistent format for display. It handles type detection,
+/// JSON parsing, and special cases like certificates and boolean values.
+///
+/// ## Topics
+/// ### Cases
+/// - ``string(title:data:)``
+/// - ``json(title:data:)``
+/// - ``array(title:data:)``
+/// - ``dictionary(title:data:)``
+///
+/// ### Creating a Data Row
+/// - ``init(title:from:)``
 internal enum DataRow {
+    /// A simple string value.
+    ///
+    /// - Parameters:
+    ///   - title: The display title for this data row.
+    ///   - data: The string content.
     case string(title: String?, data: String?)
+
+    /// A JSON-encoded value (array or object).
+    ///
+    /// - Parameters:
+    ///   - title: The display title for this data row.
+    ///   - data: The parsed JSON data.
     case json(title: String?, data: Any)
+
+    /// An array of strings.
+    ///
+    /// - Parameters:
+    ///   - title: The display title for this data row.
+    ///   - data: The array of string values.
     case array(title: String?, data: [String])
+
+    /// A dictionary of key-value pairs.
+    ///
+    /// - Parameters:
+    ///   - title: The display title for this data row.
+    ///   - data: The dictionary data.
     case dictionary(title: String?, data: [String: Any])
 
+    /// Creates a data row by intelligently parsing the input value.
+    ///
+    /// This initializer automatically detects the type of the input and converts it
+    /// to the most appropriate `DataRow` case. It handles:
+    /// - Data objects (attempts JSON parsing, falls back to string or byte count)
+    /// - Strings (attempts JSON parsing, falls back to plain string)
+    /// - NSNumber (distinguishes between booleans and numbers)
+    /// - Dates, URLs, and null values
+    /// - Arrays and dictionaries (both Swift and Foundation types)
+    /// - Certificate data arrays
+    ///
+    /// - Parameters:
+    ///   - title: The display title for this data row.
+    ///   - input: The raw data to parse and format.
     init(title: String?, from input: Any) {
         // Handle Data - try to parse as JSON
         if let inputData = input as? Data {

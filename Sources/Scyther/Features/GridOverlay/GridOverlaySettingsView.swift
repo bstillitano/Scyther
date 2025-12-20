@@ -7,6 +7,14 @@
 
 import SwiftUI
 
+/// A SwiftUI view for configuring the grid overlay settings.
+///
+/// This view provides controls for:
+/// - Toggling the grid overlay on/off
+/// - Adjusting grid size and opacity with sliders
+/// - Selecting from predefined color schemes
+///
+/// All settings changes are immediately applied and persisted to UserDefaults.
 struct GridOverlaySettingsView: View {
     @StateObject private var viewModel = GridOverlayViewModel()
 
@@ -64,6 +72,10 @@ struct GridOverlaySettingsView: View {
     }
 }
 
+/// View model managing the grid overlay settings interface.
+///
+/// Handles loading settings from `GridOverlay` on first appearance and synchronizing
+/// UI changes back to the singleton instance.
 class GridOverlayViewModel: ViewModel {
     @Published var isEnabled: Bool = false {
         didSet {

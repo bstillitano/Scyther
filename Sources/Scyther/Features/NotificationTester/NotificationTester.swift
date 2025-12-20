@@ -12,6 +12,36 @@
 import UIKit
 import UserNotifications
 
+/// A singleton utility for testing and logging push notifications.
+///
+/// `NotificationTester` provides functionality to schedule local test notifications
+/// and process incoming push notifications for debugging purposes. It maintains a log
+/// of all notifications received during the app session.
+///
+/// Use the shared ``instance`` to access notification testing features:
+///
+/// ```swift
+/// NotificationTester.instance.scheduleNotification(
+///     withTitle: "Test Notification",
+///     withBody: "This is a test"
+/// )
+/// ```
+///
+/// ## Topics
+/// ### Getting the Shared Instance
+/// - ``instance``
+///
+/// ### Notification Permissions
+/// - ``notificationsAllowed``
+///
+/// ### Notification History
+/// - ``notifications``
+///
+/// ### Scheduling Notifications
+/// - ``scheduleNotification(withTitle:withBody:withSound:withDelay:withRepeat:andIncreaseBadge:)``
+///
+/// ### Processing Notifications
+/// - ``processNotification(_:)``
 public class NotificationTester {
     /// Private Init to Stop re-initialisation and allow singleton creation.
     private init() {
@@ -22,26 +52,43 @@ public class NotificationTester {
         }
     }
 
-    /// An initialised, shared instance of the `NotificationTester` class.
+    /// The shared singleton instance of `NotificationTester`.
+    ///
+    /// Use this instance to access all notification testing and logging functionality.
     static let instance = NotificationTester()
 
     /// Reference to the local `UNUserNotificationCenter` singleton.
     private let notificationCenter = UNUserNotificationCenter.current()
 
-    /// `Bool` value representing whether or not notification permissions have been granted on the running device.
+    /// Indicates whether notification permissions have been granted.
+    ///
+    /// This value is updated when the notification center's authorization status is checked.
+    /// It will be `true` when the authorization status is `.authorized`, and `false` otherwise.
     public var notificationsAllowed: Bool = false
-    
-    /// Dictionary containing all received notifications during this session.
+
+    /// An array of all notifications received or scheduled during this session.
+    ///
+    /// This includes both push notifications received from APNS and local notifications
+    /// scheduled through Scyther. The array persists only for the current app session
+    /// and is cleared when the app terminates.
     internal var notifications: [PushNotification] = []
 
-    /// Schedules a local notification that will be delivered in a given time from now
+    /// Schedules a local notification for testing purposes.
+    ///
+    /// Creates and schedules a local notification with customizable content and behavior.
+    /// The notification will be delivered after the specified delay and optionally repeat.
+    /// All scheduled notifications are automatically logged to the notification history.
+    ///
     /// - Parameters:
-    ///   - title: Title of the notification that will be sent
-    ///   - body: Body/Description of the notification that will be sent
-    ///   - withSound: Boolean value representing whether or not a sound should be played
-    ///   - delay: Time in seconds until this notitifcaiton should be fired (default is 2 seconds)
-    ///   - repeats: Boolean value representing whether or not the notification should repeat
-    ///   - increaseBadge: Boolean value representing whether or not the app badge should increment
+    ///   - title: The title text displayed in the notification. Defaults to "Scyther Notification".
+    ///   - body: The body text displayed in the notification. Defaults to "This is a dummy notification powered by Scyther.".
+    ///   - withSound: Whether to play a sound when the notification is delivered. Defaults to `true`.
+    ///   - delay: The delay in seconds before the notification is delivered. Defaults to 2 seconds.
+    ///   - repeats: Whether the notification should repeat indefinitely. Defaults to `false`.
+    ///   - increaseBadge: Whether to increment the app badge count. Defaults to `true`.
+    ///
+    /// - Note: The notification is logged immediately and will appear in the notification logger
+    ///   even before it's delivered to the user.
     internal func scheduleNotification(withTitle title: String = "Scyther Notification",
                                        withBody body: String = "This is a dummy notification powered by Scyther.",
                                        withSound: Bool = true,
@@ -98,8 +145,22 @@ public class NotificationTester {
         NotificationCenter.default.post(name: .NotificationLoggerLoggedData, object: nil)
     }
     
-    /// Takes a `userInfo` object and casts it to a `PushNotification` object.
-    /// - Parameter userInfo: Push notification received from APNS
+    /// Processes and logs an incoming push notification from APNS.
+    ///
+    /// Parses the notification payload and extracts all standard APNS fields (title, body, badge, etc.)
+    /// as well as any custom data. The processed notification is added to the notification history
+    /// and a notification is posted to `NotificationCenter` to alert observers.
+    ///
+    /// Call this method from your app delegate when a push notification is received:
+    ///
+    /// ```swift
+    /// func application(_ application: UIApplication,
+    ///                  didReceiveRemoteNotification userInfo: [AnyHashable: Any]) {
+    ///     NotificationTester.instance.processNotification(userInfo)
+    /// }
+    /// ```
+    ///
+    /// - Parameter userInfo: The notification payload dictionary received from APNS.
     public func processNotification(_ userInfo: [AnyHashable : Any]) {
         //Breakdown APNS Notification
         let aps: [String: Any] = userInfo["aps"] as? [String: Any] ?? [:]
@@ -135,7 +196,13 @@ public class NotificationTester {
     }
 }
 
+/// Extension providing notification names for the notification logging system.
 public extension NSNotification.Name {
+    /// Posted when a new push notification has been logged.
+    ///
+    /// This notification is posted whenever ``NotificationTester`` logs a new notification,
+    /// either from APNS or from a locally scheduled test notification. Observers can listen
+    /// for this notification to update their UI when new notifications arrive.
     static let NotificationLoggerLoggedData = Notification.Name("NotificationLoggerLoggedData")
 }
 #endif

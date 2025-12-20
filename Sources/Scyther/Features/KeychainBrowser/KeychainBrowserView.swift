@@ -9,6 +9,12 @@ import SwiftUI
 import Combine
 import Security
 
+/// A SwiftUI view for browsing and managing keychain items.
+///
+/// Provides a comprehensive interface for viewing all keychain entries accessible
+/// by the application, organized by security class (Generic Passwords, Internet
+/// Passwords, Identities). Supports searching, individual item deletion, and
+/// bulk keychain clearing.
 struct KeychainBrowserView: View {
     @StateObject private var viewModel = KeychainBrowserViewModel()
     @State private var showingClearConfirmation = false

@@ -1,5 +1,5 @@
 //
-//  HTTPResponse.swift
+//  HTTPRequest.swift
 //
 //
 //  Created by Brandon Stillitano on 24/12/20.
@@ -8,6 +8,9 @@
 import Foundation
 
 /// Comparison function that determines whether a value conforming to `Comparable` is less than another value conforming to `Comparable`.
+///
+/// This function provides optional-aware comparison, treating `nil` as less than any non-nil value.
+///
 /// - Parameters:
 ///   - lhs: The left-hand side value of the comparison.
 ///   - rhs: The right-hand side value of the comparison.
@@ -24,7 +27,32 @@ private func < <T: Comparable>(lhs: T?, rhs: T?) -> Bool {
     }
 }
 
-/// Object Model representing a HTTP request
+/// A model representing a captured HTTP request and its response.
+///
+/// `HTTPRequest` stores all details about an HTTP transaction, including request metadata
+/// (URL, method, headers, body), response metadata (status code, headers, body), and timing information.
+/// Request and response bodies are stored to disk to minimize memory usage.
+///
+/// ## Features
+/// - Captures complete request and response data
+/// - Stores body data to disk with unique filenames
+/// - Generates formatted log entries
+/// - Provides cURL command generation
+/// - Supports JSON response browsing
+/// - Thread-safe (conforms to `Sendable`)
+///
+/// ## Usage
+/// ```swift
+/// let request = HTTPRequest()
+/// request.saveRequest(urlRequest)
+/// request.saveResponse(urlResponse, data: responseData)
+///
+/// // Access formatted body
+/// let responseBody = request.getResponseBody()
+///
+/// // Generate cURL command
+/// let curl = request.requestCurl
+/// ```
 final class HTTPRequest: Sendable, Identifiable {
     /// The cache policy used to fetch/store the request and its corresponding response
     var requestCachePolicy: String?

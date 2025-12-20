@@ -7,10 +7,30 @@
 
 import SwiftUI
 
+/// A SwiftUI view that displays captured console logs in a terminal-style interface.
+///
+/// `ConsoleLoggerView` provides a searchable list of console log entries with the following features:
+/// - Terminal-style green-on-black color scheme
+/// - Real-time log updates as new entries are captured
+/// - Search functionality to filter logs
+/// - Auto-scroll option to follow new logs
+/// - Context menu for copying log entries
+/// - Clear logs functionality
+///
+/// ## Usage
+/// ```swift
+/// NavigationStack {
+///     ConsoleLoggerView()
+/// }
+/// ```
 struct ConsoleLoggerView: View {
+    /// View model managing the console log state and business logic.
     @StateObject private var viewModel = ConsoleLoggerViewModel()
+
+    /// Current search text for filtering logs.
     @State private var searchText: String = ""
 
+    /// Terminal-style green color used throughout the UI.
     private static let terminalGreen = Color(red: 0.2, green: 1.0, blue: 0.2)
 
     var body: some View {
@@ -98,22 +118,41 @@ struct ConsoleLoggerView: View {
         }
     }
 
+    /// Returns filtered logs based on the current search text.
+    ///
+    /// If search text is empty, returns all logs. Otherwise, performs a case-insensitive
+    /// search on the log message content.
     private var filteredLogs: [ConsoleLogEntry] {
         guard !searchText.isEmpty else { return viewModel.logs }
         return viewModel.logs.filter { $0.message.localizedCaseInsensitiveContains(searchText) }
     }
 }
 
+/// A view that displays a single console log entry row.
+///
+/// Each row shows the timestamp and message text, with different styling for stdout and stderr:
+/// - stdout logs are displayed in terminal green on a black background
+/// - stderr logs are displayed in red on a light red background
 struct ConsoleLogRow: View {
+    /// The log entry to display.
     let log: ConsoleLogEntry
+
+    /// Optional search term for highlighting (not currently used).
     let searchTerm: String
 
+    /// Terminal-style green color for normal log text.
     private static let terminalGreen = Color(red: 0.2, green: 1.0, blue: 0.2)
 
+    /// Returns the appropriate text color based on the log source.
+    ///
+    /// - Returns: Red for stderr, terminal green for stdout.
     private var textColor: Color {
         log.source == .stderr ? .red : Self.terminalGreen
     }
 
+    /// Returns the appropriate background color based on the log source.
+    ///
+    /// - Returns: Light red background for stderr, clear for stdout.
     private var backgroundColor: Color {
         log.source == .stderr ? .red.opacity(0.15) : .clear
     }
@@ -135,20 +174,34 @@ struct ConsoleLogRow: View {
     }
 }
 
+/// View model for managing console logger state and operations.
+///
+/// This view model handles fetching logs from `ConsoleLogger`, managing the auto-scroll setting,
+/// and providing actions for clearing logs.
 class ConsoleLoggerViewModel: ViewModel {
+    /// Array of console log entries to display.
     @Published var logs: [ConsoleLogEntry] = []
+
+    /// Whether to automatically scroll to the bottom when new logs arrive.
     @Published var autoScroll: Bool = true
 
+    /// Called when the view first appears. Loads initial log data.
     override func onFirstAppear() async {
         await super.onFirstAppear()
         await refresh()
     }
 
+    /// Refreshes the logs from the console logger.
+    ///
+    /// Fetches the current log entries from `ConsoleLogger.instance` and updates the published logs array.
     @MainActor
     func refresh() async {
         logs = ConsoleLogger.instance.allLogs
     }
 
+    /// Clears all console logs.
+    ///
+    /// Removes all log entries from both the console logger and the local logs array.
     @MainActor
     func clearLogs() {
         ConsoleLogger.instance.clear()

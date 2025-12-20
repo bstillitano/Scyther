@@ -8,6 +8,19 @@
 import SwiftUI
 import Combine
 
+/// A comprehensive browser and editor for UserDefaults values.
+///
+/// This view provides full CRUD (Create, Read, Update, Delete) capabilities
+/// for UserDefaults entries, with support for:
+/// - Viewing and editing strings, numbers, booleans, dates, and data
+/// - Navigating nested arrays and dictionaries
+/// - Searching across keys and values
+/// - Deleting individual entries or resetting all non-Scyther values
+/// - Inline boolean toggle editing
+/// - Dedicated editors for strings and numbers
+///
+/// The view intelligently handles type detection and provides appropriate
+/// UI controls for each data type.
 struct UserDefaultsView: View {
     @StateObject private var viewModel = UserDefaultsViewModel()
     @State private var showingResetConfirmation = false

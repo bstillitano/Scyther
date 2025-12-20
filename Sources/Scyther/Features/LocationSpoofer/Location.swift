@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  Location.swift
 //
 //
 //  Created by Brandon Stillitano on 27/9/21.
@@ -7,13 +7,55 @@
 
 import UIKit
 
-/// Data struct used for conveniently forming geolocations
+/// A structure representing a geographic location with coordinates and metadata.
+///
+/// `Location` provides a convenient way to define and work with geographic coordinates
+/// for location spoofing. It includes preset locations for major cities worldwide and
+/// can generate GPX strings for location simulation.
+///
+/// ## Features
+/// - Stores latitude/longitude coordinates
+/// - Human-readable location names
+/// - Unique identifiers for each location
+/// - GPX file generation for location simulation
+/// - Equatable conformance for comparison
+///
+/// ## Usage
+/// ```swift
+/// // Use a preset location
+/// let sydney = Location.sydney
+///
+/// // Create a custom location
+/// let custom = Location(
+///     id: "office",
+///     name: "Office",
+///     latitude: 37.7749,
+///     longitude: -122.4194
+/// )
+///
+/// // Generate GPX data
+/// let gpx = sydney.gpxString
+/// ```
 public struct Location {
+    /// Unique identifier for the location.
     public var id: String
+
+    /// Human-readable name of the location (e.g., "Sydney, Australia").
     public var name: String = ""
+
+    /// Latitude coordinate in decimal degrees.
     public var latitude: Double = 0.00
+
+    /// Longitude coordinate in decimal degrees.
     public var longitude: Double = 0.00
-    
+
+    /// Creates a new location with the specified parameters.
+    ///
+    /// - Parameters:
+    ///   - id: Unique identifier for the location.
+    ///   - name: Human-readable name of the location.
+    ///   - latitude: Latitude coordinate in decimal degrees.
+    ///   - longitude: Longitude coordinate in decimal degrees.
     public init(id: String, name: String, latitude: Double, longitude: Double) {
         self.id = id
         self.name = name
@@ -24,7 +66,22 @@ public struct Location {
 
 // MARK: - Helper Functions
 extension Location {
-    /// Forms a valid GPX XML string using the given `Location` objects internal objects.
+    /// Generates a GPX (GPS Exchange Format) XML string for this location.
+    ///
+    /// This property creates a GPX file representation of the location by loading a
+    /// template file and replacing placeholders with the location's actual data.
+    /// The GPX format is used by the location spoofer to simulate GPS coordinates.
+    ///
+    /// ## Example
+    /// ```swift
+    /// let sydney = Location.sydney
+    /// if let gpx = sydney.gpxString {
+    ///     // Use GPX string for location simulation
+    ///     print(gpx)
+    /// }
+    /// ```
+    ///
+    /// - Returns: A GPX XML string, or `nil` if the template file cannot be loaded.
     var gpxString: String? {
         guard var xmlContentString = try? String(contentsOfFile: Bundle.module.path(forResource: "GenericPlace", ofType: "gpx") ?? "") else {
             return nil
@@ -37,7 +94,12 @@ extension Location {
 }
 
 // MARK: - Presets
+/// Extension providing preset locations for major cities worldwide.
+///
+/// These preset locations can be used directly for location spoofing without
+/// needing to manually specify coordinates.
 extension Location {
+    /// Sydney, Australia (-33.8688, 151.2093)
     static var sydney: Location = Location(id: "sydney",
                                            name: "Sydney, Australia",
                                            latitude: -33.8688,

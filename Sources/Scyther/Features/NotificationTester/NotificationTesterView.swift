@@ -8,6 +8,16 @@
 import SwiftUI
 import UserNotifications
 
+/// A SwiftUI view for testing and managing local push notifications.
+///
+/// This view provides a comprehensive interface for:
+/// - Checking and requesting notification permissions
+/// - Configuring and sending test notifications
+/// - Managing app badge count
+/// - Viewing and canceling scheduled notifications
+///
+/// The view automatically refreshes the scheduled notifications list every second
+/// to keep the UI in sync with the notification center.
 struct NotificationTesterView: View {
     @StateObject private var viewModel = NotificationTesterViewModel()
 
@@ -116,7 +126,11 @@ struct NotificationTesterView: View {
     }
 }
 
+/// A row view displaying information about a scheduled notification.
+///
+/// Shows the notification's title, body, scheduled fire time, and whether it repeats.
 struct ScheduledNotificationRow: View {
+    /// The scheduled notification item to display.
     let notification: ScheduledNotificationItem
 
     var body: some View {
@@ -141,16 +155,36 @@ struct ScheduledNotificationRow: View {
     }
 }
 
+/// A model representing a scheduled notification in the notification center.
+///
+/// This type extracts relevant information from `UNNotificationRequest` objects
+/// for display in the UI.
 struct ScheduledNotificationItem: Identifiable, Equatable {
+    /// The unique identifier for this notification request.
     let notificationId: String
+
+    /// The title of the notification.
     let title: String
+
+    /// The body text of the notification.
     let body: String
+
+    /// The date and time when this notification will fire, if available.
     let fireDate: Date?
+
+    /// Whether this notification repeats.
     let repeats: Bool
 
     var id: String { notificationId }
 }
 
+/// View model managing the state and logic for the notification tester interface.
+///
+/// Handles:
+/// - Permission checks and requests
+/// - Notification configuration and sending
+/// - Badge count management
+/// - Scheduled notification monitoring
 class NotificationTesterViewModel: ViewModel {
     @Published var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @Published var badgeCount: Int = 0 {

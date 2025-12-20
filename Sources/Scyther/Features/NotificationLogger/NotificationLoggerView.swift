@@ -7,6 +7,16 @@
 
 import SwiftUI
 
+/// A view displaying a log of all push notifications received by the application.
+///
+/// Shows detailed information about each notification including:
+/// - Title, subtitle, and body text
+/// - Badge count and category
+/// - Sound and content-available flags
+/// - Custom additional data
+/// - Complete raw payload
+///
+/// The view automatically updates when new notifications are logged.
 struct NotificationLoggerView: View {
     @StateObject private var viewModel = NotificationLoggerViewModel()
 
@@ -69,20 +79,45 @@ struct NotificationLoggerView: View {
     }
 }
 
+/// A model representing a logged push notification for display.
 struct NotificationLogItem: Identifiable {
     let id = UUID()
+
+    /// The formatted timestamp when the notification was received.
     let receivedAt: String
+
+    /// The notification title.
     let title: String?
+
+    /// The notification subtitle.
     let subtitle: String?
+
+    /// The notification body text.
     let body: String?
+
+    /// The badge count set by the notification.
     let badge: Int?
+
+    /// The notification category identifier.
     let category: String?
+
+    /// The content-available flag value.
     let contentAvailable: Int?
+
+    /// The sound file name or "default".
     let sound: String?
+
+    /// JSON string of custom additional data.
     let additionalDataJson: String
+
+    /// JSON string of the complete raw payload.
     let rawPayloadJson: String
 }
 
+/// View model managing the notification logger display.
+///
+/// Loads notifications from `NotificationTester` and listens for new
+/// notifications via `NotificationCenter`.
 class NotificationLoggerViewModel: ViewModel {
     @Published var notifications: [NotificationLogItem] = []
 

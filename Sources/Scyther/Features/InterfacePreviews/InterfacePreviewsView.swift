@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+/// A gallery view displaying previews of custom UI components.
+///
+/// Shows all classes conforming to the `ScytherPreviewable` protocol,
+/// rendering a preview of each component along with its name and description.
+/// Useful for showcasing custom UIKit views and controls.
 struct InterfacePreviewsView: View {
     @StateObject private var viewModel = InterfacePreviewsViewModel()
 
@@ -23,7 +28,9 @@ struct InterfacePreviewsView: View {
     }
 }
 
+/// A row displaying a single previewable UI component.
 struct PreviewableRowView: View {
+    /// The previewable item to display.
     let item: PreviewableItem
 
     var body: some View {
@@ -42,7 +49,9 @@ struct PreviewableRowView: View {
     }
 }
 
+/// A SwiftUI wrapper for displaying UIKit views.
 struct PreviewableUIViewWrapper: UIViewRepresentable {
+    /// The UIView to wrap and display.
     let view: UIView
 
     func makeUIView(context: Context) -> UIView {
@@ -61,13 +70,24 @@ struct PreviewableUIViewWrapper: UIViewRepresentable {
     func updateUIView(_ uiView: UIView, context: Context) {}
 }
 
+/// A model representing a previewable UI component.
 struct PreviewableItem: Identifiable {
     let id = UUID()
+
+    /// The display name of the component.
     let name: String
+
+    /// A description of what the component does.
     let details: String
+
+    /// The UIView instance to preview.
     let previewView: UIView
 }
 
+/// View model managing the interface previews list.
+///
+/// Discovers all classes conforming to `ScytherPreviewable` and
+/// creates preview items for display.
 class InterfacePreviewsViewModel: ViewModel {
     @Published var previewables: [PreviewableItem] = []
 

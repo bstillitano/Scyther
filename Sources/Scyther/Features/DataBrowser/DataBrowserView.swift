@@ -8,6 +8,17 @@
 import SwiftUI
 import Combine
 
+/// A hierarchical browser for inspecting structured data.
+///
+/// `DataBrowserView` provides an interactive interface for exploring nested data structures
+/// such as dictionaries, arrays, and mixed hierarchies. It supports:
+/// - Searchable content with debounced input
+/// - Drill-down navigation for nested structures
+/// - Copy-to-clipboard functionality
+/// - Automatic sorting of numeric array indices
+///
+/// The view accepts data in the format `[String: [String: Any]]` where the top-level
+/// keys represent sections, and each section contains key-value pairs to display.
 struct DataBrowserView: View {
     let data: [String: [String: Any]]
     var title: String = "Data Browser"
@@ -100,24 +111,46 @@ struct DataBrowserView: View {
     }
 }
 
+/// A section in the data browser containing a group of related items.
 struct DataBrowserSection: Identifiable {
     let id = UUID()
+
+    /// The section title displayed as a header.
     let title: String
+
+    /// The data items contained in this section.
     let items: [DataBrowserItem]
 }
 
+/// An individual data item displayed in the browser.
 struct DataBrowserItem: Identifiable {
     let id = UUID()
+
+    /// The key or label for this data item.
     let key: String
+
+    /// A string representation of the value for display purposes.
     let valueDescription: String?
+
+    /// The type of item, determining whether it's navigable or a plain value.
     let itemType: DataBrowserItemType
 }
 
+/// The presentation type for a data browser item.
 enum DataBrowserItemType {
+    /// A simple, non-navigable value displayed inline.
     case plain
+
+    /// A navigable item that opens a nested data browser when tapped.
+    ///
+    /// - Parameter data: The nested data structure to display when navigating.
     case navigable(data: [String: [String: Any]])
 }
 
+/// View model managing the data browser's state and data processing.
+///
+/// Handles parsing raw data into displayable sections and items, with support
+/// for nested structures and intelligent sorting.
 class DataBrowserViewModel: ViewModel {
     private let data: [String: [String: Any]]
     @Published var sections: [DataBrowserSection] = []

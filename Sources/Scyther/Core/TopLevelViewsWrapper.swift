@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  TopLevelViewsWrapper.swift
 //
 //
 //  Created by Brandon Stillitano on 18/2/21.
@@ -9,7 +9,16 @@
 import NotificationCenter
 import UIKit
 
-/// `TopLevelViewsWrapper` is a `UIView` instance that keeps all the views that are meant to stay on top of the screen at all times as its subviews.
+/// A container view that keeps debugging overlays on top of all other content.
+///
+/// `TopLevelViewsWrapper` manages ``TopLevelView`` instances and ensures they remain
+/// visible above all other views in the window hierarchy. It handles:
+/// - Adding and managing top-level debug views
+/// - Responding to device orientation changes
+/// - Pass-through touch handling (only intercepts touches on visible subviews)
+/// - Automatic visibility management based on subview visibility
+///
+/// - Note: This is an internal class used by ``InterfaceToolkit``.
 class TopLevelViewsWrapper: UIView {
     // MARK: - Data
     var topLevelViews: [TopLevelView] = []

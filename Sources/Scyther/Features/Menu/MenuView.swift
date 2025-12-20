@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  MenuView.swift
 //  Scyther
 //
 //  Created by Brandon Stillitano on 16/6/2025.
@@ -7,6 +7,22 @@
 
 import SwiftUI
 
+/// The main menu interface for the Scyther developer toolkit.
+///
+/// `MenuView` provides a comprehensive dashboard for accessing all Scyther features,
+/// organized into logical sections:
+/// - **Device**: Hardware and OS information
+/// - **Application**: App metadata and build details
+/// - **Networking**: Network tools, logs, and configuration
+/// - **Data**: Feature flags, UserDefaults, cookies
+/// - **Security**: Keychain browser
+/// - **System Tools**: Location spoofer
+/// - **Notifications**: Notification logger and tester
+/// - **UI/UX**: Fonts, components, grid overlay, touch visualizer
+/// - **Development Tools**: Console logs
+///
+/// The menu displays device information in a header and provides navigation
+/// to all sub-features.
 public struct MenuView: View {
     @StateObject private var viewModel: NewMenuViewModel = NewMenuViewModel()
 
@@ -186,6 +202,15 @@ public struct MenuView: View {
                 } label: {
                     row(withLabel: "Touch Visualiser", icon: "hand.point.up")
                 }
+                Toggle(isOn: $viewModel.slowAnimationsEnabled) {
+                    row(withLabel: "Slow Animations", icon: "tortoise")
+                }
+                Toggle(isOn: $viewModel.showViewFrames) {
+                    row(withLabel: "Show View Frames", icon: "rectangle.dashed")
+                }
+                Toggle(isOn: $viewModel.showViewSizes) {
+                    row(withLabel: "Show View Sizes", icon: "ruler")
+                }
             } header: {
                 Text("UI/UX")
             }
@@ -257,16 +282,43 @@ public struct MenuView: View {
     }
 }
 
+/// View model for the main menu interface.
+///
+/// Manages the IP address loading state for display in the networking section.
 class NewMenuViewModel: ViewModel {
+    /// The device's current IP address.
     @Published var ipAddress: String = ""
+
+    /// Whether the IP address is currently being fetched.
     @Published var isLoadingIPAddress: Bool = true
-    
+
+    /// Whether slow animations mode is enabled.
+    @Published var slowAnimationsEnabled: Bool = InterfaceToolkit.slowAnimationsEnabled {
+        didSet {
+            InterfaceToolkit.slowAnimationsEnabled = slowAnimationsEnabled
+        }
+    }
+
+    /// Whether view frames are shown.
+    @Published var showViewFrames: Bool = InterfaceToolkit.showViewFrames {
+        didSet {
+            InterfaceToolkit.showViewFrames = showViewFrames
+        }
+    }
+
+    /// Whether view sizes are shown.
+    @Published var showViewSizes: Bool = InterfaceToolkit.showViewSizes {
+        didSet {
+            InterfaceToolkit.showViewSizes = showViewSizes
+        }
+    }
+
     override func onFirstAppear() async {
         await super.onFirstAppear()
-    
+
         await loadIPAddress()
     }
-    
+
     @MainActor private func loadIPAddress() async {
         defer { isLoadingIPAddress = false }
         isLoadingIPAddress = true
@@ -274,24 +326,45 @@ class NewMenuViewModel: ViewModel {
     }
 }
 
+/// Base view model class for all Scyther view models.
+///
+/// Provides lifecycle methods for view appearance management:
+/// - ``setup()``: Called during initialization
+/// - ``onFirstAppear()``: Called only on the first appearance
+/// - ``onAppear()``: Called every time the view appears
+/// - ``onSubsequentAppear()``: Called on every appearance after the first
+///
+/// Subclasses should override these methods to implement their specific behavior.
 class ViewModel: ObservableObject {
     init() {
         setup()
     }
 
+    /// Called during initialization.
+    ///
+    /// Override to perform setup tasks that need to happen before the view appears.
     func setup() {
-        
+
     }
-    
+
+    /// Called the first time the view appears.
+    ///
+    /// Override to perform one-time initialization tasks like loading data.
     func onFirstAppear() async {
-        
+
     }
-    
+
+    /// Called every time the view appears.
+    ///
+    /// Override to perform tasks that should happen on every appearance.
     func onAppear() async {
-        
+
     }
-    
+
+    /// Called every time the view appears after the first appearance.
+    ///
+    /// Override to perform refresh tasks that should skip the initial load.
     func onSubsequentAppear() async {
-        
+
     }
 }

@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  LocationSpoofer.swift
 //
 //
 //  Created by Brandon Stillitano on 27/9/21.
@@ -8,11 +8,54 @@
 import Foundation
 import CoreLocation
 
+/// Configuration settings for the location spoofer.
+///
+/// - Note: This is an internal configuration struct used by `LocationSpoofer`.
 struct LocationSpooferConfiguration {
+    /// Default time interval between location updates (in seconds).
     static var updateInterval = 0.5
+
+    /// Optional GPX file name to load for location simulation.
     static var GpxFileName: String?
 }
 
+/// A location manager that provides spoofed GPS coordinates for testing.
+///
+/// `LocationSpoofer` extends `CLLocationManager` to intercept location requests and provide
+/// fake coordinates instead of real device location. It supports both static locations and
+/// dynamic routes, making it useful for testing location-based features without physical movement.
+///
+/// ## Features
+/// - Spoof static locations or animated routes
+/// - Support for preset cities and custom coordinates
+/// - Method swizzling to intercept Core Location calls
+/// - Persistent location settings via UserDefaults
+/// - GPX file parsing for complex routes
+/// - Developer-configurable custom locations
+///
+/// ## Usage
+/// ```swift
+/// // Enable location spoofing
+/// LocationSpoofer.instance.spoofingEnabled = true
+///
+/// // Set a static location
+/// LocationSpoofer.instance.spoofedLocation = .tokyo
+///
+/// // Set a custom location
+/// LocationSpoofer.instance.setCustomLocation(
+///     CLLocationCoordinate2D(latitude: 35.6762, longitude: 139.6503)
+/// )
+///
+/// // Set a route for simulated movement
+/// LocationSpoofer.instance.spoofedRoute = .driveCityToSuburb
+///
+/// // Now all CLLocationManager calls will use spoofed coordinates
+/// ```
+///
+/// - Important: Location spoofing only affects the current app. System location services
+///   and other apps will continue to use real GPS coordinates.
+///
+/// - Note: Call `LocationSpoofer.instance.start()` during app initialization to enable swizzling.
 public final class LocationSpoofer: CLLocationManager {
     // MARK: - Static Data
     internal static var LocationSpoofingEnabledChangeNotification: NSNotification.Name = NSNotification.Name("LocationSpoofingEnabledChangeNotification")

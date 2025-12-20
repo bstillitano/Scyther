@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  UIColor+Extensions.swift
 //
 //
 //  Created by Brandon Stillitano on 24/2/21.
@@ -8,8 +8,26 @@
 #if !os(macOS)
 import UIKit
 
+/// Provides convenient extensions for UIColor manipulation and conversion.
+///
+/// This extension adds utility methods for generating random colors, converting between
+/// colors and hex codes, and creating colors from hex string representations.
 extension UIColor {
-    /// Generates a random color
+    /// Generates a random UIColor with full opacity.
+    ///
+    /// Creates a color with randomly generated red, green, and blue components,
+    /// each ranging from 0.0 to 1.0. Alpha is always set to 1.0 (fully opaque).
+    ///
+    /// ## Example
+    /// ```swift
+    /// let randomColor = UIColor.random
+    /// view.backgroundColor = randomColor
+    ///
+    /// // Generate multiple random colors
+    /// let colors = (0..<5).map { _ in UIColor.random }
+    /// ```
+    ///
+    /// - Returns: A randomly generated UIColor with full opacity
     class var random: UIColor {
         return UIColor(red: .random(in: 0...1),
                        green: .random(in: 0...1),
@@ -17,9 +35,28 @@ extension UIColor {
                        alpha: 1.0)
     }
 
-    /// Provides the given color's hex code in the #RRGGBB format
-    /// - Parameter withAlpha: Whether or not the string returned should include alpha values
-    /// - Returns: A hex code in either 8 or 6 digit format depending on the `withAlpha` value
+    /// Returns the hex code representation of the color.
+    ///
+    /// Converts the color's RGB(A) components to a hexadecimal string representation.
+    /// The format can include or exclude the alpha channel based on the parameter.
+    ///
+    /// - Parameter withAlpha: Whether to include the alpha channel in the output.
+    ///                        Defaults to `true`.
+    ///
+    /// - Returns: A hex code string in either `RRGGBBAA` (8 digits) or `RRGGBB` (6 digits) format,
+    ///           or `nil` if the color cannot be converted.
+    ///
+    /// ## Example
+    /// ```swift
+    /// let redColor = UIColor.red
+    /// print(redColor.hexCode(withAlpha: false)) // Prints "FF0000"
+    /// print(redColor.hexCode(withAlpha: true))  // Prints "FF0000FF"
+    ///
+    /// let customColor = UIColor(red: 0.5, green: 0.75, blue: 1.0, alpha: 0.8)
+    /// print(customColor.hexCode(withAlpha: false)) // Prints "7FBFFF"
+    /// ```
+    ///
+    /// - Note: The returned string does not include a leading "#" character.
     func hexCode(withAlpha: Bool = true) -> String? {
         //Confirm enough components exist to construct a `UIColor`
         guard let components = cgColor.components, components.count >= 3 else {
@@ -45,14 +82,41 @@ extension UIColor {
         }
     }
 
-    /// Convenience initialiser which allows initialising a `UIColor` from a hex code
-    /// - Parameter hex: Hex code in `#RRGGBB` format
+    /// Creates a UIColor from a hexadecimal color code string.
+    ///
+    /// This convenience initializer accepts hex codes in various formats and converts them
+    /// to a UIColor. The hex string can optionally include a "#" prefix and supports both
+    /// RGB (6 digits) and RGBA (8 digits) formats.
+    ///
+    /// - Parameter hex: A hexadecimal color code string. Can be in formats:
+    ///   - `"RRGGBB"` (6 digits, assumes full opacity)
+    ///   - `"#RRGGBB"` (6 digits with prefix)
+    ///   - `"RRGGBBAA"` (8 digits with alpha)
+    ///   - `"#RRGGBBAA"` (8 digits with prefix)
+    ///
+    /// - Returns: A UIColor if the hex string is valid, or `nil` if parsing fails.
+    ///
+    /// ## Example
+    /// ```swift
+    /// // Creating colors from hex codes
+    /// let red = UIColor(hex: "FF0000")
+    /// let blue = UIColor(hex: "#0000FF")
+    /// let transparentGreen = UIColor(hex: "#00FF0080") // 50% opacity
+    ///
+    /// // Using with optional binding
+    /// if let customColor = UIColor(hex: userInputHex) {
+    ///     view.backgroundColor = customColor
+    /// }
+    /// ```
+    ///
+    /// - Note: The initializer automatically trims whitespace and removes "#" prefixes.
+    ///         Invalid hex strings or strings of incorrect length will result in `nil`.
     convenience init?(hex: String?) {
         //Check data
         guard let hexString: String = hex else {
             return nil
         }
-        
+
         //Sanitise hex string
         var hexSanitized = hexString.trimmingCharacters(in: .whitespacesAndNewlines)
         hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")

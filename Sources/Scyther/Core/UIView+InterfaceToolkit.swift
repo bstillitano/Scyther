@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  UIView+InterfaceToolkit.swift
 //
 //
 //  Created by Brandon Stillitano on 20/2/21.
@@ -8,15 +8,30 @@
 #if !os(macOS)
 import UIKit
 
+/// Extension providing debug border and size visualization capabilities for UIView.
+///
+/// This file contains internal extensions to UIView that enable the view debugging
+/// features in Scyther's Interface Toolkit. Features include:
+/// - Debug borders: Adds colored borders to all views for layout debugging
+/// - Debug sizes: Shows view dimensions as text labels
+///
+/// These features are controlled via ``InterfaceToolkit`` and are not intended
+/// for direct use.
+
 // MARK: - Static Data
 private let UIViewPreviousMasksToBoundsKey = "Scyther_previousMasksToBounds"
 private let UIViewPreviousBorderColorKey = "Scyther_previousBorderColor"
 private let UIViewPreviousBorderWidthKey = "Scyther_previousBorderWidth"
 
 // MARK: - Protocol
+
+/// Internal protocol for managing debug visualization state on UIViews.
 protocol InterfaceToolkitPrivate: UIView {
+    /// The previously set border color, stored as a hex string.
     var previousBorderColor: String? { get set }
+    /// The previously set border width.
     var previousBorderWidth: CGFloat { get set }
+    /// A randomly generated color for this view's debug border.
     var debugBorderColor: CGColor { get }
 }
 

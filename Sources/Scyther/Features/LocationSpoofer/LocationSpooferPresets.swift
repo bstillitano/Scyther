@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  LocationSpooferPresets.swift
 //  Scyther
 //
 //  Created by Brandon Stillitano on 17/4/2025.
@@ -7,6 +7,19 @@
 
 import Foundation
 
+/// Enumeration of all available location spoofing presets.
+///
+/// This enum provides a comprehensive list of preset locations and routes that can be
+/// used for location spoofing. Each preset maps to either a static `Location` or a
+/// dynamic `Route`.
+///
+/// ## Usage
+/// ```swift
+/// let preset = LocationSpooferPresets.tokyo
+/// if let location = preset.location {
+///     LocationSpoofer.instance.spoofedLocation = location
+/// }
+/// ```
 enum LocationSpooferPresets: String, CaseIterable {
     case driveCityToSuburb
     case berlin
@@ -33,6 +46,9 @@ enum LocationSpooferPresets: String, CaseIterable {
     case tokyo
     case valletta
 
+    /// Returns the type category for this preset.
+    ///
+    /// Determines whether this preset is a static city location or a dynamic route.
     var type: LocationSpooferPresetType {
         switch self {
         case .driveCityToSuburb:
@@ -41,7 +57,10 @@ enum LocationSpooferPresets: String, CaseIterable {
             return .city
         }
     }
-    
+
+    /// Returns the static `Location` for city presets.
+    ///
+    /// - Returns: A `Location` object if this is a city preset, otherwise `nil`.
     var location: Location? {
         switch self {
         case .driveCityToSuburb:
@@ -95,6 +114,9 @@ enum LocationSpooferPresets: String, CaseIterable {
         }
     }
     
+    /// Returns the `Route` for route presets.
+    ///
+    /// - Returns: A `Route` object if this is a route preset, otherwise `nil`.
     var route: Route? {
         switch self {
         case .driveCityToSuburb:
