@@ -17,15 +17,15 @@ struct LocationTestView: View {
     var body: some View {
         List {
             Section {
-                LabeledContent("Spoofing Enabled", value: Scyther.locationSpoofer.spoofingEnabled ? "Yes" : "No")
-                    .foregroundStyle(Scyther.locationSpoofer.spoofingEnabled ? .green : .primary)
+                LabeledContent("Spoofing Enabled", value: Scyther.location.spoofingEnabled ? "Yes" : "No")
+                    .foregroundStyle(Scyther.location.spoofingEnabled ? .green : .primary)
                 LabeledContent("Swizzle Active", value: CLLocationManager.isLocationSwizzled ? "Yes" : "No")
                     .foregroundStyle(CLLocationManager.isLocationSwizzled ? .green : .red)
 
-                if Scyther.locationSpoofer.spoofingEnabled {
-                    LabeledContent("Spoofed Location", value: Scyther.locationSpoofer.spoofedLocation.name)
-                    LabeledContent("Spoofed Lat", value: String(format: "%.6f", Scyther.locationSpoofer.spoofedLocation.latitude))
-                    LabeledContent("Spoofed Lon", value: String(format: "%.6f", Scyther.locationSpoofer.spoofedLocation.longitude))
+                if Scyther.location.spoofingEnabled {
+                    LabeledContent("Spoofed Location", value: Scyther.location.spoofedLocation.name)
+                    LabeledContent("Spoofed Lat", value: String(format: "%.6f", Scyther.location.spoofedLocation.latitude))
+                    LabeledContent("Spoofed Lon", value: String(format: "%.6f", Scyther.location.spoofedLocation.longitude))
                 }
             } header: {
                 Text("Scyther Location Spoofer")
@@ -91,7 +91,7 @@ struct LocationTestView: View {
 
             Section {
                 Button("Open Scyther Menu") {
-                    Scyther.presentMenu()
+                    Scyther.showMenu()
                 }
 
                 Button("Start Continuous Updates") {

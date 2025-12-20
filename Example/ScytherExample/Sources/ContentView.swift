@@ -35,7 +35,7 @@ struct HomeView: View {
             List {
                 Section("Scyther Demo") {
                     Button("Open Scyther Menu") {
-                        Scyther.presentMenu()
+                        Scyther.showMenu()
                     }
 
                     Button("Shake device to open menu") {}
@@ -158,12 +158,12 @@ struct HomeView: View {
     }
 
     private func setupSampleToggles() {
-        Scyther.toggler.configureToggle(withName: "new_onboarding_flow", remoteValue: true)
-        Scyther.toggler.configureToggle(withName: "dark_mode_v2", remoteValue: false)
-        Scyther.toggler.configureToggle(withName: "experimental_feature", remoteValue: false)
-        Scyther.toggler.configureToggle(withName: "show_beta_badge", remoteValue: true)
-        Scyther.toggler.configureToggle(withName: "enable_analytics", remoteValue: true)
-        Scyther.toggler.configureToggle(withName: "use_new_api", remoteValue: false)
+        Scyther.featureFlags.register("new_onboarding_flow", remoteValue: true)
+        Scyther.featureFlags.register("dark_mode_v2", remoteValue: false)
+        Scyther.featureFlags.register("experimental_feature", remoteValue: false)
+        Scyther.featureFlags.register("show_beta_badge", remoteValue: true)
+        Scyther.featureFlags.register("enable_analytics", remoteValue: true)
+        Scyther.featureFlags.register("use_new_api", remoteValue: false)
     }
 }
 

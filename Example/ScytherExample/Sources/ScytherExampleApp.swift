@@ -32,10 +32,10 @@ struct ScytherExampleApp: App {
 
     init() {
         // Start Scyther
-        Scyther.instance.start()
+        Scyther.start()
 
         // Configure some example environment variables
-        Scyther.instance.customEnvironmentVariables = [
+        Scyther.environmentVariables = [
             "API_BASE_URL": "https://api.example.com",
             "APP_ENVIRONMENT": "development",
             "FEATURE_NEW_UI": "enabled"
