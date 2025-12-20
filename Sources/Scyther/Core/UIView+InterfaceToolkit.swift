@@ -193,6 +193,8 @@ internal extension UIView {
 }
 
 // MARK: - Swizzling
+private var hasRegisteredForDebugNotificationsKey: UInt8 = 0
+
 internal extension UIView {
     /// Replaces the original `layoutSubviews` implementation with the swizzled version
     static let swizzleLayout: Void = {
@@ -201,19 +203,28 @@ internal extension UIView {
         swizzle(UIView.self, originalSelector, swizzledSelector)
     }()
 
+    private var hasRegisteredForDebugNotifications: Bool {
+        get { objc_getAssociatedObject(self, &hasRegisteredForDebugNotificationsKey) as? Bool ?? false }
+        set { objc_setAssociatedObject(self, &hasRegisteredForDebugNotificationsKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+
     /// Swizzled implementation of layout subviews
     @objc
     private func swizzledLayoutSubviews() {
         swizzledLayoutSubviews()
 
+        // Only register for notifications once per view
+        guard !hasRegisteredForDebugNotifications else { return }
+        hasRegisteredForDebugNotifications = true
+
         if let borderColor = layer.borderColor, previousBorderColor == nil {
             previousBorderColor = UIColor(cgColor: borderColor).hexCode()
             previousBorderWidth = layer.borderWidth
         }
-        
+
         refreshDebugBorders()
         registerForDebugBorderNotifications()
-        
+
         refreshDebugViewSizes()
         registerForDebugViewSizeNotifications()
     }

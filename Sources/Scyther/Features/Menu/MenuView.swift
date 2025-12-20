@@ -256,10 +256,11 @@ public struct MenuView: View {
 
     func toggleRow(_ label: String, icon: String, isOn: Binding<Bool>) -> some View {
         Toggle(isOn: isOn) {
-            HStack {
+            Label {
+                Text(label)
+            } icon: {
                 Image(systemName: icon)
                     .foregroundStyle(Color.accentColor)
-                Text(label)
             }
         }
     }

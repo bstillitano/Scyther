@@ -99,15 +99,14 @@ public class InterfaceToolkit: NSObject {
 
     internal func start() {
         registerForNotitfcations()
-        
+
         /// Delaying here to allow UIWindow time to initialise.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             self?.setupTopLevelViewsWrapper()
             self?.setupGridOverlay()
             self?.setWindowSpeed()
-            if self?.showsViewBorders ?? false {
-                self?.swizzleLayout()
-            }
+            // Always swizzle so views can respond to debug toggle changes
+            self?.swizzleLayout()
             if self?.visualiseTouches ?? false {
                 TouchVisualiser.instance.start()
             }
