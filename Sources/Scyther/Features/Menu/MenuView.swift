@@ -202,15 +202,9 @@ public struct MenuView: View {
                 } label: {
                     row(withLabel: "Touch Visualiser", icon: "hand.point.up")
                 }
-                Toggle(isOn: $viewModel.slowAnimationsEnabled) {
-                    row(withLabel: "Slow Animations", icon: "tortoise")
-                }
-                Toggle(isOn: $viewModel.showViewFrames) {
-                    row(withLabel: "Show View Frames", icon: "rectangle.dashed")
-                }
-                Toggle(isOn: $viewModel.showViewSizes) {
-                    row(withLabel: "Show View Sizes", icon: "ruler")
-                }
+                toggleRow("Slow Animations", icon: "tortoise", isOn: $viewModel.slowAnimationsEnabled)
+                toggleRow("Show View Frames", icon: "rectangle.dashed", isOn: $viewModel.showViewFrames)
+                toggleRow("Show View Sizes", icon: "ruler", isOn: $viewModel.showViewSizes)
             } header: {
                 Text("UI/UX")
             }
@@ -256,6 +250,16 @@ public struct MenuView: View {
                     .truncationMode(.middle)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+    }
+
+    func toggleRow(_ label: String, icon: String, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundStyle(Color.accentColor)
+                Text(label)
             }
         }
     }
