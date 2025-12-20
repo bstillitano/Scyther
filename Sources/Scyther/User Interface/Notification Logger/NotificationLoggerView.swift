@@ -46,6 +46,7 @@ struct NotificationLoggerView: View {
                                 title: "Additional Push Data"
                             )
                         }
+                        .foregroundStyle(.tint)
 
                         NavigationLink("View Raw Payload") {
                             TextReaderView(
@@ -53,6 +54,7 @@ struct NotificationLoggerView: View {
                                 title: "Raw Push Payload"
                             )
                         }
+                        .foregroundStyle(.tint)
                     }
                 }
             }

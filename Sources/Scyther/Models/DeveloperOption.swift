@@ -10,7 +10,6 @@ import UIKit
 
 /// Different types of developer options, controls how a developer option is represented in the main menu.
 public enum DeveloperOptionType: CaseIterable {
-    ///
     case viewController
     case value
 }

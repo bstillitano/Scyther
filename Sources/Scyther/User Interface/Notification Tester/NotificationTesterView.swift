@@ -11,6 +11,8 @@ import UserNotifications
 struct NotificationTesterView: View {
     @StateObject private var viewModel = NotificationTesterSwiftUIViewModel()
 
+    private let refreshTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
     var body: some View {
         List {
             Section {
@@ -92,17 +94,7 @@ struct NotificationTesterView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(viewModel.scheduledNotifications) { notification in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(notification.title)
-                                .font(.headline)
-                            Text(notification.body)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            Text(notification.triggerDescription)
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .padding(.vertical, 2)
+                        ScheduledNotificationRow(notification: notification)
                     }
                 }
 
@@ -118,17 +110,45 @@ struct NotificationTesterView: View {
         .onFirstAppear {
             await viewModel.onAppear()
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+        .onReceive(refreshTimer) { _ in
             Task { await viewModel.refreshScheduledNotifications() }
         }
     }
 }
 
-struct ScheduledNotificationItem: Identifiable {
-    let id: String
+struct ScheduledNotificationRow: View {
+    let notification: ScheduledNotificationItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(notification.title)
+                .font(.headline)
+            Text(notification.body)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            if let fireDate = notification.fireDate {
+                HStack(spacing: 4) {
+                    Text("Fires at \(fireDate.formatted(date: .omitted, time: .standard))")
+                    if notification.repeats {
+                        Text("(repeats)")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+struct ScheduledNotificationItem: Identifiable, Equatable {
+    let notificationId: String
     let title: String
     let body: String
-    let triggerDescription: String
+    let fireDate: Date?
+    let repeats: Bool
+
+    var id: String { notificationId }
 }
 
 class NotificationTesterSwiftUIViewModel: ViewModel {
@@ -199,28 +219,23 @@ class NotificationTesterSwiftUIViewModel: ViewModel {
             let title = request.content.title.isEmpty ? "(No title)" : request.content.title
             let body = request.content.body.isEmpty ? "(No body)" : request.content.body
 
-            var triggerDescription = "Unknown trigger"
+            var fireDate: Date? = nil
+            var repeats = false
+
             if let trigger = request.trigger as? UNTimeIntervalNotificationTrigger {
-                let timeLeft = trigger.nextTriggerDate().map { date in
-                    let interval = date.timeIntervalSinceNow
-                    if interval > 0 {
-                        return "Fires in \(Int(interval))s"
-                    } else {
-                        return "Pending"
-                    }
-                } ?? "Pending"
-                triggerDescription = trigger.repeats ? "\(timeLeft) (repeats)" : timeLeft
+                fireDate = trigger.nextTriggerDate()
+                repeats = trigger.repeats
             } else if let trigger = request.trigger as? UNCalendarNotificationTrigger {
-                if let date = trigger.nextTriggerDate() {
-                    triggerDescription = "Fires at \(date.formatted(date: .omitted, time: .shortened))"
-                }
+                fireDate = trigger.nextTriggerDate()
+                repeats = trigger.repeats
             }
 
             return ScheduledNotificationItem(
-                id: request.identifier,
+                notificationId: request.identifier,
                 title: title,
                 body: body,
-                triggerDescription: triggerDescription
+                fireDate: fireDate,
+                repeats: repeats
             )
         }
     }
