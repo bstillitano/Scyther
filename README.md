@@ -75,7 +75,7 @@ There is a full-featured demo included in this repo. See the [Scyther Playground
 
 #### System
 
-- [ ] Console Logs (Coming Soon)
+- [x] Console Logs
 - [ ] Performance Logs (Coming Soon)
 - [ ] Crash Logs (Coming Soon)
 - [x] Location Spoofing
