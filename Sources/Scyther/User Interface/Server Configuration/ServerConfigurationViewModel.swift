@@ -35,24 +35,28 @@ class ServerConfigurationViewModel: ViewModel {
     }
 
     private func updateData() async {
+        let currentConfigurationId = await ConfigurationSwitcher.instance.configuration
+
         if searchTerm.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            let items = await listItems(from: items)
-            let currentConfiguration = await ConfigurationSwitcher.instance.configuration
-            let currentVariables = configurations.first { $0.id == currentConfiguration }?.variables ?? [:]
+            let listItems = await listItems(from: items)
+            // Get variables from the source items, not from the not-yet-populated configurations
+            let currentVariables = items.first { $0.id == currentConfigurationId }?.variables ?? [:]
             await MainActor.run {
-                configurations = items
+                configurations = listItems
                 variables = currentVariables
             }
         } else {
             let predicate = searchTerm.lowercased()
             let filteredItems = items.filter { item in
                 item.id.description.lowercased().contains(predicate) ||
-                    item.variables.keys.filter { $0.lowercased().contains(predicate) }.isEmpty == false ||
-                    item.variables.values.filter { $0.lowercased().contains(predicate) }.isEmpty == false
+                    item.variables.keys.contains { $0.lowercased().contains(predicate) } ||
+                    item.variables.values.contains { $0.lowercased().contains(predicate) }
             }
-            let items = await listItems(from: filteredItems)
+            let listItems = await listItems(from: filteredItems)
+            let currentVariables = items.first { $0.id == currentConfigurationId }?.variables ?? [:]
             await MainActor.run {
-                configurations = items
+                configurations = listItems
+                variables = currentVariables
             }
         }
     }

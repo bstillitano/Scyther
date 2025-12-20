@@ -16,7 +16,7 @@ struct NotificationLoggerView: View {
                 Text("No notifications received")
                     .fontWeight(.bold)
                     .foregroundStyle(.gray)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .center)
             } else {
                 ForEach(viewModel.notifications) { notification in
                     Section(notification.receivedAt) {

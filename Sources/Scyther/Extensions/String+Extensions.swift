@@ -31,7 +31,7 @@ public extension String {
         return newValue
     }
 
-    /// Parses this string into a dicrionary of values
+    /// Parses this string into a dictionary of values
     var dictionaryRepresentation: [String: Any]? {
         if let data = self.data(using: .utf8) {
             do {
@@ -42,6 +42,12 @@ public extension String {
             }
         }
         return nil
+    }
+
+    /// Parses this string as JSON, returning either an array or dictionary
+    var jsonRepresentation: Any? {
+        guard let data = self.data(using: .utf8) else { return nil }
+        return try? JSONSerialization.jsonObject(with: data, options: .mutableContainers)
     }
     
     internal func ranges(of substring: String, options: CompareOptions = [], locale: Locale? = nil) -> [Range<Index>] {

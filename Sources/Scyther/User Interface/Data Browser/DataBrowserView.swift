@@ -6,28 +6,54 @@
 //
 
 import SwiftUI
+import Combine
 
 struct DataBrowserView: View {
     let data: [String: [String: Any]]
     var title: String = "Data Browser"
+    var path: [String] = []
 
     @StateObject private var viewModel: DataBrowserSwiftUIViewModel
+    @State private var searchText: String = ""
+    @State private var debouncedSearchText: String = ""
+    @State private var searchSubject = PassthroughSubject<String, Never>()
+    @State private var cancellable: AnyCancellable?
 
-    init(data: [String: [String: Any]], title: String = "Data Browser") {
+    init(data: [String: [String: Any]], title: String = "Data Browser", path: [String] = []) {
         self.data = data
         self.title = title
+        self.path = path
         _viewModel = StateObject(wrappedValue: DataBrowserSwiftUIViewModel(data: data))
+    }
+
+    private var breadcrumb: String? {
+        guard !path.isEmpty else { return nil }
+        return path.joined(separator: " → ")
+    }
+
+    private var filteredSections: [DataBrowserSection] {
+        guard !debouncedSearchText.isEmpty else { return viewModel.sections }
+
+        let search = debouncedSearchText.lowercased()
+        return viewModel.sections.compactMap { section in
+            let filteredItems = section.items.filter { item in
+                item.key.lowercased().contains(search) ||
+                (item.valueDescription?.lowercased().contains(search) ?? false)
+            }
+            guard !filteredItems.isEmpty else { return nil }
+            return DataBrowserSection(title: section.title, items: filteredItems)
+        }
     }
 
     var body: some View {
         List {
-            ForEach(viewModel.sections) { section in
+            ForEach(filteredSections) { section in
                 Section(section.title) {
                     if section.items.isEmpty {
                         Text("No \(section.title)")
                             .fontWeight(.bold)
                             .foregroundStyle(.gray)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, alignment: .center)
                     } else {
                         ForEach(section.items) { item in
                             row(for: item)
@@ -37,6 +63,15 @@ struct DataBrowserView: View {
             }
         }
         .navigationTitle(title)
+        .searchable(text: $searchText, prompt: "Search keys and values")
+        .onChange(of: searchText) { newValue in
+            searchSubject.send(newValue)
+        }
+        .onAppear {
+            cancellable = searchSubject
+                .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
+                .sink { debouncedSearchText = $0 }
+        }
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }
@@ -102,10 +137,25 @@ class DataBrowserSwiftUIViewModel: ViewModel {
         sections = data.map { key, value in
             let items = value.map { objectKey, objectValue in
                 parseItem(key: objectKey, value: objectValue)
-            }.sorted { $0.key < $1.key }
+            }.sorted { lhs, rhs in
+                // Sort array indices numerically, e.g. [0], [1], [2], ..., [10], [11]
+                if let lhsIndex = extractArrayIndex(from: lhs.key),
+                   let rhsIndex = extractArrayIndex(from: rhs.key) {
+                    return lhsIndex < rhsIndex
+                }
+                // Fall back to alphabetical for non-array keys
+                return lhs.key.localizedStandardCompare(rhs.key) == .orderedAscending
+            }
 
             return DataBrowserSection(title: key, items: items)
         }.sorted { $0.title < $1.title }
+    }
+
+    private func extractArrayIndex(from key: String) -> Int? {
+        // Match keys like "[0]", "[123]", etc.
+        guard key.hasPrefix("["), key.hasSuffix("]") else { return nil }
+        let indexString = String(key.dropFirst().dropLast())
+        return Int(indexString)
     }
 
     private func parseItem(key: String, value: Any) -> DataBrowserItem {

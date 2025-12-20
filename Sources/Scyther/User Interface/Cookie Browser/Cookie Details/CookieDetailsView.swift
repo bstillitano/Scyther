@@ -31,7 +31,7 @@ struct CookieDetailsView: View {
                     Text("No cookie properties set")
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 } else {
                     ForEach(viewModel.properties) { item in
                         row(for: item)

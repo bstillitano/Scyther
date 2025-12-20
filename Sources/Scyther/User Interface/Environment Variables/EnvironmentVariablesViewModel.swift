@@ -1,6 +1,6 @@
 //
 //  EnvironmentVariablesViewModel.swift
-//  
+//
 //
 //  Created by Brandon Stillitano on 14/4/2022.
 //
@@ -19,19 +19,6 @@ internal class EnvironmentVariablesViewModel {
     // MARK: - Delegate
     weak var delegate: EnvironmentVariablesViewModelProtocol?
 
-    /// Single checkable row value representing a single environment
-    func checkmarkRow(identifier: String) -> CheckmarkRow {
-        var row: CheckmarkRow = CheckmarkRow()
-        row.text = identifier
-//        row.checked = ConfigurationSwitcher.instance.configuration == identifier
-//        row.actionBlock = { [weak self] in
-//            ConfigurationSwitcher.instance.configuration = identifier
-//            Scyther.instance.delegate?.scyther(didSwitchToEnvironment: identifier)
-//            self?.prepareObjects()
-//        }
-        return row
-    }
-
     /// Single row representing a single environment variable
     func environmentVariable(name: String, value: String) -> SubtitleRow {
         let row: SubtitleRow = SubtitleRow()
@@ -39,40 +26,31 @@ internal class EnvironmentVariablesViewModel {
         row.detailText = value
         return row
     }
-    
+
     /// Empty row that contains text in a 'disabled' style
     func emptyRow(text: String) -> EmptyRow {
         var row: EmptyRow = EmptyRow()
         row.text = text
-
         return row
     }
 
     func prepareObjects() {
-        //Clear Data
+        // Clear Data
         sections.removeAll()
 
-        // Setup Static Section
-        var staticSection: TableSection = TableSection()
-//        staticSection.title = "\(ConfigurationSwitcher.instance.configuration) variables"
-//        staticSection.rows = ConfigurationSwitcher.instance.environmentVariables.map({ environmentVariable(name: $0.key, value: $0.value) })
-        if staticSection.rows.isEmpty {
-            staticSection.rows.append(emptyRow(text: "No variables configured"))
-        }
-
-        // Setup Custom Section
+        // Setup Custom Variables Section
         var variablesSection: TableSection = TableSection()
         variablesSection.title = "Custom Key/Values"
-        variablesSection.rows = Scyther.instance.customEnvironmentVariables.map({ environmentVariable(name: $0.key, value: $0.value) })
+        variablesSection.rows = Scyther.instance.customEnvironmentVariables
+            .sorted { $0.key < $1.key }
+            .map { environmentVariable(name: $0.key, value: $0.value) }
         if variablesSection.rows.isEmpty {
             variablesSection.rows.append(emptyRow(text: "No variables configured"))
         }
-        
-        //Setup Data
-        sections.append(staticSection)
+
         sections.append(variablesSection)
 
-        //Call Delegate
+        // Call Delegate
         delegate?.viewModelShouldReloadData()
     }
 }

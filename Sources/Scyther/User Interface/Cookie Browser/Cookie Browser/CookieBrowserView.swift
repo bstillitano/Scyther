@@ -18,7 +18,7 @@ struct CookieBrowserView: View {
                     Text("No HTTP Cookies")
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 } else {
                     ForEach(viewModel.cookies) { cookie in
                         NavigationLink {

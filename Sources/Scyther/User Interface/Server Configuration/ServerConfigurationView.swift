@@ -13,20 +13,47 @@ struct ServerConfigurationView: View {
 
     var body: some View {
         List {
-            Section {
+            Section("Configuration") {
                 ForEach(viewModel.configurations) { configuration in
-                    row(for: configuration)
+                    Button {
+                        Task { await viewModel.didSelectConfiguration(configuration) }
+                    } label: {
+                        HStack {
+                            Text(configuration.id)
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            if configuration.isChecked {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
                 }
-            } header: {
-                Text("Configuration")
             }
-            
-            Section {
-                ForEach(viewModel.variables.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
-                    row(withLabel: key, description: value)
+
+            Section("Variables") {
+                if viewModel.variables.isEmpty {
+                    Text("No variables")
+                        .fontWeight(.bold)
+                        .foregroundStyle(.gray)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                } else {
+                    ForEach(viewModel.variables.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                        LabeledContent(key, value: value)
+                            .contextMenu {
+                                Button {
+                                    UIPasteboard.general.string = value
+                                } label: {
+                                    Label("Copy Value", systemImage: "doc.on.doc")
+                                }
+                                Button {
+                                    UIPasteboard.general.string = "\(key): \(value)"
+                                } label: {
+                                    Label("Copy Key & Value", systemImage: "doc.on.doc")
+                                }
+                            }
+                    }
                 }
-            } header: {
-                Text("Variables")
             }
         }
         .searchable(
@@ -40,43 +67,6 @@ struct ServerConfigurationView: View {
         }
         .onChange(of: searchText) {
             viewModel.setSearchTerm(to: $0)
-        }
-    }
-    
-    func row(for configuration: ServerConfigurationListItem) -> some View {
-        Button {
-            Task { await viewModel.didSelectConfiguration(configuration) }
-        } label: {
-            HStack {
-                Text(configuration.id)
-                    .foregroundStyle(Color.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                if configuration.isChecked {
-                    Image(systemName: "checkmark")
-                        .foregroundStyle(Color.accentColor)
-                }
-            }
-        }
-    }
-    
-    func row(withLabel label: String, description: String? = nil, icon: String? = nil, andLoadingState loading: Bool = false) -> some View {
-        HStack {
-            if let icon {
-                Label(label, systemImage: icon)
-            } else {
-                VStack {
-                    Text(label)
-                    if let description {
-                        Text(description)
-                            .multilineTextAlignment(.leading)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-            }
-            if loading {
-                ProgressView()
-            }
         }
     }
 }

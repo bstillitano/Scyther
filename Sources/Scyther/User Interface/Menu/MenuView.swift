@@ -130,7 +130,7 @@ public struct MenuView: View {
             
             Section {
                 NavigationLink {
-                    Text("Keychain Browser")
+                    KeychainBrowserView()
                 } label: {
                     row(withLabel: "Keychain Browser", icon: "key")
                 }
@@ -192,6 +192,10 @@ public struct MenuView: View {
             
             Section {
                 // TODO: - ForEach
+                Text("No tools configured")
+                    .fontWeight(.bold)
+                    .foregroundStyle(.gray)
+                    .frame(maxWidth: .infinity, alignment: .center)
             } header: {
                 Text("Development Tools")
             }

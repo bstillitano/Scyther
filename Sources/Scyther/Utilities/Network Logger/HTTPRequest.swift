@@ -170,12 +170,28 @@ final class HTTPRequest: Sendable, Identifiable {
         return prettyOutput(data, contentType: responseType)
     }
 
-    /// Retrieves the response body as a dictionary representation.
+    /// Retrieves the response body as a dictionary representation suitable for the data browser.
     /// - Returns: A dictionary containing the JSON response body, or an empty dictionary if unavailable or not JSON.
     func getResponseBodyDictionary() -> [String: [String: Any]] {
         guard let data = readRawData(getResponseBodyFilepath()) else { return [:] }
-        let structuredResponse = ["JSON Body": (prettyOutput(data, contentType: responseType) as String).dictionaryRepresentation ?? [:]]
-        return structuredResponse
+        let jsonString = prettyOutput(data, contentType: responseType)
+
+        // Try parsing as JSON (handles both arrays and dictionaries)
+        guard let json = jsonString.jsonRepresentation else { return [:] }
+
+        if let dictionary = json as? [String: Any] {
+            // JSON is a dictionary - wrap it
+            return ["JSON Body": dictionary]
+        } else if let array = json as? [Any] {
+            // JSON is an array - convert to indexed dictionary for browsing
+            var indexedDict: [String: Any] = [:]
+            for (index, element) in array.enumerated() {
+                indexedDict["[\(index)]"] = element
+            }
+            return ["JSON Array (\(array.count) items)": indexedDict]
+        }
+
+        return [:]
     }
 
     /// Returns a random hash string for uniquely identifying this request/response.

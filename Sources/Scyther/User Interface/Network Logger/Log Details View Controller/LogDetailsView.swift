@@ -54,7 +54,7 @@ struct LogDetailsView: View {
                 Text("No headers sent")
                     .fontWeight(.bold)
                     .foregroundStyle(.gray)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .center)
             } else {
                 ForEach(viewModel.requestHeaders) { header in
                     LabeledContent(header.key, value: header.value)
@@ -80,7 +80,7 @@ struct LogDetailsView: View {
                 Text("No content sent")
                     .fontWeight(.bold)
                     .foregroundStyle(.gray)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
         }
     }
@@ -91,7 +91,7 @@ struct LogDetailsView: View {
                 Text("No headers received")
                     .fontWeight(.bold)
                     .foregroundStyle(.gray)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .center)
             } else {
                 ForEach(viewModel.responseHeaders) { header in
                     LabeledContent(header.key, value: header.value)
@@ -123,7 +123,7 @@ struct LogDetailsView: View {
                 Text("No data received")
                     .fontWeight(.bold)
                     .foregroundStyle(.gray)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
         }
     }

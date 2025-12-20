@@ -54,17 +54,28 @@ internal class DataBrowserViewModel {
     }
 
     func prepareObjects() {
-        //Clear Data
+        // Clear Data
         sections.removeAll()
 
-        //Setup Sections
+        // Setup Sections
         for value in data {
             var section: TableSection = TableSection()
             section.title = value.key
-            let dataRows: [Row] = value.value.map { object in
-                let dataRow: DataRow = DataRow(title: object.key, from: object.value)
+
+            // Sort keys - numerically for array indices, alphabetically otherwise
+            let sortedKeys = value.value.keys.sorted { lhs, rhs in
+                if let lhsIndex = extractArrayIndex(from: lhs),
+                   let rhsIndex = extractArrayIndex(from: rhs) {
+                    return lhsIndex < rhsIndex
+                }
+                return lhs.localizedStandardCompare(rhs) == .orderedAscending
+            }
+
+            let dataRows: [Row] = sortedKeys.map { key in
+                let dataRow = DataRow(title: key, from: value.value[key]!)
                 return objectFor(dataRow)
             }
+
             section.rows.append(contentsOf: dataRows)
             if section.rows.isEmpty {
                 section.rows.append(emptyRow(text: "No \(value.key)"))
@@ -72,8 +83,14 @@ internal class DataBrowserViewModel {
             sections.append(section)
         }
 
-        //Call Delegate
+        // Call Delegate
         delegate?.viewModelShouldReloadData()
+    }
+
+    private func extractArrayIndex(from key: String) -> Int? {
+        guard key.hasPrefix("["), key.hasSuffix("]") else { return nil }
+        let indexString = String(key.dropFirst().dropLast())
+        return Int(indexString)
     }
 
     private func objectFor(_ dataRow: DataRow) -> Row {

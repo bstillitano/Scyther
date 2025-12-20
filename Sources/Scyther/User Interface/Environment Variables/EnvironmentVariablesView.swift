@@ -12,52 +12,27 @@ struct EnvironmentVariablesView: View {
 
     var body: some View {
         List {
-            Section("Configuration Variables") {
-                if viewModel.staticVariables.isEmpty {
-                    Text("No variables configured")
-                        .fontWeight(.bold)
-                        .foregroundStyle(.gray)
-                        .frame(maxWidth: .infinity)
-                } else {
-                    ForEach(viewModel.staticVariables) { variable in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(variable.key)
-                            Text(variable.value)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .contextMenu {
-                            Button {
-                                UIPasteboard.general.string = "\(variable.key): \(variable.value)"
-                            } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
-                            }
-                        }
-                    }
-                }
-            }
-
             Section("Custom Key/Values") {
-                if viewModel.customVariables.isEmpty {
+                if viewModel.variables.isEmpty {
                     Text("No variables configured")
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 } else {
-                    ForEach(viewModel.customVariables) { variable in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(variable.key)
-                            Text(variable.value)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .contextMenu {
-                            Button {
-                                UIPasteboard.general.string = "\(variable.key): \(variable.value)"
-                            } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
+                    ForEach(viewModel.variables, id: \.key) { key, value in
+                        LabeledContent(key, value: value)
+                            .contextMenu {
+                                Button {
+                                    UIPasteboard.general.string = value
+                                } label: {
+                                    Label("Copy Value", systemImage: "doc.on.doc")
+                                }
+                                Button {
+                                    UIPasteboard.general.string = "\(key): \(value)"
+                                } label: {
+                                    Label("Copy Key & Value", systemImage: "doc.on.doc")
+                                }
                             }
-                        }
                     }
                 }
             }
@@ -69,15 +44,8 @@ struct EnvironmentVariablesView: View {
     }
 }
 
-struct EnvironmentVariable: Identifiable {
-    let id = UUID()
-    let key: String
-    let value: String
-}
-
 class EnvironmentVariablesSwiftUIViewModel: ViewModel {
-    @Published var staticVariables: [EnvironmentVariable] = []
-    @Published var customVariables: [EnvironmentVariable] = []
+    @Published var variables: [(key: String, value: String)] = []
 
     override func onFirstAppear() async {
         await super.onFirstAppear()
@@ -86,9 +54,9 @@ class EnvironmentVariablesSwiftUIViewModel: ViewModel {
 
     @MainActor
     private func loadVariables() async {
-        customVariables = Scyther.instance.customEnvironmentVariables
-            .map { EnvironmentVariable(key: $0.key, value: $0.value) }
+        variables = Scyther.instance.customEnvironmentVariables
             .sorted { $0.key < $1.key }
+            .map { (key: $0.key, value: $0.value) }
     }
 }
 
