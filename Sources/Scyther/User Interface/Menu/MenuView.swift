@@ -191,11 +191,11 @@ public struct MenuView: View {
             }
             
             Section {
-                // TODO: - ForEach
-                Text("No tools configured")
-                    .fontWeight(.bold)
-                    .foregroundStyle(.gray)
-                    .frame(maxWidth: .infinity, alignment: .center)
+                NavigationLink {
+                    ConsoleLoggerView()
+                } label: {
+                    row(withLabel: "Console Logs", icon: "terminal")
+                }
             } header: {
                 Text("Development Tools")
             }

@@ -13,15 +13,6 @@ let package = Package(
         .library(
             name: "Scyther",
             targets: ["Scyther"]),
-        .library(
-            name: "ScytherSwiftUI",
-            targets: ["ScytherSwiftUI"]),
-        .library(
-            name: "ScytherUI",
-            targets: ["ScytherUI"]),
-        .library(
-            name: "ScytherExtensions",
-            targets: ["ScytherExtensions"]),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -32,29 +23,10 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "Scyther",
-            dependencies: [
-                .target(name: "ScytherExtensions"),
-                .target(name: "ScytherUI")
-            ],
             path: "Sources/Scyther",
             resources: [
                 .process("Resources")
             ]
-        ),
-        .target(
-            name: "ScytherExtensions",
-            path: "Sources/ScytherExtensions"
-        ),
-        .target(
-            name: "ScytherSwiftUI",
-            dependencies: [
-                .target(name: "Scyther")
-            ],
-            path: "Sources/ScytherSwiftUI"
-        ),
-        .target(
-            name: "ScytherUI",
-            path: "Sources/ScytherUI"
         ),
         .testTarget(
             name: "ScytherTests",

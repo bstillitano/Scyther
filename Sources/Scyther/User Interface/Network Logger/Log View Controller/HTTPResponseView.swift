@@ -5,7 +5,6 @@
 //  Created by Brandon Stillitano on 16/6/2025.
 //
 
-import ScytherUI
 import SwiftUI
 
 struct HTTPRequestView: View {

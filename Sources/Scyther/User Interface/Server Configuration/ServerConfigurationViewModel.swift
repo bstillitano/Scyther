@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import ScytherExtensions
 
 class ServerConfigurationViewModel: ViewModel {
     @Published var configurations: [ServerConfigurationListItem] = []

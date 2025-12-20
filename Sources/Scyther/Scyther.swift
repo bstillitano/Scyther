@@ -53,6 +53,9 @@ public class Scyther {
     
     /// `InterfaceToolkit` utility class. Used for overlaying UI Elements onto the running application.
     public static let interfaceToolkit: InterfaceToolkit = InterfaceToolkit.instance
+
+    /// `ConsoleLogger` utility class. Used for capturing and displaying console output.
+    public static let consoleLogger: ConsoleLogger = ConsoleLogger.instance
     
     /// Developer options that will be displayed on the main menu
     public var developerOptions: [DeveloperOption] = []
@@ -75,7 +78,10 @@ public class Scyther {
         
         /// Set data
         self.started = true
-        
+
+        // Setup Console Logger
+        ConsoleLogger.instance.start()
+
         // Setup Networking Tools
         NetworkHelper.instance.start()
         
