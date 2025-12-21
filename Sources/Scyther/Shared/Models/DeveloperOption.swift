@@ -6,6 +6,7 @@
 //
 
 #if !os(macOS)
+import SwiftUI
 import UIKit
 
 /// Defines the different types of developer options that can be displayed in the Scyther menu.
@@ -26,6 +27,14 @@ public enum DeveloperOptionType: CaseIterable {
     /// - Interactive tools
     case viewController
 
+    /// A developer option that opens a SwiftUI view when tapped.
+    ///
+    /// Use this type for options that navigate to a SwiftUI-based interface:
+    /// - Custom debug screens built with SwiftUI
+    /// - Settings panels
+    /// - Interactive tools
+    case swiftUIView
+
     /// A developer option that displays a static value.
     ///
     /// Use this type for options that show read-only information, such as:
@@ -39,8 +48,8 @@ public enum DeveloperOptionType: CaseIterable {
 /// Represents a custom developer option that can be added to the Scyther menu.
 ///
 /// `DeveloperOption` allows you to extend the Scyther debug menu with custom
-/// functionality specific to your application. Options can either display static
-/// information (value type) or navigate to a custom view controller.
+/// functionality specific to your application. Options can display static
+/// information, navigate to a UIKit view controller, or navigate to a SwiftUI view.
 ///
 /// ## Creating Value Options
 ///
@@ -56,7 +65,7 @@ public enum DeveloperOptionType: CaseIterable {
 ///
 /// ## Creating View Controller Options
 ///
-/// View controller options navigate to a custom screen when tapped:
+/// View controller options navigate to a UIKit screen when tapped:
 ///
 /// ```swift
 /// let settingsOption = DeveloperOption(
@@ -66,14 +75,28 @@ public enum DeveloperOptionType: CaseIterable {
 /// )
 /// ```
 ///
+/// ## Creating SwiftUI View Options
+///
+/// SwiftUI view options navigate to a SwiftUI screen when tapped:
+///
+/// ```swift
+/// let debugOption = DeveloperOption(
+///     name: "Debug Dashboard",
+///     systemImage: "gauge.with.dots.needle.bottom.50percent"
+/// ) {
+///     DebugDashboardView()
+/// }
+/// ```
+///
 /// ## Adding to Scyther
 ///
 /// Register your custom options with Scyther:
 ///
 /// ```swift
-/// Scyther.shared.developerOptions = [
+/// Scyther.developerOptions = [
 ///     versionOption,
-///     settingsOption
+///     settingsOption,
+///     debugOption
 /// ]
 /// ```
 ///
@@ -131,6 +154,58 @@ public struct DeveloperOption {
         self.viewController = viewController
     }
 
+    /// Creates a SwiftUI view-based developer option that navigates to a custom screen.
+    ///
+    /// Use this initializer for options that navigate to a SwiftUI view.
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// let dashboardOption = DeveloperOption(
+    ///     name: "Debug Dashboard",
+    ///     systemImage: "gauge.with.dots.needle.bottom.50percent"
+    /// ) {
+    ///     DebugDashboardView()
+    /// }
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - name: The display name for this option in the menu
+    ///   - systemImage: An optional SF Symbol name to display alongside the option name
+    ///   - view: A closure that returns the SwiftUI view to present when this option is selected
+    public init<Content: View>(name: String, systemImage: String? = nil, @ViewBuilder view: () -> Content) {
+        self.type = .swiftUIView
+        self.name = name
+        self.systemImage = systemImage
+        self.swiftUIView = AnyView(view())
+    }
+
+    /// Creates a SwiftUI view-based developer option with a UIImage icon.
+    ///
+    /// Use this initializer for options that navigate to a SwiftUI view with a custom image icon.
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// let dashboardOption = DeveloperOption(
+    ///     name: "Debug Dashboard",
+    ///     icon: myCustomIcon
+    /// ) {
+    ///     DebugDashboardView()
+    /// }
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - name: The display name for this option in the menu
+    ///   - icon: An optional icon to display alongside the option name
+    ///   - view: A closure that returns the SwiftUI view to present when this option is selected
+    public init<Content: View>(name: String, icon: UIImage?, @ViewBuilder view: () -> Content) {
+        self.type = .swiftUIView
+        self.name = name
+        self.icon = icon
+        self.swiftUIView = AnyView(view())
+    }
+
     /// The type of developer option, determining its behavior and presentation.
     ///
     /// This property is set automatically based on which initializer is used
@@ -158,7 +233,19 @@ public struct DeveloperOption {
     /// The view controller to present for view controller-type options.
     ///
     /// This property is only used when `type` is `.viewController`. For value
-    /// options, this will be `nil`.
+    /// and SwiftUI view options, this will be `nil`.
     public var viewController: UIViewController?
+
+    /// An optional SF Symbol name to display alongside the option name.
+    ///
+    /// This is an alternative to `icon` that uses SF Symbols directly by name.
+    /// Useful for SwiftUI-based developer options.
+    public var systemImage: String?
+
+    /// The SwiftUI view to present for SwiftUI view-type options.
+    ///
+    /// This property is only used when `type` is `.swiftUIView`. For value
+    /// and view controller options, this will be `nil`.
+    public var swiftUIView: AnyView?
 }
 #endif

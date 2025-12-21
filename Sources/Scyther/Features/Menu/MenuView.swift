@@ -16,10 +16,10 @@ import SwiftUI
 /// - **Networking**: Network tools, logs, and configuration
 /// - **Data**: Feature flags, UserDefaults, cookies
 /// - **Security**: Keychain browser
-/// - **System Tools**: Location spoofer
+/// - **System Tools**: Location spoofer, console logs
 /// - **Notifications**: Notification logger and tester
 /// - **UI/UX**: Fonts, components, grid overlay, touch visualizer
-/// - **Development Tools**: Console logs
+/// - **Development Tools**: Custom developer options configured via ``Scyther/developerOptions``
 ///
 /// The menu displays device information in a header and provides navigation
 /// to all sub-features.
@@ -160,6 +160,11 @@ public struct MenuView: View {
                 } label: {
                     row(withLabel: "Location Spoofer", icon: "location.circle")
                 }
+                NavigationLink {
+                    ConsoleLoggerView()
+                } label: {
+                    row(withLabel: "Console Logs", icon: "terminal")
+                }
             } header: {
                 Text("System Tools")
             }
@@ -209,14 +214,14 @@ public struct MenuView: View {
                 Text("UI/UX")
             }
             
-            Section {
-                NavigationLink {
-                    ConsoleLoggerView()
-                } label: {
-                    row(withLabel: "Console Logs", icon: "terminal")
+            if !Scyther.developerOptions.isEmpty {
+                Section {
+                    ForEach(Scyther.developerOptions, id: \.name) { option in
+                        developerOptionRow(option)
+                    }
+                } header: {
+                    Text("Development Tools")
                 }
-            } header: {
-                Text("Development Tools")
             }
         }
         .toolbar {
@@ -265,6 +270,56 @@ public struct MenuView: View {
         }
     }
     
+    @ViewBuilder
+    func developerOptionRow(_ option: DeveloperOption) -> some View {
+        switch option.type {
+        case .value:
+            HStack {
+                developerOptionLabel(option)
+                if let value = option.value {
+                    Text(value)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
+        case .viewController:
+            if let viewController = option.viewController {
+                NavigationLink {
+                    ViewControllerRepresentable(viewController: viewController)
+                } label: {
+                    developerOptionLabel(option)
+                }
+            }
+        case .swiftUIView:
+            if let swiftUIView = option.swiftUIView {
+                NavigationLink {
+                    swiftUIView
+                } label: {
+                    developerOptionLabel(option)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    func developerOptionLabel(_ option: DeveloperOption) -> some View {
+        if let systemImage = option.systemImage {
+            Label(option.name, systemImage: systemImage)
+        } else if let icon = option.icon {
+            Label {
+                Text(option.name)
+            } icon: {
+                Image(uiImage: icon)
+                    .renderingMode(.template)
+                    .foregroundStyle(Color.accentColor)
+            }
+        } else {
+            Text(option.name)
+        }
+    }
+
     var header: some View {
         HStack(spacing: 16) {
             if let image = UIImage.appIcon {
@@ -372,5 +427,20 @@ class ViewModel: ObservableObject {
     /// Override to perform refresh tasks that should skip the initial load.
     func onSubsequentAppear() async {
 
+    }
+}
+
+/// A SwiftUI wrapper for displaying UIKit view controllers.
+///
+/// Used internally to present custom ``DeveloperOption`` view controllers
+/// within the SwiftUI navigation hierarchy.
+struct ViewControllerRepresentable: UIViewControllerRepresentable {
+    let viewController: UIViewController
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        return viewController
+    }
+
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
     }
 }
