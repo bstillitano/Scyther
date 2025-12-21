@@ -22,6 +22,8 @@ import UIKit
 private let UIViewPreviousMasksToBoundsKey = "Scyther_previousMasksToBounds"
 private let UIViewPreviousBorderColorKey = "Scyther_previousBorderColor"
 private let UIViewPreviousBorderWidthKey = "Scyther_previousBorderWidth"
+nonisolated(unsafe) private var debugBordersActiveKey: UInt8 = 0
+nonisolated(unsafe) private var debugSizesActiveKey: UInt8 = 0
 
 // MARK: - Protocol
 
@@ -70,6 +72,18 @@ extension UIView: InterfaceToolkitPrivate {
             objc_setAssociatedObject(self, UIViewPreviousBorderWidthKey, newValue, .OBJC_ASSOCIATION_RETAIN)
         }
     }
+
+    /// Tracks whether debug borders are currently active on this view
+    var debugBordersActive: Bool {
+        get { objc_getAssociatedObject(self, &debugBordersActiveKey) as? Bool ?? false }
+        set { objc_setAssociatedObject(self, &debugBordersActiveKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+
+    /// Tracks whether debug sizes are currently active on this view
+    var debugSizesActive: Bool {
+        get { objc_getAssociatedObject(self, &debugSizesActiveKey) as? Bool ?? false }
+        set { objc_setAssociatedObject(self, &debugSizesActiveKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
 }
 
 // MARK: - Show/Hide View Borders
@@ -85,11 +99,17 @@ internal extension UIView {
     }
 
     func refreshDebugBorders() {
-        if Self.showsViewBordersFromDefaults {
+        let shouldBeEnabled = Self.showsViewBordersFromDefaults
+
+        // Only enable if not already active
+        if shouldBeEnabled && !debugBordersActive {
             enableDebugBorders()
-        } else {
+        }
+        // Only disable if currently active
+        else if !shouldBeEnabled && debugBordersActive {
             disableDebugBorders()
         }
+        // Otherwise, do nothing - don't touch the view
     }
 
     func enableDebugBorders() {
@@ -102,12 +122,17 @@ internal extension UIView {
         /// Set new border values
         layer.borderColor = debugBorderColor
         layer.borderWidth = 1.0
+        debugBordersActive = true
     }
 
     func disableDebugBorders() {
+        /// Only restore if we have previous values to restore
+        guard debugBordersActive else { return }
+
         /// Set data and restore previous settings
         layer.borderColor = UIColor(hex: previousBorderColor)?.cgColor
         layer.borderWidth = previousBorderWidth
+        debugBordersActive = false
     }
 }
 
@@ -130,20 +155,26 @@ internal extension UIView {
 // MARK: - Show/Hide View Frames
 internal extension UIView {
     func refreshDebugViewSizes() {
-        if Self.showsViewSizesFromDefaults {
+        let shouldBeEnabled = Self.showsViewSizesFromDefaults
+
+        // Only enable if not already active
+        if shouldBeEnabled && !debugSizesActive {
             enableDebugViewSizes()
-        } else {
+        }
+        // Only disable if currently active
+        else if !shouldBeEnabled && debugSizesActive {
             disableDebugViewSizes()
         }
+        // Otherwise, do nothing - don't touch the view
     }
 
     func enableDebugViewSizes() {
         /// Check that we haven't already added a sublayer
         guard layer.sublayers?.contains(where: {$0.name == "Scyther_Debug_Frame_Label" }) != true else { return }
-        
+
         /// Set data and backup current settings
         previousMasksToBounds = layer.masksToBounds
-        
+
         /// Build and add sublayer.
         /// Setting max width of sublayer to 200 here as an arbitrary number that seems to sort of be the happy middle ground between going off the screen and views being too narrow to meaningfully display anything.
         /// Pretty crappy still, needs to be improved.
@@ -159,11 +190,16 @@ internal extension UIView {
         textLayer.name = "Scyther_Debug_Frame_Label"
         layer.masksToBounds = false
         layer.addSublayer(textLayer)
+        debugSizesActive = true
     }
 
     func disableDebugViewSizes() {
+        /// Only restore if we actually modified this view
+        guard debugSizesActive else { return }
+
         layer.sublayers?.removeAll(where: { $0.name == "Scyther_Debug_Frame_Label" })
         layer.masksToBounds = previousMasksToBounds ?? true
+        debugSizesActive = false
     }
 }
 
@@ -227,16 +263,14 @@ internal extension UIView {
         guard !hasRegisteredForDebugNotifications else { return }
         hasRegisteredForDebugNotifications = true
 
-        if let borderColor = layer.borderColor, previousBorderColor == nil {
-            previousBorderColor = UIColor(cgColor: borderColor).hexCode()
-            previousBorderWidth = layer.borderWidth
-        }
-
-        refreshDebugBorders()
+        // Register for notifications so we can respond to toggle changes
         registerForDebugBorderNotifications()
-
-        refreshDebugViewSizes()
         registerForDebugViewSizeNotifications()
+
+        // Only apply debug features if they're currently enabled
+        // The guards in refresh methods ensure we don't touch views unnecessarily
+        refreshDebugBorders()
+        refreshDebugViewSizes()
     }
 }
 #endif
