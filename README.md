@@ -57,6 +57,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Preset Locations**: 20+ major cities worldwide
 - **Custom Locations**: Set any coordinate manually
 - **Route Simulation**: Simulate movement along predefined routes
+- **Deep Link Tester**: Test custom URL schemes and universal links with QR scanner
 
 ### Notifications
 - **Push Notification Tester**: Schedule local test notifications
@@ -417,6 +418,39 @@ LocationSpoofer.instance.spoofedRoute = .driveCityToSuburb
 
 ---
 
+### Deep Link Testing
+
+Test custom URL schemes and universal links directly from the Scyther menu.
+
+#### Opening Deep Links
+
+```swift
+// Open a deep link programmatically
+await Scyther.deepLinks.open("myapp://profile/123")
+```
+
+#### Configuring Presets
+
+Add commonly-used deep links for quick access:
+
+```swift
+Scyther.deepLinks.presets = [
+    DeepLinkPreset(name: "Home", url: "myapp://home"),
+    DeepLinkPreset(name: "Profile", url: "myapp://profile/123"),
+    DeepLinkPreset(name: "Settings", url: "myapp://settings"),
+    DeepLinkPreset(name: "Checkout", url: "myapp://checkout"),
+]
+```
+
+The Deep Link Tester also includes:
+- **QR Code Scanner**: Scan QR codes containing deep links
+- **History**: Previously tested links are saved for quick re-use
+- **Success/Failure Feedback**: Visual indication of whether the link opened
+
+> **Note**: To use the QR code scanner, your app must include `NSCameraUsageDescription` in its Info.plist with a description explaining camera usage (e.g., "Used to scan QR codes for deep link testing").
+
+---
+
 ### Push Notification Testing
 
 Schedule local test notifications to verify your notification handling.
@@ -696,6 +730,7 @@ if Scyther.isPresented {
 | `Scyther.location` | `LocationSpoofing` | Location spoofing |
 | `Scyther.notifications` | `Notifications` | Push notification testing |
 | `Scyther.appearance` | `Appearance` | Appearance overrides (dark/light mode, Dynamic Type) |
+| `Scyther.deepLinks` | `DeepLinks` | Deep link testing with QR scanner |
 
 ---
 

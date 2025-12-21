@@ -165,6 +165,11 @@ public struct MenuView: View {
                 } label: {
                     row(withLabel: "Console Logs", icon: "terminal")
                 }
+                NavigationLink {
+                    DeepLinkTesterView()
+                } label: {
+                    row(withLabel: "Deep Link Tester", icon: "link")
+                }
             } header: {
                 Text("System Tools")
             }
