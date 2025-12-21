@@ -24,16 +24,24 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.2'
+          xcode-version: '26.0'
 
       - name: Build Documentation
         run: |
-          swift package --allow-writing-to-directory ./docs \
-            generate-documentation \
-            --target Scyther \
-            --disable-indexing \
-            --transform-for-static-hosting \
-            --output-path ./docs
+          # Build documentation using xcodebuild with iOS destination
+          xcodebuild docbuild \
+            -scheme Scyther \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -derivedDataPath ./docbuild \
+            OTHER_DOCC_FLAGS="--transform-for-static-hosting --hosting-base-path Scyther"
+
+          # Find the generated .doccarchive
+          DOCC_ARCHIVE=$(find ./docbuild -name "*.doccarchive" -type d | head -1)
+          echo "Found archive: $DOCC_ARCHIVE"
+
+          # Copy the documentation to the output directory
+          mkdir -p ./docs
+          cp -R "$DOCC_ARCHIVE"/* ./docs/
 
           # Add CNAME for custom domain
           echo "scyther.io" > ./docs/CNAME
