@@ -69,6 +69,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **View Frames**: Highlight view boundaries with colored borders
 - **View Sizes**: Display view dimensions as labels
 - **Slow Animations**: Reduce animation speed for debugging
+- **Appearance Overrides**: Force dark/light mode, high contrast, and Dynamic Type sizes
 - **Font Browser**: View all available system fonts
 - **Interface Previews**: Browse registered UI components
 
@@ -510,6 +511,45 @@ These are available as toggles in the Scyther menu under **UI/UX**:
 - **Show View Frames**: Adds colored borders to all views
 - **Show View Sizes**: Displays width/height labels on views
 
+#### Appearance Overrides
+
+Test how your app looks under different appearance settings without changing device settings:
+
+```swift
+// Force dark mode
+Scyther.appearance.colorScheme = .dark
+
+// Force light mode
+Scyther.appearance.colorScheme = .light
+
+// Follow system (default)
+Scyther.appearance.colorScheme = .system
+```
+
+**High Contrast Mode** (iOS 17+):
+
+```swift
+// Enable high contrast
+Scyther.appearance.highContrastEnabled = true
+```
+
+**Dynamic Type Override** (iOS 17+):
+
+Test all 12 content size categories, including 5 accessibility sizes:
+
+```swift
+// Test with extra large text
+Scyther.appearance.contentSizeCategory = .extraExtraExtraLarge
+
+// Test with accessibility sizes
+Scyther.appearance.contentSizeCategory = .accessibilityExtraLarge
+
+// Reset to system default
+Scyther.appearance.contentSizeCategory = nil
+```
+
+All appearance settings are persisted across app launches and can be configured via the Scyther menu under **UI/UX > Appearance**.
+
 ---
 
 ### Custom Developer Options
@@ -655,6 +695,7 @@ if Scyther.isPresented {
 | `Scyther.interface` | `Interface` | UI debugging tools |
 | `Scyther.location` | `LocationSpoofing` | Location spoofing |
 | `Scyther.notifications` | `Notifications` | Push notification testing |
+| `Scyther.appearance` | `Appearance` | Appearance overrides (dark/light mode, Dynamic Type) |
 
 ---
 

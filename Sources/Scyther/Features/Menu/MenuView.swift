@@ -207,6 +207,11 @@ public struct MenuView: View {
                 } label: {
                     row(withLabel: "Touch Visualiser", icon: "hand.point.up")
                 }
+                NavigationLink {
+                    AppearanceOverridesView()
+                } label: {
+                    row(withLabel: "Appearance", icon: "paintbrush")
+                }
                 toggleRow("Slow Animations", icon: "tortoise", isOn: $viewModel.slowAnimationsEnabled)
                 toggleRow("Show View Frames", icon: "rectangle.dashed", isOn: $viewModel.showViewFrames)
                 toggleRow("Show View Sizes", icon: "ruler", isOn: $viewModel.showViewSizes)
