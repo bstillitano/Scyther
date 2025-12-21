@@ -32,19 +32,22 @@ jobs:
           xcodebuild docbuild \
             -scheme Scyther \
             -destination 'platform=iOS Simulator,name=iPhone 16' \
-            -derivedDataPath ./docbuild \
-            OTHER_DOCC_FLAGS="--transform-for-static-hosting --hosting-base-path Scyther"
+            -derivedDataPath ./docbuild
 
           # Find the generated .doccarchive
-          DOCC_ARCHIVE=$(find ./docbuild -name "*.doccarchive" -type d | head -1)
+          DOCC_ARCHIVE=$(find ./docbuild -name "Scyther.doccarchive" -type d | head -1)
           echo "Found archive: $DOCC_ARCHIVE"
 
-          # Copy the documentation to the output directory
-          mkdir -p ./docs
-          cp -R "$DOCC_ARCHIVE"/* ./docs/
+          # Transform for static hosting (no base path since using custom domain)
+          xcrun docc process-archive transform-for-static-hosting \
+            "$DOCC_ARCHIVE" \
+            --output-path ./docs
 
           # Add CNAME for custom domain
           echo "scyther.io" > ./docs/CNAME
+
+          # List output for debugging
+          ls -la ./docs/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
