@@ -7,23 +7,21 @@
 
 import Foundation
 
-/// A feature flag that can be toggled remotely or locally with optional A/B testing support.
+/// A feature flag that can be toggled remotely or locally.
 ///
 /// `FeatureToggle` represents a single feature flag with support for:
 /// - Remote configuration from a server
 /// - Local overrides stored in UserDefaults
-/// - A/B testing with conditional expressions
 ///
 /// ## Usage
 /// ```swift
 /// let toggle = FeatureToggle(
 ///     name: "New Dashboard",
-///     remoteValue: false,
-///     abValue: "percentage < 50"  // Optional A/B test condition
+///     remoteValue: false
 /// )
 ///
 /// if toggle.value {
-///     // Show new dashboard to qualified users
+///     // Show new dashboard
 /// }
 ///
 /// // Override locally for testing
@@ -35,22 +33,10 @@ public struct FeatureToggle {
     /// - Parameters:
     ///   - name: The unique name identifying this feature toggle.
     ///   - remoteValue: The value received from the remote configuration server.
-    ///   - abValue: Optional conditional expression for A/B testing. When provided, this takes
-    ///              precedence over `localValue`. The expression is evaluated using the
-    ///              `ShuntingYardResolver` to determine the toggle state.
-    /// - Complexity: O(1)
-    public init(name: String, remoteValue: Bool, abValue: String? = nil) {
+    public init(name: String, remoteValue: Bool) {
         self.name = name
         self.remoteValue = remoteValue
-        self.abValue = abValue
     }
-
-    /// Conditional expression string for A/B testing.
-    ///
-    /// When set, this expression is evaluated to determine the toggle state, taking precedence
-    /// over local values. The expression can reference device conditions like app version,
-    /// device type, and user cohort percentage.
-    private var abValue: String?
 
     /// The unique name identifying this feature toggle.
     ///
@@ -60,18 +46,10 @@ public struct FeatureToggle {
 
     /// The computed value of this feature toggle.
     ///
-    /// The value is determined in the following priority order:
-    /// 1. If `abValue` is set, evaluate the A/B test expression
-    /// 2. Otherwise, return the `localValue`
+    /// Returns the local override value.
     ///
     /// - Returns: `true` if the feature is enabled, `false` otherwise.
-    /// - Complexity: O(1) for local values, O(*n*) for A/B expressions where *n* is the
-    ///               number of conditions in the expression.
     public var value: Bool {
-        // Check A/B test expression first as it takes priority
-        guard abValue == nil else {
-            return ShuntingYardResolver.instance.evaluate(expression: abValue)
-        }
         return localValue
     }
 

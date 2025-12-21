@@ -122,15 +122,15 @@ extension UIColor {
         hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
 
         //Setup RGB values
-        var rgb: UInt32 = 0
+        var rgb: UInt64 = 0
         var r: CGFloat = 0.0
         var g: CGFloat = 0.0
         var b: CGFloat = 0.0
         var a: CGFloat = 1.0
 
-        //Confirm hex code can be represented as Int32
+        //Confirm hex code can be represented as Int64
         let length = hexSanitized.count
-        guard Scanner(string: hexSanitized).scanHexInt32(&rgb) else { return nil }
+        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else { return nil }
 
         //Assign RGB values
         if length == 6 {

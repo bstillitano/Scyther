@@ -42,13 +42,19 @@ import UserNotifications
 ///
 /// ### Processing Notifications
 /// - ``processNotification(_:)``
-public class NotificationTester {
+@MainActor
+public final class NotificationTester: Sendable {
     /// Private Init to Stop re-initialisation and allow singleton creation.
     private init() {
 
         //Set Data
-        notificationCenter.getNotificationSettings { [weak self] (settings) in
-            self?.notificationsAllowed = settings.authorizationStatus == .authorized
+        notificationCenter.getNotificationSettings { (settings) in
+            // Extract the value before crossing the isolation boundary
+            // since UNNotificationSettings is not Sendable
+            let isAuthorized = settings.authorizationStatus == .authorized
+            Task { @MainActor in
+                self.notificationsAllowed = isAuthorized
+            }
         }
     }
 

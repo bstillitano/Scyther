@@ -48,7 +48,7 @@ public struct ConsoleLogEntry: Identifiable, Equatable {
     /// Console output can come from two sources:
     /// - `stdout`: Standard output stream (normal print statements)
     /// - `stderr`: Standard error stream (error messages and warnings)
-    public enum LogSource: String {
+    public enum LogSource: String, Sendable {
         /// Standard output stream for normal log messages.
         case stdout = "stdout"
 
@@ -94,7 +94,7 @@ public struct ConsoleLogEntry: Identifiable, Equatable {
 /// ```
 ///
 /// - Note: Only available on iOS, tvOS, and watchOS. Not supported on macOS.
-public final class ConsoleLogger {
+public final class ConsoleLogger: @unchecked Sendable {
     // MARK: - Singleton
 
     /// Shared instance of the console logger.

@@ -9,6 +9,7 @@
 @testable import Scyther
 import XCTest
 
+@MainActor
 final class AppEnvironmentTests: XCTestCase {
 
     // MARK: - isDebug Tests

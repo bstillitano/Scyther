@@ -32,7 +32,7 @@ import Foundation
 ///     updateInterval: 3.0
 /// )
 /// ```
-public struct Route {
+public struct Route: Sendable {
     /// Unique identifier for the route.
     public var id: String!
 
@@ -68,7 +68,7 @@ extension Route {
     /// A simulated driving route from a city center to suburban area.
     ///
     /// Updates every 5 seconds to simulate realistic driving speed.
-    static var driveCityToSuburb: Route = Route(id: "cityToSuburb",
+    static let driveCityToSuburb: Route = Route(id: "cityToSuburb",
                                                 name: "Drive from city to suburb",
                                                 fileName: "DriveCityToSuburb",
                                                 updateInterval: 5.0)

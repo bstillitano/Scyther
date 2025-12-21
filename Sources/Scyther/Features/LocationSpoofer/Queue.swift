@@ -74,7 +74,7 @@ fileprivate class UniDirectionalLinkedList<T> {
 ///     }
 /// }
 /// ```
-struct Queue<T> {
+struct Queue<T>: @unchecked Sendable {
     /// The underlying linked list storing the queue items.
     private let linkedList = UniDirectionalLinkedList<T>()
 

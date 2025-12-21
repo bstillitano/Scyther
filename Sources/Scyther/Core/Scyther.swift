@@ -98,24 +98,25 @@ public protocol ScytherDelegate: AnyObject {
 /// - ``environmentVariables``
 /// - ``invocationGesture``
 /// - ``delegate``
+@MainActor
 public enum Scyther {
 
     // MARK: - State
 
-    private static var _started = false
+    private nonisolated(unsafe) static var _started = false
     private static var _presented = false
 
     /// Whether Scyther has been started.
-    public static var isStarted: Bool { _started }
+    public nonisolated static var isStarted: Bool { _started }
 
     /// Whether the menu is currently presented.
     public static var isPresented: Bool { _presented }
 
     /// Delegate for receiving Scyther events.
-    public static weak var delegate: ScytherDelegate?
+    nonisolated(unsafe) public static weak var delegate: ScytherDelegate?
 
     /// Gesture used to invoke the menu. Set before calling `start()`.
-    public static var invocationGesture: ScytherGesture = .shake
+    nonisolated(unsafe) public static var invocationGesture: ScytherGesture = .shake
 
     // MARK: - Subsystems
 
@@ -143,16 +144,16 @@ public enum Scyther {
     // MARK: - Configuration
 
     /// Custom developer options displayed in the menu.
-    public static var developerOptions: [DeveloperOption] = []
+    nonisolated(unsafe) public static var developerOptions: [DeveloperOption] = []
 
     /// Custom environment variables shown in the Environment Variables screen.
-    public static var environmentVariables: [String: String] = [:]
+    nonisolated(unsafe) public static var environmentVariables: [String: String] = [:]
 
     /// APNS device token (64 character hex string).
-    public static var apnsToken: String?
+    nonisolated(unsafe) public static var apnsToken: String?
 
     /// FCM device token.
-    public static var fcmToken: String?
+    nonisolated(unsafe) public static var fcmToken: String?
 
     // MARK: - Lifecycle
 
@@ -161,7 +162,6 @@ public enum Scyther {
     /// Call this early in your app's lifecycle, typically in `application(_:didFinishLaunchingWithOptions:)`.
     ///
     /// - Parameter allowProductionBuilds: If `true`, Scyther will run on App Store builds. Default is `false`.
-    @MainActor
     public static func start(allowProductionBuilds: Bool = false) {
         guard !AppEnvironment.isAppStore || allowProductionBuilds else {
             return
@@ -263,7 +263,7 @@ internal func logMessage(_ msg: String) {
 /// ## Topics
 ///
 /// ### Registration
-/// - ``register(_:remoteValue:abValue:)``
+/// - ``register(_:remoteValue:)``
 ///
 /// ### Querying
 /// - ``isEnabled(_:)``
@@ -272,7 +272,8 @@ internal func logMessage(_ msg: String) {
 /// ### Local Overrides
 /// - ``localOverridesEnabled``
 /// - ``setLocalValue(_:for:)``
-public final class FeatureFlags {
+@MainActor
+public final class FeatureFlags: Sendable {
     /// The shared feature flags instance.
     public static let shared = FeatureFlags()
     private init() {}
@@ -302,10 +303,9 @@ public final class FeatureFlags {
     /// - Parameters:
     ///   - name: Unique identifier for the flag.
     ///   - remoteValue: The server-side value for this flag.
-    ///   - abValue: Optional A/B test condition expression for dynamic evaluation.
-    public func register(_ name: String, remoteValue: Bool, abValue: String? = nil) {
+    public func register(_ name: String, remoteValue: Bool) {
         all.removeAll { $0.name == name }
-        all.append(FeatureToggle(name: name, remoteValue: remoteValue, abValue: abValue))
+        all.append(FeatureToggle(name: name, remoteValue: remoteValue))
     }
 
     /// Returns whether a feature flag is enabled.
@@ -461,7 +461,8 @@ public actor Servers {
 /// ```
 ///
 /// - Note: Network interception is enabled automatically when ``Scyther/start(allowProductionBuilds:)`` is called.
-public final class Network {
+@MainActor
+public final class Network: Sendable {
     /// The shared network instance.
     public static let shared = Network()
     private init() {}
@@ -499,7 +500,8 @@ public final class Network {
 ///     print(notification.aps.alert.title)
 /// }
 /// ```
-public final class Notifications {
+@MainActor
+public final class Notifications: Sendable {
     /// The shared notifications instance.
     public static let shared = Notifications()
     private init() {}
@@ -551,7 +553,8 @@ public final class Notifications {
 /// ```
 ///
 /// - Note: Console capture is enabled automatically when ``Scyther/start(allowProductionBuilds:)`` is called.
-public final class Console {
+@MainActor
+public final class Console: Sendable {
     /// The shared console instance.
     public static let shared = Console()
     private init() {}
@@ -594,7 +597,8 @@ public final class Console {
 /// ```swift
 /// Scyther.interface.touchVisualizerEnabled = true
 /// ```
-public final class Interface {
+@MainActor
+public final class Interface: Sendable {
     /// The shared interface instance.
     public static let shared = Interface()
     private init() {}
@@ -647,7 +651,8 @@ public final class Interface {
 ///
 /// - Important: Location spoofing uses method swizzling on `CLLocationManager`.
 ///   This is intended for development and testing only.
-public final class LocationSpoofing {
+@MainActor
+public final class LocationSpoofing: Sendable {
     /// The shared location spoofing instance.
     public static let shared = LocationSpoofing()
     private init() {}

@@ -41,20 +41,21 @@ import UIKit
 /// - ``ColorDefaultsKey``
 /// - ``OpacityDefaultsKey``
 /// - ``SizeDefaultsKey``
-internal class GridOverlay {
-    // MARK: - Static Data
+@MainActor
+internal final class GridOverlay: Sendable {
+    // MARK: - Static Data (nonisolated for cross-thread access)
 
     /// UserDefaults key for storing the grid overlay enabled state.
-    static let EnabledDefaultsKey: String = "Scyther_grid_overlay_enabled"
+    nonisolated static let EnabledDefaultsKey: String = "Scyther_grid_overlay_enabled"
 
     /// UserDefaults key for storing the grid overlay color scheme.
-    static let ColorDefaultsKey: String = "Scyther_grid_overlay_color"
+    nonisolated static let ColorDefaultsKey: String = "Scyther_grid_overlay_color"
 
     /// UserDefaults key for storing the grid overlay opacity.
-    static let OpacityDefaultsKey: String = "Scyther_grid_overlay_opacity"
+    nonisolated static let OpacityDefaultsKey: String = "Scyther_grid_overlay_opacity"
 
     /// UserDefaults key for storing the grid overlay size.
-    static let SizeDefaultsKey: String = "Scyther_grid_overlay_size"
+    nonisolated static let SizeDefaultsKey: String = "Scyther_grid_overlay_size"
 
     /// Private Init to Stop re-initialisation and allow singleton creation.
     private init() { }
@@ -69,7 +70,7 @@ internal class GridOverlay {
     ///
     /// Setting this to `true` displays the grid overlay over the entire application interface.
     /// The value is persisted to UserDefaults and restored on app launch.
-    internal var enabled: Bool {
+    internal nonisolated var enabled: Bool {
         get {
             return UserDefaults.standard.bool(forKey: GridOverlay.EnabledDefaultsKey)
         }
@@ -83,13 +84,15 @@ internal class GridOverlay {
     ///
     /// Choose from predefined color schemes to ensure the grid is visible against
     /// your app's color scheme. The value is persisted to UserDefaults.
-    internal var colorScheme: GridOverlayColorScheme {
+    internal nonisolated var colorScheme: GridOverlayColorScheme {
         get {
             return GridOverlayColorScheme(rawValue: UserDefaults.standard.string(forKey: GridOverlay.ColorDefaultsKey) ?? "red") ?? .red
         }
         set {
             UserDefaults.standard.setValue(newValue.rawValue, forKey: GridOverlay.ColorDefaultsKey)
-            InterfaceToolkit.instance.gridOverlayView.colorScheme = newValue
+            Task { @MainActor in
+                InterfaceToolkit.instance.gridOverlayView.colorScheme = newValue
+            }
         }
     }
 
@@ -97,16 +100,15 @@ internal class GridOverlay {
     ///
     /// Valid range is 0.0 (fully transparent) to 1.0 (fully opaque).
     /// Adjust this to make the grid more or less prominent. The value is persisted to UserDefaults.
-    internal var opacity: Float {
+    internal nonisolated var opacity: Float {
         get {
-            guard let value: Float = UserDefaults.standard.object(forKey: GridOverlay.OpacityDefaultsKey) as? Float else {
-                return Float(InterfaceToolkit.instance.gridOverlayView.opacity)
-            }
-            return value
+            return UserDefaults.standard.object(forKey: GridOverlay.OpacityDefaultsKey) as? Float ?? 0.5
         }
         set {
             UserDefaults.standard.setValue(newValue, forKey: GridOverlay.OpacityDefaultsKey)
-            InterfaceToolkit.instance.gridOverlayView.opacity = CGFloat(newValue)
+            Task { @MainActor in
+                InterfaceToolkit.instance.gridOverlayView.opacity = CGFloat(newValue)
+            }
         }
     }
 
@@ -114,16 +116,15 @@ internal class GridOverlay {
     ///
     /// Smaller values create a finer grid, larger values create a coarser grid.
     /// Common values range from 4 to 16 points. The value is persisted to UserDefaults.
-    internal var size: Int {
+    internal nonisolated var size: Int {
         get {
-            guard let value: Int = UserDefaults.standard.object(forKey: GridOverlay.SizeDefaultsKey) as? Int else {
-                return InterfaceToolkit.instance.gridOverlayView.gridSize
-            }
-            return value
+            return UserDefaults.standard.object(forKey: GridOverlay.SizeDefaultsKey) as? Int ?? 8
         }
         set {
             UserDefaults.standard.setValue(newValue, forKey: GridOverlay.SizeDefaultsKey)
-            InterfaceToolkit.instance.gridOverlayView.gridSize = newValue
+            Task { @MainActor in
+                InterfaceToolkit.instance.gridOverlayView.gridSize = newValue
+            }
         }
     }
 }

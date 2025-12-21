@@ -5,10 +5,11 @@
 //  Created by Brandon Stillitano on 26/9/21.
 //
 
+#if !os(macOS)
 import UIKit
 
 /// Tracks whether the UIWindow's sendEvent method has been swizzled.
-private var isSwizzled = false
+nonisolated(unsafe) private var isSwizzled = false
 
 /// Extension providing touch event interception for the touch visualiser.
 ///
@@ -28,7 +29,7 @@ extension UIWindow {
         }
         let sendEvent = class_getInstanceMethod(
             object_getClass(self),
-            #selector(UIApplication.sendEvent(_:))
+            #selector(UIWindow.sendEvent(_:))
         )
         let swizzledSendEvent = class_getInstanceMethod(
             object_getClass(self),
@@ -47,7 +48,22 @@ extension UIWindow {
     ///
     /// - Parameter event: The UIEvent to process.
     @objc public func swizzledSendEvent(_ event: UIEvent) {
-        TouchVisualiser.instance.handleEvent(event)
+        // Check static flag first to avoid MainActor hop when disabled
+        // Handle synchronously on main thread to ensure touch events are processed in time
+        if TouchVisualiser.isEnabled && event.type == .touches {
+            if Thread.isMainThread {
+                MainActor.assumeIsolated {
+                    TouchVisualiser.instance.handleEvent(event)
+                }
+            } else {
+                DispatchQueue.main.sync {
+                    MainActor.assumeIsolated {
+                        TouchVisualiser.instance.handleEvent(event)
+                    }
+                }
+            }
+        }
         swizzledSendEvent(event)
     }
 }
+#endif

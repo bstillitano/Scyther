@@ -12,6 +12,7 @@ import Foundation
 ///
 /// Implement this protocol to be notified when a GPX file has been fully parsed
 /// and the location queue is ready for use.
+@MainActor
 internal protocol GPXParsingProtocol: NSObjectProtocol {
     /// Called when GPX parsing is complete.
     ///
@@ -44,7 +45,7 @@ internal protocol GPXParsingProtocol: NSObjectProtocol {
 ///     }
 /// }
 /// ```
-internal class GPXParser: NSObject, XMLParserDelegate {
+internal final class GPXParser: NSObject, XMLParserDelegate, @unchecked Sendable {
     /// Queue of locations extracted from the GPX file.
     private var locations: Queue<CLLocation>
 
@@ -112,6 +113,10 @@ internal class GPXParser: NSObject, XMLParserDelegate {
     ///
     /// Notifies the delegate that all locations have been parsed and are ready to use.
     func parserDidEndDocument(_ parser: XMLParser) {
-        delegate?.parser(self, didCompleteParsing: locations)
+        let parsedLocations = locations
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.delegate?.parser(self, didCompleteParsing: parsedLocations)
+        }
     }
 }

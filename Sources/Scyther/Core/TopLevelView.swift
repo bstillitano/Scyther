@@ -9,6 +9,7 @@
 import UIKit
 
 /// A delegate protocol for receiving visibility change notifications from a ``TopLevelView``.
+@MainActor
 protocol TopLevelViewDelegate: AnyObject {
     /// Called when the view's visibility changes.
     ///

@@ -27,7 +27,7 @@ import UIKit
 /// // Or choose blue for better contrast
 /// gridOverlay.colorScheme = .blue
 /// ```
-public enum GridOverlayColorScheme: String, CaseIterable {
+public enum GridOverlayColorScheme: String, CaseIterable, Sendable {
     /// Red color scheme with red grid lines and white labels.
     case red
 

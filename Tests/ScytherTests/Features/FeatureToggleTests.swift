@@ -48,17 +48,6 @@ final class FeatureToggleTests: XCTestCase {
         XCTAssertEqual(toggle.remoteValue, true)
     }
 
-    func testInitializationWithABValue() {
-        let toggle = FeatureToggle(
-            name: "AB Test Feature",
-            remoteValue: false,
-            abValue: "percentage < 50"
-        )
-
-        XCTAssertEqual(toggle.name, "AB Test Feature")
-        XCTAssertEqual(toggle.remoteValue, false)
-    }
-
     // MARK: - Name Tests
 
     func testNameProperty() {
@@ -178,7 +167,7 @@ final class FeatureToggleTests: XCTestCase {
 
     func testMultipleFeatureFlags() {
         var feature1 = FeatureToggle(name: "Feature 1", remoteValue: false)
-        var feature2 = FeatureToggle(name: "Feature 2", remoteValue: true)
+        let feature2 = FeatureToggle(name: "Feature 2", remoteValue: true)
         var feature3 = FeatureToggle(name: "Feature 3", remoteValue: false)
 
         feature1.localValue = true

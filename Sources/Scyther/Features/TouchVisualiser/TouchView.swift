@@ -14,6 +14,7 @@ import UIKit
 ///
 /// This class is used internally by `TouchVisualiser` to create visual representations
 /// of touches on the screen for debugging and demonstration purposes.
+@MainActor
 final public class TouchView: UIImageView {
     // MARK: - Data
     /// The touch event this view represents.
@@ -42,7 +43,7 @@ final public class TouchView: UIImageView {
             configuration = newValue
             image = configuration.touchIndicatorImage
             tintColor = configuration.touchIndicatorColor
-            timerLabel.textColor = configuration.touchIndicatorColor
+            // Note: timerLabel uses its own fixed styling (white text on dark background)
         }
     }
     /// Internal configuration storage.
@@ -51,23 +52,25 @@ final public class TouchView: UIImageView {
     // MARK: - UI Elements
     /// Label that displays the touch duration when enabled.
     private lazy var timerLabel: UILabel = {
-        let size = CGSize(width: 200.0, height: 44.0)
+        let size = CGSize(width: 100.0, height: 32.0)
         let bottom: CGFloat = 8.0
         var label = UILabel()
         label.frame = CGRect(x: -(size.width - self.frame.width) / 2,
                              y: -size.height - bottom,
                              width: size.width,
                              height: size.height)
-        label.font = .systemFont(ofSize: 20.0)
+        label.font = .monospacedDigitSystemFont(ofSize: 17.0, weight: .semibold)
         label.textAlignment = .center
+        label.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        label.textColor = .white
+        label.layer.cornerRadius = 8
+        label.layer.masksToBounds = true
         self.addSubview(label)
         return label
     }()
 
     // MARK: - Lifecycle
-    deinit {
-        timer?.invalidate()
-    }
+    // Note: Timer is weak and will be invalidated when view is deallocated
 
     convenience init() {
         self.init(frame: .zero)
@@ -90,27 +93,48 @@ final public class TouchView: UIImageView {
     internal func touchDidBegin() {
         //Update UI
         alpha = 1.0
+        clipsToBounds = false  // Must set every time since views are reused and setting image resets this
         timerLabel.alpha = 0.0
         layer.transform = CATransform3DIdentity
         previousRatio = 1.0
         frame = CGRect(origin: frame.origin, size: configuration.touchIndicatorSize)
-        
+
+        // Update timerLabel frame in case view frame changed
+        updateTimerLabelFrame()
+
         //Start Timer
         if configuration.showsTouchDuration {
             startDate = Date()
-            timer = Timer.scheduledTimer(timeInterval: 1.0 / 60.0,
-                                         target: self,
-                                         selector: #selector(self.update(_:)),
-                                         userInfo: nil,
-                                         repeats: true)
-            RunLoop.main.add(timer, forMode: RunLoop.Mode.common)
+            timerLabel.text = "0.00"
             timerLabel.alpha = 1.0
+            timerLabel.isHidden = false
+            bringSubviewToFront(timerLabel)
+
+            timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
+                guard let self = self else { return }
+                MainActor.assumeIsolated {
+                    self.updateDuration()
+                }
+            }
+            RunLoop.main.add(timer, forMode: RunLoop.Mode.common)
         }
 
         //Show Touch Radius
         if configuration.showsTouchRadius {
             updateSize()
         }
+    }
+
+    /// Updates the timer label frame to be positioned above the touch indicator.
+    private func updateTimerLabelFrame() {
+        let size = CGSize(width: 100.0, height: 32.0)
+        let bottom: CGFloat = 8.0
+        timerLabel.frame = CGRect(
+            x: -(size.width - frame.width) / 2,
+            y: -size.height - bottom,
+            width: size.width,
+            height: size.height
+        )
     }
 
     /// Called when a touch event ends.
@@ -124,9 +148,7 @@ final public class TouchView: UIImageView {
     /// Updates the duration display for this touch.
     ///
     /// Called repeatedly by the timer while the touch is active.
-    ///
-    /// - Parameter timer: The timer triggering the update.
-    @objc internal func update(_ timer: Timer) {
+    private func updateDuration() {
         guard let startDate = startDate else {
             return
         }
