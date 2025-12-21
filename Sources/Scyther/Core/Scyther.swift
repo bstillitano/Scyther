@@ -141,6 +141,9 @@ public enum Scyther {
     /// Location spoofing.
     public static let location = LocationSpoofing.shared
 
+    /// Appearance overrides (color scheme, dynamic type, high contrast).
+    public static let appearance = Appearance.shared
+
     // MARK: - Configuration
 
     /// Custom developer options displayed in the menu.
@@ -173,6 +176,7 @@ public enum Scyther {
         Network.shared.startIntercepting()
         Interface.shared.setup()
         LocationSpoofing.shared.setup()
+        Appearance.shared.setup()
     }
 
     // MARK: - Menu
@@ -681,6 +685,75 @@ public final class LocationSpoofing: Sendable {
     public var spoofedLocation: Location {
         get { LocationSpoofer.instance.spoofedLocation }
         set { LocationSpoofer.instance.spoofedLocation = newValue }
+    }
+}
+
+/// Provides appearance override capabilities for testing UI under different conditions.
+///
+/// The `Appearance` subsystem allows you to override system appearance settings
+/// at runtime without changing device settings:
+/// - Color scheme (light/dark mode)
+/// - High contrast mode (iOS 17+)
+/// - Dynamic Type text size
+///
+/// ## Forcing Dark Mode
+///
+/// ```swift
+/// Scyther.appearance.colorScheme = .dark
+/// ```
+///
+/// ## Testing Large Text
+///
+/// ```swift
+/// Scyther.appearance.contentSizeCategory = .accessibilityExtraLarge
+/// ```
+///
+/// ## Resetting to System Defaults
+///
+/// ```swift
+/// Scyther.appearance.reset()
+/// ```
+@MainActor
+public final class Appearance: Sendable {
+    /// The shared appearance instance.
+    public static let shared = Appearance()
+    private init() {}
+
+    internal func setup() {
+        AppearanceOverrides.instance.registerForSceneNotifications()
+        AppearanceOverrides.instance.applyAllOverrides()
+    }
+
+    /// The current color scheme override.
+    ///
+    /// Set to `.light` or `.dark` to force a specific appearance,
+    /// or `.system` to follow the device setting.
+    public var colorScheme: ColorSchemeOverride {
+        get { AppearanceOverrides.instance.colorScheme }
+        set { AppearanceOverrides.instance.colorScheme = newValue }
+    }
+
+    /// Whether high contrast mode is enabled.
+    ///
+    /// When `true`, the system uses increased contrast colors.
+    /// Requires iOS 17+ to take effect.
+    public var highContrastEnabled: Bool {
+        get { AppearanceOverrides.instance.highContrastEnabled }
+        set { AppearanceOverrides.instance.highContrastEnabled = newValue }
+    }
+
+    /// The content size category override for Dynamic Type.
+    ///
+    /// Set to a specific category to test how your app responds to different text sizes.
+    /// Set to `nil` to use the system default.
+    public var contentSizeCategory: UIContentSizeCategory? {
+        get { AppearanceOverrides.instance.contentSizeCategory }
+        set { AppearanceOverrides.instance.contentSizeCategory = newValue }
+    }
+
+    /// Resets all appearance overrides to system defaults.
+    public func reset() {
+        AppearanceOverrides.instance.resetToDefaults()
     }
 }
 #endif
