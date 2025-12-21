@@ -137,8 +137,10 @@ struct DeepLinkTesterView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(entry.url)
                                 .foregroundStyle(.primary)
+                                .lineLimit(1)
                             Text(entry.timestamp.formatted(date: .abbreviated, time: .shortened))
                                 .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
