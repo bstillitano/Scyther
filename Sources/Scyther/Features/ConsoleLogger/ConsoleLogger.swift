@@ -94,7 +94,7 @@ public struct ConsoleLogEntry: Identifiable, Equatable {
 /// ```
 ///
 /// - Note: Only available on iOS, tvOS, and watchOS. Not supported on macOS.
-public final class ConsoleLogger {
+public final class ConsoleLogger: @unchecked Sendable {
     // MARK: - Singleton
 
     /// Shared instance of the console logger.

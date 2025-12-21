@@ -340,6 +340,7 @@ class NewMenuViewModel: ViewModel {
 /// - ``onSubsequentAppear()``: Called on every appearance after the first
 ///
 /// Subclasses should override these methods to implement their specific behavior.
+@MainActor
 class ViewModel: ObservableObject {
     init() {
         setup()

@@ -14,7 +14,7 @@ import Foundation
 /// while maintaining the ability to log network requests.
 ///
 /// - Note: This is an internal implementation detail of the network logging system.
-class LoggerAuthenticationChallengeSender: NSObject, URLAuthenticationChallengeSender {
+final class LoggerAuthenticationChallengeSender: NSObject, URLAuthenticationChallengeSender, @unchecked Sendable {
 
     /// Type alias for the authentication challenge completion handler.
     ///

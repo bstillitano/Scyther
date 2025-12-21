@@ -42,7 +42,8 @@ import UserNotifications
 ///
 /// ### Processing Notifications
 /// - ``processNotification(_:)``
-public class NotificationTester {
+@MainActor
+public final class NotificationTester: Sendable {
     /// Private Init to Stop re-initialisation and allow singleton creation.
     private init() {
 

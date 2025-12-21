@@ -11,12 +11,12 @@ import CoreLocation
 /// Configuration settings for the location spoofer.
 ///
 /// - Note: This is an internal configuration struct used by `LocationSpoofer`.
-struct LocationSpooferConfiguration {
+struct LocationSpooferConfiguration: Sendable {
     /// Default time interval between location updates (in seconds).
-    static var updateInterval = 0.5
+    static let updateInterval = 0.5
 
     /// Optional GPX file name to load for location simulation.
-    static var GpxFileName: String?
+    nonisolated(unsafe) static var GpxFileName: String?
 }
 
 /// A location manager that provides spoofed GPS coordinates for testing.
@@ -56,31 +56,33 @@ struct LocationSpooferConfiguration {
 ///   and other apps will continue to use real GPS coordinates.
 ///
 /// - Note: Call `LocationSpoofer.instance.start()` during app initialization to enable swizzling.
-public final class LocationSpoofer: CLLocationManager {
-    // MARK: - Static Data
-    internal static var LocationSpoofingEnabledChangeNotification: NSNotification.Name = NSNotification.Name("LocationSpoofingEnabledChangeNotification")
-    internal static var LocationSpoofingLocationChangeNotification: NSNotification.Name = NSNotification.Name("LocationSpoofingLocationChangeNotification")
-    internal static var LocationSpoofingEnabledDefaultsKey: String = "Scyther_Location_Spoofing_Enabled"
-    internal static var LocationSpoofingCustomLocationEnabledDefaultsKey: String = "Scyther_Location_Spoofing_Custom_Location_Enabled"
-    internal static var LocationSpoofingLongitudeKey: String = "Scyther_Location_Spoofing_Longitude"
-    internal static var LocationSpoofingLatitudeKey: String = "Scyther_Location_Spoofing_Latitude"
-    internal static var LocationSpoofingCustomLongitudeKey: String = "Scyther_Location_Spoofing_Custom_Longitude"
-    internal static var LocationSpoofingCustomLatitudeKey: String = "Scyther_Location_Spoofing_Custom_Latitude"
-    internal static var LocationSpoofingRouteIdKey: String = "Scyther_Location_Spoofing_Route_Id"
+@MainActor
+public final class LocationSpoofer: CLLocationManager, @unchecked Sendable {
+    // MARK: - Static Data (nonisolated for cross-thread access)
+    nonisolated internal static let LocationSpoofingEnabledChangeNotification = NSNotification.Name("LocationSpoofingEnabledChangeNotification")
+    nonisolated internal static let LocationSpoofingLocationChangeNotification = NSNotification.Name("LocationSpoofingLocationChangeNotification")
+    nonisolated internal static let LocationSpoofingEnabledDefaultsKey = "Scyther_Location_Spoofing_Enabled"
+    nonisolated internal static let LocationSpoofingCustomLocationEnabledDefaultsKey = "Scyther_Location_Spoofing_Custom_Location_Enabled"
+    nonisolated internal static let LocationSpoofingLongitudeKey = "Scyther_Location_Spoofing_Longitude"
+    nonisolated internal static let LocationSpoofingLatitudeKey = "Scyther_Location_Spoofing_Latitude"
+    nonisolated internal static let LocationSpoofingCustomLongitudeKey = "Scyther_Location_Spoofing_Custom_Longitude"
+    nonisolated internal static let LocationSpoofingCustomLatitudeKey = "Scyther_Location_Spoofing_Custom_Latitude"
+    nonisolated internal static let LocationSpoofingRouteIdKey = "Scyther_Location_Spoofing_Route_Id"
 
     // MARK: - Singleton
     private override init() {
-        locations = Queue<CLLocation>()
+        super.init()
     }
-    static let instance = LocationSpoofer()
+    nonisolated(unsafe) static let instance = LocationSpoofer()
 
     // MARK: - Data
     private var parser: GPXParser?
     private var timer: Timer?
-    private var locations: Queue<CLLocation>?
+    private var locations: Queue<CLLocation>? = Queue<CLLocation>()
     internal var developerLocations: [Location] = []
     var updateInterval: TimeInterval = 0.5
-    public var spoofingEnabled: Bool {
+    // MARK: - Nonisolated Read Accessors (UserDefaults is thread-safe)
+    public nonisolated var spoofingEnabled: Bool {
         get {
             UserDefaults.standard.bool(forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
         }
@@ -89,7 +91,7 @@ public final class LocationSpoofer: CLLocationManager {
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingEnabledChangeNotification, object: newValue)
         }
     }
-    public var useCustomLocation: Bool {
+    public nonisolated var useCustomLocation: Bool {
         get {
             UserDefaults.standard.bool(forKey: LocationSpoofer.LocationSpoofingCustomLocationEnabledDefaultsKey)
         } set {
@@ -97,7 +99,7 @@ public final class LocationSpoofer: CLLocationManager {
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification, object: newValue)
         }
     }
-    public var customLocation: Location {
+    public nonisolated var customLocation: Location {
         get {
             let latitude = UserDefaults.standard.value(forKey: LocationSpoofer.LocationSpoofingCustomLatitudeKey) as? Double
             let longitude = UserDefaults.standard.value(forKey: LocationSpoofer.LocationSpoofingCustomLongitudeKey) as? Double
@@ -117,14 +119,14 @@ public final class LocationSpoofer: CLLocationManager {
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification, object: newValue)
         }
     }
-    public var spoofedLocation: Location {
+    public nonisolated var spoofedLocation: Location {
         get {
             if useCustomLocation {
                 return customLocation
             } else {
                 let latitude = UserDefaults.standard.value(forKey: LocationSpoofer.LocationSpoofingLatitudeKey) as? Double
                 let longitude = UserDefaults.standard.value(forKey: LocationSpoofer.LocationSpoofingLongitudeKey) as? Double
-                return presetLocations.first(where: { $0.latitude == latitude && $0.longitude == longitude }) ?? .sydney
+                return Self.presetLocationsList.first(where: { $0.latitude == latitude && $0.longitude == longitude }) ?? .sydney
             }
         }
         set {
@@ -139,9 +141,9 @@ public final class LocationSpoofer: CLLocationManager {
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification, object: newValue)
         }
     }
-    public var spoofedRoute: Route? {
+    public nonisolated var spoofedRoute: Route? {
         get {
-            return presetRoutes.first(where: { $0.id == UserDefaults.standard.string(forKey: LocationSpoofer.LocationSpoofingRouteIdKey) })
+            return Self.presetRoutesList.first(where: { $0.id == UserDefaults.standard.string(forKey: LocationSpoofer.LocationSpoofingRouteIdKey) })
         }
         set {
             // Clear other modes
@@ -288,36 +290,44 @@ extension LocationSpoofer: GPXParsingProtocol {
 }
 
 extension LocationSpoofer {
+    // Static lists for nonisolated access
+    internal nonisolated static let presetLocationsList: [Location] = [
+        .sydney,
+        .helsinki,
+        .santiago,
+        .rio,
+        .denver,
+        .cincinatti,
+        .moscow,
+        .tokyo,
+        .palermo,
+        .bogota,
+        .berlin,
+        .oslo,
+        .nairobi,
+        .marseille,
+        .manila,
+        .newYork,
+        .mumbai,
+        .sanFrancisco,
+        .mexico,
+        .stJulians,
+        .valletta,
+        .stockholm,
+        .lisbon
+    ]
+
+    internal nonisolated static let presetRoutesList: [Route] = [.driveCityToSuburb]
+
+    // Instance accessors for MainActor-isolated code
     internal var presetLocations: [Location] {
-        return [.sydney,
-                    .helsinki,
-                    .santiago,
-                    .rio,
-                    .denver,
-                    .cincinatti,
-                    .moscow,
-                    .tokyo,
-                    .palermo,
-                    .bogota,
-                    .berlin,
-                    .oslo,
-                    .nairobi,
-                    .marseille,
-                    .manila,
-                    .newYork,
-                    .mumbai,
-                    .sanFrancisco,
-                    .mexico,
-                    .stJulians,
-                    .valletta,
-                    .stockholm,
-                    .lisbon]
+        return Self.presetLocationsList
     }
 
     internal var presetRoutes: [Route] {
-        return [.driveCityToSuburb]
+        return Self.presetRoutesList
     }
-    
+
     public func addLocation(_ location: Location) {
         developerLocations.append(location)
     }

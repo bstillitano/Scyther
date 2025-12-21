@@ -53,7 +53,7 @@ private func < <T: Comparable>(lhs: T?, rhs: T?) -> Bool {
 /// // Generate cURL command
 /// let curl = request.requestCurl
 /// ```
-final class HTTPRequest: Sendable, Identifiable {
+final class HTTPRequest: @unchecked Sendable, Identifiable {
     /// The cache policy used to fetch/store the request and its corresponding response
     var requestCachePolicy: String?
 

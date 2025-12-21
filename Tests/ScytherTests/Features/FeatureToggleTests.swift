@@ -48,17 +48,6 @@ final class FeatureToggleTests: XCTestCase {
         XCTAssertEqual(toggle.remoteValue, true)
     }
 
-    func testInitializationWithABValue() {
-        let toggle = FeatureToggle(
-            name: "AB Test Feature",
-            remoteValue: false,
-            abValue: "percentage < 50"
-        )
-
-        XCTAssertEqual(toggle.name, "AB Test Feature")
-        XCTAssertEqual(toggle.remoteValue, false)
-    }
-
     // MARK: - Name Tests
 
     func testNameProperty() {

@@ -22,7 +22,7 @@ import Foundation
 ///     print("\(cookie.name): \(cookie.value)")
 /// }
 /// ```
-class CookieBrowser {
+final class CookieBrowser: Sendable {
     /// Private initializer to prevent external instantiation.
     private init() { }
 
@@ -33,6 +33,7 @@ class CookieBrowser {
     ///
     /// This property accesses `HTTPCookieStorage.shared.cookies` and returns
     /// all cookies, or an empty array if none exist.
+    /// HTTPCookieStorage is thread-safe, so this can be nonisolated.
     ///
     /// - Returns: An array of all stored HTTP cookies.
     public var cookies: [HTTPCookie] {

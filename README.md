@@ -79,8 +79,51 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 ## Requirements
 
 - iOS 16.0+
-- Xcode 15+
-- Swift 5.10+
+- Xcode 16+
+- Swift 6.0+
+
+## Swift 6 Compatibility
+
+Scyther is fully compatible with Swift 6 strict concurrency checking. The library uses modern Swift concurrency patterns throughout:
+
+### Concurrency Architecture
+
+| Component | Isolation | Notes |
+|-----------|-----------|-------|
+| `Scyther` | `@MainActor` | Main entry point, UI presentation |
+| `Scyther.servers` | `actor` | Thread-safe server configuration |
+| `NetworkLogger` | `actor` | Thread-safe request logging with `AsyncStream` |
+| `Scyther.featureFlags` | `@MainActor` | Feature flag management |
+| `Scyther.network` | `@MainActor` | Network facade |
+| `Scyther.console` | `@MainActor` | Console capture facade |
+| `Scyther.interface` | `@MainActor` | UI tools facade |
+| `Scyther.location` | `@MainActor` | Location spoofing facade |
+
+### Working with Actors
+
+The `Servers` subsystem is an actor, requiring `await` for all access:
+
+```swift
+// Register servers (requires await)
+await Scyther.servers.register(id: "dev", variables: ["API_URL": "https://dev.api.com"])
+
+// Access current configuration (requires await)
+let currentServer = await Scyther.servers.currentId
+let apiURL = await Scyther.servers.variables["API_URL"]
+```
+
+### Sendable Conformance
+
+Key public types conform to `Sendable` for safe cross-actor usage:
+
+- `ServerConfiguration` - Server environment configuration
+- `Location` - GPS coordinate data
+- `Route` - Location simulation routes
+- `ConsoleLogEntry` - Captured console output
+
+### Performance Optimizations
+
+Scyther uses `nonisolated` properties for UserDefaults-backed settings to avoid actor hop overhead in hot paths. This ensures the debugging tools don't impact your app's UI performance.
 
 ## Installation
 
@@ -158,7 +201,6 @@ Register feature flags from your remote configuration system and allow developer
 // After fetching your remote config
 Scyther.featureFlags.register("new_checkout_flow", remoteValue: true)
 Scyther.featureFlags.register("dark_mode_v2", remoteValue: false)
-Scyther.featureFlags.register("experimental_search", remoteValue: false, abValue: "percentage < 50")
 ```
 
 #### Checking Flag Values

@@ -20,15 +20,16 @@ import UIKit
 ///
 /// This class is used internally by ``Interface`` and should not be accessed directly.
 /// Use ``Scyther/interface`` instead.
-public class InterfaceToolkit: NSObject {
-    // MARK: - Static Data
-    internal static var DebugBordersChangeNotification: NSNotification.Name = NSNotification.Name("DebugBordersChangeNotification")
-    internal static var DebugSizesChangeNotification: NSNotification.Name = NSNotification.Name("DebugSizesChangeNotification")
-    internal static var VisualiseTouchesChangeNotification: NSNotification.Name = NSNotification.Name("VisualiseTouchesChangeNotification")
-    internal static var SlowAnimationsUserDefaultsKey: String = "Scyther_Interface_Toolkit_Slow_Animations_Enabled"
-    internal static var ViewFramesUserDefaultsKey: String = "Scyther_Interface_Toolkit_View_Borders_Enabled"
-    internal static var ViewSizesUserDefaultsKey: String = "Scyther_Interface_Toolkit_View_Sizes_Enabled"
-    internal static var VisualiseTouchesUserDefaultsKey: String = "Scyther_Interface_Toolkit_Visualise_Touches_Enabled"
+@MainActor
+public final class InterfaceToolkit: NSObject, Sendable {
+    // MARK: - Static Data (nonisolated for cross-thread access)
+    nonisolated internal static let DebugBordersChangeNotification = NSNotification.Name("DebugBordersChangeNotification")
+    nonisolated internal static let DebugSizesChangeNotification = NSNotification.Name("DebugSizesChangeNotification")
+    nonisolated internal static let VisualiseTouchesChangeNotification = NSNotification.Name("VisualiseTouchesChangeNotification")
+    nonisolated internal static let SlowAnimationsUserDefaultsKey = "Scyther_Interface_Toolkit_Slow_Animations_Enabled"
+    nonisolated internal static let ViewFramesUserDefaultsKey = "Scyther_Interface_Toolkit_View_Borders_Enabled"
+    nonisolated internal static let ViewSizesUserDefaultsKey = "Scyther_Interface_Toolkit_View_Sizes_Enabled"
+    nonisolated internal static let VisualiseTouchesUserDefaultsKey = "Scyther_Interface_Toolkit_Visualise_Touches_Enabled"
 
     /// Private Init to Stop re-initialisation and allow singleton creation.
     override private init() { }
@@ -41,8 +42,8 @@ public class InterfaceToolkit: NSObject {
     internal var gridOverlayView: GridOverlayView = GridOverlayView()
     internal var topLevelViewsWrapper: TopLevelViewsWrapper = TopLevelViewsWrapper()
 
-    // MARK: - Data
-    internal var visualiseTouches: Bool {
+    // MARK: - Data (nonisolated for UserDefaults access - thread-safe)
+    internal nonisolated var visualiseTouches: Bool {
         get {
             UserDefaults.standard.bool(forKey: InterfaceToolkit.VisualiseTouchesUserDefaultsKey)
         }
@@ -52,7 +53,7 @@ public class InterfaceToolkit: NSObject {
                                             object: newValue)
         }
     }
-    internal var showsViewBorders: Bool {
+    internal nonisolated var showsViewBorders: Bool {
         get {
             UserDefaults.standard.bool(forKey: InterfaceToolkit.ViewFramesUserDefaultsKey)
         }
@@ -62,7 +63,7 @@ public class InterfaceToolkit: NSObject {
                                             object: newValue)
         }
     }
-    internal var showsViewSizes: Bool {
+    internal nonisolated var showsViewSizes: Bool {
         get {
             UserDefaults.standard.bool(forKey: InterfaceToolkit.ViewSizesUserDefaultsKey)
         }
@@ -72,13 +73,17 @@ public class InterfaceToolkit: NSObject {
                                             object: newValue)
         }
     }
-    internal var slowAnimationsEnabled: Bool {
+    internal nonisolated var slowAnimationsEnabled: Bool {
         get {
             UserDefaults.standard.bool(forKey: InterfaceToolkit.SlowAnimationsUserDefaultsKey)
         }
         set {
             UserDefaults.standard.setValue(newValue, forKey: InterfaceToolkit.SlowAnimationsUserDefaultsKey)
-            setWindowSpeed()
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    self.setWindowSpeed()
+                }
+            }
         }
     }
 

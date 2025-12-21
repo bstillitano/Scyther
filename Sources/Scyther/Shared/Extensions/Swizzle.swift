@@ -42,7 +42,7 @@ import Foundation
 ///
 /// - Note: Both methods must exist on the class for swizzling to succeed.
 ///         If either method is not found, no action is taken.
-internal let swizzle: (AnyClass, Selector, Selector) -> () = { forClass, originalSelector, swizzledSelector in
+internal func swizzle(_ forClass: AnyClass, _ originalSelector: Selector, _ swizzledSelector: Selector) {
     if let originalMethod = class_getInstanceMethod(forClass, originalSelector),
         let swizzledMethod = class_getInstanceMethod(forClass, swizzledSelector) {
         method_exchangeImplementations(originalMethod, swizzledMethod)
@@ -79,7 +79,7 @@ internal let swizzle: (AnyClass, Selector, Selector) -> () = { forClass, origina
 ///
 /// - Note: Both methods must exist on the class for unswizzling to succeed.
 ///         If either method is not found, no action is taken.
-internal let unswizzle: (AnyClass, Selector, Selector) -> () = { forClass, originalSelector, swizzledSelector in
+internal func unswizzle(_ forClass: AnyClass, _ originalSelector: Selector, _ swizzledSelector: Selector) {
     guard let originalMethod = class_getInstanceMethod(forClass, originalSelector),
         let swizzledMethod = class_getInstanceMethod(forClass, swizzledSelector) else {
         return

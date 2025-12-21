@@ -14,6 +14,7 @@ import UIKit
 ///
 /// This class is used internally by `TouchVisualiser` to create visual representations
 /// of touches on the screen for debugging and demonstration purposes.
+@MainActor
 final public class TouchView: UIImageView {
     // MARK: - Data
     /// The touch event this view represents.
@@ -65,9 +66,7 @@ final public class TouchView: UIImageView {
     }()
 
     // MARK: - Lifecycle
-    deinit {
-        timer?.invalidate()
-    }
+    // Note: Timer is weak and will be invalidated when view is deallocated
 
     convenience init() {
         self.init(frame: .zero)

@@ -8,8 +8,4 @@ final class ScytherTests: XCTestCase {
         // results.
 //        XCTAssertEqual(Scyther().text, "Hello, World!")
     }
-
-    static var allTests = [
-        ("testExample", testExample),
-    ]
 }

@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import CoreLocation
+@preconcurrency import CoreLocation
 import MapKit
 import Scyther
 
@@ -114,6 +114,7 @@ struct LocationTestView: View {
     }
 }
 
+@MainActor
 class LocationTestManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
 
@@ -146,25 +147,26 @@ class LocationTestManager: NSObject, ObservableObject, CLLocationManagerDelegate
         manager.stopUpdatingLocation()
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-        DispatchQueue.main.async {
+        Task { @MainActor in
             self.currentLocation = location
             self.error = nil
         }
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        DispatchQueue.main.async {
-            self.error = error.localizedDescription
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        let errorMessage = error.localizedDescription
+        Task { @MainActor in
+            self.error = errorMessage
         }
     }
 
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        DispatchQueue.main.async {
-            self.authorizationStatus = manager.authorizationStatus
-            if manager.authorizationStatus == .authorizedWhenInUse ||
-               manager.authorizationStatus == .authorizedAlways {
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
+        Task { @MainActor in
+            self.authorizationStatus = status
+            if status == .authorizedWhenInUse || status == .authorizedAlways {
                 self.requestLocation()
             }
         }

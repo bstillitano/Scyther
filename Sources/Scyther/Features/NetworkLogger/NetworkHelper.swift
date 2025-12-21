@@ -33,12 +33,13 @@ import Foundation
 /// ```
 ///
 /// - Note: Network logging uses method swizzling to intercept `URLSession` requests.
-public class NetworkHelper {
+@MainActor
+public final class NetworkHelper: Sendable {
     /// Private Init to Stop re-initialisation and allow singleton creation.
-    private init() {}
+    private nonisolated init() {}
 
     /// An initialised, shared instance of the `NetworkHelper` class.
-    static let instance = NetworkHelper()
+    nonisolated(unsafe) static let instance = NetworkHelper()
 
     /// URLs that will not be logged or intercepted by Scyther.
     ///
@@ -52,13 +53,15 @@ public class NetworkHelper {
     ///     "https://telemetry.example.com"
     /// ]
     /// ```
-    public var ignoredURLs: [String] = []
+    /// - Note: This property is nonisolated as it's accessed from URLProtocol callbacks.
+    nonisolated(unsafe) public var ignoredURLs: [String] = []
 
     /// The cache storage policy for network requests.
     ///
     /// Determines how the network helper should cache requests and responses.
     /// Defaults to `.notAllowed` to prevent caching of intercepted requests.
-    var cacheStoragePolicy = URLCache.StoragePolicy.notAllowed
+    /// - Note: This property is nonisolated as it's accessed from URLProtocol callbacks.
+    nonisolated(unsafe) var cacheStoragePolicy = URLCache.StoragePolicy.notAllowed
 
     /// Content type filters for displaying network logs.
     ///
@@ -130,7 +133,8 @@ extension NetworkHelper {
     /// Enables or disables network logging globally.
     ///
     /// - Parameter enable: `true` to enable logging, `false` to disable.
-    func enable(_ enable: Bool) {
+    /// - Note: This method is nonisolated as URLProtocol registration is thread-safe.
+    nonisolated func enable(_ enable: Bool) {
         if enable {
             URLProtocol.registerClass(HTTPInterceptorURLProtocol.self)
         } else {
@@ -146,7 +150,8 @@ extension NetworkHelper {
     /// - Parameters:
     ///   - enabled: `true` to enable logging, `false` to disable.
     ///   - sessionConfiguration: The `URLSessionConfiguration` to modify.
-    func enable(_ enabled: Bool, sessionConfiguration: URLSessionConfiguration) {
+    /// - Note: This method is nonisolated as URLSession configuration is thread-safe.
+    nonisolated func enable(_ enabled: Bool, sessionConfiguration: URLSessionConfiguration) {
         guard var urlProtocolClasses = sessionConfiguration.protocolClasses else { return }
 
         let index = urlProtocolClasses.firstIndex(where: { $0 == HTTPInterceptorURLProtocol.self })

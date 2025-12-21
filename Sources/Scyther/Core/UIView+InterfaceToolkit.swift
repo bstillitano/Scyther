@@ -74,8 +74,18 @@ extension UIView: InterfaceToolkitPrivate {
 
 // MARK: - Show/Hide View Borders
 internal extension UIView {
+    /// Reads directly from UserDefaults to avoid MainActor hop
+    private static var showsViewBordersFromDefaults: Bool {
+        UserDefaults.standard.bool(forKey: InterfaceToolkit.ViewFramesUserDefaultsKey)
+    }
+
+    /// Reads directly from UserDefaults to avoid MainActor hop
+    private static var showsViewSizesFromDefaults: Bool {
+        UserDefaults.standard.bool(forKey: InterfaceToolkit.ViewSizesUserDefaultsKey)
+    }
+
     func refreshDebugBorders() {
-        if InterfaceToolkit.instance.showsViewBorders {
+        if Self.showsViewBordersFromDefaults {
             enableDebugBorders()
         } else {
             disableDebugBorders()
@@ -120,7 +130,7 @@ internal extension UIView {
 // MARK: - Show/Hide View Frames
 internal extension UIView {
     func refreshDebugViewSizes() {
-        if InterfaceToolkit.instance.showsViewSizes {
+        if Self.showsViewSizesFromDefaults {
             enableDebugViewSizes()
         } else {
             disableDebugViewSizes()
@@ -193,7 +203,7 @@ internal extension UIView {
 }
 
 // MARK: - Swizzling
-private var hasRegisteredForDebugNotificationsKey: UInt8 = 0
+nonisolated(unsafe) private var hasRegisteredForDebugNotificationsKey: UInt8 = 0
 
 internal extension UIView {
     /// Replaces the original `layoutSubviews` implementation with the swizzled version

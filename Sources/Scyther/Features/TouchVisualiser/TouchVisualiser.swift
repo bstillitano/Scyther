@@ -29,10 +29,17 @@ import UIKit
 /// // Stop visualizing
 /// TouchVisualiser.instance.stop()
 /// ```
-public class TouchVisualiser: NSObject {
+@MainActor
+public final class TouchVisualiser: NSObject, Sendable {
     // MARK: - Data
+    /// Static flag for hot path access without MainActor hop
+    nonisolated(unsafe) internal static var isEnabled = false
+
     /// Whether touch visualization is currently enabled.
-    private(set) var enabled = false
+    private(set) var enabled: Bool {
+        get { Self.isEnabled }
+        set { Self.isEnabled = newValue }
+    }
 
     /// Configuration controlling the appearance and behavior of touch indicators.
     public var config: TouchVisualiserConfiguration = TouchVisualiserConfiguration()
@@ -182,7 +189,7 @@ extension TouchVisualiser {
     /// - Parameter event: The touch event to handle.
     internal func handleEvent(_ event: UIEvent) {
         //Determine whether or not the event should be handled by Scyther.
-        guard TouchVisualiser.instance.enabled && event.type == .touches else {
+        guard enabled && event.type == .touches else {
             return
         }
 

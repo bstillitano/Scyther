@@ -30,7 +30,7 @@ import SwiftUI
 /// }
 /// ```
 struct LocationSpooferView: View {
-    @State private var isEnabled: Bool = LocationSpoofer.instance.spoofingEnabled
+    @State private var isEnabled: Bool = false
     @State private var region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: Location.sydney.latitude, longitude: Location.sydney.longitude), span: MKCoordinateSpan(latitudeDelta: 0.7, longitudeDelta: 0.7))
     @State private var longitude: String = ""
     @State private var latitude: String = ""

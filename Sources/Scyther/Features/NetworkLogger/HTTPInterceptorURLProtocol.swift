@@ -30,7 +30,7 @@ internal let internalNetworkRequestKey = "Scyther_Internal_Network_Request"
 /// - Automatic prevention of infinite logging loops
 ///
 /// - Note: This protocol is automatically registered by `NetworkHelper.start()`.
-open class HTTPInterceptorURLProtocol: URLProtocol {
+open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     private lazy var session: URLSession = { [unowned self] in
         return URLSession(configuration: .default,
                           delegate: self,
@@ -139,8 +139,9 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
             model.saveResponse(response, data: data)
         }
 
-        Task {
-            await NetworkLogger.instance.add(model)
+        let capturedModel = model
+        Task { @MainActor in
+            await NetworkLogger.instance.add(capturedModel)
             NotificationCenter.default.post(name: .LoggerReloadData, object: nil)
         }
     }

@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import MapKit
+@preconcurrency import MapKit
 
 /// Extension providing method swizzling for location spoofing.
 ///
@@ -14,7 +14,7 @@ import MapKit
 /// instead of real GPS data when location spoofing is enabled.
 extension CLLocationManager {
     /// Flag indicating whether location methods are currently swizzled.
-    internal static var isSwizzling: Bool = false
+    nonisolated(unsafe) internal static var isSwizzling: Bool = false
 
     /// Returns whether location methods are currently swizzled.
     ///
@@ -78,48 +78,89 @@ extension CLLocationManager {
         isSwizzling = false
     }
 
+    /// Helper to safely get spoofing state from any thread.
+    /// Now simple since spoofingEnabled is nonisolated (UserDefaults is thread-safe).
+    private static func getSpoofingEnabled() -> Bool {
+        return LocationSpoofer.instance.spoofingEnabled
+    }
+
     /// Swizzled implementation of `startUpdatingLocation()`.
     ///
     /// If spoofing is enabled, starts providing fake locations. Otherwise,
     /// calls the original implementation.
+    /// - Note: CLLocationManager should only be used from the main thread.
     @objc
     func swizzledStartLocation() {
-        guard LocationSpoofer.instance.spoofingEnabled else {
+        guard Self.getSpoofingEnabled() else {
             // Call original implementation (now at swizzled selector due to swap)
             swizzledStartLocation()
             return
         }
-        LocationSpoofer.instance.delegate = self.delegate
-        LocationSpoofer.instance.startMocks()
-        LocationSpoofer.instance.startUpdatingLocation()
+        // Capture delegate before dispatch to avoid capturing self
+        let capturedDelegate = self.delegate
+        if Thread.isMainThread {
+            MainActor.assumeIsolated {
+                LocationSpoofer.instance.delegate = capturedDelegate
+                LocationSpoofer.instance.startMocks()
+                LocationSpoofer.instance.startUpdatingLocation()
+            }
+        } else {
+            DispatchQueue.main.async {
+                LocationSpoofer.instance.delegate = capturedDelegate
+                LocationSpoofer.instance.startMocks()
+                LocationSpoofer.instance.startUpdatingLocation()
+            }
+        }
     }
 
     /// Swizzled implementation of `stopUpdatingLocation()`.
     ///
     /// If spoofing is enabled, stops providing fake locations. Otherwise,
     /// calls the original implementation.
+    /// - Note: CLLocationManager should only be used from the main thread.
     @objc
     func swizzledStopLocation() {
-        guard LocationSpoofer.instance.spoofingEnabled else {
+        guard Self.getSpoofingEnabled() else {
             swizzledStopLocation()
             return
         }
-        LocationSpoofer.instance.stopUpdatingLocation()
+        if Thread.isMainThread {
+            MainActor.assumeIsolated {
+                LocationSpoofer.instance.stopUpdatingLocation()
+            }
+        } else {
+            DispatchQueue.main.async {
+                LocationSpoofer.instance.stopUpdatingLocation()
+            }
+        }
     }
 
     /// Swizzled implementation of `requestLocation()`.
     ///
     /// If spoofing is enabled, provides a single fake location. Otherwise,
     /// calls the original implementation.
+    /// - Note: CLLocationManager should only be used from the main thread.
     @objc
     func swizzledRequestLocation() {
-        guard LocationSpoofer.instance.spoofingEnabled else {
+        guard Self.getSpoofingEnabled() else {
             // Call original implementation (now at swizzled selector due to swap)
             swizzledRequestLocation()
             return
         }
-        LocationSpoofer.instance.delegate = self.delegate
-        LocationSpoofer.instance.startMocks()
-        LocationSpoofer.instance.requestLocation()
+        // Capture delegate before dispatch to avoid capturing self
+        let capturedDelegate = self.delegate
+        if Thread.isMainThread {
+            MainActor.assumeIsolated {
+                LocationSpoofer.instance.delegate = capturedDelegate
+                LocationSpoofer.instance.startMocks()
+                LocationSpoofer.instance.requestLocation()
+            }
+        } else {
+            DispatchQueue.main.async {
+                LocationSpoofer.instance.delegate = capturedDelegate
+                LocationSpoofer.instance.startMocks()
+                LocationSpoofer.instance.requestLocation()
+            }
+        }
     }
 }
