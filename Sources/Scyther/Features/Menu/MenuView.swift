@@ -140,6 +140,11 @@ public struct MenuView: View {
                 } label: {
                     row(withLabel: "Cookies", icon: "info.circle")
                 }
+                NavigationLink {
+                    FileBrowserView()
+                } label: {
+                    row(withLabel: "File Browser", icon: "folder")
+                }
             } header: {
                 Text("Data")
             }
