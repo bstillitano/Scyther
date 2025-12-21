@@ -203,6 +203,11 @@ public struct MenuView: View {
                     row(withLabel: "Grid Overlay", icon: "rectangle.split.3x3")
                 }
                 NavigationLink {
+                    FPSCounterSettingsView()
+                } label: {
+                    row(withLabel: "FPS Counter", icon: "speedometer")
+                }
+                NavigationLink {
                     TouchVisualiserView()
                 } label: {
                     row(withLabel: "Touch Visualiser", icon: "hand.point.up")
