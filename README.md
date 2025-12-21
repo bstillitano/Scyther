@@ -51,6 +51,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **UserDefaults Browser**: View and modify UserDefaults values
 - **Cookie Browser**: Inspect and manage HTTP cookies
 - **Keychain Browser**: View keychain items (read-only for security)
+- **File Browser**: Browse app sandbox (Documents, Library, Caches, tmp)
 
 ### System Tools
 - **Location Spoofing**: Fake GPS coordinates for testing location-based features
