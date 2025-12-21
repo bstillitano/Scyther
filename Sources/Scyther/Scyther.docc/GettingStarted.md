@@ -1,14 +1,20 @@
 # Getting Started with Scyther
 
-Add powerful debugging tools to your iOS app in minutes.
+Learn how to integrate Scyther into your iOS app and start debugging.
+
+@Metadata {
+    @PageColor(green)
+}
 
 ## Overview
 
-Scyther is a debugging toolkit that provides runtime inspection and configuration tools. Once integrated, shake your device to access a comprehensive debug menu.
+Scyther is designed to be easy to integrate with minimal configuration. This guide walks you through installation, basic setup, and your first debugging session.
 
 ## Installation
 
-Add Scyther to your project using Swift Package Manager:
+### Swift Package Manager
+
+Add Scyther to your `Package.swift`:
 
 ```swift
 dependencies: [
@@ -16,9 +22,14 @@ dependencies: [
 ]
 ```
 
+Or in Xcode:
+1. Go to **File > Add Package Dependencies**
+2. Enter the repository URL: `https://github.com/bstillitano/Scyther.git`
+3. Select the `main` branch
+
 ## Basic Setup
 
-### SwiftUI
+### SwiftUI Apps
 
 ```swift
 import SwiftUI
@@ -27,6 +38,7 @@ import Scyther
 @main
 struct MyApp: App {
     init() {
+        // Start Scyther - automatically disabled on App Store builds
         Scyther.start()
     }
 
@@ -38,7 +50,7 @@ struct MyApp: App {
 }
 ```
 
-### UIKit
+### UIKit Apps
 
 ```swift
 import UIKit
@@ -46,8 +58,10 @@ import Scyther
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
         Scyther.start()
         return true
     }
@@ -56,17 +70,60 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 ## Opening the Debug Menu
 
-Once started, **shake your device** (or press `Cmd + Ctrl + Z` in the simulator) to open the Scyther debug menu.
+Once Scyther is started, you have several ways to open the debug menu:
 
-You can also open it programmatically:
+### Shake Gesture (Default)
+
+Simply shake your device. In the iOS Simulator, press `Cmd + Ctrl + Z`.
+
+### Programmatic Invocation
 
 ```swift
+// Show the menu
 Scyther.showMenu()
+
+// Show from a specific view controller
+Scyther.showMenu(from: myViewController)
+
+// Hide the menu
+Scyther.hideMenu()
 ```
+
+### Custom Gesture
+
+If you prefer a different trigger mechanism:
+
+```swift
+Scyther.invocationGesture = .custom
+
+// Then trigger manually from your own gesture handler
+func handleSecretGesture() {
+    Scyther.showMenu()
+}
+```
+
+## App Store Safety
+
+By default, Scyther automatically disables itself on App Store builds. This ensures:
+- No debugging UI accidentally appears for end users
+- No performance impact in production
+- No risk of App Store rejection
+
+If you need to enable Scyther in production (not recommended):
+
+```swift
+Scyther.start(allowProductionBuilds: true)
+```
+
+> Warning: Enabling Scyther in production could expose sensitive debugging information to end users.
 
 ## Next Steps
 
-- Configure ``FeatureFlags`` for runtime feature toggling
-- Set up ``Servers`` for environment switching
-- Use ``NetworkLogger`` to inspect network requests
-- Enable ``LocationSpoofer`` for location-based testing
+Now that Scyther is integrated, explore its features:
+
+- <doc:WorkingWithFeatureFlags> - Toggle features at runtime
+- <doc:ManagingServerConfigurations> - Switch between environments
+- <doc:NetworkDebugging> - Inspect HTTP traffic
+- <doc:UIDebuggingTools> - Visual debugging aids
+- <doc:SpoofingLocations> - Test location-based features
+
