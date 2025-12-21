@@ -211,7 +211,7 @@ extension TouchVisualiser {
                 guard let view = dequeueTouchView else {
                     return
                 }
-                view.config = TouchVisualiser.instance.config
+                view.config = self.config
                 view.touch = touch
                 view.touchDidBegin()
                 view.center = touch.location(in: topWindow)

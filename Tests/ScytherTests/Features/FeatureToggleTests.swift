@@ -167,7 +167,7 @@ final class FeatureToggleTests: XCTestCase {
 
     func testMultipleFeatureFlags() {
         var feature1 = FeatureToggle(name: "Feature 1", remoteValue: false)
-        var feature2 = FeatureToggle(name: "Feature 2", remoteValue: true)
+        let feature2 = FeatureToggle(name: "Feature 2", remoteValue: true)
         var feature3 = FeatureToggle(name: "Feature 3", remoteValue: false)
 
         feature1.localValue = true

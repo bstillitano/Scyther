@@ -166,7 +166,9 @@ public final class InterfaceToolkit: NSObject, Sendable {
 
     public override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
         if object is UIWindow {
-            topLevelViewsWrapper.superview?.bringSubviewToFront(topLevelViewsWrapper)
+            Task { @MainActor in
+                self.topLevelViewsWrapper.superview?.bringSubviewToFront(self.topLevelViewsWrapper)
+            }
         }
     }
     

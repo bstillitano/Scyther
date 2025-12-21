@@ -73,6 +73,9 @@ public final class LocationSpoofer: CLLocationManager, @unchecked Sendable {
     private override init() {
         super.init()
     }
+    /// Note: nonisolated(unsafe) is required because this singleton is accessed from
+    /// swizzled CLLocationManager methods which run in a nonisolated context.
+    /// The warning about this being unnecessary is incorrect for @MainActor classes.
     nonisolated(unsafe) static let instance = LocationSpoofer()
 
     // MARK: - Data
@@ -164,21 +167,29 @@ public final class LocationSpoofer: CLLocationManager, @unchecked Sendable {
         guard delegate != nil else {
             return
         }
-        timer = Timer(timeInterval: updateInterval, repeats: true, block: { [weak self] _ in
-            self?.updateLocation()
-        })
-        if let timer = timer {
-            RunLoop.main.add(timer, forMode: .default)
+        Task { @MainActor in
+            self.timer = Timer(timeInterval: self.updateInterval, repeats: true, block: { [weak self] _ in
+                Task { @MainActor in
+                    self?.updateLocation()
+                }
+            })
+            if let timer = self.timer {
+                RunLoop.main.add(timer, forMode: .default)
+            }
         }
     }
 
     public override func stopUpdatingLocation() {
-        timer?.invalidate()
+        Task { @MainActor in
+            self.timer?.invalidate()
+        }
     }
 
     public override func requestLocation() {
-        if let location = locations?.peek() {
-            delegate?.locationManager?(self, didUpdateLocations: [location])
+        Task { @MainActor in
+            if let location = self.locations?.peek() {
+                self.delegate?.locationManager?(self, didUpdateLocations: [location])
+            }
         }
     }
 

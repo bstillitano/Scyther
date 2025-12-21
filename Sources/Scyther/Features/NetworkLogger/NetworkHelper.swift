@@ -39,6 +39,9 @@ public final class NetworkHelper: Sendable {
     private nonisolated init() {}
 
     /// An initialised, shared instance of the `NetworkHelper` class.
+    /// Note: nonisolated(unsafe) is required because this singleton is accessed from
+    /// swizzled URLSessionConfiguration methods which run in a nonisolated context.
+    /// The warning about this being unnecessary is incorrect for @MainActor classes.
     nonisolated(unsafe) static let instance = NetworkHelper()
 
     /// URLs that will not be logged or intercepted by Scyther.

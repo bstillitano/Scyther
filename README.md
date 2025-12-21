@@ -5,7 +5,7 @@
 # Scyther
 
 [![bitrise-build-badge](https://app.bitrise.io/app/ea64d6f99435533d/status.svg?token=a5U0AgWUxliydR5tNHrPyw&branch=main)](https://app.bitrise.io/app/ea64d6f99435533d)
-[![documentation-badge](https://raw.githubusercontent.com/bstillitano/Scyther/main/docs/badge.svg)](https://scyther.io) ![platform-badge](https://img.shields.io/badge/platform-iOS-blue) ![license-badge](https://img.shields.io/github/license/bstillitano/Scyther) ![spm-badge](https://img.shields.io/badge/spm-main-black)
+[![documentation](https://img.shields.io/badge/docs-scyther.io-blue)](https://scyther.io/documentation/scyther) ![platform-badge](https://img.shields.io/badge/platform-iOS-blue) ![license-badge](https://img.shields.io/github/license/bstillitano/Scyther) ![swift-badge](https://img.shields.io/badge/swift-6.0-orange)
 
 A comprehensive iOS debugging toolkit that helps you cut through bugs in your iOS app. Scyther provides tools for developers, QA testers, UI/UX teams, and backend developers. Made with love in Sydney, Australia.
 

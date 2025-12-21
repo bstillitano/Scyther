@@ -48,8 +48,13 @@ public final class NotificationTester: Sendable {
     private init() {
 
         //Set Data
-        notificationCenter.getNotificationSettings { [weak self] (settings) in
-            self?.notificationsAllowed = settings.authorizationStatus == .authorized
+        notificationCenter.getNotificationSettings { (settings) in
+            // Extract the value before crossing the isolation boundary
+            // since UNNotificationSettings is not Sendable
+            let isAuthorized = settings.authorizationStatus == .authorized
+            Task { @MainActor in
+                self.notificationsAllowed = isAuthorized
+            }
         }
     }
 

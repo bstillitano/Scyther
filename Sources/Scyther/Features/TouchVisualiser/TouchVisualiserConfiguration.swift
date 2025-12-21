@@ -10,7 +10,8 @@ import UIKit
 /// Configuration options for the touch visualisation feature.
 ///
 /// This structure controls the appearance and behavior of touch indicators displayed
-/// on screen when the touch visualiser is enabled.
+/// on screen when the touch visualiser is enabled. Settings are automatically persisted
+/// to UserDefaults.
 ///
 /// ## Usage
 /// ```swift
@@ -21,6 +22,11 @@ import UIKit
 /// TouchVisualiser.instance.config = config
 /// ```
 public struct TouchVisualiserConfiguration {
+    // MARK: - UserDefaults Keys
+    private static let showsTouchDurationKey = "Scyther_TouchVisualiser_ShowsDuration"
+    private static let showsTouchRadiusKey = "Scyther_TouchVisualiser_ShowsRadius"
+    private static let loggingEnabledKey = "Scyther_TouchVisualiser_LoggingEnabled"
+
     // MARK: - Data
     /// The color used for touch indicators.
     ///
@@ -55,31 +61,43 @@ public struct TouchVisualiserConfiguration {
     ///
     /// When enabled, a label appears above each touch showing how long it has been active.
     /// Useful for debugging time-based interactions like long presses. Default is `false`.
-    internal var showsTouchDuration = false
+    /// This setting is persisted to UserDefaults.
+    public var showsTouchDuration: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: Self.showsTouchDurationKey)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Self.showsTouchDurationKey)
+        }
+    }
 
     /// Whether to visualize the radius of each touch.
     ///
     /// When enabled, touch indicators scale to match the actual touch area. This only
     /// works on physical devices, as simulators don't provide touch radius information.
-    /// Default is `false`.
-    internal var showsTouchRadius = false
+    /// Default is `false`. This setting is persisted to UserDefaults.
+    public var showsTouchRadius: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: Self.showsTouchRadiusKey)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Self.showsTouchRadiusKey)
+        }
+    }
 
     /// Whether to enable console logging of touch events.
     ///
     /// When enabled, detailed touch information is logged to the console. This has a
     /// performance impact and is automatically disabled in App Store builds regardless
-    /// of this setting. Default is `false`.
+    /// of this setting. Default is `false`. This setting is persisted to UserDefaults.
     public var loggingEnabled: Bool {
         get {
-            return AppEnvironment.isAppStore ? false : logsEnabled
+            return AppEnvironment.isAppStore ? false : UserDefaults.standard.bool(forKey: Self.loggingEnabledKey)
         }
         set {
-            logsEnabled = newValue
+            UserDefaults.standard.set(newValue, forKey: Self.loggingEnabledKey)
         }
     }
-
-    /// Internal storage for logging enabled state.
-    private var logsEnabled: Bool = false
 
     // MARK: - Lifecycle
     /// Creates a new touch visualiser configuration with default values.

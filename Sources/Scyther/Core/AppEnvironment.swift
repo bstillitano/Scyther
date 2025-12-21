@@ -103,6 +103,7 @@ public struct AppEnvironment {
     }
     
     /// Returns a `Bool` value indicating whether or not the current device is jailbroken by determining whether or not `Cydia` or `Sileo` is installed. It also checks for multiple other red flags that would indicate  root/ssh access on the device. These checks will not apply if the device is a simulator.
+    @MainActor
     public static var isJailbroken: Bool {
         // Check if the device is not a simulator
         guard !AppEnvironment.isSimulator else {

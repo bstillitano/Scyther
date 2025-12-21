@@ -25,17 +25,24 @@ struct ServerConfigurationView: View {
     var body: some View {
         List {
             Section("Configuration") {
-                ForEach(viewModel.configurations) { configuration in
-                    Button {
-                        Task { await viewModel.didSelectConfiguration(configuration) }
-                    } label: {
-                        HStack {
-                            Text(configuration.id)
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            if configuration.isChecked {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(.tint)
+                if viewModel.configurations.isEmpty {
+                    Text("No configurations")
+                        .fontWeight(.bold)
+                        .foregroundStyle(.gray)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                } else {
+                    ForEach(viewModel.configurations) { configuration in
+                        Button {
+                            Task { await viewModel.didSelectConfiguration(configuration) }
+                        } label: {
+                            HStack {
+                                Text(configuration.id)
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                if configuration.isChecked {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.tint)
+                                }
                             }
                         }
                     }
