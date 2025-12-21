@@ -23,7 +23,7 @@ jobs:
         run: |
           xcodebuild build \
             -scheme Scyther \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
 
@@ -49,7 +49,7 @@ jobs:
         run: |
           xcodebuild test \
             -scheme Scyther \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
 
@@ -70,6 +70,6 @@ jobs:
           xcodebuild build \
             -project Example/ScytherExample.xcodeproj \
             -scheme ScytherExample \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
