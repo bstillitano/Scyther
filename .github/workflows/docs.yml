@@ -33,7 +33,7 @@ jobs:
           # Build documentation using xcodebuild with iOS destination
           xcodebuild docbuild \
             -scheme Scyther \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
             -derivedDataPath ./docbuild
 
           # Find the generated .doccarchive
