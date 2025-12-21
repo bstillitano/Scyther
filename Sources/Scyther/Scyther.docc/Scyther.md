@@ -4,7 +4,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your ap
 
 @Metadata {
     @DisplayName("Scyther")
-    @PageImage(purpose: icon, source: "scyther-icon", alt: "The Scyther logo")
+    @PageImage(purpose: icon, source: "scyther-logo", alt: "The Scyther logo")
     @PageColor(green)
 }
 
@@ -13,8 +13,6 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your ap
 Scyther is a powerful debugging toolkit for iOS developers, QA testers, UI/UX teams, and backend developers. It provides a suite of tools accessible via a shake gesture or programmatic invocation.
 
 Named after the [Pokemon Scyther](https://pokemondb.net/pokedex/scyther), a bug-type known for its cutting ability - just like this library cuts through bugs!
-
-![Scyther Logo](scyther-logo)
 
 ### Key Features
 

@@ -3,6 +3,8 @@ name: Build and Deploy Documentation
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -46,6 +48,20 @@ jobs:
           # Add CNAME for custom domain
           echo "scyther.io" > ./docs/CNAME
 
+          # Add redirect from root to documentation
+          cat > ./docs/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta http-equiv="refresh" content="0; url=/documentation/scyther/">
+            <link rel="canonical" href="/documentation/scyther/">
+          </head>
+          <body>
+            <p>Redirecting to <a href="/documentation/scyther/">documentation</a>...</p>
+          </body>
+          </html>
+          EOF
+
           # List output for debugging
           ls -la ./docs/
 
@@ -55,6 +71,7 @@ jobs:
           path: ./docs
 
   deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
