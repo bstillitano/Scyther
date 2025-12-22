@@ -164,62 +164,6 @@ struct DeepLinkTesterView: View {
     }
 }
 
-/// View model managing the deep link tester interface.
-@MainActor
-class DeepLinkTesterViewModel: ViewModel {
-    @Published var urlText: String = ""
-    @Published var isLoading: Bool = false
-    @Published var showingResult: Bool = false
-    @Published var resultMessage: String = ""
-    @Published var presets: [DeepLinkPreset] = []
-    @Published var history: [DeepLinkHistoryEntry] = []
-
-    override func onFirstAppear() async {
-        await super.onFirstAppear()
-        await loadData()
-    }
-
-    @MainActor
-    private func loadData() async {
-        presets = DeepLinkTester.instance.presets
-        history = DeepLinkTester.instance.history
-    }
-
-    func openURL() async {
-        guard !urlText.isEmpty else { return }
-
-        isLoading = true
-        defer { isLoading = false }
-
-        let result = await DeepLinkTester.instance.open(urlText)
-
-        switch result {
-        case .success:
-            resultMessage = "Successfully opened: \(urlText)"
-        case .failure(let error):
-            resultMessage = "Failed to open URL: \(error.localizedDescription)"
-        }
-
-        showingResult = true
-        history = DeepLinkTester.instance.history
-    }
-
-    func openPreset(_ preset: DeepLinkPreset) async {
-        urlText = preset.url
-        await openURL()
-    }
-
-    func deleteHistoryEntry(_ entry: DeepLinkHistoryEntry) {
-        DeepLinkTester.instance.removeHistoryEntry(entry)
-        history = DeepLinkTester.instance.history
-    }
-
-    func clearHistory() {
-        DeepLinkTester.instance.clearHistory()
-        history = []
-    }
-}
-
 #Preview {
     NavigationStack {
         DeepLinkTesterView()
