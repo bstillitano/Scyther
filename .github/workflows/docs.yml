@@ -26,14 +26,14 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.0'
+          xcode-version: latest-stable
 
       - name: Build Documentation
         run: |
           # Build documentation using xcodebuild with iOS destination
           xcodebuild docbuild \
             -scheme Scyther \
-            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' \
             -derivedDataPath ./docbuild
 
           # Find the generated .doccarchive
