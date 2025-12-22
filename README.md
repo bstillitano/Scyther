@@ -68,6 +68,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 
 ### UI/UX Tools
 - **Grid Overlay**: Display alignment grid over your UI
+- **FPS Counter**: Real-time frame rate overlay with color-coded performance indicators
 - **Touch Visualizer**: Show touch points for demos and recordings
 - **View Frames**: Highlight view boundaries with colored borders
 - **View Sizes**: Display view dimensions as labels
@@ -583,6 +584,23 @@ GridOverlay.instance.size = 8        // Grid size in points
 GridOverlay.instance.opacity = 0.5   // Grid opacity (0.0 - 1.0)
 GridOverlay.instance.colorScheme = .blue
 ```
+
+#### FPS Counter
+
+Display a real-time frame rate indicator to monitor rendering performance:
+
+```swift
+// Enable FPS counter
+FPSCounter.instance.enabled = true
+
+// Change position (topLeft, topRight, bottomLeft, bottomRight)
+FPSCounter.instance.position = .bottomRight
+```
+
+The counter is color-coded for quick performance assessment:
+- **Green** (55+ FPS): Excellent performance
+- **Yellow** (30-54 FPS): Acceptable, may need optimization
+- **Red** (<30 FPS): Poor performance, needs investigation
 
 #### Touch Visualizer
 
