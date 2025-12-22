@@ -40,6 +40,7 @@ public final class InterfaceToolkit: NSObject, Sendable {
     // MARK: - UI Elements
     public var touchVisualiser: TouchVisualiser = TouchVisualiser.instance
     internal var gridOverlayView: GridOverlayView = GridOverlayView()
+    internal var fpsCounterView: FPSCounterView = FPSCounterView()
     internal var topLevelViewsWrapper: TopLevelViewsWrapper = TopLevelViewsWrapper()
 
     // MARK: - Data (nonisolated for UserDefaults access - thread-safe)
@@ -109,6 +110,7 @@ public final class InterfaceToolkit: NSObject, Sendable {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             self?.setupTopLevelViewsWrapper()
             self?.setupGridOverlay()
+            self?.setupFPSCounter()
             self?.setWindowSpeed()
             // Always swizzle so views can respond to debug toggle changes
             self?.swizzleLayout()
@@ -197,6 +199,25 @@ extension InterfaceToolkit {
     @MainActor internal func showGridOverlay() {
         gridOverlayView.opacity = GridOverlay.instance.enabled ? CGFloat(GridOverlay.instance.opacity) : 0.0
         gridOverlayView.isHidden = !GridOverlay.instance.enabled
+    }
+}
+
+// MARK: - FPS Counter
+extension InterfaceToolkit {
+    @MainActor internal func setupFPSCounter() {
+        fpsCounterView.isHidden = true
+        topLevelViewsWrapper.addTopLevelView(topLevelView: fpsCounterView)
+        showFPSCounter()
+    }
+
+    @MainActor internal func showFPSCounter() {
+        let enabled = FPSCounter.instance.enabled
+        fpsCounterView.isHidden = !enabled
+        if enabled {
+            FPSCounter.instance.start()
+        } else {
+            FPSCounter.instance.stop()
+        }
     }
 }
 
