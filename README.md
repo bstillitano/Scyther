@@ -814,6 +814,106 @@ if Scyther.isPresented {
 
 ---
 
+## Architecture for Contributors
+
+### Source Organization
+
+Scyther follows a clean architecture pattern with three main directories:
+
+```
+Sources/Scyther/
+├── Core/               # Main entry point, InterfaceToolkit, AppEnvironment
+├── Features/           # 18+ feature modules (NetworkLogger, FeatureFlags, etc.)
+└── Shared/            # Reusable components, extensions, models
+    ├── Components/    # SwiftUI components
+    ├── Extensions/    # Swift/UIKit extensions
+    ├── Models/        # Data models
+    ├── SwiftUI/       # SwiftUI utilities (ViewModel, etc.)
+    └── ViewModifiers/ # Custom view modifiers
+```
+
+Each feature follows a consistent pattern:
+
+```
+FeatureName/
+├── FeatureName.swift      # Core logic, singleton
+├── FeatureNameView.swift  # SwiftUI UI
+├── FeatureNameViewModel.swift  # View model (if needed)
+└── Supporting files...
+```
+
+### ViewModel Pattern
+
+Scyther uses a base `ViewModel` class located at `Sources/Scyther/Shared/SwiftUI/ViewModel.swift` that provides structured lifecycle management for SwiftUI views.
+
+#### Lifecycle Methods
+
+The `ViewModel` class provides four lifecycle hooks:
+
+1. `setup()` - Called during `init()`, for synchronous setup
+2. `onFirstAppear()` - Called once on first view appearance
+3. `onAppear()` - Called every time the view appears
+4. `onSubsequentAppear()` - Called on appearances after the first
+
+#### Usage
+
+Subclass `ViewModel` for any feature that needs lifecycle management:
+
+```swift
+class MyFeatureViewModel: ViewModel {
+    @Published var data: [Item] = []
+    @Published var isLoading = false
+
+    override func onFirstAppear() async {
+        await super.onFirstAppear()
+        await loadInitialData()
+    }
+
+    override func onSubsequentAppear() async {
+        await super.onSubsequentAppear()
+        await refreshData()
+    }
+
+    private func loadInitialData() async {
+        isLoading = true
+        defer { isLoading = false }
+        // Load data...
+    }
+}
+```
+
+Use with the `onFirstAppear` view modifier:
+
+```swift
+struct MyFeatureView: View {
+    @StateObject private var viewModel = MyFeatureViewModel()
+
+    var body: some View {
+        List(viewModel.data) { item in
+            Text(item.name)
+        }
+        .onFirstAppear {
+            await viewModel.onFirstAppear()
+        }
+    }
+}
+```
+
+The base `ViewModel` class is marked `@MainActor` to ensure all lifecycle methods and published properties execute on the main thread.
+
+### Singleton Pattern
+
+Every feature uses a shared singleton instance:
+
+```swift
+static let instance = FeatureName()  // or .shared
+private init() { }
+```
+
+This ensures a single source of truth and simplifies access patterns.
+
+---
+
 ## FAQ
 
 ### Why is Scyther free?

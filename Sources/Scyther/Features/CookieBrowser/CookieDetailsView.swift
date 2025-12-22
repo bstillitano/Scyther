@@ -97,63 +97,6 @@ struct CookieDetailItem: Identifiable {
     let value: String
 }
 
-/// View model for the cookie details view.
-///
-/// Extracts and formats all properties from an HTTP cookie for display.
-class CookieDetailsViewModel: ViewModel {
-    /// The cookie being displayed.
-    private let cookie: HTTPCookie
-
-    /// Standard cookie key-value pairs (name, domain, path, etc.).
-    @Published var keyValues: [CookieDetailItem] = []
-
-    /// Additional cookie properties from the properties dictionary.
-    @Published var properties: [CookieDetailItem] = []
-
-    /// Creates a cookie details view model.
-    ///
-    /// - Parameter cookie: The HTTP cookie to display details for.
-    init(cookie: HTTPCookie) {
-        self.cookie = cookie
-        super.init()
-    }
-
-    override func onFirstAppear() async {
-        await super.onFirstAppear()
-        await prepareObjects()
-    }
-
-    /// Extracts and formats all cookie properties for display.
-    @MainActor
-    private func prepareObjects() async {
-        keyValues = [
-            CookieDetailItem(key: "Name", value: cookie.name),
-            CookieDetailItem(key: "Value", value: cookie.value.isEmpty ? "-" : cookie.value),
-            CookieDetailItem(key: "Path", value: cookie.path),
-            CookieDetailItem(key: "Domain", value: cookie.domain),
-            CookieDetailItem(key: "Comment", value: cookie.comment ?? "-"),
-            CookieDetailItem(key: "Comment URL", value: cookie.commentURL?.absoluteString ?? "-"),
-            CookieDetailItem(key: "Expires", value: cookie.expiresDate?.formatted() ?? "-"),
-            CookieDetailItem(key: "HTTP Only", value: cookie.isHTTPOnly ? "Yes" : "No"),
-            CookieDetailItem(key: "HTTPS Only", value: cookie.isSecure ? "Yes" : "No"),
-            CookieDetailItem(key: "Session Only", value: cookie.isSessionOnly ? "Yes" : "No"),
-            CookieDetailItem(key: "Ports", value: cookie.portList?.map { "\($0)" }.joined(separator: ", ") ?? "-"),
-            CookieDetailItem(key: "Version", value: "\(cookie.version)")
-        ]
-
-        properties = (cookie.properties ?? [:]).map { key, value in
-            CookieDetailItem(key: key.rawValue, value: "\(value)")
-        }.sorted { $0.key < $1.key }
-    }
-
-    /// Deletes this cookie from storage.
-    @MainActor
-    func deleteCookie() {
-        HTTPCookieStorage.shared.deleteCookie(cookie)
-        UserDefaults.standard.synchronize()
-    }
-}
-
 #Preview {
     NavigationStack {
         if let cookie = HTTPCookie(properties: [

@@ -142,76 +142,11 @@ struct LogDetailsView: View {
     }
 }
 
+/// Represents an HTTP header key-value pair for display.
 struct HeaderItem: Identifiable {
     let id = UUID()
     let key: String
     let value: String
-}
-
-class LogDetailsViewModel: ViewModel {
-    private let httpRequest: HTTPRequest
-
-    @Published var requestURL: String = ""
-    @Published var method: String = ""
-    @Published var responseCode: String = ""
-    @Published var responseSize: String = ""
-    @Published var date: String = ""
-    @Published var duration: String = ""
-    @Published var requestHeaders: [HeaderItem] = []
-    @Published var responseHeaders: [HeaderItem] = []
-    @Published var hasRequestBody: Bool = false
-    @Published var hasResponseBody: Bool = false
-    @Published var requestBody: String = ""
-    @Published var responseBody: String = ""
-    @Published var responseBodyDictionary: [String: [String: Any]] = [:]
-    @Published var requestTime: String = ""
-    @Published var responseTime: String = ""
-    @Published var cachePolicy: String = ""
-    @Published var timeout: String = ""
-    @Published var curlRequest: String = ""
-
-    init(httpRequest: HTTPRequest) {
-        self.httpRequest = httpRequest
-        super.init()
-    }
-
-    override func onFirstAppear() async {
-        await super.onFirstAppear()
-        await loadDetails()
-    }
-
-    @MainActor
-    private func loadDetails() async {
-        requestURL = httpRequest.requestURL ?? ""
-        method = httpRequest.requestMethod ?? "-"
-        responseCode = "\(httpRequest.responseCode ?? 0)"
-        responseSize = "\(httpRequest.responseBodyLength ?? 0) bytes"
-        date = httpRequest.requestDate?.formatted() ?? "-"
-        duration = String(format: "%.0fms", httpRequest.requestDuration ?? 0)
-
-        requestHeaders = (httpRequest.requestHeaders ?? [:]).compactMap { key, value in
-            guard let keyStr = key as? String, let valueStr = value as? String else { return nil }
-            return HeaderItem(key: keyStr, value: valueStr)
-        }.sorted { $0.key < $1.key }
-
-        responseHeaders = (httpRequest.responseHeaders ?? [:]).compactMap { key, value in
-            guard let keyStr = key as? String, let valueStr = value as? String else { return nil }
-            return HeaderItem(key: keyStr, value: valueStr)
-        }.sorted { $0.key < $1.key }
-
-        requestBody = httpRequest.getRequestBody() as String? ?? ""
-        hasRequestBody = !requestBody.isEmpty
-
-        responseBody = httpRequest.getResponseBody() as String? ?? ""
-        hasResponseBody = !responseBody.isEmpty
-        responseBodyDictionary = httpRequest.getResponseBodyDictionary()
-
-        requestTime = httpRequest.requestTime ?? "-"
-        responseTime = httpRequest.responseTime ?? "-"
-        cachePolicy = httpRequest.requestCachePolicy ?? "-"
-        timeout = httpRequest.requestTimeout ?? "-"
-        curlRequest = httpRequest.requestCurl ?? ""
-    }
 }
 
 #Preview {

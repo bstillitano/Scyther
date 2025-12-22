@@ -72,57 +72,6 @@ struct GridOverlaySettingsView: View {
     }
 }
 
-/// View model managing the grid overlay settings interface.
-///
-/// Handles loading settings from `GridOverlay` on first appearance and synchronizing
-/// UI changes back to the singleton instance.
-class GridOverlayViewModel: ViewModel {
-    @Published var isEnabled: Bool = false {
-        didSet {
-            GridOverlay.instance.enabled = isEnabled
-        }
-    }
-
-    @Published var gridSize: Int = 10
-    @Published var opacity: Int = 50
-    @Published var selectedColor: GridOverlayColorScheme = .red
-
-    var gridSizeFloat: Float {
-        get { Float(gridSize) }
-        set {
-            gridSize = Int(newValue)
-            GridOverlay.instance.size = gridSize
-        }
-    }
-
-    var opacityFloat: Float {
-        get { Float(opacity) }
-        set {
-            opacity = Int(newValue)
-            GridOverlay.instance.opacity = Float(opacity) / 100.0
-        }
-    }
-
-    override func onFirstAppear() async {
-        await super.onFirstAppear()
-        await loadSettings()
-    }
-
-    @MainActor
-    private func loadSettings() async {
-        isEnabled = GridOverlay.instance.enabled
-        gridSize = GridOverlay.instance.size
-        opacity = Int(GridOverlay.instance.opacity * 100)
-        selectedColor = GridOverlay.instance.colorScheme
-    }
-
-    @MainActor
-    func selectColor(_ color: GridOverlayColorScheme) {
-        selectedColor = color
-        GridOverlay.instance.colorScheme = color
-    }
-}
-
 #Preview {
     NavigationStack {
         GridOverlaySettingsView()

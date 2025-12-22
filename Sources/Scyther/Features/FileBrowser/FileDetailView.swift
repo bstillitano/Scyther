@@ -133,60 +133,6 @@ struct FileDetailView: View {
     }
 }
 
-/// View model for the file detail view.
-@MainActor
-class FileDetailViewModel: ViewModel {
-    let item: FileItem
-
-    @Published var fileInfo: [(String, String)] = []
-    @Published var fileContent: String?
-    @Published var imagePreview: UIImage?
-    @Published var showingDeleteConfirmation = false
-    @Published var showingError = false
-    @Published var errorMessage = ""
-
-    init(item: FileItem) {
-        self.item = item
-        super.init()
-    }
-
-    override func onFirstAppear() async {
-        await super.onFirstAppear()
-        loadFileInfo()
-        loadContent()
-    }
-
-    private func loadFileInfo() {
-        fileInfo = FileBrowser.instance.fileInfo(at: item.url)
-    }
-
-    private func loadContent() {
-        switch item.fileType {
-        case .text:
-            fileContent = FileBrowser.instance.readTextFile(at: item.url)
-        case .json:
-            fileContent = FileBrowser.instance.readJSONFile(at: item.url)
-        case .plist:
-            fileContent = FileBrowser.instance.readPlistFile(at: item.url)
-        case .image:
-            if let data = FileManager.default.contents(atPath: item.url.path) {
-                imagePreview = UIImage(data: data)
-            }
-        default:
-            break
-        }
-    }
-
-    func delete() {
-        do {
-            try FileBrowser.instance.delete(item: item)
-        } catch {
-            errorMessage = error.localizedDescription
-            showingError = true
-        }
-    }
-}
-
 #Preview {
     NavigationStack {
         FileDetailView(item: FileItem(

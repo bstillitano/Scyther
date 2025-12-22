@@ -69,30 +69,6 @@ struct FontItem: Identifiable {
     let uiFont: UIFont?
 }
 
-/// View model managing the fonts list.
-///
-/// Loads all available fonts from the system, organized by family.
-class FontsViewModel: ViewModel {
-    @Published var fontFamilies: [FontFamily] = []
-
-    override func onFirstAppear() async {
-        await super.onFirstAppear()
-        await loadFonts()
-    }
-
-    @MainActor
-    private func loadFonts() async {
-        fontFamilies = UIFont.familyNames.sorted().map { familyName in
-            FontFamily(
-                name: familyName,
-                fonts: UIFont.fontNames(forFamilyName: familyName).map { fontName in
-                    FontItem(name: fontName, uiFont: UIFont(name: fontName, size: 16.0))
-                }
-            )
-        }
-    }
-}
-
 #Preview {
     NavigationStack {
         FontsView()

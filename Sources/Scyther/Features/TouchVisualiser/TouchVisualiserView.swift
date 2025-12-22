@@ -40,54 +40,6 @@ struct TouchVisualiserView: View {
     }
 }
 
-/// View model for the touch visualiser settings view.
-///
-/// Manages the state of touch visualization settings and synchronizes them
-/// with the `InterfaceToolkit` configuration.
-@MainActor
-class TouchVisualiserViewModel: ViewModel {
-    /// Whether touch visualization is enabled.
-    @Published var visualiseTouches: Bool = false {
-        didSet {
-            InterfaceToolkit.instance.visualiseTouches = visualiseTouches
-        }
-    }
-
-    /// Whether to show touch duration labels.
-    @Published var showTouchDuration: Bool = false {
-        didSet {
-            TouchVisualiser.instance.config.showsTouchDuration = showTouchDuration
-        }
-    }
-
-    /// Whether to show touch radius scaling.
-    @Published var showTouchRadius: Bool = false {
-        didSet {
-            TouchVisualiser.instance.config.showsTouchRadius = showTouchRadius
-        }
-    }
-
-    /// Whether to enable console logging of touches.
-    @Published var loggingEnabled: Bool = false {
-        didSet {
-            TouchVisualiser.instance.config.loggingEnabled = loggingEnabled
-        }
-    }
-
-    override func onFirstAppear() async {
-        await super.onFirstAppear()
-        loadSettings()
-    }
-
-    /// Loads current settings from the TouchVisualiser configuration.
-    private func loadSettings() {
-        visualiseTouches = InterfaceToolkit.instance.visualiseTouches
-        showTouchDuration = TouchVisualiser.instance.config.showsTouchDuration
-        showTouchRadius = TouchVisualiser.instance.config.showsTouchRadius
-        loggingEnabled = TouchVisualiser.instance.config.loggingEnabled
-    }
-}
-
 #Preview {
     NavigationStack {
         TouchVisualiserView()
