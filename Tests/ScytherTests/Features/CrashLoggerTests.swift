@@ -400,4 +400,168 @@ final class CrashLogEntryTests: XCTestCase {
         XCTAssertEqual(result, "TestException")
     }
 }
+
+// MARK: - CrashLogsViewModel Tests
+
+@MainActor
+final class CrashLogsViewModelTests: XCTestCase {
+
+    override func setUp() {
+        super.setUp()
+        CrashLogger.instance.clear()
+    }
+
+    override func tearDown() {
+        CrashLogger.instance.clear()
+        super.tearDown()
+    }
+
+    // MARK: - Initial State Tests
+
+    func testInitialCrashesArrayIsEmpty() async {
+        let viewModel = CrashLogsViewModel()
+        await viewModel.onFirstAppear()
+        XCTAssertTrue(viewModel.crashes.isEmpty)
+    }
+
+    // MARK: - Refresh Tests
+
+    func testRefreshUpdatesCrashesArray() async {
+        let viewModel = CrashLogsViewModel()
+        await viewModel.refresh()
+        // Should match what's in the logger (which is empty after clear)
+        XCTAssertEqual(viewModel.crashes.count, CrashLogger.instance.crashCount)
+    }
+
+    // MARK: - Clear Tests
+
+    func testClearAllEmptiesCrashesArray() async {
+        let viewModel = CrashLogsViewModel()
+        await viewModel.onFirstAppear()
+        viewModel.clearAll()
+        XCTAssertTrue(viewModel.crashes.isEmpty)
+    }
+}
+
+// MARK: - CrashDetailsViewModel Tests
+
+@MainActor
+final class CrashDetailsViewModelTests: XCTestCase {
+
+    // MARK: - Helper Methods
+
+    private func createTestCrash(
+        name: String = "TestException",
+        reason: String? = "Test reason",
+        stackTrace: [String] = ["Frame 0", "Frame 1", "Frame 2"]
+    ) -> CrashLogEntry {
+        CrashLogEntry(
+            name: name,
+            reason: reason,
+            stackTrace: stackTrace,
+            appVersion: "1.0.0",
+            buildNumber: "1",
+            osVersion: "17.0",
+            deviceModel: "iPhone"
+        )
+    }
+
+    // MARK: - Initialization Tests
+
+    func testViewModelInitializesWithCrash() {
+        let crash = createTestCrash()
+        let viewModel = CrashDetailsViewModel(crash: crash)
+
+        XCTAssertEqual(viewModel.crash.name, "TestException")
+        XCTAssertEqual(viewModel.crash.reason, "Test reason")
+    }
+
+    func testInitialSearchTextIsEmpty() {
+        let crash = createTestCrash()
+        let viewModel = CrashDetailsViewModel(crash: crash)
+
+        XCTAssertTrue(viewModel.searchText.isEmpty)
+    }
+
+    func testInitialCopiedStateIsFalse() {
+        let crash = createTestCrash()
+        let viewModel = CrashDetailsViewModel(crash: crash)
+
+        XCTAssertFalse(viewModel.copied)
+    }
+
+    // MARK: - Filtered Stack Trace Tests
+
+    func testFilteredStackTraceReturnsAllWhenSearchEmpty() {
+        let crash = createTestCrash(stackTrace: ["Frame A", "Frame B", "Frame C"])
+        let viewModel = CrashDetailsViewModel(crash: crash)
+        viewModel.searchText = ""
+
+        XCTAssertEqual(viewModel.filteredStackTrace.count, 3)
+    }
+
+    func testFilteredStackTraceFiltersOnSearchText() {
+        let crash = createTestCrash(stackTrace: [
+            "UIKit Framework",
+            "CoreFoundation Framework",
+            "UIKit Another"
+        ])
+        let viewModel = CrashDetailsViewModel(crash: crash)
+        viewModel.searchText = "UIKit"
+
+        XCTAssertEqual(viewModel.filteredStackTrace.count, 2)
+    }
+
+    func testFilteredStackTraceIsCaseInsensitive() {
+        let crash = createTestCrash(stackTrace: [
+            "UIKIT Framework",
+            "coredata Framework",
+            "CoreFoundation Framework"
+        ])
+        let viewModel = CrashDetailsViewModel(crash: crash)
+        viewModel.searchText = "COREDATA"
+
+        // Should find "coredata" even though search is uppercase
+        XCTAssertEqual(viewModel.filteredStackTrace.count, 1)
+        XCTAssertEqual(viewModel.filteredStackTrace.first?.index, 1)
+    }
+
+    func testFilteredStackTraceReturnsEmptyForNoMatch() {
+        let crash = createTestCrash(stackTrace: ["Frame A", "Frame B"])
+        let viewModel = CrashDetailsViewModel(crash: crash)
+        viewModel.searchText = "NoMatch"
+
+        XCTAssertTrue(viewModel.filteredStackTrace.isEmpty)
+    }
+
+    func testFilteredStackTracePreservesOriginalIndices() {
+        let crash = createTestCrash(stackTrace: [
+            "Frame 0 - UIKit",
+            "Frame 1 - CoreFoundation",
+            "Frame 2 - Foundation",
+            "Frame 3 - CoreFoundation"
+        ])
+        let viewModel = CrashDetailsViewModel(crash: crash)
+        viewModel.searchText = "CoreFoundation"
+
+        let filtered = viewModel.filteredStackTrace
+        XCTAssertEqual(filtered.count, 2)
+        XCTAssertEqual(filtered[0].index, 1)
+        XCTAssertEqual(filtered[1].index, 3)
+    }
+
+    // MARK: - Copy to Clipboard Tests
+
+    func testCopyToClipboardSetsCopiedToTrue() {
+        let crash = createTestCrash()
+        let viewModel = CrashDetailsViewModel(crash: crash)
+
+        viewModel.copyToClipboard()
+
+        XCTAssertTrue(viewModel.copied)
+    }
+
+    // Note: Testing actual clipboard content is omitted because iOS requires
+    // user interaction to allow paste access, making such tests flaky in CI.
+}
 #endif

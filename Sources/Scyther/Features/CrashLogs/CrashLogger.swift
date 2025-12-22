@@ -11,12 +11,60 @@ import UIKit
 
 /// A singleton that captures uncaught exceptions and stores them for viewing.
 ///
-/// CrashLogger uses `NSSetUncaughtExceptionHandler` to intercept crashes.
-/// It chains to any previously installed handler (e.g., Firebase Crashlytics)
-/// so multiple crash reporters can coexist.
+/// `CrashLogger` uses `NSSetUncaughtExceptionHandler` to intercept Objective-C
+/// and Swift exceptions before the app terminates. Captured crashes are persisted
+/// to UserDefaults and can be viewed on subsequent app launches.
 ///
-/// - Important: Call `Scyther.start()` AFTER initializing other crash reporters
-///   (like Firebase) to ensure proper handler chaining.
+/// ## Features
+/// - Automatic exception interception
+/// - Handler chaining for compatibility with other crash reporters
+/// - Persistent storage of up to 50 crash logs
+/// - Device and app metadata capture
+///
+/// ## Handler Chaining
+///
+/// CrashLogger chains to any previously installed handler (e.g., Firebase Crashlytics,
+/// Sentry) so multiple crash reporters can coexist. When a crash occurs:
+///
+/// 1. CrashLogger captures and stores the crash locally
+/// 2. The crash is forwarded to any previously registered handler
+///
+/// - Important: Call `Scyther.start()` **after** initializing other crash reporters
+///   (like Firebase) to ensure proper handler chaining. If Scyther is started first,
+///   subsequent crash reporters may overwrite Scyther's handler.
+///
+/// ## Usage
+/// ```swift
+/// // In your app initialization
+/// FirebaseApp.configure()  // Other crash reporters first
+/// Scyther.start()          // Scyther last
+///
+/// // Access crash logs
+/// let crashes = CrashLogger.instance.allCrashes
+/// print("Found \(crashes.count) crashes")
+///
+/// // Clear crash logs
+/// CrashLogger.instance.clear()
+/// ```
+///
+/// ## Limitations
+/// - Only captures `NSException`-based crashes
+/// - Pure Swift `fatalError()` or `preconditionFailure()` may not be captured
+/// - Stack traces contain raw memory addresses (not symbolicated)
+///
+/// ## Topics
+///
+/// ### Accessing Crashes
+/// - ``instance``
+/// - ``allCrashes``
+/// - ``crashCount``
+///
+/// ### Managing Crash Logs
+/// - ``start()``
+/// - ``clear()``
+///
+/// ### Notifications
+/// - ``didRecordCrashNotification``
 public final class CrashLogger: @unchecked Sendable {
     /// Shared instance.
     public static let instance = CrashLogger()

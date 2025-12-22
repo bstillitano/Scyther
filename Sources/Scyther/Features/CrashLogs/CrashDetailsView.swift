@@ -9,25 +9,48 @@
 import SwiftUI
 
 /// A detailed view for a single crash log entry.
+///
+/// `CrashDetailsView` displays comprehensive information about a captured crash,
+/// including exception details, environment information, and the full stack trace.
+///
+/// ## Features
+/// - Exception name and reason display
+/// - Device and app environment details
+/// - Searchable stack trace with text highlighting
+/// - Copy to clipboard functionality
+/// - Share crash report via system share sheet
+///
+/// ## Usage
+/// ```swift
+/// NavigationLink {
+///     CrashDetailsView(crash: crashEntry)
+/// } label: {
+///     Text(crashEntry.name)
+/// }
+/// ```
+///
+/// ## Topics
+///
+/// ### Related Types
+/// - ``CrashDetailsViewModel``
+/// - ``CrashLogEntry``
+/// - ``CrashLogsView``
 struct CrashDetailsView: View {
-    let crash: CrashLogEntry
-    @State private var copied = false
-    @State private var searchText = ""
+    /// The view model managing state and logic for this view.
+    @StateObject private var viewModel: CrashDetailsViewModel
 
-    /// Stack trace entries filtered by search text.
-    private var filteredStackTrace: [(index: Int, symbol: String)] {
-        let indexed = crash.stackTrace.enumerated().map { (index: $0.offset, symbol: $0.element) }
-        if searchText.isEmpty {
-            return indexed
-        }
-        return indexed.filter { $0.symbol.localizedCaseInsensitiveContains(searchText) }
+    /// Creates a new crash details view.
+    ///
+    /// - Parameter crash: The crash log entry to display.
+    init(crash: CrashLogEntry) {
+        _viewModel = StateObject(wrappedValue: CrashDetailsViewModel(crash: crash))
     }
 
     var body: some View {
         List {
             Section("Exception") {
-                LabeledContent("Name", value: crash.name)
-                if let reason = crash.reason {
+                LabeledContent("Name", value: viewModel.crash.name)
+                if let reason = viewModel.crash.reason {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Reason")
                             .font(.caption)
@@ -40,34 +63,34 @@ struct CrashDetailsView: View {
             }
 
             Section("Timestamp") {
-                LabeledContent("Date", value: crash.formattedTimestamp)
+                LabeledContent("Date", value: viewModel.crash.formattedTimestamp)
             }
 
             Section("Environment") {
-                LabeledContent("App Version", value: crash.appVersion)
-                LabeledContent("Build Number", value: crash.buildNumber)
-                LabeledContent("OS Version", value: crash.osVersion)
-                LabeledContent("Device", value: crash.deviceModel)
+                LabeledContent("App Version", value: viewModel.crash.appVersion)
+                LabeledContent("Build Number", value: viewModel.crash.buildNumber)
+                LabeledContent("OS Version", value: viewModel.crash.osVersion)
+                LabeledContent("Device", value: viewModel.crash.deviceModel)
             }
 
             Section {
-                if crash.stackTrace.isEmpty {
+                if viewModel.crash.stackTrace.isEmpty {
                     Text("No stack trace available")
                         .foregroundStyle(.secondary)
                         .italic()
-                } else if filteredStackTrace.isEmpty {
+                } else if viewModel.filteredStackTrace.isEmpty {
                     Text("No matching frames")
                         .foregroundStyle(.secondary)
                         .italic()
                 } else {
-                    ForEach(filteredStackTrace, id: \.index) { entry in
+                    ForEach(viewModel.filteredStackTrace, id: \.index) { entry in
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(entry.index)")
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                             HighlightedText(
                                 text: entry.symbol,
-                                highlight: searchText
+                                highlight: viewModel.searchText
                             )
                             .font(.system(.caption, design: .monospaced))
                             .textSelection(.enabled)
@@ -79,8 +102,8 @@ struct CrashDetailsView: View {
                 HStack {
                     Text("Stack Trace")
                     Spacer()
-                    if !crash.stackTrace.isEmpty && !searchText.isEmpty {
-                        Text("\(filteredStackTrace.count) of \(crash.stackTrace.count)")
+                    if !viewModel.crash.stackTrace.isEmpty && !viewModel.searchText.isEmpty {
+                        Text("\(viewModel.filteredStackTrace.count) of \(viewModel.crash.stackTrace.count)")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -89,29 +112,18 @@ struct CrashDetailsView: View {
         }
         .navigationTitle("Crash Details")
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: "Search stack trace")
+        .searchable(text: $viewModel.searchText, prompt: "Search stack trace")
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
-                    copyToClipboard()
+                    viewModel.copyToClipboard()
                 } label: {
-                    Label(copied ? "Copied" : "Copy", systemImage: copied ? "checkmark" : "doc.on.doc")
+                    Label(viewModel.copied ? "Copied" : "Copy", systemImage: viewModel.copied ? "checkmark" : "doc.on.doc")
                 }
 
-                ShareLink(item: crash.fullReport) {
+                ShareLink(item: viewModel.crash.fullReport) {
                     Label("Share", systemImage: "square.and.arrow.up")
                 }
-            }
-        }
-    }
-
-    private func copyToClipboard() {
-        UIPasteboard.general.string = crash.fullReport
-        copied = true
-        Task {
-            try? await Task.sleep(for: .seconds(2))
-            await MainActor.run {
-                copied = false
             }
         }
     }

@@ -8,7 +8,35 @@
 #if !os(macOS)
 import SwiftUI
 
-/// A view displaying captured crash logs.
+/// A view displaying captured crash logs from the application.
+///
+/// `CrashLogsView` presents a searchable list of all crashes captured by
+/// ``CrashLogger``. Each crash can be tapped to view detailed information
+/// including the full stack trace.
+///
+/// ## Features
+/// - Searchable list filtered by exception name or reason
+/// - Navigation to detailed crash view with ``CrashDetailsView``
+/// - Clear all functionality to remove stored crashes
+/// - Test crash button in debug builds
+/// - Real-time updates when new crashes are recorded
+///
+/// ## Usage
+/// ```swift
+/// NavigationStack {
+///     CrashLogsView()
+/// }
+/// ```
+///
+/// The view automatically updates when crashes are recorded via
+/// ``CrashLogger/didRecordCrashNotification``.
+///
+/// ## Topics
+///
+/// ### Related Types
+/// - ``CrashLogsViewModel``
+/// - ``CrashDetailsView``
+/// - ``CrashLogEntry``
 struct CrashLogsView: View {
     @StateObject private var viewModel = CrashLogsViewModel()
     @State private var searchText = ""
@@ -96,8 +124,12 @@ struct CrashLogsView: View {
     }
 }
 
-/// Row view for a single crash entry.
+/// Row view for a single crash entry in the crash logs list.
+///
+/// Displays a summary of the crash including the exception name,
+/// reason (if available), timestamp, and app version.
 private struct CrashRowView: View {
+    /// The crash log entry to display.
     let crash: CrashLogEntry
 
     var body: some View {
@@ -128,32 +160,6 @@ private struct CrashRowView: View {
         }
         .padding(.vertical, 4)
     }
-}
-
-/// View model for the crash logs view.
-@MainActor
-class CrashLogsViewModel: ViewModel {
-    @Published var crashes: [CrashLogEntry] = []
-
-    override func onFirstAppear() async {
-        await super.onFirstAppear()
-        await refresh()
-    }
-
-    func refresh() async {
-        crashes = CrashLogger.instance.allCrashes
-    }
-
-    func clearAll() {
-        CrashLogger.instance.clear()
-        crashes = []
-    }
-
-    #if DEBUG
-    func triggerTestCrash() {
-        CrashLogger.instance.triggerTestCrash()
-    }
-    #endif
 }
 
 #Preview {
