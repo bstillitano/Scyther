@@ -17,7 +17,7 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '26.0'
 
       - name: Build Debug
         run: |
@@ -43,20 +43,13 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
-
-      - name: Install iOS Simulator
-        run: |
-          xcodebuild -downloadPlatform iOS
+          xcode-version: '26.0'
 
       - name: Run Tests
         run: |
-          # Get the first available iPhone simulator
-          SIMULATOR=$(xcrun simctl list devices available | grep -m 1 "iPhone" | sed 's/.*(\([^)]*\)).*/\1/' | head -1)
-          echo "Using simulator: $SIMULATOR"
           xcodebuild test \
             -scheme Scyther \
-            -destination "platform=iOS Simulator,id=$SIMULATOR" \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
 
@@ -70,7 +63,7 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '26.0'
 
       - name: Build Example App
         run: |

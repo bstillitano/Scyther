@@ -26,29 +26,24 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '26.0'
 
       - name: Build Documentation
         run: |
-          # Build documentation using xcodebuild with iOS destination
           xcodebuild docbuild \
             -scheme Scyther \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath ./docbuild
 
-          # Find the generated .doccarchive
           DOCC_ARCHIVE=$(find ./docbuild -name "Scyther.doccarchive" -type d | head -1)
           echo "Found archive: $DOCC_ARCHIVE"
 
-          # Transform for static hosting (no base path since using custom domain)
           xcrun docc process-archive transform-for-static-hosting \
             "$DOCC_ARCHIVE" \
             --output-path ./docs
 
-          # Add CNAME for custom domain
           echo "scyther.io" > ./docs/CNAME
 
-          # Add redirect from root to documentation
           cat > ./docs/index.html << 'EOF'
           <!DOCTYPE html>
           <html>
@@ -62,7 +57,6 @@ jobs:
           </html>
           EOF
 
-          # List output for debugging
           ls -la ./docs/
 
       - name: Upload artifact
