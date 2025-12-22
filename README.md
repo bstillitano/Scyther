@@ -20,6 +20,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Server Configuration](#server-configuration)
   - [Network Logging](#network-logging)
   - [Console Logging](#console-logging)
+  - [Crash Logging](#crash-logging)
   - [Location Spoofing](#location-spoofing)
   - [Push Notification Testing](#push-notification-testing)
   - [UI Debugging Tools](#ui-debugging-tools)
@@ -51,6 +52,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **UserDefaults Browser**: View and modify UserDefaults values
 - **Cookie Browser**: Inspect and manage HTTP cookies
 - **Keychain Browser**: View keychain items (read-only for security)
+- **File Browser**: Browse app sandbox (Documents, Library, Caches, tmp)
 
 ### System Tools
 - **Location Spoofing**: Fake GPS coordinates for testing location-based features
@@ -58,6 +60,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Custom Locations**: Set any coordinate manually
 - **Route Simulation**: Simulate movement along predefined routes
 - **Deep Link Tester**: Test custom URL schemes and universal links with QR scanner
+- **Crash Logging**: Capture and view uncaught exceptions on subsequent app launches
 
 ### Notifications
 - **Push Notification Tester**: Schedule local test notifications
@@ -66,6 +69,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 
 ### UI/UX Tools
 - **Grid Overlay**: Display alignment grid over your UI
+- **FPS Counter**: Real-time frame rate overlay with color-coded performance indicators
 - **Touch Visualizer**: Show touch points for demos and recordings
 - **View Frames**: Highlight view boundaries with colored borders
 - **View Sizes**: Display view dimensions as labels
@@ -98,6 +102,7 @@ Scyther is fully compatible with Swift 6 strict concurrency checking. The librar
 | `Scyther.featureFlags` | `@MainActor` | Feature flag management |
 | `Scyther.network` | `@MainActor` | Network facade |
 | `Scyther.console` | `@MainActor` | Console capture facade |
+| `Scyther.crashes` | `@MainActor` | Crash logging facade |
 | `Scyther.interface` | `@MainActor` | UI tools facade |
 | `Scyther.location` | `@MainActor` | Location spoofing facade |
 
@@ -122,6 +127,7 @@ Key public types conform to `Sendable` for safe cross-actor usage:
 - `Location` - GPS coordinate data
 - `Route` - Location simulation routes
 - `ConsoleLogEntry` - Captured console output
+- `CrashLogEntry` - Captured crash data
 
 ### Performance Optimizations
 
@@ -350,6 +356,97 @@ Scyther.console.clear()
 
 ---
 
+### Crash Logging
+
+Capture uncaught exceptions and view them on subsequent app launches. This is useful for debugging crashes that occur during development and testing.
+
+#### How It Works
+
+Scyther uses `NSSetUncaughtExceptionHandler` to intercept Objective-C and Swift exceptions before the app terminates. When a crash occurs:
+
+1. Exception details are captured (name, reason, stack trace)
+2. Device and app information is recorded
+3. Data is saved to UserDefaults immediately
+4. On next launch, the crash is visible in Scyther's Crash Logs viewer
+
+#### ⚠️ Important: Initialization Order
+
+**If you use other crash reporting tools** (Firebase Crashlytics, Sentry, Bugsnag, Instabug, etc.), the order you initialize them matters.
+
+Crash reporters work by setting an exception handler. Only one handler can be active at a time, but handlers can "chain" by saving and forwarding to the previous handler.
+
+**Scyther must be started AFTER other crash reporters:**
+
+```swift
+import Firebase
+import Sentry
+import Scyther
+
+@main
+struct MyApp: App {
+    init() {
+        // 1. Initialize other crash reporters FIRST
+        FirebaseApp.configure()
+        SentrySDK.start { options in
+            options.dsn = "your-dsn"
+        }
+
+        // 2. Start Scyther LAST
+        // Scyther will capture crashes AND forward them to the previous handlers
+        Scyther.start()
+    }
+}
+```
+
+**Why this order?**
+- Scyther saves the existing handler (e.g., Crashlytics) when it starts
+- When a crash occurs, Scyther logs it locally, then forwards to Crashlytics
+- Both systems receive the crash data
+
+**If you start Scyther first**, your other crash reporter will overwrite Scyther's handler, and Scyther won't capture crashes.
+
+#### Accessing Crash Logs
+
+```swift
+// Get all captured crashes (newest first)
+let crashes = Scyther.crashes.all
+
+// Get crash count
+let count = Scyther.crashes.count
+
+// Clear all crash logs
+Scyther.crashes.clear()
+```
+
+#### Crash Log Details
+
+Each crash log includes:
+- Exception name and reason
+- Full stack trace (searchable with highlighting)
+- App version and build number
+- iOS version and device model
+- Timestamp
+
+The stack trace is searchable - use the search bar to filter frames and find specific methods, classes, or frameworks. Matching text is highlighted for easy identification.
+
+#### Testing Crash Capture
+
+In debug builds, you can trigger a test crash:
+
+```swift
+#if DEBUG
+Scyther.crashes.triggerTestCrash()
+#endif
+```
+
+#### Limitations
+
+- **Swift errors**: Only captures `NSException`-based crashes. Pure Swift `fatalError()` or `preconditionFailure()` may not be captured.
+- **Symbolication**: Stack traces contain memory addresses. Use Xcode's crash log tools for symbolicated traces.
+- **Storage**: Up to 50 crashes are stored (oldest are removed automatically).
+
+---
+
 ### Location Spoofing
 
 Fake GPS coordinates for testing location-based features.
@@ -521,6 +618,23 @@ GridOverlay.instance.size = 8        // Grid size in points
 GridOverlay.instance.opacity = 0.5   // Grid opacity (0.0 - 1.0)
 GridOverlay.instance.colorScheme = .blue
 ```
+
+#### FPS Counter
+
+Display a real-time frame rate indicator to monitor rendering performance:
+
+```swift
+// Enable FPS counter
+FPSCounter.instance.enabled = true
+
+// Change position (topLeft, topRight, bottomLeft, bottomRight)
+FPSCounter.instance.position = .bottomRight
+```
+
+The counter is color-coded for quick performance assessment:
+- **Green** (55+ FPS): Excellent performance
+- **Yellow** (30-54 FPS): Acceptable, may need optimization
+- **Red** (<30 FPS): Poor performance, needs investigation
 
 #### Touch Visualizer
 
@@ -726,11 +840,112 @@ if Scyther.isPresented {
 | `Scyther.servers` | `Servers` | Server configuration |
 | `Scyther.network` | `Network` | Network logging |
 | `Scyther.console` | `Console` | Console output capture |
+| `Scyther.crashes` | `Crashes` | Crash logging and viewing |
 | `Scyther.interface` | `Interface` | UI debugging tools |
 | `Scyther.location` | `LocationSpoofing` | Location spoofing |
 | `Scyther.notifications` | `Notifications` | Push notification testing |
 | `Scyther.appearance` | `Appearance` | Appearance overrides (dark/light mode, Dynamic Type) |
 | `Scyther.deepLinks` | `DeepLinks` | Deep link testing with QR scanner |
+
+---
+
+## Architecture for Contributors
+
+### Source Organization
+
+Scyther follows a clean architecture pattern with three main directories:
+
+```
+Sources/Scyther/
+├── Core/               # Main entry point, InterfaceToolkit, AppEnvironment
+├── Features/           # 18+ feature modules (NetworkLogger, FeatureFlags, etc.)
+└── Shared/            # Reusable components, extensions, models
+    ├── Components/    # SwiftUI components
+    ├── Extensions/    # Swift/UIKit extensions
+    ├── Models/        # Data models
+    ├── SwiftUI/       # SwiftUI utilities (ViewModel, etc.)
+    └── ViewModifiers/ # Custom view modifiers
+```
+
+Each feature follows a consistent pattern:
+
+```
+FeatureName/
+├── FeatureName.swift      # Core logic, singleton
+├── FeatureNameView.swift  # SwiftUI UI
+├── FeatureNameViewModel.swift  # View model (if needed)
+└── Supporting files...
+```
+
+### ViewModel Pattern
+
+Scyther uses a base `ViewModel` class located at `Sources/Scyther/Shared/SwiftUI/ViewModel.swift` that provides structured lifecycle management for SwiftUI views.
+
+#### Lifecycle Methods
+
+The `ViewModel` class provides four lifecycle hooks:
+
+1. `setup()` - Called during `init()`, for synchronous setup
+2. `onFirstAppear()` - Called once on first view appearance
+3. `onAppear()` - Called every time the view appears
+4. `onSubsequentAppear()` - Called on appearances after the first
+
+#### Usage
+
+Subclass `ViewModel` for any feature that needs lifecycle management:
+
+```swift
+class MyFeatureViewModel: ViewModel {
+    @Published var data: [Item] = []
+    @Published var isLoading = false
+
+    override func onFirstAppear() async {
+        await super.onFirstAppear()
+        await loadInitialData()
+    }
+
+    override func onSubsequentAppear() async {
+        await super.onSubsequentAppear()
+        await refreshData()
+    }
+
+    private func loadInitialData() async {
+        isLoading = true
+        defer { isLoading = false }
+        // Load data...
+    }
+}
+```
+
+Use with the `onFirstAppear` view modifier:
+
+```swift
+struct MyFeatureView: View {
+    @StateObject private var viewModel = MyFeatureViewModel()
+
+    var body: some View {
+        List(viewModel.data) { item in
+            Text(item.name)
+        }
+        .onFirstAppear {
+            await viewModel.onFirstAppear()
+        }
+    }
+}
+```
+
+The base `ViewModel` class is marked `@MainActor` to ensure all lifecycle methods and published properties execute on the main thread.
+
+### Singleton Pattern
+
+Every feature uses a shared singleton instance:
+
+```swift
+static let instance = FeatureName()  // or .shared
+private init() { }
+```
+
+This ensures a single source of truth and simplifies access patterns.
 
 ---
 
