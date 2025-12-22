@@ -23,7 +23,7 @@ jobs:
         run: |
           xcodebuild build \
             -scheme Scyther \
-            -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' \
+            -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
 
@@ -45,11 +45,18 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Install iOS Simulator
+        run: |
+          xcodebuild -downloadPlatform iOS
+
       - name: Run Tests
         run: |
+          # Get the first available iPhone simulator
+          SIMULATOR=$(xcrun simctl list devices available | grep -m 1 "iPhone" | sed 's/.*(\([^)]*\)).*/\1/' | head -1)
+          echo "Using simulator: $SIMULATOR"
           xcodebuild test \
             -scheme Scyther \
-            -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' \
+            -destination "platform=iOS Simulator,id=$SIMULATOR" \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
 
@@ -70,6 +77,6 @@ jobs:
           xcodebuild build \
             -project Example/ScytherExample.xcodeproj \
             -scheme ScytherExample \
-            -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' \
+            -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
