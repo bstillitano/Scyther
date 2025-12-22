@@ -84,36 +84,6 @@ struct PreviewableItem: Identifiable {
     let previewView: UIView
 }
 
-/// View model managing the interface previews list.
-///
-/// Discovers all classes conforming to `ScytherPreviewable` and
-/// creates preview items for display.
-class InterfacePreviewsViewModel: ViewModel {
-    @Published var previewables: [PreviewableItem] = []
-
-    override func onFirstAppear() async {
-        await super.onFirstAppear()
-        await loadPreviewables()
-    }
-
-    @MainActor
-    private func loadPreviewables() async {
-        guard let classes = NSObject().classesConformingToProtocol(ScytherPreviewable.self) as? [ScytherPreviewable.Type] else {
-            return
-        }
-
-        previewables = classes
-            .sorted { $0.name < $1.name }
-            .map { previewable in
-                PreviewableItem(
-                    name: previewable.name,
-                    details: previewable.details,
-                    previewView: previewable.previewView
-                )
-            }
-    }
-}
-
 #Preview {
     NavigationStack {
         InterfacePreviewsView()

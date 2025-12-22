@@ -49,25 +49,6 @@ struct EnvironmentVariablesView: View {
     }
 }
 
-/// View model managing the environment variables display.
-///
-/// Loads and sorts environment variables from `Scyther.environmentVariables`.
-class EnvironmentVariablesViewModel: ViewModel {
-    @Published var variables: [(key: String, value: String)] = []
-
-    override func onFirstAppear() async {
-        await super.onFirstAppear()
-        await loadVariables()
-    }
-
-    @MainActor
-    private func loadVariables() async {
-        variables = Scyther.environmentVariables
-            .sorted { $0.key < $1.key }
-            .map { (key: $0.key, value: $0.value) }
-    }
-}
-
 #Preview {
     NavigationStack {
         EnvironmentVariablesView()

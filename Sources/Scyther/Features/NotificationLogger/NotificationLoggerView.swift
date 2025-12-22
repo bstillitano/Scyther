@@ -114,44 +114,6 @@ struct NotificationLogItem: Identifiable {
     let rawPayloadJson: String
 }
 
-/// View model managing the notification logger display.
-///
-/// Loads notifications from `NotificationTester` and listens for new
-/// notifications via `NotificationCenter`.
-class NotificationLoggerViewModel: ViewModel {
-    @Published var notifications: [NotificationLogItem] = []
-
-    override func onFirstAppear() async {
-        await super.onFirstAppear()
-        await loadNotifications()
-    }
-
-    @MainActor
-    func refresh() async {
-        await loadNotifications()
-    }
-
-    @MainActor
-    private func loadNotifications() async {
-        notifications = NotificationTester.instance.notifications
-            .sorted { ($0.receivedAt ?? Date()) > ($1.receivedAt ?? Date()) }
-            .map { notification in
-                NotificationLogItem(
-                    receivedAt: notification.receivedAt?.formatted(format: "dd MMM yyyy h:mm:ss a") ?? "Unknown",
-                    title: notification.aps.alert.title,
-                    subtitle: notification.aps.alert.subtitle,
-                    body: notification.aps.alert.body,
-                    badge: notification.aps.badge,
-                    category: notification.aps.category,
-                    contentAvailable: notification.aps.contentAvailable,
-                    sound: notification.aps.sound,
-                    additionalDataJson: notification.additionalData.jsonString ?? "{}",
-                    rawPayloadJson: notification.rawPayload.jsonString ?? "{}"
-                )
-            }
-    }
-}
-
 #Preview {
     NavigationStack {
         NotificationLoggerView()

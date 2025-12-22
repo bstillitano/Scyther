@@ -93,45 +93,6 @@ struct CookieItem: Identifiable {
     let cookie: HTTPCookie
 }
 
-/// View model for the cookie browser view.
-///
-/// Manages loading, deleting, and clearing cookies from `HTTPCookieStorage`.
-class CookieBrowserViewModel: ViewModel {
-    /// All cookies currently displayed in the browser.
-    @Published var cookies: [CookieItem] = []
-
-    override func onFirstAppear() async {
-        await super.onFirstAppear()
-        await loadCookies()
-    }
-
-    /// Loads all cookies from storage and sorts them by name.
-    @MainActor
-    private func loadCookies() async {
-        cookies = CookieBrowser.instance.cookies.map { cookie in
-            CookieItem(name: cookie.name, domain: cookie.domain, cookie: cookie)
-        }.sorted { $0.name < $1.name }
-    }
-
-    /// Deletes a specific cookie from storage and removes it from the list.
-    ///
-    /// - Parameter item: The cookie item to delete.
-    @MainActor
-    func deleteCookie(_ item: CookieItem) {
-        HTTPCookieStorage.shared.deleteCookie(item.cookie)
-        cookies.removeAll { $0.id == item.id }
-    }
-
-    /// Deletes all cookies from storage and clears the list.
-    @MainActor
-    func clearAllCookies() {
-        for cookie in CookieBrowser.instance.cookies {
-            HTTPCookieStorage.shared.deleteCookie(cookie)
-        }
-        cookies.removeAll()
-    }
-}
-
 #Preview {
     NavigationStack {
         CookieBrowserView()

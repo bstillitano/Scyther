@@ -174,41 +174,6 @@ struct ConsoleLogRow: View {
     }
 }
 
-/// View model for managing console logger state and operations.
-///
-/// This view model handles fetching logs from `ConsoleLogger`, managing the auto-scroll setting,
-/// and providing actions for clearing logs.
-class ConsoleLoggerViewModel: ViewModel {
-    /// Array of console log entries to display.
-    @Published var logs: [ConsoleLogEntry] = []
-
-    /// Whether to automatically scroll to the bottom when new logs arrive.
-    @Published var autoScroll: Bool = true
-
-    /// Called when the view first appears. Loads initial log data.
-    override func onFirstAppear() async {
-        await super.onFirstAppear()
-        await refresh()
-    }
-
-    /// Refreshes the logs from the console logger.
-    ///
-    /// Fetches the current log entries from `ConsoleLogger.instance` and updates the published logs array.
-    @MainActor
-    func refresh() async {
-        logs = ConsoleLogger.instance.allLogs
-    }
-
-    /// Clears all console logs.
-    ///
-    /// Removes all log entries from both the console logger and the local logs array.
-    @MainActor
-    func clearLogs() {
-        ConsoleLogger.instance.clear()
-        logs = []
-    }
-}
-
 #Preview {
     NavigationStack {
         ConsoleLoggerView()
