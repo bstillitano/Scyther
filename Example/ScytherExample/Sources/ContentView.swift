@@ -80,6 +80,18 @@ struct HomeView: View {
                         setupSampleToggles()
                     }
                 }
+
+                #if DEBUG
+                Section {
+                    Button("Trigger Test Crash", role: .destructive) {
+                        triggerTestCrash()
+                    }
+                } header: {
+                    Text("Crash Testing")
+                } footer: {
+                    Text("This will crash the app. Reopen it to see the crash log in Scyther → System Tools → Crash Logs.")
+                }
+                #endif
             }
             .navigationTitle("Scyther Example")
         }
@@ -165,6 +177,12 @@ struct HomeView: View {
         Scyther.featureFlags.register("enable_analytics", remoteValue: true)
         Scyther.featureFlags.register("use_new_api", remoteValue: false)
     }
+
+    #if DEBUG
+    private func triggerTestCrash() {
+        Scyther.crashes.triggerTestCrash()
+    }
+    #endif
 }
 
 #Preview {

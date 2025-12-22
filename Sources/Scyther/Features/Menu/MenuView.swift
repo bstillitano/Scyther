@@ -170,6 +170,11 @@ public struct MenuView: View {
                 } label: {
                     row(withLabel: "Console Logs", icon: "terminal")
                 }
+                NavigationLink {
+                    CrashLogsView()
+                } label: {
+                    row(withLabel: "Crash Logs", icon: "exclamationmark.triangle")
+                }
             } header: {
                 Text("System Tools")
             }

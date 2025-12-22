@@ -144,6 +144,9 @@ public enum Scyther {
     /// Appearance overrides (color scheme, dynamic type, high contrast).
     public static let appearance = Appearance.shared
 
+    /// Crash logging and viewing.
+    public static let crashes = Crashes.shared
+
     // MARK: - Configuration
 
     /// Custom developer options displayed in the menu.
@@ -177,6 +180,7 @@ public enum Scyther {
         Interface.shared.setup()
         LocationSpoofing.shared.setup()
         Appearance.shared.setup()
+        Crashes.shared.startCapturing()
     }
 
     // MARK: - Menu
@@ -755,5 +759,66 @@ public final class Appearance: Sendable {
     public func reset() {
         AppearanceOverrides.instance.resetToDefaults()
     }
+}
+
+/// Captures and displays crash logs.
+///
+/// The `Crashes` subsystem uses `NSSetUncaughtExceptionHandler` to capture
+/// uncaught exceptions and store them for viewing on subsequent app launches.
+///
+/// ## Viewing Crash Logs
+///
+/// ```swift
+/// for crash in Scyther.crashes.all {
+///     print("\(crash.name): \(crash.reason ?? "Unknown")")
+/// }
+/// ```
+///
+/// ## Clearing Crash Logs
+///
+/// ```swift
+/// Scyther.crashes.clear()
+/// ```
+///
+/// - Important: Call ``Scyther/start(allowProductionBuilds:)`` AFTER initializing
+///   other crash reporters (like Firebase Crashlytics) to ensure proper handler chaining.
+/// - Note: Crash capture is enabled automatically when ``Scyther/start(allowProductionBuilds:)`` is called.
+@MainActor
+public final class Crashes: Sendable {
+    /// The shared crashes instance.
+    public static let shared = Crashes()
+    private init() {}
+
+    internal func startCapturing() {
+        CrashLogger.instance.start()
+    }
+
+    /// Clears all stored crash logs.
+    public func clear() {
+        CrashLogger.instance.clear()
+    }
+
+    /// All stored crash logs, newest first.
+    public var all: [CrashLogEntry] {
+        CrashLogger.instance.allCrashes
+    }
+
+    /// Number of stored crashes.
+    public var count: Int {
+        CrashLogger.instance.crashCount
+    }
+
+    /// Triggers a test crash. Only available in debug builds.
+    ///
+    /// Use this to verify that crash logging is working correctly.
+    /// The crash will be captured and visible in the Crash Logs viewer
+    /// on the next app launch.
+    ///
+    /// - Warning: This will terminate the app immediately.
+    #if DEBUG
+    public func triggerTestCrash() {
+        CrashLogger.instance.triggerTestCrash()
+    }
+    #endif
 }
 #endif

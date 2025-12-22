@@ -20,6 +20,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Server Configuration](#server-configuration)
   - [Network Logging](#network-logging)
   - [Console Logging](#console-logging)
+  - [Crash Logging](#crash-logging)
   - [Location Spoofing](#location-spoofing)
   - [Push Notification Testing](#push-notification-testing)
   - [UI Debugging Tools](#ui-debugging-tools)
@@ -58,6 +59,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Preset Locations**: 20+ major cities worldwide
 - **Custom Locations**: Set any coordinate manually
 - **Route Simulation**: Simulate movement along predefined routes
+- **Crash Logging**: Capture and view uncaught exceptions on subsequent app launches
 
 ### Notifications
 - **Push Notification Tester**: Schedule local test notifications
@@ -99,6 +101,7 @@ Scyther is fully compatible with Swift 6 strict concurrency checking. The librar
 | `Scyther.featureFlags` | `@MainActor` | Feature flag management |
 | `Scyther.network` | `@MainActor` | Network facade |
 | `Scyther.console` | `@MainActor` | Console capture facade |
+| `Scyther.crashes` | `@MainActor` | Crash logging facade |
 | `Scyther.interface` | `@MainActor` | UI tools facade |
 | `Scyther.location` | `@MainActor` | Location spoofing facade |
 
@@ -123,6 +126,7 @@ Key public types conform to `Sendable` for safe cross-actor usage:
 - `Location` - GPS coordinate data
 - `Route` - Location simulation routes
 - `ConsoleLogEntry` - Captured console output
+- `CrashLogEntry` - Captured crash data
 
 ### Performance Optimizations
 
@@ -348,6 +352,97 @@ Scyther.console.stopCapturing()
 // Clear all logs
 Scyther.console.clear()
 ```
+
+---
+
+### Crash Logging
+
+Capture uncaught exceptions and view them on subsequent app launches. This is useful for debugging crashes that occur during development and testing.
+
+#### How It Works
+
+Scyther uses `NSSetUncaughtExceptionHandler` to intercept Objective-C and Swift exceptions before the app terminates. When a crash occurs:
+
+1. Exception details are captured (name, reason, stack trace)
+2. Device and app information is recorded
+3. Data is saved to UserDefaults immediately
+4. On next launch, the crash is visible in Scyther's Crash Logs viewer
+
+#### ⚠️ Important: Initialization Order
+
+**If you use other crash reporting tools** (Firebase Crashlytics, Sentry, Bugsnag, Instabug, etc.), the order you initialize them matters.
+
+Crash reporters work by setting an exception handler. Only one handler can be active at a time, but handlers can "chain" by saving and forwarding to the previous handler.
+
+**Scyther must be started AFTER other crash reporters:**
+
+```swift
+import Firebase
+import Sentry
+import Scyther
+
+@main
+struct MyApp: App {
+    init() {
+        // 1. Initialize other crash reporters FIRST
+        FirebaseApp.configure()
+        SentrySDK.start { options in
+            options.dsn = "your-dsn"
+        }
+
+        // 2. Start Scyther LAST
+        // Scyther will capture crashes AND forward them to the previous handlers
+        Scyther.start()
+    }
+}
+```
+
+**Why this order?**
+- Scyther saves the existing handler (e.g., Crashlytics) when it starts
+- When a crash occurs, Scyther logs it locally, then forwards to Crashlytics
+- Both systems receive the crash data
+
+**If you start Scyther first**, your other crash reporter will overwrite Scyther's handler, and Scyther won't capture crashes.
+
+#### Accessing Crash Logs
+
+```swift
+// Get all captured crashes (newest first)
+let crashes = Scyther.crashes.all
+
+// Get crash count
+let count = Scyther.crashes.count
+
+// Clear all crash logs
+Scyther.crashes.clear()
+```
+
+#### Crash Log Details
+
+Each crash log includes:
+- Exception name and reason
+- Full stack trace (searchable with highlighting)
+- App version and build number
+- iOS version and device model
+- Timestamp
+
+The stack trace is searchable - use the search bar to filter frames and find specific methods, classes, or frameworks. Matching text is highlighted for easy identification.
+
+#### Testing Crash Capture
+
+In debug builds, you can trigger a test crash:
+
+```swift
+#if DEBUG
+Scyther.crashes.triggerTestCrash()
+#endif
+```
+
+#### Limitations
+
+- **Swift errors**: Only captures `NSException`-based crashes. Pure Swift `fatalError()` or `preconditionFailure()` may not be captured.
+- **Symbolication**: Stack traces contain memory addresses. Use Xcode's crash log tools for symbolicated traces.
+- **Storage**: Up to 50 crashes are stored (oldest are removed automatically).
 
 ---
 
@@ -711,6 +806,7 @@ if Scyther.isPresented {
 | `Scyther.servers` | `Servers` | Server configuration |
 | `Scyther.network` | `Network` | Network logging |
 | `Scyther.console` | `Console` | Console output capture |
+| `Scyther.crashes` | `Crashes` | Crash logging and viewing |
 | `Scyther.interface` | `Interface` | UI debugging tools |
 | `Scyther.location` | `LocationSpoofing` | Location spoofing |
 | `Scyther.notifications` | `Notifications` | Push notification testing |
