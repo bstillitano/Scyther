@@ -32,7 +32,20 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 struct ScytherExampleApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
+    private func loadRocketSimConnect() {
+        #if DEBUG
+        guard (Bundle(path: "/Applications/RocketSim.app/Contents/Frameworks/RocketSimConnectLinker.nocache.framework")?.load() == true) else {
+            print("Failed to load linker framework")
+            return
+        }
+        print("RocketSim Connect successfully linked")
+        #endif
+    }
+
     init() {
+        // Start RocketSim
+        loadRocketSimConnect()
+
         // Start Scyther
         Scyther.start()
 

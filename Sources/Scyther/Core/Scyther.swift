@@ -144,6 +144,9 @@ public enum Scyther {
     /// Appearance overrides (color scheme, dynamic type, high contrast).
     public static let appearance = Appearance.shared
 
+    /// Deep link testing.
+    public static let deepLinks = DeepLinks.shared
+
     /// Crash logging and viewing.
     public static let crashes = Crashes.shared
 
@@ -758,6 +761,52 @@ public final class Appearance: Sendable {
     /// Resets all appearance overrides to system defaults.
     public func reset() {
         AppearanceOverrides.instance.resetToDefaults()
+    }
+}
+
+// MARK: - Deep Links Facade
+
+/// Provides a simplified interface for deep link testing.
+///
+/// Use this to configure preset deep links for quick testing:
+///
+/// ```swift
+/// Scyther.deepLinks.presets = [
+///     DeepLinkPreset(name: "Home", url: "myapp://home"),
+///     DeepLinkPreset(name: "Profile", url: "myapp://profile/123"),
+/// ]
+/// ```
+@MainActor
+public final class DeepLinks: Sendable {
+    /// The shared deep links instance.
+    public static let shared = DeepLinks()
+    private init() {}
+    
+    /// Preset deep links shown in the tester UI.
+    ///
+    /// Configure these to provide quick access to commonly-used deep links.
+    public var presets: [DeepLinkPreset] {
+        get { DeepLinkTester.instance.presets }
+        set { DeepLinkTester.instance.presets = newValue }
+    }
+    
+    /// History of tested deep links.
+    public var history: [DeepLinkHistoryEntry] {
+        DeepLinkTester.instance.history
+    }
+    
+    /// Opens a deep link URL.
+    ///
+    /// - Parameter urlString: The URL string to open.
+    /// - Returns: A result indicating success or failure.
+    @discardableResult
+    public func open(_ urlString: String) async -> Result<Void, DeepLinkError> {
+        await DeepLinkTester.instance.open(urlString)
+    }
+    
+    /// Clears the deep link history.
+    public func clearHistory() {
+        DeepLinkTester.instance.clearHistory()
     }
 }
 

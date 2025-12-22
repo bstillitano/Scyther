@@ -171,6 +171,11 @@ public struct MenuView: View {
                     row(withLabel: "Console Logs", icon: "terminal")
                 }
                 NavigationLink {
+                    DeepLinkTesterView()
+                } label: {
+                    row(withLabel: "Deep Link Tester", icon: "link")
+                }
+                NavigationLink {
                     CrashLogsView()
                 } label: {
                     row(withLabel: "Crash Logs", icon: "exclamationmark.triangle")
