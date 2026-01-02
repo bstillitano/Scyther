@@ -178,6 +178,9 @@ public enum Scyther {
 
         _started = true
 
+        // Clean up old network logs (files older than 7 days)
+        NetworkLogCleaner.shared.cleanupOldLogs()
+
         Console.shared.startCapturing()
         Network.shared.startIntercepting()
         Interface.shared.setup()
