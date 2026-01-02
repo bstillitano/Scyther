@@ -327,6 +327,14 @@ Network requests are displayed in the Scyther UI under **Network Logs**. Each re
 - Status code and timing
 - cURL command for reproduction
 
+#### Log Retention
+
+Network logs are automatically cleaned up to prevent disk bloat:
+
+- **7-day retention**: Log files older than 7 days are automatically deleted on app startup
+- **Manual cleanup**: Clearing logs via the UI also deletes all associated files from disk
+- **Files managed**: `SessionLog.log`, request body files, and response body files
+
 ---
 
 ### Console Logging

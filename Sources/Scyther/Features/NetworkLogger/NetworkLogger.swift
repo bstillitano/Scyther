@@ -76,12 +76,18 @@ actor NetworkLogger {
         continuation?.yield(items)
     }
 
-    /// Removes all HTTP requests from the log.
+    /// Removes all HTTP requests from the log and deletes associated files from disk.
     ///
-    /// Clears the entire log and broadcasts an update with an empty array
-    /// to all stream subscribers.
+    /// Clears the entire in-memory log, broadcasts an update with an empty array
+    /// to all stream subscribers, and deletes all network log files from disk
+    /// including request bodies, response bodies, and the session log.
     func clear() {
         items.removeAll()
         continuation?.yield(items)
+
+        // Delete all log files from disk
+        Task { @MainActor in
+            NetworkLogCleaner.shared.deleteAllLogFiles()
+        }
     }
 }
