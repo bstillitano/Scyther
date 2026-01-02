@@ -2,7 +2,7 @@
 //  NetworkLogCleanerTests.swift
 //  ScytherTests
 //
-//  Created by Claude on 01/01/2026.
+//  Created by Brandon Stillitano on 01/01/2026.
 //
 
 #if !os(macOS)

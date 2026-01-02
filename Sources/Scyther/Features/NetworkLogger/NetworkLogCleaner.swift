@@ -2,7 +2,7 @@
 //  NetworkLogCleaner.swift
 //
 //
-//  Created by Claude on 01/01/26.
+//  Created by Brandon Stillitano on 01/01/26.
 //
 
 import Foundation
