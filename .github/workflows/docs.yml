@@ -372,6 +372,7 @@ jobs:
                       <label for="regarding">Regarding</label>
                       <select id="regarding" name="regarding">
                         <option value="General">General Inquiry</option>
+                        <option value="ActualScan">ActualScan</option>
                         <option value="Scyther">Scyther</option>
                         <option value="Other Project">Other Project</option>
                         <option value="Collaboration">Collaboration</option>
