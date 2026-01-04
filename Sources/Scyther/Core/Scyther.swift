@@ -150,6 +150,9 @@ public enum Scyther {
     /// Crash logging and viewing.
     public static let crashes = Crashes.shared
 
+    /// Database browsing and querying.
+    public static let database = DatabaseBrowsing.shared
+
     // MARK: - Configuration
 
     /// Custom developer options displayed in the menu.
@@ -872,5 +875,60 @@ public final class Crashes: Sendable {
         CrashLogger.instance.triggerTestCrash()
     }
     #endif
+}
+
+/// Provides database browsing and querying capabilities.
+///
+/// The `DatabaseBrowsing` subsystem allows you to browse SQLite, CoreData,
+/// and SwiftData databases, execute raw SQL queries, and perform CRUD operations.
+///
+/// ## Browsing Databases
+///
+/// Databases in the app container are automatically discovered. Access them
+/// through the Scyther menu under Data → Database Browser.
+///
+/// ## Registering Custom Adapters
+///
+/// For third-party databases like Realm or Firebase, implement the
+/// ``DatabaseBrowserAdapter`` protocol and register your adapter:
+///
+/// ```swift
+/// class RealmAdapter: DatabaseBrowserAdapter {
+///     // Implement protocol requirements
+/// }
+///
+/// Scyther.database.registerAdapter(RealmAdapter(realm: myRealm))
+/// ```
+///
+/// - Note: This keeps Scyther dependency-free while allowing apps to add
+///   support for their specific database technologies.
+@MainActor
+public final class DatabaseBrowsing: Sendable {
+    /// The shared database browsing instance.
+    public static let shared = DatabaseBrowsing()
+    private init() {}
+
+    /// Registers a custom database adapter.
+    ///
+    /// Use this to add support for third-party databases like Realm or Firebase.
+    /// The adapter will appear in the Database Browser alongside automatically
+    /// discovered SQLite databases.
+    ///
+    /// - Parameter adapter: The adapter to register.
+    public func registerAdapter(_ adapter: any DatabaseBrowserAdapter) {
+        DatabaseBrowser.instance.registerAdapter(adapter)
+    }
+
+    /// Removes a registered adapter by its identifier.
+    ///
+    /// - Parameter identifier: The identifier of the adapter to remove.
+    public func removeAdapter(withIdentifier identifier: String) {
+        DatabaseBrowser.instance.removeAdapter(withIdentifier: identifier)
+    }
+
+    /// All registered custom adapters.
+    public var registeredAdapters: [any DatabaseBrowserAdapter] {
+        DatabaseBrowser.instance.registeredAdapters
+    }
 }
 #endif

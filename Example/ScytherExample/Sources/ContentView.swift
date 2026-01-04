@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import SwiftData
 import Scyther
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
     var body: some View {
         TabView {
             HomeView()
@@ -27,8 +29,12 @@ struct ContentView: View {
 }
 
 struct HomeView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var requestCount = 0
     @State private var isLoading = false
+    @State private var userCount = 0
+    @State private var postCount = 0
+    @State private var productCount = 0
 
     var body: some View {
         NavigationStack {
@@ -81,6 +87,24 @@ struct HomeView: View {
                     }
                 }
 
+                Section {
+                    Button("Add More Records") {
+                        addDemoRecords()
+                    }
+
+                    Button("Clear All Records", role: .destructive) {
+                        clearDemoRecords()
+                    }
+
+                    LabeledContent("Users", value: "\(userCount)")
+                    LabeledContent("Posts", value: "\(postCount)")
+                    LabeledContent("Products", value: "\(productCount)")
+                } header: {
+                    Text("Database Demo")
+                } footer: {
+                    Text("Open Scyther → Data → Database Browser to browse the SwiftData database.")
+                }
+
                 #if DEBUG
                 Section {
                     Button("Trigger Test Crash", role: .destructive) {
@@ -94,6 +118,9 @@ struct HomeView: View {
                 #endif
             }
             .navigationTitle("Scyther Example")
+            .onAppear {
+                updateRecordCounts()
+            }
         }
     }
 
@@ -183,6 +210,57 @@ struct HomeView: View {
         Scyther.crashes.triggerTestCrash()
     }
     #endif
+
+    // MARK: - Database Demo Functions
+
+    private func updateRecordCounts() {
+        userCount = (try? modelContext.fetchCount(FetchDescriptor<DemoUser>())) ?? 0
+        postCount = (try? modelContext.fetchCount(FetchDescriptor<DemoPost>())) ?? 0
+        productCount = (try? modelContext.fetchCount(FetchDescriptor<DemoProduct>())) ?? 0
+    }
+
+    private func addDemoRecords() {
+        // Add a random user
+        let randomUser = DemoUser(
+            name: "User \(Int.random(in: 1000...9999))",
+            email: "user\(Int.random(in: 1000...9999))@example.com",
+            age: Int.random(in: 18...65)
+        )
+        modelContext.insert(randomUser)
+
+        // Add a random post
+        let randomPost = DemoPost(
+            title: "Post \(Int.random(in: 1000...9999))",
+            content: "This is a randomly generated post for testing purposes.",
+            user: randomUser
+        )
+        modelContext.insert(randomPost)
+
+        // Add a random product
+        let categories = ["Electronics", "Audio", "Accessories", "Wearables", "Software"]
+        let randomProduct = DemoProduct(
+            name: "Product \(Int.random(in: 1000...9999))",
+            price: Double.random(in: 9.99...999.99).rounded() / 100 * 100,
+            inStock: Bool.random(),
+            category: categories.randomElement() ?? "Other"
+        )
+        modelContext.insert(randomProduct)
+
+        try? modelContext.save()
+        updateRecordCounts()
+    }
+
+    private func clearDemoRecords() {
+        do {
+            try modelContext.delete(model: DemoUser.self)
+            try modelContext.delete(model: DemoPost.self)
+            try modelContext.delete(model: DemoProduct.self)
+            try modelContext.save()
+        } catch {
+            print("Failed to clear demo records: \(error)")
+        }
+        updateRecordCounts()
+    }
 }
 
 #Preview {

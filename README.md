@@ -21,6 +21,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Network Logging](#network-logging)
   - [Console Logging](#console-logging)
   - [Crash Logging](#crash-logging)
+  - [Database Browser](#database-browser)
   - [Location Spoofing](#location-spoofing)
   - [Push Notification Testing](#push-notification-testing)
   - [UI Debugging Tools](#ui-debugging-tools)
@@ -53,6 +54,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Cookie Browser**: Inspect and manage HTTP cookies
 - **Keychain Browser**: View keychain items (read-only for security)
 - **File Browser**: Browse app sandbox (Documents, Library, Caches, tmp)
+- **Database Browser**: Browse SQLite, CoreData, and SwiftData databases with full CRUD support
 
 ### System Tools
 - **Location Spoofing**: Fake GPS coordinates for testing location-based features
@@ -455,6 +457,79 @@ Scyther.crashes.triggerTestCrash()
 
 ---
 
+### Database Browser
+
+Browse SQLite, CoreData, and SwiftData databases with full CRUD support. The Database Browser automatically discovers databases in your app's container and provides a visual interface for inspecting and modifying data.
+
+#### Automatic Discovery
+
+Databases are automatically discovered in common locations:
+- `Library/Application Support/` (SwiftData, CoreData stores)
+- `Documents/` (user-created databases)
+- `Library/` (other app data)
+
+The browser detects database types:
+- **SQLite**: Plain `.sqlite`, `.sqlite3`, `.db` files
+- **CoreData**: Detected via `Z_`-prefixed system tables
+- **SwiftData**: Detected via Swift-specific metadata
+
+#### Features
+
+- **Schema Browser**: View tables, columns, types, primary keys, foreign keys, and indexes
+- **Record Browser**: Paginated viewing of table records with sorting
+- **CRUD Operations**: Add, edit, and delete records (for writable databases)
+- **SQL Query Editor**: Execute raw SQL queries with formatted results
+- **Swipe-to-Delete**: Quick record deletion with confirmation
+
+#### Custom Database Adapters
+
+For third-party databases like Realm or Firebase, you can create custom adapters without adding dependencies to Scyther:
+
+```swift
+// In your app, create an adapter conforming to DatabaseBrowserAdapter
+class RealmDatabaseAdapter: DatabaseBrowserAdapter {
+    var identifier: String { "my-realm-db" }
+    var displayName: String { "My Realm Database" }
+    var databaseType: DatabaseType { .custom("Realm") }
+    var supportsRawSQL: Bool { false }
+    var supportsWrite: Bool { true }
+    var filePath: String? { realm.configuration.fileURL?.path }
+
+    func tables() async throws -> [TableInfo] {
+        // Return your Realm object schema as TableInfo
+    }
+
+    func schema(for table: String) async throws -> TableSchema {
+        // Return column info for the specified table
+    }
+
+    func records(in table: String, offset: Int, limit: Int, orderBy: String?, ascending: Bool) async throws -> [DatabaseRecord] {
+        // Query and return records
+    }
+
+    // Implement other protocol methods...
+}
+
+// Register the adapter with Scyther
+Scyther.database.registerAdapter(RealmDatabaseAdapter(realm: myRealm))
+```
+
+#### Protocol Requirements
+
+The `DatabaseBrowserAdapter` protocol requires:
+
+| Method | Description |
+|--------|-------------|
+| `tables()` | Return all tables/collections |
+| `schema(for:)` | Return schema for a table |
+| `records(in:offset:limit:orderBy:ascending:)` | Fetch paginated records |
+| `insert(into:values:)` | Insert a new record |
+| `update(in:primaryKey:values:)` | Update an existing record |
+| `delete(from:primaryKey:)` | Delete a record |
+| `executeQuery(_:)` | Execute raw SQL (if supported) |
+
+---
+
 ### Location Spoofing
 
 Fake GPS coordinates for testing location-based features.
@@ -849,6 +924,7 @@ if Scyther.isPresented {
 | `Scyther.network` | `Network` | Network logging |
 | `Scyther.console` | `Console` | Console output capture |
 | `Scyther.crashes` | `Crashes` | Crash logging and viewing |
+| `Scyther.database` | `DatabaseBrowsing` | Database browser and adapter registration |
 | `Scyther.interface` | `Interface` | UI debugging tools |
 | `Scyther.location` | `LocationSpoofing` | Location spoofing |
 | `Scyther.notifications` | `Notifications` | Push notification testing |

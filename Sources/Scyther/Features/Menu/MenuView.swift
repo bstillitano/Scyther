@@ -145,6 +145,11 @@ public struct MenuView: View {
                 } label: {
                     row(withLabel: "File Browser", icon: "folder")
                 }
+                NavigationLink {
+                    DatabaseBrowserView()
+                } label: {
+                    row(withLabel: "Database Browser", icon: "cylinder.split.1x2")
+                }
             } header: {
                 Text("Data")
             }
