@@ -46,13 +46,353 @@ jobs:
 
           cat > ./docs/index.html << 'EOF'
           <!DOCTYPE html>
-          <html>
+          <html lang="en">
           <head>
-            <meta http-equiv="refresh" content="0; url=/documentation/scyther/">
-            <link rel="canonical" href="/documentation/scyther/">
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Scyther - iOS Debugging Toolkit</title>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                padding: 2rem;
+              }
+              .container {
+                text-align: center;
+                max-width: 600px;
+              }
+              .logo {
+                width: 120px;
+                height: 120px;
+                margin-bottom: 1.5rem;
+                border-radius: 24px;
+              }
+              h1 {
+                font-size: 2.5rem;
+                margin-bottom: 0.5rem;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+              }
+              .tagline {
+                color: #a0aec0;
+                font-size: 1.1rem;
+                margin-bottom: 2rem;
+              }
+              .buttons {
+                display: flex;
+                gap: 1rem;
+                justify-content: center;
+                flex-wrap: wrap;
+              }
+              .btn {
+                display: inline-block;
+                padding: 0.875rem 1.75rem;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 600;
+                transition: transform 0.2s, box-shadow 0.2s;
+              }
+              .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+              }
+              .btn-primary {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: #fff;
+              }
+              .btn-secondary {
+                background: rgba(255,255,255,0.1);
+                color: #fff;
+                border: 1px solid rgba(255,255,255,0.2);
+              }
+              .btn-secondary:hover {
+                background: rgba(255,255,255,0.15);
+              }
+              footer {
+                position: fixed;
+                bottom: 1rem;
+                color: #4a5568;
+                font-size: 0.875rem;
+              }
+              footer a { color: #667eea; text-decoration: none; }
+            </style>
           </head>
           <body>
-            <p>Redirecting to <a href="/documentation/scyther/">documentation</a>...</p>
+            <div class="container">
+              <img src="https://github.com/bstillitano/Scyther/raw/main/Scyther.png" alt="Scyther Logo" class="logo">
+              <h1>Scyther</h1>
+              <p class="tagline">A comprehensive iOS debugging toolkit that helps you cut through bugs</p>
+              <div class="buttons">
+                <a href="/documentation/scyther/" class="btn btn-primary">Documentation</a>
+                <a href="/contact.html" class="btn btn-secondary">Contact</a>
+                <a href="https://github.com/bstillitano/Scyther" class="btn btn-secondary">GitHub</a>
+              </div>
+            </div>
+            <footer>Made with love in Sydney, Australia by <a href="https://github.com/bstillitano">Brandon Stillitano</a></footer>
+          </body>
+          </html>
+          EOF
+
+          cat > ./docs/contact.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Contact - Brandon Stillitano</title>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                min-height: 100vh;
+                color: #fff;
+                padding: 2rem;
+              }
+              .container {
+                max-width: 800px;
+                margin: 0 auto;
+              }
+              header {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                margin-bottom: 3rem;
+              }
+              .brand {
+                font-size: 1.5rem;
+                font-weight: 700;
+                color: #fff;
+                text-decoration: none;
+              }
+              nav {
+                margin-left: auto;
+                display: flex;
+                gap: 1.5rem;
+              }
+              nav a {
+                color: #a0aec0;
+                text-decoration: none;
+                transition: color 0.2s;
+              }
+              nav a:hover { color: #fff; }
+              h1 {
+                font-size: 2.5rem;
+                margin-bottom: 1rem;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+              }
+              .subtitle {
+                color: #a0aec0;
+                font-size: 1.1rem;
+                margin-bottom: 3rem;
+              }
+              .content {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 3rem;
+              }
+              @media (max-width: 768px) {
+                .content { grid-template-columns: 1fr; }
+                header { flex-wrap: wrap; }
+                nav { width: 100%; justify-content: flex-start; margin-left: 0; margin-top: 1rem; }
+              }
+              .contact-info h2, .contact-form h2 {
+                font-size: 1.25rem;
+                margin-bottom: 1.5rem;
+                color: #e2e8f0;
+              }
+              .contact-links {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+              }
+              .contact-link {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 1rem;
+                background: rgba(255,255,255,0.05);
+                border-radius: 8px;
+                text-decoration: none;
+                color: #e2e8f0;
+                transition: background 0.2s, transform 0.2s;
+              }
+              .contact-link:hover {
+                background: rgba(255,255,255,0.1);
+                transform: translateX(4px);
+              }
+              .contact-link svg {
+                width: 24px;
+                height: 24px;
+                flex-shrink: 0;
+              }
+              .contact-link span {
+                display: flex;
+                flex-direction: column;
+              }
+              .contact-link .label {
+                font-size: 0.75rem;
+                color: #718096;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+              }
+              form {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+              }
+              .form-group {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+              }
+              label {
+                font-size: 0.875rem;
+                color: #a0aec0;
+              }
+              input, textarea, select {
+                padding: 0.75rem 1rem;
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 8px;
+                background: rgba(255,255,255,0.05);
+                color: #fff;
+                font-size: 1rem;
+                font-family: inherit;
+                transition: border-color 0.2s, background 0.2s;
+              }
+              input:focus, textarea:focus, select:focus {
+                outline: none;
+                border-color: #667eea;
+                background: rgba(255,255,255,0.08);
+              }
+              select option {
+                background: #1a1a2e;
+                color: #fff;
+              }
+              textarea {
+                min-height: 150px;
+                resize: vertical;
+              }
+              button {
+                padding: 0.875rem 1.75rem;
+                border: none;
+                border-radius: 8px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: #fff;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: transform 0.2s, box-shadow 0.2s;
+              }
+              button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+              }
+              .security-note {
+                margin-top: 2rem;
+                padding: 1rem;
+                background: rgba(234, 179, 8, 0.1);
+                border: 1px solid rgba(234, 179, 8, 0.3);
+                border-radius: 8px;
+                font-size: 0.875rem;
+                color: #eab308;
+              }
+              .security-note strong { display: block; margin-bottom: 0.25rem; }
+              footer {
+                margin-top: 4rem;
+                text-align: center;
+                color: #4a5568;
+                font-size: 0.875rem;
+              }
+              footer a { color: #667eea; text-decoration: none; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <header>
+                <a href="https://github.com/bstillitano" class="brand">Brandon Stillitano</a>
+                <nav>
+                  <a href="https://github.com/bstillitano">GitHub</a>
+                </nav>
+              </header>
+
+              <h1>Get in Touch</h1>
+              <p class="subtitle">Have questions about one of my projects, want to collaborate, or just want to say hi? I'd love to hear from you.</p>
+
+              <div class="content">
+                <div class="contact-info">
+                  <h2>Connect</h2>
+                  <div class="contact-links">
+                    <a href="mailto:b.stillitano95@gmail.com" class="contact-link">
+                      <svg fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                      <span>
+                        <span class="label">Email</span>
+                        b.stillitano95@gmail.com
+                      </span>
+                    </a>
+                    <a href="https://github.com/bstillitano" class="contact-link" target="_blank" rel="noopener">
+                      <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                      <span>
+                        <span class="label">GitHub</span>
+                        @bstillitano
+                      </span>
+                    </a>
+                  </div>
+
+                  <div class="security-note">
+                    <strong>Security Vulnerabilities</strong>
+                    For security issues in any of my projects, please email directly rather than opening public issues.
+                  </div>
+                </div>
+
+                <div class="contact-form">
+                  <h2>Send a Message</h2>
+                  <form action="https://formspree.io/f/mbdlppzl" method="POST">
+                    <div class="form-group">
+                      <label for="name">Name</label>
+                      <input type="text" id="name" name="name" required placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                      <label for="email">Email</label>
+                      <input type="email" id="email" name="email" required placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                      <label for="regarding">Regarding</label>
+                      <select id="regarding" name="regarding">
+                        <option value="General">General Inquiry</option>
+                        <option value="Scyther">Scyther</option>
+                        <option value="Other Project">Other Project</option>
+                        <option value="Collaboration">Collaboration</option>
+                        <option value="Bug Report">Bug Report</option>
+                        <option value="Feature Request">Feature Request</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="message">Message</label>
+                      <textarea id="message" name="message" required placeholder="Your message..."></textarea>
+                    </div>
+                    <input type="hidden" name="_subject" value="New contact from scyther.io">
+                    <button type="submit">Send Message</button>
+                  </form>
+                </div>
+              </div>
+
+              <footer>
+                Made with love in Sydney, Australia
+              </footer>
+            </div>
           </body>
           </html>
           EOF

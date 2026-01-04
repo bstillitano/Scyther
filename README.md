@@ -1015,4 +1015,5 @@ Scyther is released under the MIT license. See [LICENSE](LICENSE) for details.
 
 Scyther is maintained by [Brandon Stillitano](https://github.com/bstillitano).
 
-Follow [@bstillita](https://twitter.com/bstillita) on Twitter for updates.
+- Website: [scyther.io](https://scyther.io)
+- Contact: [scyther.io/contact.html](https://scyther.io/contact.html)
