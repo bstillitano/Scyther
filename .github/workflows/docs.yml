@@ -148,7 +148,7 @@ jobs:
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Contact - Scyther</title>
+            <title>Contact - Brandon Stillitano</title>
             <style>
               * { margin: 0; padding: 0; box-sizing: border-box; }
               body {
@@ -335,11 +335,11 @@ jobs:
                 <div class="contact-info">
                   <h2>Connect</h2>
                   <div class="contact-links">
-                    <a href="mailto:brandon@scyther.io" class="contact-link">
+                    <a href="mailto:b.stillitano95@gmail.com" class="contact-link">
                       <svg fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
                       <span>
                         <span class="label">Email</span>
-                        brandon@scyther.io
+                        b.stillitano95@gmail.com
                       </span>
                     </a>
                     <a href="https://github.com/bstillitano" class="contact-link" target="_blank" rel="noopener">
