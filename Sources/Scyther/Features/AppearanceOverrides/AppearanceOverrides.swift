@@ -192,7 +192,7 @@ public final class AppearanceOverrides: Sendable {
                 if let category = contentSizeCategory {
                     windowScene.traitOverrides.preferredContentSizeCategory = category
                 } else {
-                    windowScene.traitOverrides.preferredContentSizeCategory = .unspecified
+                    windowScene.traitOverrides.preferredContentSizeCategory = UIApplication.shared.preferredContentSizeCategory
                 }
             }
         }
