@@ -98,3 +98,6 @@ CNAME
 
 # Superpowers brainstorming artifacts
 .superpowers/
+
+# DocC build output
+docbuild/
