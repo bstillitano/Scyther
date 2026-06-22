@@ -233,6 +233,19 @@ Scyther.featureFlags.localOverridesEnabled = true
 Scyther.featureFlags.setLocalValue(true, for: "dark_mode_v2")
 ```
 
+#### Reading an Override Off the Main Actor
+
+`Scyther.featureFlags` is `@MainActor`-isolated, but you can read a flag's developer
+override from any thread or actor via `localOverride(for:)`. It is `nonisolated` because it
+reads only `UserDefaults`-backed state. It returns `nil` when global overrides are off or the
+flag was never overridden — meaning "use your own value":
+
+```swift
+// Safe from a background context — no main-actor hop required.
+let override = Scyther.featureFlags.localOverride(for: "dark_mode_v2")
+let darkModeV2 = override ?? myRemoteConfig.darkModeV2   // override wins when present
+```
+
 #### Accessing All Flags
 
 ```swift
