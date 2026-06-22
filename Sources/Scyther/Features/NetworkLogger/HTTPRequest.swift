@@ -120,6 +120,15 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
     /// A `Bool` value representing whether or not the request hung/finalised with no response
     var noResponse: Bool = true
 
+    /// Whether this request was detected as a GraphQL operation.
+    var isGraphQL: Bool = false
+
+    /// The resolved GraphQL operation name, if this is a GraphQL request.
+    var graphQLOperationName: String?
+
+    /// The GraphQL operation type, if known. `nil` for non-GraphQL or batched requests.
+    var graphQLOperationType: GraphQLOperationType?
+
     // MARK: - Methods
 
     /// Saves the details of the given URL request to the model.
@@ -138,10 +147,21 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
         requestCurl = request.curlString
     }
 
-    /// Saves the HTTP body of the given URL request to disk.
+    /// Saves the HTTP body of the given URL request to disk and caches any GraphQL metadata.
     /// - Parameter request: The `URLRequest` whose body will be saved.
     func saveRequestBody(_ request: URLRequest) {
-        saveRequestBodyData(request.body)
+        let bodyData = request.body
+        saveRequestBodyData(bodyData)
+
+        if let operation = GraphQLOperation.parse(body: bodyData, url: requestURL) {
+            isGraphQL = true
+            graphQLOperationName = operation.operationName
+            graphQLOperationType = operation.type
+        } else {
+            isGraphQL = false
+            graphQLOperationName = nil
+            graphQLOperationType = nil
+        }
     }
 
     /// Logs the formatted request entry to the session log file.
@@ -201,8 +221,37 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
     /// Retrieves the response body as a dictionary representation suitable for the data browser.
     /// - Returns: A dictionary containing the JSON response body, or an empty dictionary if unavailable or not JSON.
     func getResponseBodyDictionary() -> [String: [String: Any]] {
-        guard let data = readRawData(getResponseBodyFilepath()) else { return [:] }
-        let jsonString = prettyOutput(data, contentType: responseType)
+        bodyDictionary(fromFile: getResponseBodyFilepath(), contentType: responseType)
+    }
+
+    /// Retrieves the request body as a dictionary representation suitable for the data browser.
+    /// - Returns: A dictionary containing the JSON request body, or an empty dictionary if unavailable or not JSON.
+    func getRequestBodyDictionary() -> [String: [String: Any]] {
+        bodyDictionary(fromFile: getRequestBodyFilepath(), contentType: requestType)
+    }
+
+    /// Retrieves the GraphQL `variables` object as a browsable dictionary.
+    /// - Returns: A dictionary keyed by `"Variables"`, or an empty dictionary if there are none.
+    func getGraphQLVariablesDictionary() -> [String: [String: Any]] {
+        guard let data = readRawData(getRequestBodyFilepath()),
+              let operation = GraphQLOperation.parse(body: data, url: requestURL),
+              let variables = operation.variables else {
+            return [:]
+        }
+        return ["Variables": variables]
+    }
+
+    /// Shapes the on-disk body at `filepath` into a browsable dictionary structure.
+    ///
+    /// Handles both JSON objects (wrapped under `"JSON Body"`) and JSON arrays
+    /// (converted to an indexed dictionary under `"JSON Array (N items)"`).
+    /// - Parameters:
+    ///   - filepath: The file path of the stored body.
+    ///   - contentType: The content type used to pretty-print the body.
+    /// - Returns: A browsable dictionary, or an empty dictionary if unavailable or not JSON.
+    private func bodyDictionary(fromFile filepath: String, contentType: String?) -> [String: [String: Any]] {
+        guard let data = readRawData(filepath) else { return [:] }
+        let jsonString = prettyOutput(data, contentType: contentType)
 
         // Try parsing as JSON (handles both arrays and dictionaries)
         guard let json = jsonString.jsonRepresentation else { return [:] }
