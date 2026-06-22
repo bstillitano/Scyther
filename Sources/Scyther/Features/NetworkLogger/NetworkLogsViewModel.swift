@@ -113,11 +113,28 @@ class NetworkLogsViewModel: ViewModel {
         }
     }
 
+    /// Filters requests by matching the search term against URL, operation name, status code, or method.
+    ///
+    /// - Parameters:
+    ///   - items: The requests to filter.
+    ///   - searchTerm: The raw search term (case-insensitive; whitespace is trimmed).
+    /// - Returns: All items when the term is empty, otherwise the matching subset.
+    nonisolated static func filter(items: [HTTPRequest], searchTerm: String) -> [HTTPRequest] {
+        let predicate = searchTerm.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !predicate.isEmpty else { return items }
+        return items.filter { item in
+            item.responseCode?.description.lowercased().contains(predicate) == true ||
+            item.requestURL?.lowercased().contains(predicate) == true ||
+            item.requestMethod?.lowercased().contains(predicate) == true ||
+            item.graphQLOperationName?.lowercased().contains(predicate) == true
+        }
+    }
+
     /// Filters the network requests based on the current search term.
     ///
     /// If the search term is empty, all requests are shown. Otherwise, filtering
     /// is performed on a background thread and matches requests where the search
-    /// term appears in the URL, status code, or HTTP method.
+    /// term appears in the URL, operation name, status code, or HTTP method.
     @MainActor
     private func updateData() async {
         let currentItems = items
@@ -128,12 +145,7 @@ class NetworkLogsViewModel: ViewModel {
         } else {
             // Filter on background thread
             let filtered = await Task.detached(priority: .userInitiated) {
-                let predicate = currentSearchTerm.lowercased()
-                return currentItems.filter { item in
-                    item.responseCode?.description.lowercased().contains(predicate) == true ||
-                    item.requestURL?.lowercased().contains(predicate) == true ||
-                    item.requestMethod?.lowercased().contains(predicate) == true
-                }
+                Self.filter(items: currentItems, searchTerm: currentSearchTerm)
             }.value
 
             // Check if task was cancelled before updating
