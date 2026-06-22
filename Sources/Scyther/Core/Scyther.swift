@@ -121,7 +121,11 @@ public enum Scyther {
     // MARK: - Subsystems
 
     /// Feature flag management and local overrides.
-    public static let featureFlags = FeatureFlags.shared
+    ///
+    /// `nonisolated` so the singleton can be obtained from any thread or actor. The instance is
+    /// `Sendable`; its mutable registry stays main-actor-isolated, so only thread-safe members
+    /// (e.g. ``FeatureFlags/localOverride(for:)``) are usable without a main-actor hop.
+    nonisolated public static let featureFlags = FeatureFlags.shared
 
     /// Server/environment configuration switching.
     public static let servers = Servers.shared
@@ -293,8 +297,12 @@ internal func logMessage(_ msg: String) {
 @MainActor
 public final class FeatureFlags: Sendable {
     /// The shared feature flags instance.
-    public static let shared = FeatureFlags()
-    private init() {}
+    ///
+    /// `nonisolated` so it can be obtained from any thread or actor. The instance's mutable
+    /// registry (``all``) remains main-actor-isolated; only thread-safe, UserDefaults-backed
+    /// members such as ``localOverride(for:)`` are callable off the main actor.
+    nonisolated public static let shared = FeatureFlags()
+    nonisolated private init() {}
 
     /// The UserDefaults key backing ``localOverridesEnabled``.
     ///

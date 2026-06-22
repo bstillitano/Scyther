@@ -42,7 +42,6 @@ final class FeatureFlagsTests: XCTestCase {
 
     // MARK: - localOverride(for:) Tests
 
-    @MainActor
     func testLocalOverrideReturnsNilWhenOverridesDisabled() {
         // A local value is stored, but overrides are globally off.
         UserDefaults.standard.set(false, forKey: FeatureFlags.overridesEnabledKey)
@@ -51,7 +50,6 @@ final class FeatureFlagsTests: XCTestCase {
         XCTAssertNil(FeatureFlags.shared.localOverride(for: "Flag A"))
     }
 
-    @MainActor
     func testLocalOverrideReturnsNilWhenFlagNeverOverridden() {
         // Overrides on, but this flag has no stored value.
         UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
@@ -59,7 +57,6 @@ final class FeatureFlagsTests: XCTestCase {
         XCTAssertNil(FeatureFlags.shared.localOverride(for: "Never Set"))
     }
 
-    @MainActor
     func testLocalOverrideReturnsTrueWhenSet() {
         UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
         UserDefaults.standard.set(true, forKey: FeatureToggle.localValueKey(for: "Flag B"))
@@ -67,7 +64,6 @@ final class FeatureFlagsTests: XCTestCase {
         XCTAssertEqual(FeatureFlags.shared.localOverride(for: "Flag B"), true)
     }
 
-    @MainActor
     func testLocalOverrideReturnsFalseWhenSet() {
         UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
         UserDefaults.standard.set(false, forKey: FeatureToggle.localValueKey(for: "Flag C"))
@@ -75,7 +71,6 @@ final class FeatureFlagsTests: XCTestCase {
         XCTAssertEqual(FeatureFlags.shared.localOverride(for: "Flag C"), false)
     }
 
-    @MainActor
     func testLocalOverrideRoundTripsThroughToggleKeyDerivation() {
         // Writing under the derived key for a spaced name must be readable via the accessor.
         UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
@@ -84,14 +79,14 @@ final class FeatureFlagsTests: XCTestCase {
         XCTAssertEqual(FeatureFlags.shared.localOverride(for: "New Dashboard"), true)
     }
 
-    func testLocalOverrideReadableFromDetachedTask() async {
-        // Proves the accessor is usable off the main actor: capture the Sendable instance on
-        // main, then read from a detached (non-main) task without a main-actor hop.
+    func testFacadeAndOverrideReadableFromDetachedTask() async {
+        // Proves the whole path is usable off the main actor with no main-actor hop:
+        // the `Scyther.featureFlags` facade is reachable from a detached (non-main) task and
+        // `localOverride(for:)` reads correctly there.
         UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
         UserDefaults.standard.set(true, forKey: FeatureToggle.localValueKey(for: "Off Main"))
 
-        let flags = await MainActor.run { FeatureFlags.shared }
-        let value = await Task.detached { flags.localOverride(for: "Off Main") }.value
+        let value = await Task.detached { Scyther.featureFlags.localOverride(for: "Off Main") }.value
 
         XCTAssertEqual(value, true)
     }
