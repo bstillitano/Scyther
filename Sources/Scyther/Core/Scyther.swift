@@ -289,13 +289,18 @@ internal func logMessage(_ msg: String) {
 /// ### Local Overrides
 /// - ``localOverridesEnabled``
 /// - ``setLocalValue(_:for:)``
+/// - ``localOverride(for:)``
 @MainActor
 public final class FeatureFlags: Sendable {
     /// The shared feature flags instance.
     public static let shared = FeatureFlags()
     private init() {}
 
-    private var defaultsKey: String { "scyther.featureFlags.overridesEnabled" }
+    /// The UserDefaults key backing ``localOverridesEnabled``.
+    ///
+    /// Exposed as a `nonisolated static let` so thread-safe accessors such as
+    /// ``localOverride(for:)`` can read it without hopping to the main actor.
+    nonisolated static let overridesEnabledKey = "scyther.featureFlags.overridesEnabled"
 
     /// All registered feature flags.
     ///
@@ -307,8 +312,8 @@ public final class FeatureFlags: Sendable {
     /// When `true`, the Scyther UI allows users to toggle feature flags locally.
     /// The ``isEnabled(_:)`` method will return local override values when available.
     public var localOverridesEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: defaultsKey) }
-        set { UserDefaults.standard.set(newValue, forKey: defaultsKey) }
+        get { UserDefaults.standard.bool(forKey: Self.overridesEnabledKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Self.overridesEnabledKey) }
     }
 
     /// Registers a feature flag.
@@ -358,6 +363,26 @@ public final class FeatureFlags: Sendable {
     /// Gets the remote value for a flag.
     internal func remoteValue(for name: String) -> Bool {
         all.first { $0.name == name }?.remoteValue ?? false
+    }
+}
+
+public extension FeatureFlags {
+    /// The developer's local override for `name`, or `nil` when global overrides are off or the
+    /// flag was never overridden.
+    ///
+    /// Safe to call from any thread or actor — it reads only `UserDefaults`-backed state
+    /// (``overridesEnabledKey`` and ``FeatureToggle/localValueKey(for:)``) and never touches the
+    /// main-actor-isolated registry. A `nil` result means "no override, use your own value":
+    /// the host app already supplies the base/remote value, so this returns only the override.
+    ///
+    /// - Parameter name: The flag name to read the override for.
+    /// - Returns: The overridden value, or `nil` when there is no active override.
+    nonisolated func localOverride(for name: String) -> Bool? {
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: Self.overridesEnabledKey) else { return nil }
+        let key = FeatureToggle.localValueKey(for: name)
+        guard defaults.object(forKey: key) != nil else { return nil }
+        return defaults.bool(forKey: key)
     }
 }
 
