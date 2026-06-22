@@ -109,6 +109,21 @@ class LogDetailsViewModel: ViewModel {
     /// The response body parsed as a browsable dictionary structure.
     @Published var responseBodyDictionary: [String: [String: Any]] = [:]
 
+    /// Whether the request is a GraphQL operation.
+    @Published var hasGraphQL: Bool = false
+
+    /// The GraphQL operation name.
+    @Published var graphQLOperationName: String = ""
+
+    /// The GraphQL operation type as a display string (e.g. "Query").
+    @Published var graphQLOperationType: String = ""
+
+    /// The GraphQL `variables` object as a browsable dictionary structure.
+    @Published var graphQLVariablesDictionary: [String: [String: Any]] = [:]
+
+    /// The request body parsed as a browsable dictionary structure.
+    @Published var requestBodyDictionary: [String: [String: Any]] = [:]
+
     /// The formatted request timestamp.
     @Published var requestTime: String = ""
 
@@ -170,6 +185,12 @@ class LogDetailsViewModel: ViewModel {
 
         requestBody = httpRequest.getRequestBody() as String? ?? ""
         hasRequestBody = !requestBody.isEmpty
+        requestBodyDictionary = httpRequest.getRequestBodyDictionary()
+
+        hasGraphQL = httpRequest.isGraphQL
+        graphQLOperationName = httpRequest.graphQLOperationName ?? "-"
+        graphQLOperationType = httpRequest.graphQLOperationType?.displayName ?? "-"
+        graphQLVariablesDictionary = httpRequest.getGraphQLVariablesDictionary()
 
         responseBody = httpRequest.getResponseBody() as String? ?? ""
         hasResponseBody = !responseBody.isEmpty
