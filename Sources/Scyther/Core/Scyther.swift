@@ -385,7 +385,7 @@ public extension FeatureFlags {
     ///
     /// - Parameter name: The flag name to read the override for.
     /// - Returns: The overridden value, or `nil` when there is no active override.
-    nonisolated func localOverride(for name: String) -> Bool? {
+    nonisolated public func localOverride(for name: String) -> Bool? {
         let defaults = UserDefaults.standard
         guard defaults.bool(forKey: Self.overridesEnabledKey) else { return nil }
         let key = FeatureToggle.localValueKey(for: name)
