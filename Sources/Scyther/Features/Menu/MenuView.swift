@@ -13,13 +13,13 @@ import SwiftUI
 /// organized into logical sections:
 /// - **Device**: Hardware and OS information
 /// - **Application**: App metadata and build details
+/// - **Development Tools**: Custom developer options configured via ``Scyther/developerOptions``
 /// - **Networking**: Network tools, logs, and configuration
 /// - **Data**: Feature flags, UserDefaults, cookies
 /// - **Security**: Keychain browser
 /// - **System Tools**: Location spoofer, console logs
 /// - **Notifications**: Notification logger and tester
 /// - **UI/UX**: Fonts, components, grid overlay, touch visualizer
-/// - **Development Tools**: Custom developer options configured via ``Scyther/developerOptions``
 ///
 /// The menu displays device information in a header and provides navigation
 /// to all sub-features.
@@ -88,7 +88,17 @@ public struct MenuView: View {
             } header: {
                 Text("Application")
             }
-            
+
+            if !Scyther.developerOptions.isEmpty {
+                Section {
+                    ForEach(Scyther.developerOptions, id: \.name) { option in
+                        developerOptionRow(option)
+                    }
+                } header: {
+                    Text("Development Tools")
+                }
+            }
+
             Section {
                 row(
                     withLabel: "IP Address",
@@ -242,16 +252,6 @@ public struct MenuView: View {
                 toggleRow("Show View Sizes", icon: "ruler", isOn: $viewModel.showViewSizes)
             } header: {
                 Text("UI/UX")
-            }
-            
-            if !Scyther.developerOptions.isEmpty {
-                Section {
-                    ForEach(Scyther.developerOptions, id: \.name) { option in
-                        developerOptionRow(option)
-                    }
-                } header: {
-                    Text("Development Tools")
-                }
             }
         }
         .toolbar {
