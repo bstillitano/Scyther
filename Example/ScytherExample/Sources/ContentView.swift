@@ -35,6 +35,7 @@ struct HomeView: View {
     @State private var userCount = 0
     @State private var postCount = 0
     @State private var productCount = 0
+    @State private var graphQLCount = 0
 
     var body: some View {
         NavigationStack {
@@ -69,6 +70,30 @@ struct HomeView: View {
                     .disabled(isLoading)
 
                     LabeledContent("Requests Made", value: "\(requestCount)")
+                }
+
+                Section {
+                    Button("Run GraphQL Query") {
+                        makeGraphQLQuery()
+                    }
+                    .disabled(isLoading)
+
+                    Button("Run GraphQL Mutation") {
+                        makeGraphQLMutation()
+                    }
+                    .disabled(isLoading)
+
+                    Button("Run Both GraphQL Operations") {
+                        makeGraphQLQuery()
+                        makeGraphQLMutation()
+                    }
+                    .disabled(isLoading)
+
+                    LabeledContent("GraphQL Calls", value: "\(graphQLCount)")
+                } header: {
+                    Text("GraphQL Demo")
+                } footer: {
+                    Text("Calls https://graphqlzero.almansi.me. Open Scyther → Networking → Network Logs to see the operation name and type.")
                 }
 
                 Section("User Defaults Demo") {
@@ -164,6 +189,68 @@ struct HomeView: View {
                 isLoading = false
             }
         }
+    }
+
+    // MARK: - GraphQL Demo Functions
+
+    /// The GraphQLZero demo endpoint. See https://graphqlzero.almansi.me
+    private static let graphQLEndpoint = URL(string: "https://graphqlzero.almansi.me/api")!
+
+    /// Builds a POST `URLRequest` carrying a standard GraphQL JSON payload.
+    private func graphQLRequest(operationName: String, query: String, variables: [String: Any]) -> URLRequest {
+        var request = URLRequest(url: Self.graphQLEndpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "operationName": operationName,
+            "query": query,
+            "variables": variables
+        ])
+        return request
+    }
+
+    /// Sends a prepared GraphQL request and bumps the counter on completion.
+    private func sendGraphQL(_ request: URLRequest) {
+        isLoading = true
+        Task {
+            let _ = try? await URLSession.shared.data(for: request)
+            await MainActor.run {
+                isLoading = false
+                graphQLCount += 1
+            }
+        }
+    }
+
+    /// Runs a named GraphQL query (`GetUser`) against the demo API.
+    private func makeGraphQLQuery() {
+        let query = """
+        query GetUser($id: ID!) {
+          user(id: $id) {
+            id
+            name
+            email
+          }
+        }
+        """
+        sendGraphQL(graphQLRequest(operationName: "GetUser", query: query, variables: ["id": 1]))
+    }
+
+    /// Runs a named GraphQL mutation (`CreatePost`) against the demo API.
+    private func makeGraphQLMutation() {
+        let query = """
+        mutation CreatePost($input: CreatePostInput!) {
+          createPost(input: $input) {
+            id
+            title
+            body
+          }
+        }
+        """
+        sendGraphQL(graphQLRequest(
+            operationName: "CreatePost",
+            query: query,
+            variables: ["input": ["title": "Scyther", "body": "Testing GraphQL logging"]]
+        ))
     }
 
     private func writeSampleUserDefaults() {

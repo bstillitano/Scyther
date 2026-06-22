@@ -325,9 +325,26 @@ Network requests are displayed in the Scyther UI under **Network Logs**. Each re
 
 - URL and HTTP method
 - Request/response headers
-- Request/response body (formatted for JSON)
+- Request/response body — both a structured **Browse** view (JSON tree) and a raw **View** view
 - Status code and timing
 - cURL command for reproduction
+
+#### GraphQL Support
+
+GraphQL operations are detected automatically — either by the request body shape (a JSON
+payload with a `query` field) or by a `graphql`/`gql` URL path. When a request is recognised
+as GraphQL:
+
+- **Request list**: the row shows the **operation name** with a coloured **query / mutation /
+  subscription** lozenge, instead of just the shared endpoint URL (the URL moves to a subtitle).
+  Batched operations show as `Batch (N operations)`.
+- **Request details**: a dedicated **GraphQL** section displays the operation name, type, and a
+  **Browse variables** link that opens the structured data browser on the operation's `variables`.
+- **Search**: the search field matches the GraphQL operation name in addition to URL, status
+  code, and method.
+
+Detection covers `POST` JSON request bodies; GraphQL-over-GET / persisted queries are not
+currently detected.
 
 #### Log Retention
 

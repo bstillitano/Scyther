@@ -246,6 +246,56 @@ final class HTTPRequestTests: XCTestCase {
         XCTAssertTrue(result.isEmpty)
     }
 
+    // MARK: - GraphQL Caching Tests
+
+    private func makeGraphQLRequest(url: String, body: String) -> HTTPRequest {
+        let model = HTTPRequest()
+        let mutable = NSMutableURLRequest(url: URL(string: url)!)
+        mutable.httpMethod = "POST"
+        mutable.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // `URLRequest.body` (used by saveRequestBody) reads the body stream or the
+        // "ScytherBodyData" URLProtocol property — the same mechanism the interceptor uses.
+        URLProtocol.setProperty(body.data(using: .utf8)!, forKey: "ScytherBodyData", in: mutable)
+        let request = mutable as URLRequest
+        model.saveRequest(request)
+        model.saveRequestBody(request)
+        return model
+    }
+
+    func testSaveRequestBodyCachesGraphQLMetadata() {
+        let model = makeGraphQLRequest(
+            url: "https://api.example.com/graphql",
+            body: #"{"operationName":"GetUser","query":"query GetUser { me { id } }"}"#
+        )
+        XCTAssertTrue(model.isGraphQL)
+        XCTAssertEqual(model.graphQLOperationName, "GetUser")
+        XCTAssertEqual(model.graphQLOperationType, .query)
+    }
+
+    func testSaveRequestBodyMarksNonGraphQL() {
+        let model = makeGraphQLRequest(
+            url: "https://api.example.com/users",
+            body: #"{"name":"John"}"#
+        )
+        XCTAssertFalse(model.isGraphQL)
+        XCTAssertNil(model.graphQLOperationName)
+        XCTAssertNil(model.graphQLOperationType)
+    }
+
+    func testGraphQLVariablesDictionaryWrapsVariables() {
+        let model = makeGraphQLRequest(
+            url: "https://api.example.com/graphql",
+            body: #"{"query":"query Q($id:ID!){ a }","variables":{"id":"42"}}"#
+        )
+        let dict = model.getGraphQLVariablesDictionary()
+        XCTAssertEqual((dict["Variables"]?["id"]) as? String, "42")
+    }
+
+    func testRequestBodyDictionaryEmptyWhenNoBody() {
+        let model = HTTPRequest()
+        XCTAssertTrue(model.getRequestBodyDictionary().isEmpty)
+    }
+
     // MARK: - Sendable Conformance Tests
 
     func testSendableConformance() async {

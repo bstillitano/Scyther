@@ -20,6 +20,7 @@ struct LogDetailsView: View {
     var body: some View {
         List {
             overviewSection
+            graphQLSection
             requestHeadersSection
             requestBodySection
             responseHeadersSection
@@ -48,6 +49,23 @@ struct LogDetailsView: View {
         }
     }
 
+    @ViewBuilder
+    private var graphQLSection: some View {
+        if viewModel.hasGraphQL {
+            Section("GraphQL") {
+                LabeledContent("Operation", value: viewModel.graphQLOperationName)
+                LabeledContent("Type", value: viewModel.graphQLOperationType)
+
+                if !viewModel.graphQLVariablesDictionary.isEmpty {
+                    NavigationLink("Browse variables") {
+                        DataBrowserView(data: viewModel.graphQLVariablesDictionary, title: "Variables")
+                    }
+                    .foregroundStyle(.tint)
+                }
+            }
+        }
+    }
+
     private var requestHeadersSection: some View {
         Section("Request Headers") {
             if viewModel.requestHeaders.isEmpty {
@@ -73,9 +91,15 @@ struct LogDetailsView: View {
     private var requestBodySection: some View {
         Section("Request Body") {
             if viewModel.hasRequestBody {
+                NavigationLink("Browse request body") {
+                    DataBrowserView(data: viewModel.requestBodyDictionary, title: "Request Body")
+                }
+                .foregroundStyle(.tint)
+
                 NavigationLink("View request body") {
                     TextReaderView(text: viewModel.requestBody, title: "Request Body")
                 }
+                .foregroundStyle(.tint)
             } else {
                 Text("No content sent")
                     .fontWeight(.bold)
