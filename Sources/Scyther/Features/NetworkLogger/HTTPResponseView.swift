@@ -33,10 +33,34 @@ struct HTTPRequestView: View {
                         .font(.caption)
                         .foregroundStyle(Color.gray)
                 }
-                HighlightingText(viewModel.url, substring: searchTerm)
-                    .font(.caption)
-                    .multilineTextAlignment(.leading)
-                    .frame(alignment: .leading)
+                if viewModel.isGraphQL {
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(viewModel.operationName)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .multilineTextAlignment(.leading)
+                            if let badge = viewModel.operationBadgeText {
+                                Text(badge)
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 1)
+                                    .background(viewModel.operationBadgeColor, in: RoundedRectangle(cornerRadius: 4))
+                            }
+                        }
+                        HighlightingText(viewModel.url, substring: searchTerm)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.leading)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    HighlightingText(viewModel.url, substring: searchTerm)
+                        .font(.caption)
+                        .multilineTextAlignment(.leading)
+                        .frame(alignment: .leading)
+                }
             }
             .padding(.vertical, 8)
         }
@@ -82,6 +106,31 @@ class HTTPRequestViewModel: ObservableObject {
             return .systemRed
         default:
             return .systemGray
+        }
+    }
+
+    /// Whether the underlying request is a GraphQL operation.
+    var isGraphQL: Bool {
+        request.isGraphQL
+    }
+
+    /// The GraphQL operation name, or `"-"` when unavailable.
+    var operationName: String {
+        request.graphQLOperationName ?? "-"
+    }
+
+    /// The uppercased badge text for the operation type, or `nil` (e.g. batched requests).
+    var operationBadgeText: String? {
+        request.graphQLOperationType?.badgeText
+    }
+
+    /// The lozenge colour for the operation type.
+    var operationBadgeColor: Color {
+        switch request.graphQLOperationType {
+        case .query: return .green
+        case .mutation: return .orange
+        case .subscription: return .purple
+        case .none: return .secondary
         }
     }
 }
