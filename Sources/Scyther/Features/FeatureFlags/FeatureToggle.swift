@@ -89,6 +89,10 @@ public struct FeatureToggle {
     /// When set, the value is persisted to UserDefaults. This allows developers to override
     /// feature flags during development and testing without modifying server configuration.
     ///
+    /// - Note: The getter returns `false` when no override has been stored. Use
+    ///   ``hasLocalOverride`` to distinguish "explicitly overridden to `false`" from
+    ///   "no override present".
+    ///
     /// - Complexity: O(1)
     public var localValue: Bool {
         get {
@@ -97,5 +101,26 @@ public struct FeatureToggle {
         set {
             UserDefaults.standard.setValue(newValue, forKey: defaultsKey)
         }
+    }
+
+    /// Whether a local override value has been explicitly stored for this toggle.
+    ///
+    /// Returns `true` only when a value has been written via ``localValue``. This is what
+    /// separates a real override of `false` from the absence of an override, allowing the UI
+    /// to present a distinct "Remote" state.
+    ///
+    /// - Complexity: O(1)
+    public var hasLocalOverride: Bool {
+        return UserDefaults.standard.object(forKey: defaultsKey) != nil
+    }
+
+    /// Removes any stored local override for this toggle.
+    ///
+    /// After calling this, ``hasLocalOverride`` returns `false` and the flag falls back to its
+    /// ``remoteValue``. This is used to represent the "Remote" state in the Scyther UI.
+    ///
+    /// - Complexity: O(1)
+    public func clearLocalValue() {
+        UserDefaults.standard.removeObject(forKey: defaultsKey)
     }
 }

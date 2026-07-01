@@ -12,10 +12,10 @@ import Combine
 ///
 /// This view provides a searchable list of all registered feature toggles with the ability to:
 /// - Enable/disable local overrides globally
-/// - Toggle individual feature flags on/off
+/// - Set each feature flag to True, False, or Remote via a dropdown menu
 /// - Pin frequently used toggles to the top
 /// - Search toggles by name
-/// - Restore all toggles to their remote values
+/// - Reset all toggles back to their remote values
 ///
 /// The view displays both remote and local values for each toggle, making it easy to see
 /// which features have been overridden during development.
@@ -43,8 +43,8 @@ struct FeatureFlagsView: View {
             Section("Global Settings") {
                 Toggle("Enable overrides", isOn: $viewModel.overridesEnabled)
 
-                Button("Restore remote values") {
-                    viewModel.restoreDefaults()
+                Button("Reset all to Remote") {
+                    viewModel.resetAllToRemote()
                 }
             }
 
@@ -112,7 +112,11 @@ struct FeatureFlagsView: View {
 
     @ViewBuilder
     private func toggleRow(for toggle: FeatureToggleItem) -> some View {
-        Toggle(isOn: viewModel.binding(for: toggle.name)) {
+        Picker(selection: viewModel.binding(for: toggle.name)) {
+            ForEach(FeatureToggleState.allCases) { state in
+                Text(state.displayName).tag(state)
+            }
+        } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(toggle.name)
                 Text("Remote: \(toggle.remoteValue ? "true" : "false")")
@@ -120,6 +124,7 @@ struct FeatureFlagsView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .pickerStyle(.menu)
     }
 }
 

@@ -293,6 +293,8 @@ internal func logMessage(_ msg: String) {
 /// ### Local Overrides
 /// - ``localOverridesEnabled``
 /// - ``setLocalValue(_:for:)``
+/// - ``clearLocalValue(for:)``
+/// - ``clearAllLocalValues()``
 /// - ``localOverride(for:)``
 @MainActor
 public final class FeatureFlags: Sendable {
@@ -344,13 +346,20 @@ public final class FeatureFlags: Sendable {
     /// - If ``localOverridesEnabled`` is `true` and a local override exists, returns the override.
     /// - Otherwise, returns the remote value.
     ///
+    /// A flag with no stored override (see ``FeatureToggle/hasLocalOverride``) always resolves to
+    /// its ``FeatureToggle/remoteValue``, even when overrides are enabled — this is the "Remote"
+    /// state surfaced in the Scyther UI.
+    ///
     /// - Parameter name: The flag name to check.
     /// - Returns: `true` if the flag is enabled, `false` otherwise. Returns `false` for unknown flags.
     public func isEnabled(_ name: String) -> Bool {
         guard let flag = all.first(where: { $0.name == name }) else {
             return false
         }
-        return localOverridesEnabled ? flag.value : flag.remoteValue
+        guard localOverridesEnabled, flag.hasLocalOverride else {
+            return flag.remoteValue
+        }
+        return flag.value
     }
 
     /// Sets the local override value for a flag.
@@ -363,9 +372,36 @@ public final class FeatureFlags: Sendable {
         flag.localValue = value
     }
 
+    /// Clears the local override for a flag, reverting it to its remote value.
+    ///
+    /// After calling this, ``isEnabled(_:)`` returns the flag's ``FeatureToggle/remoteValue``
+    /// and ``localOverride(for:)`` returns `nil` for this flag. Does nothing for unknown flags.
+    ///
+    /// - Parameter name: The flag name whose override should be removed.
+    public func clearLocalValue(for name: String) {
+        guard let flag = all.first(where: { $0.name == name }) else { return }
+        flag.clearLocalValue()
+    }
+
+    /// Clears the local overrides for every registered flag.
+    ///
+    /// This reverts all flags to their remote values in a single call. It is the bulk
+    /// equivalent of calling ``clearLocalValue(for:)`` for each registered flag.
+    public func clearAllLocalValues() {
+        for flag in all {
+            flag.clearLocalValue()
+        }
+    }
+
     /// Gets the local override value for a flag.
+    ///
+    /// - Returns: The stored override value, or `nil` when the flag is unknown or has no
+    ///   override stored (see ``FeatureToggle/hasLocalOverride``).
     internal func localValue(for name: String) -> Bool? {
-        all.first { $0.name == name }?.localValue
+        guard let flag = all.first(where: { $0.name == name }), flag.hasLocalOverride else {
+            return nil
+        }
+        return flag.localValue
     }
 
     /// Gets the remote value for a flag.

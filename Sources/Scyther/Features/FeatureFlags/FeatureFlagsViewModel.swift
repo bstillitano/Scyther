@@ -12,12 +12,13 @@ import Combine
 /// A view model item representing a single feature toggle in the list.
 ///
 /// This model encapsulates all the state needed to display and manage a feature toggle,
-/// including its local override value, remote value, and pinned status.
+/// including its override state, remote value, and pinned status.
 ///
 /// ## Features
 ///
 /// - Unique identification for list management
-/// - Local and remote value tracking
+/// - Three-state override tracking (True / False / Remote)
+/// - Remote value tracking
 /// - Pin state management for organizing frequently used toggles
 ///
 /// ## Usage
@@ -25,7 +26,7 @@ import Combine
 /// ```swift
 /// let toggle = FeatureToggleItem(
 ///     name: "darkMode",
-///     localValue: true,
+///     state: .on,
 ///     remoteValue: false,
 ///     isPinned: true
 /// )
@@ -36,7 +37,7 @@ import Combine
 /// ### Properties
 /// - ``id``
 /// - ``name``
-/// - ``localValue``
+/// - ``state``
 /// - ``remoteValue``
 /// - ``isPinned``
 struct FeatureToggleItem: Identifiable {
@@ -46,8 +47,8 @@ struct FeatureToggleItem: Identifiable {
     /// The name of the feature toggle.
     let name: String
 
-    /// The local override value.
-    var localValue: Bool
+    /// The selected override state (True / False / Remote).
+    var state: FeatureToggleState
 
     /// The remote value from the server.
     let remoteValue: Bool
@@ -85,7 +86,12 @@ struct FeatureToggleItem: Identifiable {
 ///         List {
 ///             Toggle("Enable overrides", isOn: $viewModel.overridesEnabled)
 ///             ForEach(viewModel.pinnedToggles) { toggle in
-///                 Toggle(toggle.name, isOn: viewModel.binding(for: toggle.name))
+///                 Picker(toggle.name, selection: viewModel.binding(for: toggle.name)) {
+///                     ForEach(FeatureToggleState.allCases) { state in
+///                         Text(state.displayName).tag(state)
+///                     }
+///                 }
+///                 .pickerStyle(.menu)
 ///             }
 ///         }
 ///         .onFirstAppear {
@@ -113,10 +119,10 @@ struct FeatureToggleItem: Identifiable {
 /// - ``unpinnedToggles``
 ///
 /// ### Toggle Operations
-/// - ``setLocalValue(_:forToggle:)``
+/// - ``setState(_:forToggle:)``
 /// - ``binding(for:)``
 /// - ``togglePin(for:)``
-/// - ``restoreDefaults()``
+/// - ``resetAllToRemote()``
 ///
 /// ### Lifecycle
 /// - ``onFirstAppear()``
@@ -198,53 +204,81 @@ class FeatureFlagsViewModel: ViewModel {
             .map { toggle in
                 FeatureToggleItem(
                     name: toggle.name,
-                    localValue: Scyther.featureFlags.localValue(for: toggle.name) ?? toggle.remoteValue,
+                    state: Self.state(forLocalValue: Scyther.featureFlags.localValue(for: toggle.name)),
                     remoteValue: toggle.remoteValue,
                     isPinned: pinned.contains(toggle.name)
                 )
             }
     }
 
-    /// Sets the local override value for a specific toggle.
+    /// Maps a stored local override value to a ``FeatureToggleState``.
+    ///
+    /// A `nil` value means no override is present, which maps to ``FeatureToggleState/remote``.
+    ///
+    /// - Parameter localValue: The stored override, or `nil` when none exists.
+    /// - Returns: The corresponding three-state value.
+    private static func state(forLocalValue localValue: Bool?) -> FeatureToggleState {
+        switch localValue {
+        case .some(true): return .on
+        case .some(false): return .off
+        case .none: return .remote
+        }
+    }
+
+    /// Sets the override state for a specific toggle.
     ///
     /// This method updates both the underlying ``Scyther/featureFlags`` subsystem
-    /// and the view model's ``toggles`` array to keep the UI in sync.
+    /// and the view model's ``toggles`` array to keep the UI in sync. Selecting
+    /// ``FeatureToggleState/remote`` clears the flag's local override; selecting
+    /// ``FeatureToggleState/on`` or ``FeatureToggleState/off`` stores an override.
     ///
     /// - Parameters:
-    ///   - value: The new local value.
+    ///   - state: The new override state.
     ///   - name: The name of the toggle to update.
     ///
     /// - Note: This method is marked `@MainActor` to ensure UI updates happen
     ///   on the main thread.
     @MainActor
-    func setLocalValue(_ value: Bool, forToggle name: String) {
-        Scyther.featureFlags.setLocalValue(value, for: name)
+    func setState(_ state: FeatureToggleState, forToggle name: String) {
+        switch state {
+        case .on:
+            Scyther.featureFlags.setLocalValue(true, for: name)
+        case .off:
+            Scyther.featureFlags.setLocalValue(false, for: name)
+        case .remote:
+            Scyther.featureFlags.clearLocalValue(for: name)
+        }
         if let index = toggles.firstIndex(where: { $0.name == name }) {
-            toggles[index].localValue = value
+            toggles[index].state = state
         }
     }
 
-    /// Creates a binding for a toggle's local value.
+    /// Creates a binding for a toggle's override state.
     ///
     /// This method returns a two-way binding that can be used with SwiftUI's
-    /// `Toggle` view. The binding reads from ``toggles`` and writes via
-    /// ``setLocalValue(_:forToggle:)``.
+    /// `Picker` view. The binding reads from ``toggles`` and writes via
+    /// ``setState(_:forToggle:)``.
     ///
     /// - Parameter name: The name of the toggle.
-    /// - Returns: A binding that reads and writes the toggle's local value.
+    /// - Returns: A binding that reads and writes the toggle's override state.
     ///
     /// ## Usage
     ///
     /// ```swift
-    /// Toggle(toggle.name, isOn: viewModel.binding(for: toggle.name))
+    /// Picker(toggle.name, selection: viewModel.binding(for: toggle.name)) {
+    ///     ForEach(FeatureToggleState.allCases) { state in
+    ///         Text(state.displayName).tag(state)
+    ///     }
+    /// }
+    /// .pickerStyle(.menu)
     /// ```
-    func binding(for name: String) -> Binding<Bool> {
+    func binding(for name: String) -> Binding<FeatureToggleState> {
         Binding(
             get: {
-                self.toggles.first { $0.name == name }?.localValue ?? false
+                self.toggles.first { $0.name == name }?.state ?? .remote
             },
-            set: { newValue in
-                self.setLocalValue(newValue, forToggle: name)
+            set: { newState in
+                self.setState(newState, forToggle: name)
             }
         )
     }
@@ -272,19 +306,18 @@ class FeatureFlagsViewModel: ViewModel {
         toggles[index].isPinned.toggle()
     }
 
-    /// Restores all toggles to their remote values.
+    /// Resets every toggle to its remote value.
     ///
-    /// This method resets all local overrides, setting each toggle's local value
-    /// to match its remote value from the server. After restoration, it reloads
-    /// the toggles to refresh the UI state.
+    /// This method clears all local overrides via ``FeatureFlags/clearAllLocalValues()``,
+    /// setting every toggle's state to ``FeatureToggleState/remote``. After clearing, it
+    /// reloads the toggles to refresh the UI state. It is the bulk equivalent of selecting
+    /// "Remote" on every individual toggle.
     ///
     /// - Note: This operation affects all toggles regardless of their current
-    ///   local override values.
+    ///   override state.
     @MainActor
-    func restoreDefaults() {
-        for toggle in Scyther.featureFlags.all {
-            Scyther.featureFlags.setLocalValue(toggle.remoteValue, for: toggle.name)
-        }
+    func resetAllToRemote() {
+        Scyther.featureFlags.clearAllLocalValues()
         Task {
             await loadToggles()
         }

@@ -231,7 +231,18 @@ Scyther.featureFlags.localOverridesEnabled = true
 
 // Programmatically set a local override
 Scyther.featureFlags.setLocalValue(true, for: "dark_mode_v2")
+
+// Clear a single override, reverting the flag to its remote value
+Scyther.featureFlags.clearLocalValue(for: "dark_mode_v2")
+
+// Clear every override at once
+Scyther.featureFlags.clearAllLocalValues()
 ```
+
+In the Scyther UI, each flag is controlled by a **True / False / Remote** dropdown menu.
+Choosing **Remote** clears that flag's local override so it follows its remote value, and the
+**Reset all to Remote** button clears every override in one tap. The **Enable overrides** toggle
+at the top gates whether these local values are applied by `isEnabled(_:)`.
 
 #### Reading an Override Off the Main Actor
 

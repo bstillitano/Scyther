@@ -106,6 +106,41 @@ final class FeatureToggleTests: XCTestCase {
         XCTAssertFalse(toggle.localValue)
     }
 
+    // MARK: - Override Presence Tests
+
+    func testHasLocalOverrideFalseWhenNeverSet() {
+        let toggle = FeatureToggle(name: "No Override", remoteValue: true)
+        XCTAssertFalse(toggle.hasLocalOverride)
+    }
+
+    func testHasLocalOverrideTrueAfterSettingTrue() {
+        var toggle = FeatureToggle(name: "Override True", remoteValue: false)
+        toggle.localValue = true
+        XCTAssertTrue(toggle.hasLocalOverride)
+    }
+
+    func testHasLocalOverrideTrueAfterSettingFalse() {
+        // Explicitly storing `false` must count as an override, distinct from "never set".
+        var toggle = FeatureToggle(name: "Override False", remoteValue: true)
+        toggle.localValue = false
+        XCTAssertTrue(toggle.hasLocalOverride)
+    }
+
+    func testClearLocalValueRemovesOverride() {
+        var toggle = FeatureToggle(name: "Clearable", remoteValue: true)
+        toggle.localValue = false
+        XCTAssertTrue(toggle.hasLocalOverride)
+
+        toggle.clearLocalValue()
+        XCTAssertFalse(toggle.hasLocalOverride)
+    }
+
+    func testClearLocalValueIsNoOpWhenNoOverride() {
+        let toggle = FeatureToggle(name: "Never Overridden", remoteValue: true)
+        toggle.clearLocalValue()
+        XCTAssertFalse(toggle.hasLocalOverride)
+    }
+
     // MARK: - Value (Computed) Tests
 
     func testValueReturnsLocalValueWhenNoABValue() {

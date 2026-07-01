@@ -79,6 +79,64 @@ final class FeatureFlagsTests: XCTestCase {
         XCTAssertEqual(FeatureFlags.shared.localOverride(for: "New Dashboard"), true)
     }
 
+    // MARK: - clearLocalValue(for:) Tests
+
+    @MainActor
+    func testClearLocalValueRevertsToRemote() {
+        UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
+        let flags = FeatureFlags.shared
+        flags.register("Clearable Flag", remoteValue: true)
+        flags.setLocalValue(false, for: "Clearable Flag")
+        XCTAssertEqual(flags.localOverride(for: "Clearable Flag"), false)
+
+        flags.clearLocalValue(for: "Clearable Flag")
+
+        // Override gone, so isEnabled falls back to the remote value.
+        XCTAssertNil(flags.localOverride(for: "Clearable Flag"))
+        XCTAssertTrue(flags.isEnabled("Clearable Flag"))
+    }
+
+    @MainActor
+    func testClearLocalValueIsNoOpForUnknownFlag() {
+        // Should not crash or affect other flags.
+        FeatureFlags.shared.clearLocalValue(for: "Does Not Exist")
+        XCTAssertNil(FeatureFlags.shared.localOverride(for: "Does Not Exist"))
+    }
+
+    // MARK: - clearAllLocalValues() Tests
+
+    @MainActor
+    func testClearAllLocalValuesClearsEveryFlag() {
+        UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
+        let flags = FeatureFlags.shared
+        flags.register("Flag One", remoteValue: false)
+        flags.register("Flag Two", remoteValue: true)
+        flags.setLocalValue(true, for: "Flag One")
+        flags.setLocalValue(false, for: "Flag Two")
+
+        flags.clearAllLocalValues()
+
+        XCTAssertNil(flags.localOverride(for: "Flag One"))
+        XCTAssertNil(flags.localOverride(for: "Flag Two"))
+    }
+
+    // MARK: - localValue(for:) Tests
+
+    @MainActor
+    func testLocalValueForReturnsNilWhenNoOverride() {
+        let flags = FeatureFlags.shared
+        flags.register("Unset Local", remoteValue: true)
+        XCTAssertNil(flags.localValue(for: "Unset Local"))
+    }
+
+    @MainActor
+    func testLocalValueForReturnsStoredOverride() {
+        let flags = FeatureFlags.shared
+        flags.register("Set Local", remoteValue: true)
+        flags.setLocalValue(false, for: "Set Local")
+        XCTAssertEqual(flags.localValue(for: "Set Local"), false)
+    }
+
     func testFacadeAndOverrideReadableFromDetachedTask() async {
         // Proves the whole path is usable off the main actor with no main-actor hop:
         // the `Scyther.featureFlags` facade is reachable from a detached (non-main) task and
