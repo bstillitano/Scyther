@@ -112,19 +112,26 @@ struct FeatureFlagsView: View {
 
     @ViewBuilder
     private func toggleRow(for toggle: FeatureToggleItem) -> some View {
-        Picker(selection: viewModel.binding(for: toggle.name)) {
-            ForEach(FeatureToggleState.allCases) { state in
-                Text(state.displayName).tag(state)
-            }
-        } label: {
+        HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(toggle.name)
                 Text("Remote: \(toggle.remoteValue ? "true" : "false")")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Picker(selection: viewModel.binding(for: toggle.name)) {
+                ForEach(FeatureToggleState.allCases) { state in
+                    Text(state.displayName).tag(state)
+                }
+            } label: {
+                EmptyView()
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .fixedSize()
         }
-        .pickerStyle(.menu)
     }
 }
 
