@@ -61,6 +61,12 @@ enum MenuItem: Hashable, Identifiable {
     case version, buildNumber, buildDate, releaseType
 
     // Development Tools
+
+    /// A host-supplied row from `Scyther.developerOptions`, identified by its ``DeveloperOption/name``.
+    ///
+    /// - Note: Because the pin identifier is derived from `name` (see ``id``), renaming a
+    ///   developer option in the host app silently drops any pin on it — the old identifier
+    ///   no longer resolves via ``init(id:)``, and behaves like any other stale pin.
     case developerOption(name: String)
 
     // Networking

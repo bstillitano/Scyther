@@ -76,6 +76,7 @@ import SwiftUI
 /// ### Lifecycle
 ///
 /// - ``onFirstAppear()``
+/// - ``onSubsequentAppear()``
 @MainActor
 class MenuViewModel: ViewModel {
     // MARK: - Menu Structure
@@ -171,6 +172,20 @@ class MenuViewModel: ViewModel {
         defaults.set(pinnedItemIDs, forKey: Self.pinnedItemsKey)
     }
 
+    /// Re-reads ``pinnedItemIDs`` from ``defaults``.
+    ///
+    /// `MenuView` sits at the root of a `UINavigationController` (see `Scyther.hideMenu()`
+    /// and `Scyther.showMenu()`), so its `@StateObject MenuViewModel` survives pushing into,
+    /// and popping back from, other screens — including the UserDefaults browser. Without
+    /// this, a "Reset all Scyther settings" or a hand-edit of `Scyther.Menu.PinnedItems`
+    /// performed while the menu is off screen would go unnoticed: ``pinnedItemIDs`` would
+    /// keep reflecting whatever was in memory when the view model was created, and the next
+    /// ``togglePin(for:)`` would write that stale array straight back to disk, undoing the
+    /// reset.
+    private func reloadPinnedItemIDs() {
+        pinnedItemIDs = defaults.stringArray(forKey: Self.pinnedItemsKey) ?? []
+    }
+
     // MARK: - Network Properties
 
     /// The device's current IP address.
@@ -240,6 +255,22 @@ class MenuViewModel: ViewModel {
         await super.onFirstAppear()
 
         await loadIPAddress()
+    }
+
+    /// Called every time the menu reappears after the first time.
+    ///
+    /// Reloads ``pinnedItemIDs`` from ``defaults`` — see ``reloadPinnedItemIDs()`` — so pins
+    /// changed while the menu was off screen (a reset of the Scyther store, or a hand-edit of
+    /// `Scyther.Menu.PinnedItems` in the UserDefaults browser) are reflected immediately on
+    /// return. Deliberately does not re-run ``loadIPAddress()``, which stays confined to
+    /// ``onFirstAppear()``.
+    ///
+    /// - Important: Always call `await super.onSubsequentAppear()` to ensure proper lifecycle
+    ///   tracking.
+    override func onSubsequentAppear() async {
+        await super.onSubsequentAppear()
+
+        reloadPinnedItemIDs()
     }
 
     // MARK: - Private Methods

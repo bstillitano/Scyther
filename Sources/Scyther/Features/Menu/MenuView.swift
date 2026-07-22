@@ -78,6 +78,9 @@ public struct MenuView: View {
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }
+        .onSubsequentAppear {
+            await viewModel.onSubsequentAppear()
+        }
         .navigationTitle("Scyther")
         .interactiveDismissDisabled()
     }

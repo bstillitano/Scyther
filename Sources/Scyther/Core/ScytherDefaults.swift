@@ -108,6 +108,11 @@ internal enum ScytherDefaults {
     /// - Note: `dictionaryRepresentation()` also returns inherited global-domain keys. That
     ///   is harmless here because no `NSGlobalDomain` key carries the `scyther` prefix, so
     ///   the filter excludes them.
+    ///
+    /// - Warning: The `scyther` prefix match is name-based, not ownership-based: a key a host
+    ///   app happens to store under a `scyther`-prefixed name in `source` is indistinguishable
+    ///   from one Scyther itself wrote, and is relocated (and removed from `source`) the same
+    ///   way. This is the one path where Scyther touches data it did not write.
     static func migrate(from source: UserDefaults, to destination: UserDefaults) {
         let legacyKeys = source.dictionaryRepresentation().keys
             .filter { $0.lowercased().hasPrefix(keyPrefix) }

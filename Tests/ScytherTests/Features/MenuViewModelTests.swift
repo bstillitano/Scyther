@@ -230,6 +230,44 @@ final class MenuViewModelTests: XCTestCase {
         }
     }
 
+    // MARK: - Reloading pin state on reappearance
+
+    func testPinnedItemIDsReloadOnSubsequentAppear() async {
+        defer { wipeDefaults() }
+        let defaults = makeDefaults()
+
+        let viewModel = MenuViewModel(defaults: defaults)
+        viewModel.togglePin(for: .fonts)
+        XCTAssertEqual(viewModel.pinnedItemIDs, ["fonts"])
+
+        // Simulate the pin state changing underneath this view model while the menu is off
+        // screen -- e.g. "Reset all Scyther settings" in the UserDefaults browser, or a
+        // hand-edit of `Scyther.Menu.PinnedItems`. The view model's `@StateObject` survives
+        // this because `MenuView` sits at the root of a `UINavigationController`.
+        defaults.removeObject(forKey: MenuViewModel.pinnedItemsKey)
+
+        await viewModel.onSubsequentAppear()
+
+        XCTAssertTrue(
+            viewModel.pinnedItemIDs.isEmpty,
+            "Reappearing after the underlying store changed should reload pin state from disk"
+        )
+    }
+
+    func testPinnedItemIDsDoNotChangeBeforeTheFirstSubsequentAppear() {
+        defer { wipeDefaults() }
+        let defaults = makeDefaults()
+
+        let viewModel = MenuViewModel(defaults: defaults)
+        viewModel.togglePin(for: .fonts)
+
+        // A change made to the backing store between init and the first reappearance should
+        // not retroactively alter in-memory state until `onSubsequentAppear()` actually runs.
+        defaults.removeObject(forKey: MenuViewModel.pinnedItemsKey)
+
+        XCTAssertEqual(viewModel.pinnedItemIDs, ["fonts"])
+    }
+
     func testIsPinnedAgreesWithPinnedItemIdentifiers() {
         defer { wipeDefaults() }
         let viewModel = MenuViewModel(defaults: makeDefaults())

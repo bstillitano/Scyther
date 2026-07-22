@@ -125,7 +125,7 @@ struct UserDefaultsView: View {
         switch item.valueType {
         case .array(let data):
             NavigationLink {
-                UserDefaultsArrayView(key: item.key, items: data, rootKey: item.key, keyPath: []) {
+                UserDefaultsArrayView(key: item.key, items: data, store: viewModel.store, rootKey: item.key, keyPath: []) {
                     Task { await viewModel.loadDefaults() }
                 }
             } label: {
@@ -134,7 +134,7 @@ struct UserDefaultsView: View {
 
         case .dictionary(let data):
             NavigationLink {
-                UserDefaultsDictionaryView(key: item.key, dictionary: data, rootKey: item.key, keyPath: []) {
+                UserDefaultsDictionaryView(key: item.key, dictionary: data, store: viewModel.store, rootKey: item.key, keyPath: []) {
                     Task { await viewModel.loadDefaults() }
                 }
             } label: {
@@ -200,13 +200,22 @@ struct UserDefaultsView: View {
 struct UserDefaultsArrayView: View {
     let key: String
     let items: [Any]
+
+    /// The store `rootKey` lives in.
+    ///
+    /// Read and write nested edits against this store rather than `UserDefaults.standard` —
+    /// the array being browsed may belong to Scyther's private suite. Threaded through every
+    /// recursive construction of ``UserDefaultsArrayView`` and ``UserDefaultsDictionaryView``
+    /// so a deeply nested edit always lands back in the store it was read from.
+    let store: DefaultsStore
     let rootKey: String
     let keyPath: [Any] // Can be String (dict key) or Int (array index)
     let onUpdate: () -> Void
 
-    init(key: String, items: [Any], rootKey: String? = nil, keyPath: [Any] = [], onUpdate: @escaping () -> Void = {}) {
+    init(key: String, items: [Any], store: DefaultsStore, rootKey: String? = nil, keyPath: [Any] = [], onUpdate: @escaping () -> Void = {}) {
         self.key = key
         self.items = items
+        self.store = store
         self.rootKey = rootKey ?? key
         self.keyPath = keyPath
         self.onUpdate = onUpdate
@@ -239,14 +248,14 @@ struct UserDefaultsArrayView: View {
         switch valueType {
         case .array(let nestedArray):
             NavigationLink {
-                UserDefaultsArrayView(key: "[\(index)]", items: nestedArray, rootKey: rootKey, keyPath: childPath, onUpdate: onUpdate)
+                UserDefaultsArrayView(key: "[\(index)]", items: nestedArray, store: store, rootKey: rootKey, keyPath: childPath, onUpdate: onUpdate)
             } label: {
                 LabeledContent("[\(index)]", value: displayValue)
             }
 
         case .dictionary(let nestedDict):
             NavigationLink {
-                UserDefaultsDictionaryView(key: "[\(index)]", dictionary: nestedDict, rootKey: rootKey, keyPath: childPath, onUpdate: onUpdate)
+                UserDefaultsDictionaryView(key: "[\(index)]", dictionary: nestedDict, store: store, rootKey: rootKey, keyPath: childPath, onUpdate: onUpdate)
             } label: {
                 LabeledContent("[\(index)]", value: displayValue)
             }
@@ -290,9 +299,9 @@ struct UserDefaultsArrayView: View {
     }
 
     private func updateNestedValue(_ newValue: Any, at path: [Any]) {
-        guard var rootValue = UserDefaults.standard.object(forKey: rootKey) else { return }
+        guard var rootValue = store.defaults.object(forKey: rootKey) else { return }
         rootValue = setNestedValue(in: rootValue, at: path, to: newValue)
-        UserDefaults.standard.set(rootValue, forKey: rootKey)
+        store.defaults.set(rootValue, forKey: rootKey)
         onUpdate()
     }
 
@@ -327,13 +336,23 @@ struct UserDefaultsArrayView: View {
 struct UserDefaultsDictionaryView: View {
     let key: String
     let dictionary: [String: Any]
+
+    /// The store `rootKey` lives in.
+    ///
+    /// Read and write nested edits against this store rather than `UserDefaults.standard` —
+    /// the dictionary being browsed may belong to Scyther's private suite. Threaded through
+    /// every recursive construction of ``UserDefaultsArrayView`` and
+    /// ``UserDefaultsDictionaryView`` so a deeply nested edit always lands back in the store
+    /// it was read from.
+    let store: DefaultsStore
     let rootKey: String
     let keyPath: [Any]
     let onUpdate: () -> Void
 
-    init(key: String, dictionary: [String: Any], rootKey: String? = nil, keyPath: [Any] = [], onUpdate: @escaping () -> Void = {}) {
+    init(key: String, dictionary: [String: Any], store: DefaultsStore, rootKey: String? = nil, keyPath: [Any] = [], onUpdate: @escaping () -> Void = {}) {
         self.key = key
         self.dictionary = dictionary
+        self.store = store
         self.rootKey = rootKey ?? key
         self.keyPath = keyPath
         self.onUpdate = onUpdate
@@ -372,14 +391,14 @@ struct UserDefaultsDictionaryView: View {
         switch valueType {
         case .array(let nestedArray):
             NavigationLink {
-                UserDefaultsArrayView(key: rowKey, items: nestedArray, rootKey: rootKey, keyPath: childPath, onUpdate: onUpdate)
+                UserDefaultsArrayView(key: rowKey, items: nestedArray, store: store, rootKey: rootKey, keyPath: childPath, onUpdate: onUpdate)
             } label: {
                 LabeledContent(rowKey, value: displayValue)
             }
 
         case .dictionary(let nestedDict):
             NavigationLink {
-                UserDefaultsDictionaryView(key: rowKey, dictionary: nestedDict, rootKey: rootKey, keyPath: childPath, onUpdate: onUpdate)
+                UserDefaultsDictionaryView(key: rowKey, dictionary: nestedDict, store: store, rootKey: rootKey, keyPath: childPath, onUpdate: onUpdate)
             } label: {
                 LabeledContent(rowKey, value: displayValue)
             }
@@ -423,9 +442,9 @@ struct UserDefaultsDictionaryView: View {
     }
 
     private func updateNestedValue(_ newValue: Any, at path: [Any]) {
-        guard var rootValue = UserDefaults.standard.object(forKey: rootKey) else { return }
+        guard var rootValue = store.defaults.object(forKey: rootKey) else { return }
         rootValue = setNestedValue(in: rootValue, at: path, to: newValue)
-        UserDefaults.standard.set(rootValue, forKey: rootKey)
+        store.defaults.set(rootValue, forKey: rootKey)
         onUpdate()
     }
 

@@ -168,7 +168,9 @@ Versions before this change stored settings in `UserDefaults.standard`. The firs
 Scyther's store is accessed it moves every key prefixed `scyther` (case-insensitive) out of
 the standard store and into the suite, skipping any key the suite already has a value for,
 then records that it has done so. Existing overrides and preferences carry across
-automatically, and your app's standard domain is left cleaner than it was.
+automatically, and your app's standard domain is left cleaner than it was. This prefix match
+is the one place migration touches data it did not write itself: a key your own app happens
+to store under a `scyther`-prefixed name would also be moved.
 
 You can inspect and edit the suite from **Data → UserDefaults**, using the store picker at
 the top of the screen.
