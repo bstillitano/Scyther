@@ -87,25 +87,25 @@ public final class LocationSpoofer: CLLocationManager, @unchecked Sendable {
     // MARK: - Nonisolated Read Accessors (UserDefaults is thread-safe)
     public nonisolated var spoofingEnabled: Bool {
         get {
-            UserDefaults.standard.bool(forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
+            UserDefaults.scyther.bool(forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
         }
         set {
-            UserDefaults.standard.setValue(newValue, forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
+            UserDefaults.scyther.setValue(newValue, forKey: LocationSpoofer.LocationSpoofingEnabledDefaultsKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingEnabledChangeNotification, object: newValue)
         }
     }
     public nonisolated var useCustomLocation: Bool {
         get {
-            UserDefaults.standard.bool(forKey: LocationSpoofer.LocationSpoofingCustomLocationEnabledDefaultsKey)
+            UserDefaults.scyther.bool(forKey: LocationSpoofer.LocationSpoofingCustomLocationEnabledDefaultsKey)
         } set {
-            UserDefaults.standard.setValue(newValue, forKey: LocationSpoofer.LocationSpoofingCustomLocationEnabledDefaultsKey)
+            UserDefaults.scyther.setValue(newValue, forKey: LocationSpoofer.LocationSpoofingCustomLocationEnabledDefaultsKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification, object: newValue)
         }
     }
     public nonisolated var customLocation: Location {
         get {
-            let latitude = UserDefaults.standard.value(forKey: LocationSpoofer.LocationSpoofingCustomLatitudeKey) as? Double
-            let longitude = UserDefaults.standard.value(forKey: LocationSpoofer.LocationSpoofingCustomLongitudeKey) as? Double
+            let latitude = UserDefaults.scyther.value(forKey: LocationSpoofer.LocationSpoofingCustomLatitudeKey) as? Double
+            let longitude = UserDefaults.scyther.value(forKey: LocationSpoofer.LocationSpoofingCustomLongitudeKey) as? Double
             return Location(id: "custom",
                             name: "Custom Location",
                             latitude: latitude ?? .zero,
@@ -113,12 +113,12 @@ public final class LocationSpoofer: CLLocationManager, @unchecked Sendable {
         }
         set {
             // Clear route when setting custom location
-            UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
+            UserDefaults.scyther.removeObject(forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
             // Set custom location
-            UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingCustomLatitudeKey)
-            UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingCustomLongitudeKey)
-            UserDefaults.standard.setValue(newValue.latitude, forKey: LocationSpoofer.LocationSpoofingCustomLatitudeKey)
-            UserDefaults.standard.setValue(newValue.longitude, forKey: LocationSpoofer.LocationSpoofingCustomLongitudeKey)
+            UserDefaults.scyther.removeObject(forKey: LocationSpoofer.LocationSpoofingCustomLatitudeKey)
+            UserDefaults.scyther.removeObject(forKey: LocationSpoofer.LocationSpoofingCustomLongitudeKey)
+            UserDefaults.scyther.setValue(newValue.latitude, forKey: LocationSpoofer.LocationSpoofingCustomLatitudeKey)
+            UserDefaults.scyther.setValue(newValue.longitude, forKey: LocationSpoofer.LocationSpoofingCustomLongitudeKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification, object: newValue)
         }
     }
@@ -127,36 +127,36 @@ public final class LocationSpoofer: CLLocationManager, @unchecked Sendable {
             if useCustomLocation {
                 return customLocation
             } else {
-                let latitude = UserDefaults.standard.value(forKey: LocationSpoofer.LocationSpoofingLatitudeKey) as? Double
-                let longitude = UserDefaults.standard.value(forKey: LocationSpoofer.LocationSpoofingLongitudeKey) as? Double
+                let latitude = UserDefaults.scyther.value(forKey: LocationSpoofer.LocationSpoofingLatitudeKey) as? Double
+                let longitude = UserDefaults.scyther.value(forKey: LocationSpoofer.LocationSpoofingLongitudeKey) as? Double
                 return Self.presetLocationsList.first(where: { $0.latitude == latitude && $0.longitude == longitude }) ?? .sydney
             }
         }
         set {
             // Clear other modes
-            UserDefaults.standard.setValue(false, forKey: LocationSpoofer.LocationSpoofingCustomLocationEnabledDefaultsKey)
-            UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
+            UserDefaults.scyther.setValue(false, forKey: LocationSpoofer.LocationSpoofingCustomLocationEnabledDefaultsKey)
+            UserDefaults.scyther.removeObject(forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
             // Set location
-            UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingLatitudeKey)
-            UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingLongitudeKey)
-            UserDefaults.standard.setValue(newValue.latitude, forKey: LocationSpoofer.LocationSpoofingLatitudeKey)
-            UserDefaults.standard.setValue(newValue.longitude, forKey: LocationSpoofer.LocationSpoofingLongitudeKey)
+            UserDefaults.scyther.removeObject(forKey: LocationSpoofer.LocationSpoofingLatitudeKey)
+            UserDefaults.scyther.removeObject(forKey: LocationSpoofer.LocationSpoofingLongitudeKey)
+            UserDefaults.scyther.setValue(newValue.latitude, forKey: LocationSpoofer.LocationSpoofingLatitudeKey)
+            UserDefaults.scyther.setValue(newValue.longitude, forKey: LocationSpoofer.LocationSpoofingLongitudeKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification, object: newValue)
         }
     }
     public nonisolated var spoofedRoute: Route? {
         get {
-            return Self.presetRoutesList.first(where: { $0.id == UserDefaults.standard.string(forKey: LocationSpoofer.LocationSpoofingRouteIdKey) })
+            return Self.presetRoutesList.first(where: { $0.id == UserDefaults.scyther.string(forKey: LocationSpoofer.LocationSpoofingRouteIdKey) })
         }
         set {
             // Clear other modes
-            UserDefaults.standard.setValue(false, forKey: LocationSpoofer.LocationSpoofingCustomLocationEnabledDefaultsKey)
+            UserDefaults.scyther.setValue(false, forKey: LocationSpoofer.LocationSpoofingCustomLocationEnabledDefaultsKey)
 
             guard let newValue = newValue else {
-                UserDefaults.standard.removeObject(forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
+                UserDefaults.scyther.removeObject(forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
                 return
             }
-            UserDefaults.standard.setValue(newValue.id, forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
+            UserDefaults.scyther.setValue(newValue.id, forKey: LocationSpoofer.LocationSpoofingRouteIdKey)
             NotificationCenter.default.post(name: LocationSpoofer.LocationSpoofingLocationChangeNotification,
                                             object: newValue)
         }

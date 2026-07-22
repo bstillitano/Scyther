@@ -185,7 +185,7 @@ public final class DeepLinkTester: Sendable {
     // MARK: - Persistence
 
     private func loadHistory() {
-        guard let data = UserDefaults.standard.data(forKey: Self.HistoryDefaultsKey),
+        guard let data = UserDefaults.scyther.data(forKey: Self.HistoryDefaultsKey),
               let decoded = try? JSONDecoder().decode([DeepLinkHistoryEntry].self, from: data) else {
             return
         }
@@ -194,11 +194,11 @@ public final class DeepLinkTester: Sendable {
 
     private func saveHistory() {
         guard let data = try? JSONEncoder().encode(history) else { return }
-        UserDefaults.standard.set(data, forKey: Self.HistoryDefaultsKey)
+        UserDefaults.scyther.set(data, forKey: Self.HistoryDefaultsKey)
     }
 
     private func loadPresets() {
-        guard let data = UserDefaults.standard.data(forKey: Self.PresetsDefaultsKey),
+        guard let data = UserDefaults.scyther.data(forKey: Self.PresetsDefaultsKey),
               let decoded = try? JSONDecoder().decode([DeepLinkPreset].self, from: data) else {
             return
         }
@@ -207,7 +207,7 @@ public final class DeepLinkTester: Sendable {
 
     private func savePresets() {
         guard let data = try? JSONEncoder().encode(presets) else { return }
-        UserDefaults.standard.set(data, forKey: Self.PresetsDefaultsKey)
+        UserDefaults.scyther.set(data, forKey: Self.PresetsDefaultsKey)
     }
 }
 #endif

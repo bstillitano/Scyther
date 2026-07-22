@@ -13,7 +13,8 @@ import UIKit
 ///
 /// `CrashLogger` uses `NSSetUncaughtExceptionHandler` to intercept Objective-C
 /// and Swift exceptions before the app terminates. Captured crashes are persisted
-/// to UserDefaults and can be viewed on subsequent app launches.
+/// to ``UserDefaults/scyther``, Scyther's private preferences suite, and can be viewed on
+/// subsequent app launches.
 ///
 /// ## Features
 /// - Automatic exception interception
@@ -161,13 +162,13 @@ public final class CrashLogger: @unchecked Sendable {
 
     /// Clears all stored crash logs.
     public func clear() {
-        UserDefaults.standard.removeObject(forKey: CrashLogger.storageKey)
+        UserDefaults.scyther.removeObject(forKey: CrashLogger.storageKey)
         NotificationCenter.default.post(name: CrashLogger.didRecordCrashNotification, object: nil)
     }
 
-    /// Loads crash logs from UserDefaults.
+    /// Loads crash logs from ``UserDefaults/scyther``.
     private func load() -> [CrashLogEntry] {
-        guard let data = UserDefaults.standard.data(forKey: CrashLogger.storageKey) else {
+        guard let data = UserDefaults.scyther.data(forKey: CrashLogger.storageKey) else {
             return []
         }
 
@@ -178,12 +179,12 @@ public final class CrashLogger: @unchecked Sendable {
         }
     }
 
-    /// Saves crash logs to UserDefaults.
+    /// Saves crash logs to ``UserDefaults/scyther``.
     private func save(_ crashes: [CrashLogEntry]) {
         do {
             let data = try JSONEncoder().encode(crashes)
-            UserDefaults.standard.set(data, forKey: CrashLogger.storageKey)
-            UserDefaults.standard.synchronize() // Force immediate write - we're crashing
+            UserDefaults.scyther.set(data, forKey: CrashLogger.storageKey)
+            UserDefaults.scyther.synchronize() // Force immediate write - we're crashing
         } catch {
             // Can't do much if encoding fails during a crash
         }

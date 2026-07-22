@@ -47,7 +47,8 @@ public enum ColorSchemeOverride: String, CaseIterable, Sendable {
 /// - **High Contrast**: Enable increased contrast mode (iOS 17+)
 /// - **Dynamic Type**: Test all content size categories
 ///
-/// Settings are persisted to `UserDefaults` and automatically restored on app launch.
+/// Settings are persisted in ``UserDefaults/scyther``, Scyther's private preferences suite,
+/// and automatically restored on app launch.
 ///
 /// ```swift
 /// // Force dark mode
@@ -94,14 +95,14 @@ public final class AppearanceOverrides: Sendable {
     /// The current color scheme override setting.
     ///
     /// Setting this value immediately applies the color scheme to all windows
-    /// and persists the preference to UserDefaults.
+    /// and persists the preference to ``UserDefaults/scyther``.
     public nonisolated var colorScheme: ColorSchemeOverride {
         get {
-            let rawValue = UserDefaults.standard.string(forKey: AppearanceOverrides.ColorSchemeDefaultsKey) ?? "system"
+            let rawValue = UserDefaults.scyther.string(forKey: AppearanceOverrides.ColorSchemeDefaultsKey) ?? "system"
             return ColorSchemeOverride(rawValue: rawValue) ?? .system
         }
         set {
-            UserDefaults.standard.setValue(newValue.rawValue, forKey: AppearanceOverrides.ColorSchemeDefaultsKey)
+            UserDefaults.scyther.setValue(newValue.rawValue, forKey: AppearanceOverrides.ColorSchemeDefaultsKey)
             Task { @MainActor in
                 self.applyColorScheme()
             }
@@ -114,13 +115,13 @@ public final class AppearanceOverrides: Sendable {
     ///
     /// When enabled, the system uses increased contrast colors for better visibility.
     /// This setting requires iOS 17+ to take effect via trait overrides.
-    /// The value is persisted to UserDefaults.
+    /// The value is persisted to ``UserDefaults/scyther``.
     public nonisolated var highContrastEnabled: Bool {
         get {
-            return UserDefaults.standard.bool(forKey: AppearanceOverrides.HighContrastDefaultsKey)
+            return UserDefaults.scyther.bool(forKey: AppearanceOverrides.HighContrastDefaultsKey)
         }
         set {
-            UserDefaults.standard.setValue(newValue, forKey: AppearanceOverrides.HighContrastDefaultsKey)
+            UserDefaults.scyther.setValue(newValue, forKey: AppearanceOverrides.HighContrastDefaultsKey)
             Task { @MainActor in
                 self.applyTraitOverrides()
             }
@@ -133,19 +134,19 @@ public final class AppearanceOverrides: Sendable {
     ///
     /// Use this to test how your app responds to different Dynamic Type sizes.
     /// When set to `nil`, the system default is used.
-    /// The value is persisted to UserDefaults.
+    /// The value is persisted to ``UserDefaults/scyther``.
     public nonisolated var contentSizeCategory: UIContentSizeCategory? {
         get {
-            guard let rawValue = UserDefaults.standard.string(forKey: AppearanceOverrides.ContentSizeCategoryDefaultsKey) else {
+            guard let rawValue = UserDefaults.scyther.string(forKey: AppearanceOverrides.ContentSizeCategoryDefaultsKey) else {
                 return nil
             }
             return UIContentSizeCategory(rawValue: rawValue)
         }
         set {
             if let newValue = newValue {
-                UserDefaults.standard.setValue(newValue.rawValue, forKey: AppearanceOverrides.ContentSizeCategoryDefaultsKey)
+                UserDefaults.scyther.setValue(newValue.rawValue, forKey: AppearanceOverrides.ContentSizeCategoryDefaultsKey)
             } else {
-                UserDefaults.standard.removeObject(forKey: AppearanceOverrides.ContentSizeCategoryDefaultsKey)
+                UserDefaults.scyther.removeObject(forKey: AppearanceOverrides.ContentSizeCategoryDefaultsKey)
             }
             Task { @MainActor in
                 self.applyTraitOverrides()
@@ -200,9 +201,9 @@ public final class AppearanceOverrides: Sendable {
 
     /// Resets all appearance overrides to system defaults.
     public func resetToDefaults() {
-        UserDefaults.standard.removeObject(forKey: AppearanceOverrides.ColorSchemeDefaultsKey)
-        UserDefaults.standard.removeObject(forKey: AppearanceOverrides.HighContrastDefaultsKey)
-        UserDefaults.standard.removeObject(forKey: AppearanceOverrides.ContentSizeCategoryDefaultsKey)
+        UserDefaults.scyther.removeObject(forKey: AppearanceOverrides.ColorSchemeDefaultsKey)
+        UserDefaults.scyther.removeObject(forKey: AppearanceOverrides.HighContrastDefaultsKey)
+        UserDefaults.scyther.removeObject(forKey: AppearanceOverrides.ContentSizeCategoryDefaultsKey)
         applyAllOverrides()
     }
 

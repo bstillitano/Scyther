@@ -13,6 +13,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 
 - [Features](#features)
 - [Requirements](#requirements)
+- [Preferences Storage](#preferences-storage)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Detailed Usage Guide](#detailed-usage-guide)
@@ -134,6 +135,42 @@ Key public types conform to `Sendable` for safe cross-actor usage:
 ### Performance Optimizations
 
 Scyther uses `nonisolated` properties for UserDefaults-backed settings to avoid actor hop overhead in hot paths. This ensures the debugging tools don't impact your app's UI performance.
+
+## Preferences Storage
+
+Scyther never writes to `UserDefaults.standard`. Every setting it persists — feature flag
+overrides, pinned menu items, spoofed locations, grid overlay configuration, appearance
+overrides and the rest — lives in a private suite named `com.scyther.settings`.
+
+This matters because apps commonly clear their own defaults when a user signs out:
+
+```swift
+// Both of these wipe the application domain only.
+UserDefaults.standard.dictionaryRepresentation().keys
+    .forEach(UserDefaults.standard.removeObject(forKey:))
+
+UserDefaults.standard.removePersistentDomain(forName: Bundle.main.bundleIdentifier!)
+```
+
+A named suite is a separate persistent domain, so neither call touches Scyther's state.
+Your debugging setup survives sign-out.
+
+The store is exposed if you need it directly:
+
+```swift
+UserDefaults.scyther.bool(forKey: "Scyther_grid_overlay_enabled")
+```
+
+### Migration from earlier versions
+
+Versions before this change stored settings in `UserDefaults.standard`. The first time
+Scyther's store is accessed it moves every key prefixed `scyther` (case-insensitive) out of
+the standard store and into the suite, skipping any key the suite already has a value for,
+then records that it has done so. Existing overrides and preferences carry across
+automatically, and your app's standard domain is left cleaner than it was.
+
+You can inspect and edit the suite from **Data → UserDefaults**, using the store picker at
+the top of the screen.
 
 ## Installation
 

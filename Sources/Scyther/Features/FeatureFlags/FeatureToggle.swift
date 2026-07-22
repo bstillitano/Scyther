@@ -86,7 +86,7 @@ public struct FeatureToggle {
 
     /// The local override value for this feature toggle.
     ///
-    /// When set, the value is persisted to UserDefaults. This allows developers to override
+    /// When set, the value is persisted to ``UserDefaults/scyther``. This allows developers to override
     /// feature flags during development and testing without modifying server configuration.
     ///
     /// - Note: The getter returns `false` when no override has been stored. Use
@@ -96,10 +96,10 @@ public struct FeatureToggle {
     /// - Complexity: O(1)
     public var localValue: Bool {
         get {
-            return UserDefaults.standard.bool(forKey: defaultsKey)
+            return UserDefaults.scyther.bool(forKey: defaultsKey)
         }
         set {
-            UserDefaults.standard.setValue(newValue, forKey: defaultsKey)
+            UserDefaults.scyther.setValue(newValue, forKey: defaultsKey)
         }
     }
 
@@ -111,7 +111,7 @@ public struct FeatureToggle {
     ///
     /// - Complexity: O(1)
     public var hasLocalOverride: Bool {
-        return UserDefaults.standard.object(forKey: defaultsKey) != nil
+        return UserDefaults.scyther.object(forKey: defaultsKey) != nil
     }
 
     /// Removes any stored local override for this toggle.
@@ -121,6 +121,6 @@ public struct FeatureToggle {
     ///
     /// - Complexity: O(1)
     public func clearLocalValue() {
-        UserDefaults.standard.removeObject(forKey: defaultsKey)
+        UserDefaults.scyther.removeObject(forKey: defaultsKey)
     }
 }

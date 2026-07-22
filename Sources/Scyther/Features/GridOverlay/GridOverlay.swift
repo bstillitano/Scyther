@@ -14,7 +14,8 @@ import UIKit
 /// layout alignment and spacing verification. The grid's appearance can be customized with
 /// different colors, opacity levels, and grid sizes.
 ///
-/// Settings are persisted to `UserDefaults` and automatically applied when changed.
+/// Settings are persisted in ``UserDefaults/scyther``, Scyther's private preferences suite,
+/// and automatically applied when changed.
 ///
 /// ```swift
 /// // Enable the grid overlay
@@ -69,13 +70,13 @@ internal final class GridOverlay: Sendable {
     /// Controls whether the grid overlay is visible on screen.
     ///
     /// Setting this to `true` displays the grid overlay over the entire application interface.
-    /// The value is persisted to UserDefaults and restored on app launch.
+    /// The value is persisted to ``UserDefaults/scyther`` and restored on app launch.
     internal nonisolated var enabled: Bool {
         get {
-            return UserDefaults.standard.bool(forKey: GridOverlay.EnabledDefaultsKey)
+            return UserDefaults.scyther.bool(forKey: GridOverlay.EnabledDefaultsKey)
         }
         set {
-            UserDefaults.standard.setValue(newValue, forKey: GridOverlay.EnabledDefaultsKey)
+            UserDefaults.scyther.setValue(newValue, forKey: GridOverlay.EnabledDefaultsKey)
             Task { @MainActor in InterfaceToolkit.instance.showGridOverlay() }
         }
     }
@@ -83,13 +84,13 @@ internal final class GridOverlay: Sendable {
     /// The color scheme used for the grid lines.
     ///
     /// Choose from predefined color schemes to ensure the grid is visible against
-    /// your app's color scheme. The value is persisted to UserDefaults.
+    /// your app's color scheme. The value is persisted to ``UserDefaults/scyther``.
     internal nonisolated var colorScheme: GridOverlayColorScheme {
         get {
-            return GridOverlayColorScheme(rawValue: UserDefaults.standard.string(forKey: GridOverlay.ColorDefaultsKey) ?? "red") ?? .red
+            return GridOverlayColorScheme(rawValue: UserDefaults.scyther.string(forKey: GridOverlay.ColorDefaultsKey) ?? "red") ?? .red
         }
         set {
-            UserDefaults.standard.setValue(newValue.rawValue, forKey: GridOverlay.ColorDefaultsKey)
+            UserDefaults.scyther.setValue(newValue.rawValue, forKey: GridOverlay.ColorDefaultsKey)
             Task { @MainActor in
                 InterfaceToolkit.instance.gridOverlayView.colorScheme = newValue
             }
@@ -99,13 +100,13 @@ internal final class GridOverlay: Sendable {
     /// The opacity of the grid overlay.
     ///
     /// Valid range is 0.0 (fully transparent) to 1.0 (fully opaque).
-    /// Adjust this to make the grid more or less prominent. The value is persisted to UserDefaults.
+    /// Adjust this to make the grid more or less prominent. The value is persisted to ``UserDefaults/scyther``.
     internal nonisolated var opacity: Float {
         get {
-            return UserDefaults.standard.object(forKey: GridOverlay.OpacityDefaultsKey) as? Float ?? 0.5
+            return UserDefaults.scyther.object(forKey: GridOverlay.OpacityDefaultsKey) as? Float ?? 0.5
         }
         set {
-            UserDefaults.standard.setValue(newValue, forKey: GridOverlay.OpacityDefaultsKey)
+            UserDefaults.scyther.setValue(newValue, forKey: GridOverlay.OpacityDefaultsKey)
             Task { @MainActor in
                 InterfaceToolkit.instance.gridOverlayView.opacity = CGFloat(newValue)
             }
@@ -115,13 +116,13 @@ internal final class GridOverlay: Sendable {
     /// The size of each grid square in points.
     ///
     /// Smaller values create a finer grid, larger values create a coarser grid.
-    /// Common values range from 4 to 16 points. The value is persisted to UserDefaults.
+    /// Common values range from 4 to 16 points. The value is persisted to ``UserDefaults/scyther``.
     internal nonisolated var size: Int {
         get {
-            return UserDefaults.standard.object(forKey: GridOverlay.SizeDefaultsKey) as? Int ?? 8
+            return UserDefaults.scyther.object(forKey: GridOverlay.SizeDefaultsKey) as? Int ?? 8
         }
         set {
-            UserDefaults.standard.setValue(newValue, forKey: GridOverlay.SizeDefaultsKey)
+            UserDefaults.scyther.setValue(newValue, forKey: GridOverlay.SizeDefaultsKey)
             Task { @MainActor in
                 InterfaceToolkit.instance.gridOverlayView.gridSize = newValue
             }

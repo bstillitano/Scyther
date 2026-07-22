@@ -90,12 +90,12 @@ extension UIView: InterfaceToolkitPrivate {
 internal extension UIView {
     /// Reads directly from UserDefaults to avoid MainActor hop
     private static var showsViewBordersFromDefaults: Bool {
-        UserDefaults.standard.bool(forKey: InterfaceToolkit.ViewFramesUserDefaultsKey)
+        UserDefaults.scyther.bool(forKey: InterfaceToolkit.ViewFramesUserDefaultsKey)
     }
 
     /// Reads directly from UserDefaults to avoid MainActor hop
     private static var showsViewSizesFromDefaults: Bool {
-        UserDefaults.standard.bool(forKey: InterfaceToolkit.ViewSizesUserDefaultsKey)
+        UserDefaults.scyther.bool(forKey: InterfaceToolkit.ViewSizesUserDefaultsKey)
     }
 
     func refreshDebugBorders() {
