@@ -247,6 +247,27 @@ The existing `row(withLabel:description:icon:andLoadingState:)`, `toggleRow(_:ic
 
 ### Feature Flags alignment
 
+#### Gating the list on `overridesEnabled`
+
+While `overridesEnabled` is `false`, local overrides have no effect, so presenting an
+interactive flag list is misleading. Everything except the "Enable overrides" toggle is
+hidden:
+
+- The "Pinned" and "Toggles" sections are omitted entirely.
+- The "Reset all to Remote" button is hidden, leaving "Global Settings" with a single row.
+- `.searchable` is not applied, so no dead search field filters an invisible list. `searchText`
+  and `debouncedSearchText` are cleared when overrides are switched off, so re-enabling never
+  reveals a list silently filtered by a stale query.
+- The "Global Settings" section gains a **footer** reading along the lines of
+  "Enable overrides to view and modify feature flags." The footer is shown only while
+  overrides are off; once enabled the flags are visible and self-explanatory, so it is
+  omitted.
+
+The placeholder rows inside the "Toggles" section ("No toggles configured", "No matching
+toggles") are unaffected — they only ever render when overrides are on.
+
+#### Pinned rows stay in place
+
 Only one behavioural change, to match the menu's "stays in place" semantics:
 
 - `FeatureFlagsViewModel.unpinnedToggles` is removed.
@@ -299,7 +320,9 @@ New test files:
 Updated test files:
 
 - **`FeatureFlagsViewModelTests`** — pinned toggles remain present in the full `toggles`
-  array; pinned ordering stays alphabetical.
+  array; pinned ordering stays alphabetical; toggling `overridesEnabled` propagates to
+  `Scyther.featureFlags.localOverridesEnabled` in both directions, which is the value the
+  view's gating reads.
 - **`UserDefaultsViewModelTests`** (new if absent) — switching `DefaultsStore` loads from the
   correct domain; writes and deletes land in the selected store; `.scyther` enumeration
   excludes global-domain keys.
