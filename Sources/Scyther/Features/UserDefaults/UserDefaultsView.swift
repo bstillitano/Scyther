@@ -15,7 +15,8 @@ import Combine
 /// - Viewing and editing strings, numbers, booleans, dates, and data
 /// - Navigating nested arrays and dictionaries
 /// - Searching across keys and values
-/// - Deleting individual entries or resetting all non-Scyther values
+/// - Switching between the host app's defaults and Scyther's private suite
+/// - Deleting individual entries or resetting the selected store
 /// - Inline boolean toggle editing
 /// - Dedicated editors for strings and numbers
 ///
@@ -40,6 +41,20 @@ struct UserDefaultsView: View {
 
     var body: some View {
         List {
+            Section {
+                Picker("Store", selection: $viewModel.store) {
+                    ForEach(DefaultsStore.allCases) { store in
+                        Text(store.title).tag(store)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            } footer: {
+                Text(viewModel.store == .app
+                     ? "Values your app stored in UserDefaults.standard."
+                     : "Values Scyther stored in its private com.scyther.settings suite.")
+            }
+
             Section("Key/Values") {
                 if viewModel.keyValues.isEmpty {
                     Text("No user defaults")
@@ -67,11 +82,16 @@ struct UserDefaultsView: View {
 
             if debouncedSearchText.isEmpty {
                 Section {
-                    Button("Reset UserDefaults.standard", role: .destructive) {
+                    Button(
+                        viewModel.store == .app ? "Reset UserDefaults.standard" : "Reset all Scyther settings",
+                        role: .destructive
+                    ) {
                         showingResetConfirmation = true
                     }
                 } footer: {
-                    Text("This will delete all values stored inside `UserDefaults.standard`, created by your app. This will not clear any values created internally by Scyther that are used for debug/feature purposes.")
+                    Text(viewModel.store == .app
+                         ? "This will delete all values stored inside `UserDefaults.standard`, created by your app. Scyther's own settings live in a separate store and are not affected."
+                         : "This will delete every setting Scyther has stored, including pinned menu items and feature flag overrides.")
                 }
             }
         }
@@ -85,17 +105,15 @@ struct UserDefaultsView: View {
                 .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
                 .sink { debouncedSearchText = $0 }
         }
-        .confirmationDialog(
-            "Reset UserDefaults?",
-            isPresented: $showingResetConfirmation,
-            titleVisibility: .visible
-        ) {
+        .alert("Reset UserDefaults?", isPresented: $showingResetConfirmation) {
             Button("Reset All", role: .destructive) {
                 viewModel.resetAllDefaults()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This action cannot be undone.")
+            Text(viewModel.store == .app
+                 ? "This will permanently delete your app's stored values. This action cannot be undone."
+                 : "This will permanently delete every Scyther setting, including pinned menu items and feature flag overrides. This action cannot be undone.")
         }
         .onFirstAppear {
             await viewModel.onFirstAppear()
