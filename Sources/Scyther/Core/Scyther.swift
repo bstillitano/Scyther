@@ -322,8 +322,8 @@ public final class FeatureFlags: Sendable {
     /// When `true`, the Scyther UI allows users to toggle feature flags locally.
     /// The ``isEnabled(_:)`` method will return local override values when available.
     public var localOverridesEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: Self.overridesEnabledKey) }
-        set { UserDefaults.standard.set(newValue, forKey: Self.overridesEnabledKey) }
+        get { UserDefaults.scyther.bool(forKey: Self.overridesEnabledKey) }
+        set { UserDefaults.scyther.set(newValue, forKey: Self.overridesEnabledKey) }
     }
 
     /// Registers a feature flag.
@@ -422,7 +422,7 @@ public extension FeatureFlags {
     /// - Parameter name: The flag name to read the override for.
     /// - Returns: The overridden value, or `nil` when there is no active override.
     nonisolated public func localOverride(for name: String) -> Bool? {
-        let defaults = UserDefaults.standard
+        let defaults = UserDefaults.scyther
         guard defaults.bool(forKey: Self.overridesEnabledKey) else { return nil }
         let key = FeatureToggle.localValueKey(for: name)
         guard defaults.object(forKey: key) != nil else { return nil }
@@ -481,10 +481,11 @@ public actor Servers {
 
     /// The identifier of the currently selected server.
     ///
-    /// This value is persisted across app launches using `UserDefaults`.
+    /// This value is persisted across app launches in `UserDefaults.scyther`, Scyther's
+    /// private preferences suite, so it survives the host app clearing its own defaults.
     public var currentId: String {
-        get { UserDefaults.standard.string(forKey: defaultsKey) ?? "" }
-        set { UserDefaults.standard.set(newValue, forKey: defaultsKey) }
+        get { UserDefaults.scyther.string(forKey: defaultsKey) ?? "" }
+        set { UserDefaults.scyther.set(newValue, forKey: defaultsKey) }
     }
 
     /// The currently selected server configuration.

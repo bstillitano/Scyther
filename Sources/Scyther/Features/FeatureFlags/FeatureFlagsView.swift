@@ -13,12 +13,17 @@ import Combine
 /// This view provides a searchable list of all registered feature toggles with the ability to:
 /// - Enable/disable local overrides globally
 /// - Set each feature flag to True, False, or Remote via a dropdown menu
-/// - Pin frequently used toggles to the top
+/// - Pin frequently used toggles to an additional section at the top; pinned toggles remain
+///   in the main list as well
 /// - Search toggles by name
 /// - Reset all toggles back to their remote values
 ///
 /// The view displays both remote and local values for each toggle, making it easy to see
 /// which features have been overridden during development.
+///
+/// While **Enable overrides** is off, the Pinned and Toggles sections and the reset button
+/// are hidden — local overrides have no effect in that state, so presenting an interactive
+/// list would be misleading. The search field remains visible throughout.
 struct FeatureFlagsView: View {
     @StateObject private var viewModel = FeatureFlagsViewModel()
     @State private var searchText: String = ""
@@ -32,82 +37,103 @@ struct FeatureFlagsView: View {
         return viewModel.pinnedToggles.filter { $0.name.lowercased().contains(search) }
     }
 
-    private var filteredUnpinnedToggles: [FeatureToggleItem] {
-        guard !debouncedSearchText.isEmpty else { return viewModel.unpinnedToggles }
+    private var filteredToggles: [FeatureToggleItem] {
+        guard !debouncedSearchText.isEmpty else { return viewModel.toggles }
         let search = debouncedSearchText.lowercased()
-        return viewModel.unpinnedToggles.filter { $0.name.lowercased().contains(search) }
+        return viewModel.toggles.filter { $0.name.lowercased().contains(search) }
     }
 
     var body: some View {
+        list
+            .searchable(text: $searchText, prompt: "Search toggles")
+            .navigationTitle("Feature Flags")
+            .onChange(of: searchText) { newValue in
+                searchSubject.send(newValue)
+            }
+            .onChange(of: viewModel.overridesEnabled) { enabled in
+                guard !enabled else { return }
+                searchText = ""
+                debouncedSearchText = ""
+            }
+            .onAppear {
+                cancellable = searchSubject
+                    .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
+                    .sink { debouncedSearchText = $0 }
+            }
+            .onFirstAppear {
+                await viewModel.onFirstAppear()
+            }
+    }
+
+    private var list: some View {
         List {
-            Section("Global Settings") {
+            Section {
                 Toggle("Enable overrides", isOn: $viewModel.overridesEnabled)
 
-                Button("Reset all to Remote") {
-                    viewModel.resetAllToRemote()
-                }
-            }
-
-            if !filteredPinnedToggles.isEmpty {
-                Section("Pinned") {
-                    ForEach(filteredPinnedToggles) { toggle in
-                        toggleRow(for: toggle)
-                            .swipeActions(edge: .trailing) {
-                                Button {
-                                    viewModel.togglePin(for: toggle.name)
-                                } label: {
-                                    Label("Unpin", systemImage: "pin.slash")
-                                }
-                                .tint(.blue)
-                            }
+                if viewModel.overridesEnabled {
+                    Button("Reset all to Remote") {
+                        viewModel.resetAllToRemote()
                     }
                 }
+            } header: {
+                Text("Global Settings")
+            } footer: {
+                if !viewModel.overridesEnabled {
+                    Text("Enable overrides to view and modify feature flags.")
+                }
             }
 
-            Section("Toggles") {
-                if viewModel.toggles.isEmpty {
-                    Text("No toggles configured")
-                        .fontWeight(.bold)
-                        .foregroundStyle(.gray)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                } else if filteredUnpinnedToggles.isEmpty && debouncedSearchText.isEmpty {
-                    Text("All toggles are pinned")
-                        .fontWeight(.bold)
-                        .foregroundStyle(.gray)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                } else if filteredUnpinnedToggles.isEmpty {
-                    Text("No matching toggles")
-                        .fontWeight(.bold)
-                        .foregroundStyle(.gray)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                } else {
-                    ForEach(filteredUnpinnedToggles) { toggle in
-                        toggleRow(for: toggle)
-                            .swipeActions(edge: .trailing) {
-                                Button {
-                                    viewModel.togglePin(for: toggle.name)
-                                } label: {
-                                    Label("Pin", systemImage: "pin")
+            if viewModel.overridesEnabled {
+                if !filteredPinnedToggles.isEmpty {
+                    Section("Pinned") {
+                        ForEach(filteredPinnedToggles, id: \.pinnedRowID) { toggle in
+                            toggleRow(for: toggle)
+                                .swipeActions(edge: .trailing) {
+                                    pinButton(for: toggle)
                                 }
-                                .tint(.blue)
-                            }
+                        }
+                    }
+                }
+
+                Section("Toggles") {
+                    if viewModel.toggles.isEmpty {
+                        Text("No toggles configured")
+                            .fontWeight(.bold)
+                            .foregroundStyle(.gray)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    } else if filteredToggles.isEmpty {
+                        Text("No matching toggles")
+                            .fontWeight(.bold)
+                            .foregroundStyle(.gray)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    } else {
+                        ForEach(filteredToggles) { toggle in
+                            toggleRow(for: toggle)
+                                .swipeActions(edge: .trailing) {
+                                    pinButton(for: toggle)
+                                }
+                        }
                     }
                 }
             }
         }
-        .navigationTitle("Feature Flags")
-        .searchable(text: $searchText, prompt: "Search toggles")
-        .onChange(of: searchText) { newValue in
-            searchSubject.send(newValue)
+    }
+
+    /// The pin/unpin swipe action for a toggle.
+    ///
+    /// The label reflects the toggle's pin state rather than which section it is rendered
+    /// in, because pinned toggles remain in the main list.
+    @ViewBuilder
+    private func pinButton(for toggle: FeatureToggleItem) -> some View {
+        Button {
+            viewModel.togglePin(for: toggle.name)
+        } label: {
+            Label(
+                toggle.isPinned ? "Unpin" : "Pin",
+                systemImage: toggle.isPinned ? "pin.slash" : "pin"
+            )
         }
-        .onAppear {
-            cancellable = searchSubject
-                .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
-                .sink { debouncedSearchText = $0 }
-        }
-        .onFirstAppear {
-            await viewModel.onFirstAppear()
-        }
+        .tint(.blue)
     }
 
     @ViewBuilder

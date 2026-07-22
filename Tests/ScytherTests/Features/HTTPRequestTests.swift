@@ -291,6 +291,39 @@ final class HTTPRequestTests: XCTestCase {
         XCTAssertEqual((dict["Variables"]?["id"]) as? String, "42")
     }
 
+    // MARK: - saveData / readRawData Round-Trip Tests
+
+    /// Regression test for a bug where `saveData(_:toFile:)` silently failed
+    /// whenever the target file's parent directory did not exist (e.g. a
+    /// factory-fresh simulator whose Documents directory hasn't been created
+    /// yet). Unlike `testGraphQLVariablesDictionaryWrapsVariables`, this test
+    /// deliberately targets a directory that is guaranteed not to exist yet,
+    /// so it fails deterministically regardless of simulator/machine state.
+    func testSaveDataCreatesMissingIntermediateDirectories() {
+        let model = HTTPRequest()
+
+        let directory = (NSTemporaryDirectory() as NSString)
+            .appendingPathComponent(UUID().uuidString)
+        let filePath = (directory as NSString).appendingPathComponent("body.txt")
+
+        // Runs on every exit path, including a mid-test assertion failure.
+        addTeardownBlock {
+            try? FileManager.default.removeItem(atPath: directory)
+        }
+
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: directory),
+            "Precondition: target directory must not already exist"
+        )
+
+        let content = "regression-test-body-\(UUID().uuidString)"
+        model.saveData(content as NSString, toFile: filePath)
+
+        let readBack = model.readRawData(filePath)
+        XCTAssertNotNil(readBack, "saveData should create missing intermediate directories and write successfully")
+        XCTAssertEqual(readBack.flatMap { String(data: $0, encoding: .utf8) }, content)
+    }
+
     func testRequestBodyDictionaryEmptyWhenNoBody() {
         let model = HTTPRequest()
         XCTAssertTrue(model.getRequestBodyDictionary().isEmpty)

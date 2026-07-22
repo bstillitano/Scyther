@@ -46,40 +46,40 @@ public final class InterfaceToolkit: NSObject, Sendable {
     // MARK: - Data (nonisolated for UserDefaults access - thread-safe)
     internal nonisolated var visualiseTouches: Bool {
         get {
-            UserDefaults.standard.bool(forKey: InterfaceToolkit.VisualiseTouchesUserDefaultsKey)
+            UserDefaults.scyther.bool(forKey: InterfaceToolkit.VisualiseTouchesUserDefaultsKey)
         }
         set {
-            UserDefaults.standard.setValue(newValue, forKey: InterfaceToolkit.VisualiseTouchesUserDefaultsKey)
+            UserDefaults.scyther.setValue(newValue, forKey: InterfaceToolkit.VisualiseTouchesUserDefaultsKey)
             NotificationCenter.default.post(name: InterfaceToolkit.VisualiseTouchesChangeNotification,
                                             object: newValue)
         }
     }
     internal nonisolated var showsViewBorders: Bool {
         get {
-            UserDefaults.standard.bool(forKey: InterfaceToolkit.ViewFramesUserDefaultsKey)
+            UserDefaults.scyther.bool(forKey: InterfaceToolkit.ViewFramesUserDefaultsKey)
         }
         set {
-            UserDefaults.standard.setValue(newValue, forKey: InterfaceToolkit.ViewFramesUserDefaultsKey)
+            UserDefaults.scyther.setValue(newValue, forKey: InterfaceToolkit.ViewFramesUserDefaultsKey)
             NotificationCenter.default.post(name: InterfaceToolkit.DebugBordersChangeNotification,
                                             object: newValue)
         }
     }
     internal nonisolated var showsViewSizes: Bool {
         get {
-            UserDefaults.standard.bool(forKey: InterfaceToolkit.ViewSizesUserDefaultsKey)
+            UserDefaults.scyther.bool(forKey: InterfaceToolkit.ViewSizesUserDefaultsKey)
         }
         set {
-            UserDefaults.standard.setValue(newValue, forKey: InterfaceToolkit.ViewSizesUserDefaultsKey)
+            UserDefaults.scyther.setValue(newValue, forKey: InterfaceToolkit.ViewSizesUserDefaultsKey)
             NotificationCenter.default.post(name: InterfaceToolkit.DebugSizesChangeNotification,
                                             object: newValue)
         }
     }
     internal nonisolated var slowAnimationsEnabled: Bool {
         get {
-            UserDefaults.standard.bool(forKey: InterfaceToolkit.SlowAnimationsUserDefaultsKey)
+            UserDefaults.scyther.bool(forKey: InterfaceToolkit.SlowAnimationsUserDefaultsKey)
         }
         set {
-            UserDefaults.standard.setValue(newValue, forKey: InterfaceToolkit.SlowAnimationsUserDefaultsKey)
+            UserDefaults.scyther.setValue(newValue, forKey: InterfaceToolkit.SlowAnimationsUserDefaultsKey)
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
                     self.setWindowSpeed()

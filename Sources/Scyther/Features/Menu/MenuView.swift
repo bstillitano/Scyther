@@ -23,6 +23,11 @@ import SwiftUI
 ///
 /// The menu displays device information in a header and provides navigation
 /// to all sub-features.
+///
+/// Any row can be pinned via a trailing swipe action. Pinned rows appear in a "Pinned"
+/// section rendered directly beneath **Device**, and also remain in their home section, so
+/// the menu's structure never changes shape as rows are pinned. Pins are ordered oldest
+/// first and persist across launches in `UserDefaults.scyther`.
 public struct MenuView: View {
     @StateObject private var viewModel: MenuViewModel = MenuViewModel()
 
@@ -30,228 +35,35 @@ public struct MenuView: View {
 
     public var body: some View {
         List {
-            Section {
-                header
-                row(
-                    withLabel: "OS Version",
-                    description: UIDevice.current.systemVersion
-                )
-                row(
-                    withLabel: "Hardware",
-                    description: UIDevice.current.modelName
-                )
-                row(
-                    withLabel: "Release Year",
-                    description: UIDevice.current.generation.withoutDecimals
-                )
-                row(
-                    withLabel: "UUID",
-                    description: UIDevice.current.identifierForVendor?.uuidString
-                )
-            } header: {
-                Text("Device")
-            }
-            
-            Section {
-                row(
-                    withLabel: "App ID Prefix",
-                    description: Bundle.main.seedId
-                )
-                row(
-                    withLabel: "Display Name",
-                    description: String(UIApplication.shared.appName)
-                )
-                row(
-                    withLabel: "Bundle ID",
-                    description: Bundle.main.bundleIdentifier
-                )
-                row(
-                    withLabel: "Process ID",
-                    description: String(getpid())
-                )
-                row(
-                    withLabel: "Version",
-                    description: Bundle.main.versionNumber
-                )
-                row(
-                    withLabel: "Build Number",
-                    description: Bundle.main.buildNumber
-                )
-                row(
-                    withLabel: "Build Date",
-                    description: Bundle.main.buildDate.formatted()
-                )
-                row(
-                    withLabel: "Release Type",
-                    description: AppEnvironment.configuration().rawValue
-                )
-            } header: {
-                Text("Application")
-            }
-
-            if !Scyther.developerOptions.isEmpty {
+            if let deviceSection = viewModel.sections.first {
                 Section {
-                    ForEach(Scyther.developerOptions, id: \.name) { option in
-                        developerOptionRow(option)
+                    header
+                    ForEach(deviceSection.items) { item in
+                        pinnableRow(for: item)
                     }
                 } header: {
-                    Text("Development Tools")
+                    Text(deviceSection.title)
                 }
             }
 
-            Section {
-                row(
-                    withLabel: "IP Address",
-                    description: viewModel.ipAddress,
-                    icon: "network",
-                    andLoadingState: viewModel.isLoadingIPAddress
-                )
-                NavigationLink {
-                    NetworkLogsView()
-                } label: {
-                    row(
-                        withLabel: "Network Logs",
-                        icon: "text.page.badge.magnifyingglass"
-                    )
+            if !viewModel.pinnedItems.isEmpty {
+                Section {
+                    ForEach(viewModel.pinnedItems, id: \.pinnedRowID) { item in
+                        pinnableRow(for: item)
+                    }
+                } header: {
+                    Text("Pinned")
                 }
-                NavigationLink {
-                    ServerConfigurationView()
-                } label: {
-                    row(
-                        withLabel: "Server Configuration",
-                        icon: "server.rack"
-                    )
-                }
-                NavigationLink {
-                    EnvironmentVariablesView()
-                } label: {
-                    row(
-                        withLabel: "Environment Variables",
-                        icon: "x.squareroot"
-                    )
-                }
-            } header: {
-                Text("Networking")
             }
-            
-            Section {
-                NavigationLink {
-                    FeatureFlagsView()
-                } label: {
-                    row(withLabel: "Feature Flags", icon: "flag")
+
+            ForEach(Array(viewModel.sections.dropFirst())) { section in
+                Section {
+                    ForEach(section.items) { item in
+                        pinnableRow(for: item)
+                    }
+                } header: {
+                    Text(section.title)
                 }
-                NavigationLink {
-                    UserDefaultsView()
-                } label: {
-                    row(withLabel: "UserDefaults", icon: "face.dashed")
-                }
-                NavigationLink {
-                    CookieBrowserView()
-                } label: {
-                    row(withLabel: "Cookies", icon: "info.circle")
-                }
-                NavigationLink {
-                    FileBrowserView()
-                } label: {
-                    row(withLabel: "File Browser", icon: "folder")
-                }
-                NavigationLink {
-                    DatabaseBrowserView()
-                } label: {
-                    row(withLabel: "Database Browser", icon: "cylinder.split.1x2")
-                }
-            } header: {
-                Text("Data")
-            }
-            
-            Section {
-                NavigationLink {
-                    KeychainBrowserView()
-                } label: {
-                    row(withLabel: "Keychain Browser", icon: "key")
-                }
-            } header: {
-                Text("Security")
-            }
-            
-            Section {
-                NavigationLink {
-                    LocationSpooferView()
-                } label: {
-                    row(withLabel: "Location Spoofer", icon: "location.circle")
-                }
-                NavigationLink {
-                    ConsoleLoggerView()
-                } label: {
-                    row(withLabel: "Console Logs", icon: "terminal")
-                }
-                NavigationLink {
-                    DeepLinkTesterView()
-                } label: {
-                    row(withLabel: "Deep Link Tester", icon: "link")
-                }
-                NavigationLink {
-                    CrashLogsView()
-                } label: {
-                    row(withLabel: "Crash Logs", icon: "exclamationmark.triangle")
-                }
-            } header: {
-                Text("System Tools")
-            }
-            
-            Section {
-                NavigationLink {
-                    NotificationLoggerView()
-                } label: {
-                    row(withLabel: "Notification Logger", icon: "list.bullet")
-                }
-                NavigationLink {
-                    NotificationTesterView()
-                } label: {
-                    row(withLabel: "Notification Tester", icon: "bell")
-                }
-                row(withLabel: "APNS Token", icon: "applelogo")
-                row(withLabel: "FCM Token", icon: "flame")
-            } header: {
-                Text("Notifications")
-            }
-            
-            Section {
-                NavigationLink {
-                    FontsView()
-                } label: {
-                    row(withLabel: "Fonts", icon: "textformat")
-                }
-                NavigationLink {
-                    InterfacePreviewsView()
-                } label: {
-                    row(withLabel: "Interface Components", icon: "apps.iphone")
-                }
-                NavigationLink {
-                    GridOverlaySettingsView()
-                } label: {
-                    row(withLabel: "Grid Overlay", icon: "rectangle.split.3x3")
-                }
-                NavigationLink {
-                    FPSCounterSettingsView()
-                } label: {
-                    row(withLabel: "FPS Counter", icon: "speedometer")
-                }
-                NavigationLink {
-                    TouchVisualiserView()
-                } label: {
-                    row(withLabel: "Touch Visualiser", icon: "hand.point.up")
-                }
-                NavigationLink {
-                    AppearanceOverridesView()
-                } label: {
-                    row(withLabel: "Appearance", icon: "paintbrush")
-                }
-                toggleRow("Slow Animations", icon: "tortoise", isOn: $viewModel.slowAnimationsEnabled)
-                toggleRow("Show View Frames", icon: "rectangle.dashed", isOn: $viewModel.showViewFrames)
-                toggleRow("Show View Sizes", icon: "ruler", isOn: $viewModel.showViewSizes)
-            } header: {
-                Text("UI/UX")
             }
         }
         .toolbar {
@@ -266,10 +78,175 @@ public struct MenuView: View {
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }
+        .onSubsequentAppear {
+            await viewModel.onSubsequentAppear()
+        }
         .navigationTitle("Scyther")
         .interactiveDismissDisabled()
     }
-    
+
+    /// Wraps a row in its pin/unpin swipe action.
+    ///
+    /// The action's label is derived from the row's current pin state rather than from which
+    /// section it is being rendered in, because pinned rows remain in their home section — a
+    /// pinned row therefore reads "Unpin" in both places.
+    @ViewBuilder
+    private func pinnableRow(for item: MenuItem) -> some View {
+        rowContent(for: item)
+            .swipeActions(edge: .trailing) {
+                Button {
+                    viewModel.togglePin(for: item)
+                } label: {
+                    Label(
+                        viewModel.isPinned(item) ? "Unpin" : "Pin",
+                        systemImage: viewModel.isPinned(item) ? "pin.slash" : "pin"
+                    )
+                }
+                .tint(.blue)
+            }
+    }
+
+    /// Builds a row that pushes a destination view.
+    ///
+    /// The label is derived entirely from the item, so every navigation row in the menu is
+    /// laid out identically and only the destination varies.
+    ///
+    /// - Parameters:
+    ///   - item: The row to render.
+    ///   - destination: The view to push when the row is tapped. Built lazily.
+    private func navigationRow<Destination: View>(
+        for item: MenuItem,
+        @ViewBuilder destination: @escaping () -> Destination
+    ) -> some View {
+        NavigationLink {
+            destination()
+        } label: {
+            row(withLabel: item.title, icon: item.icon)
+        }
+    }
+
+    /// The single definition of every menu row.
+    ///
+    /// ``MenuItem`` supplies each row's title and icon; this method supplies everything
+    /// dynamic — a value row's description, a navigation row's destination, a toggle row's
+    /// binding. Because there is one definition, the "Pinned" section and a row's home
+    /// section always render identically.
+    @ViewBuilder
+    private func rowContent(for item: MenuItem) -> some View {
+        switch item {
+        // MARK: Device
+        case .osVersion:
+            row(withLabel: item.title, description: UIDevice.current.systemVersion)
+        case .hardware:
+            row(withLabel: item.title, description: UIDevice.current.modelName)
+        case .releaseYear:
+            row(withLabel: item.title, description: UIDevice.current.generation.withoutDecimals)
+        case .uuid:
+            row(withLabel: item.title, description: UIDevice.current.identifierForVendor?.uuidString)
+
+        // MARK: Application
+        case .appIdPrefix:
+            row(withLabel: item.title, description: Bundle.main.seedId)
+        case .displayName:
+            row(withLabel: item.title, description: String(UIApplication.shared.appName))
+        case .bundleId:
+            row(withLabel: item.title, description: Bundle.main.bundleIdentifier)
+        case .processId:
+            row(withLabel: item.title, description: String(getpid()))
+        case .version:
+            row(withLabel: item.title, description: Bundle.main.versionNumber)
+        case .buildNumber:
+            row(withLabel: item.title, description: Bundle.main.buildNumber)
+        case .buildDate:
+            row(withLabel: item.title, description: Bundle.main.buildDate.formatted())
+        case .releaseType:
+            row(withLabel: item.title, description: AppEnvironment.configuration().rawValue)
+
+        // MARK: Development Tools
+        case .developerOption(let name):
+            // Resolved from `viewModel`'s snapshot of `Scyther.developerOptions`, the same
+            // snapshot `sections` was built from, rather than re-reading the global directly.
+            // A host app can mutate `Scyther.developerOptions` while this menu is on screen;
+            // reading the same snapshot here guarantees this lookup always succeeds for a name
+            // that `sections` listed, so a row is never left blank while `pinnableRow` has
+            // already attached a live swipe action to it.
+            if let option = viewModel.developerOption(named: name) {
+                developerOptionRow(option)
+            }
+
+        // MARK: Networking
+        case .ipAddress:
+            row(
+                withLabel: item.title,
+                description: viewModel.ipAddress,
+                icon: item.icon,
+                andLoadingState: viewModel.isLoadingIPAddress
+            )
+        case .networkLogs:
+            navigationRow(for: item) { NetworkLogsView() }
+        case .serverConfiguration:
+            navigationRow(for: item) { ServerConfigurationView() }
+        case .environmentVariables:
+            navigationRow(for: item) { EnvironmentVariablesView() }
+
+        // MARK: Data
+        case .featureFlags:
+            navigationRow(for: item) { FeatureFlagsView() }
+        case .userDefaults:
+            navigationRow(for: item) { UserDefaultsView() }
+        case .cookies:
+            navigationRow(for: item) { CookieBrowserView() }
+        case .fileBrowser:
+            navigationRow(for: item) { FileBrowserView() }
+        case .databaseBrowser:
+            navigationRow(for: item) { DatabaseBrowserView() }
+
+        // MARK: Security
+        case .keychainBrowser:
+            navigationRow(for: item) { KeychainBrowserView() }
+
+        // MARK: System Tools
+        case .locationSpoofer:
+            navigationRow(for: item) { LocationSpooferView() }
+        case .consoleLogs:
+            navigationRow(for: item) { ConsoleLoggerView() }
+        case .deepLinkTester:
+            navigationRow(for: item) { DeepLinkTesterView() }
+        case .crashLogs:
+            navigationRow(for: item) { CrashLogsView() }
+
+        // MARK: Notifications
+        case .notificationLogger:
+            navigationRow(for: item) { NotificationLoggerView() }
+        case .notificationTester:
+            navigationRow(for: item) { NotificationTesterView() }
+        case .apnsToken:
+            row(withLabel: item.title, icon: item.icon)
+        case .fcmToken:
+            row(withLabel: item.title, icon: item.icon)
+
+        // MARK: UI/UX
+        case .fonts:
+            navigationRow(for: item) { FontsView() }
+        case .interfaceComponents:
+            navigationRow(for: item) { InterfacePreviewsView() }
+        case .gridOverlay:
+            navigationRow(for: item) { GridOverlaySettingsView() }
+        case .fpsCounter:
+            navigationRow(for: item) { FPSCounterSettingsView() }
+        case .touchVisualiser:
+            navigationRow(for: item) { TouchVisualiserView() }
+        case .appearance:
+            navigationRow(for: item) { AppearanceOverridesView() }
+        case .slowAnimations:
+            toggleRow(item.title, icon: item.icon, isOn: $viewModel.slowAnimationsEnabled)
+        case .showViewFrames:
+            toggleRow(item.title, icon: item.icon, isOn: $viewModel.showViewFrames)
+        case .showViewSizes:
+            toggleRow(item.title, icon: item.icon, isOn: $viewModel.showViewSizes)
+        }
+    }
+
     func row(withLabel label: String, description: String? = nil, icon: String? = nil, andLoadingState loading: Bool = false) -> some View {
         HStack {
             if let icon {
@@ -289,17 +266,29 @@ public struct MenuView: View {
         }
     }
 
-    func toggleRow(_ label: String, icon: String, isOn: Binding<Bool>) -> some View {
+    /// Builds a toggle row bound to a Boolean setting.
+    ///
+    /// - Parameters:
+    ///   - label: The row's title.
+    ///   - icon: An optional SF Symbol shown alongside the label. Rows without an icon
+    ///     (there are currently none among toggle rows, but ``MenuItem/icon`` is optional)
+    ///     render as plain text.
+    ///   - isOn: The binding the toggle reads from and writes to.
+    func toggleRow(_ label: String, icon: String?, isOn: Binding<Bool>) -> some View {
         Toggle(isOn: isOn) {
-            Label {
+            if let icon {
+                Label {
+                    Text(label)
+                } icon: {
+                    Image(systemName: icon)
+                        .foregroundStyle(Color.accentColor)
+                }
+            } else {
                 Text(label)
-            } icon: {
-                Image(systemName: icon)
-                    .foregroundStyle(Color.accentColor)
             }
         }
     }
-    
+
     @ViewBuilder
     func developerOptionRow(_ option: DeveloperOption) -> some View {
         switch option.type {

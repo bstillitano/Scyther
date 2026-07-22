@@ -24,7 +24,7 @@ final class FeatureToggleTests: XCTestCase {
 
     private func cleanupUserDefaults() {
         // Remove test-related keys
-        let defaults = UserDefaults.standard
+        let defaults = UserDefaults.scyther
         for key in defaults.dictionaryRepresentation().keys {
             if key.hasPrefix("Scyther_toggler_local_value_") {
                 defaults.removeObject(forKey: key)

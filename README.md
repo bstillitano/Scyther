@@ -13,6 +13,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 
 - [Features](#features)
 - [Requirements](#requirements)
+- [Preferences Storage](#preferences-storage)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Detailed Usage Guide](#detailed-usage-guide)
@@ -28,6 +29,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Custom Developer Options](#custom-developer-options)
   - [Environment Variables](#environment-variables)
 - [Menu Invocation](#menu-invocation)
+  - [Pinning menu items](#pinning-menu-items)
 - [API Reference](#api-reference)
 - [FAQ](#faq)
 - [Contributing](#contributing)
@@ -134,6 +136,44 @@ Key public types conform to `Sendable` for safe cross-actor usage:
 ### Performance Optimizations
 
 Scyther uses `nonisolated` properties for UserDefaults-backed settings to avoid actor hop overhead in hot paths. This ensures the debugging tools don't impact your app's UI performance.
+
+## Preferences Storage
+
+Scyther never writes to `UserDefaults.standard`. Every setting it persists — feature flag
+overrides, pinned menu items, spoofed locations, grid overlay configuration, appearance
+overrides and the rest — lives in a private suite named `com.scyther.settings`.
+
+This matters because apps commonly clear their own defaults when a user signs out:
+
+```swift
+// Both of these wipe the application domain only.
+UserDefaults.standard.dictionaryRepresentation().keys
+    .forEach(UserDefaults.standard.removeObject(forKey:))
+
+UserDefaults.standard.removePersistentDomain(forName: Bundle.main.bundleIdentifier!)
+```
+
+A named suite is a separate persistent domain, so neither call touches Scyther's state.
+Your debugging setup survives sign-out.
+
+The store is exposed if you need it directly:
+
+```swift
+UserDefaults.scyther.bool(forKey: "Scyther_grid_overlay_enabled")
+```
+
+### Migration from earlier versions
+
+Versions before this change stored settings in `UserDefaults.standard`. The first time
+Scyther's store is accessed it moves every key prefixed `scyther` (case-insensitive) out of
+the standard store and into the suite, skipping any key the suite already has a value for,
+then records that it has done so. Existing overrides and preferences carry across
+automatically, and your app's standard domain is left cleaner than it was. This prefix match
+is the one place migration touches data it did not write itself: a key your own app happens
+to store under a `scyther`-prefixed name would also be moved.
+
+You can inspect and edit the suite from **Data → UserDefaults**, using the store picker at
+the top of the screen.
 
 ## Installation
 
@@ -243,6 +283,14 @@ In the Scyther UI, each flag is controlled by a **True / False / Remote** dropdo
 Choosing **Remote** clears that flag's local override so it follows its remote value, and the
 **Reset all to Remote** button clears every override in one tap. The **Enable overrides** toggle
 at the top gates whether these local values are applied by `isEnabled(_:)`.
+
+The flag sections and the reset button are only shown while **Enable overrides** is on. With
+overrides off, local values have no effect, so the list and the reset button are hidden; the
+search field remains visible either way.
+
+Toggles can be pinned via a left swipe. Pinned toggles appear in a **Pinned** section at the
+top of the list and also remain in the main list. Pins persist across launches in Scyther's
+private preferences suite.
 
 #### Reading an Override Off the Main Actor
 
@@ -935,6 +983,22 @@ if Scyther.isPresented {
     Scyther.hideMenu()
 }
 ```
+
+### Pinning menu items
+
+Any row in the main menu can be pinned. Swipe left on a row and tap **Pin**; a **Pinned**
+section appears directly beneath **Device** containing your shortcuts.
+
+Pinned rows stay in their original section as well, so the menu never changes shape — the
+Pinned section is purely an additional shortcut. Rows appear in the order you pinned them,
+oldest first. Swipe and tap **Unpin** on either copy to remove one.
+
+Everything is pinnable, including information rows such as **Bundle ID**, inline toggles
+such as **Slow Animations**, and any custom options you register via
+`Scyther.developerOptions`.
+
+Pins persist across launches in Scyther's private preferences suite, so they survive your
+app clearing its own `UserDefaults`. See [Preferences Storage](#preferences-storage).
 
 ---
 

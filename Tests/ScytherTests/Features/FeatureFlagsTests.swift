@@ -22,7 +22,7 @@ final class FeatureFlagsTests: XCTestCase {
     }
 
     private func cleanupUserDefaults() {
-        let defaults = UserDefaults.standard
+        let defaults = UserDefaults.scyther
         for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("Scyther_toggler_local_value_") {
             defaults.removeObject(forKey: key)
         }
@@ -44,37 +44,37 @@ final class FeatureFlagsTests: XCTestCase {
 
     func testLocalOverrideReturnsNilWhenOverridesDisabled() {
         // A local value is stored, but overrides are globally off.
-        UserDefaults.standard.set(false, forKey: FeatureFlags.overridesEnabledKey)
-        UserDefaults.standard.set(true, forKey: FeatureToggle.localValueKey(for: "Flag A"))
+        UserDefaults.scyther.set(false, forKey: FeatureFlags.overridesEnabledKey)
+        UserDefaults.scyther.set(true, forKey: FeatureToggle.localValueKey(for: "Flag A"))
 
         XCTAssertNil(FeatureFlags.shared.localOverride(for: "Flag A"))
     }
 
     func testLocalOverrideReturnsNilWhenFlagNeverOverridden() {
         // Overrides on, but this flag has no stored value.
-        UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
+        UserDefaults.scyther.set(true, forKey: FeatureFlags.overridesEnabledKey)
 
         XCTAssertNil(FeatureFlags.shared.localOverride(for: "Never Set"))
     }
 
     func testLocalOverrideReturnsTrueWhenSet() {
-        UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
-        UserDefaults.standard.set(true, forKey: FeatureToggle.localValueKey(for: "Flag B"))
+        UserDefaults.scyther.set(true, forKey: FeatureFlags.overridesEnabledKey)
+        UserDefaults.scyther.set(true, forKey: FeatureToggle.localValueKey(for: "Flag B"))
 
         XCTAssertEqual(FeatureFlags.shared.localOverride(for: "Flag B"), true)
     }
 
     func testLocalOverrideReturnsFalseWhenSet() {
-        UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
-        UserDefaults.standard.set(false, forKey: FeatureToggle.localValueKey(for: "Flag C"))
+        UserDefaults.scyther.set(true, forKey: FeatureFlags.overridesEnabledKey)
+        UserDefaults.scyther.set(false, forKey: FeatureToggle.localValueKey(for: "Flag C"))
 
         XCTAssertEqual(FeatureFlags.shared.localOverride(for: "Flag C"), false)
     }
 
     func testLocalOverrideRoundTripsThroughToggleKeyDerivation() {
         // Writing under the derived key for a spaced name must be readable via the accessor.
-        UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
-        UserDefaults.standard.set(true, forKey: FeatureToggle.localValueKey(for: "New Dashboard"))
+        UserDefaults.scyther.set(true, forKey: FeatureFlags.overridesEnabledKey)
+        UserDefaults.scyther.set(true, forKey: FeatureToggle.localValueKey(for: "New Dashboard"))
 
         XCTAssertEqual(FeatureFlags.shared.localOverride(for: "New Dashboard"), true)
     }
@@ -83,7 +83,7 @@ final class FeatureFlagsTests: XCTestCase {
 
     @MainActor
     func testClearLocalValueRevertsToRemote() {
-        UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
+        UserDefaults.scyther.set(true, forKey: FeatureFlags.overridesEnabledKey)
         let flags = FeatureFlags.shared
         flags.register("Clearable Flag", remoteValue: true)
         flags.setLocalValue(false, for: "Clearable Flag")
@@ -107,7 +107,7 @@ final class FeatureFlagsTests: XCTestCase {
 
     @MainActor
     func testClearAllLocalValuesClearsEveryFlag() {
-        UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
+        UserDefaults.scyther.set(true, forKey: FeatureFlags.overridesEnabledKey)
         let flags = FeatureFlags.shared
         flags.register("Flag One", remoteValue: false)
         flags.register("Flag Two", remoteValue: true)
@@ -141,12 +141,89 @@ final class FeatureFlagsTests: XCTestCase {
         // Proves the whole path is usable off the main actor with no main-actor hop:
         // the `Scyther.featureFlags` facade is reachable from a detached (non-main) task and
         // `localOverride(for:)` reads correctly there.
-        UserDefaults.standard.set(true, forKey: FeatureFlags.overridesEnabledKey)
-        UserDefaults.standard.set(true, forKey: FeatureToggle.localValueKey(for: "Off Main"))
+        UserDefaults.scyther.set(true, forKey: FeatureFlags.overridesEnabledKey)
+        UserDefaults.scyther.set(true, forKey: FeatureToggle.localValueKey(for: "Off Main"))
 
         let value = await Task.detached { Scyther.featureFlags.localOverride(for: "Off Main") }.value
 
         XCTAssertEqual(value, true)
+    }
+
+    // MARK: - Pinned toggles stay in the full list
+
+    /// Flags register into the shared `Scyther.featureFlags` singleton and there is no
+    /// public API to unregister them, so these tests use distinctive names and assert by
+    /// containment rather than whole-array equality. Another test registering its own flags
+    /// must not be able to break them.
+    @MainActor
+    private func makeSuite(named suiteName: String) -> UserDefaults {
+        UserDefaults.standard.removePersistentDomain(forName: suiteName)
+        addTeardownBlock {
+            UserDefaults.standard.removePersistentDomain(forName: suiteName)
+        }
+        return UserDefaults(suiteName: suiteName)!
+    }
+
+    @MainActor
+    func testPinnedTogglesRemainInTheFullToggleList() async {
+        let defaults = makeSuite(named: "com.scyther.tests.featureflags")
+        Scyther.featureFlags.register("ScytherTestPinned", remoteValue: true)
+
+        let viewModel = FeatureFlagsViewModel(defaults: defaults)
+        await viewModel.onFirstAppear()
+        viewModel.togglePin(for: "ScytherTestPinned")
+
+        XCTAssertTrue(
+            viewModel.pinnedToggles.contains { $0.name == "ScytherTestPinned" },
+            "Pinned toggle is missing from the Pinned section"
+        )
+        XCTAssertTrue(
+            viewModel.toggles.contains { $0.name == "ScytherTestPinned" && $0.isPinned },
+            "Pinned toggle must remain in the full list, flagged as pinned"
+        )
+    }
+
+    @MainActor
+    func testPinnedTogglesAreOrderedAlphabeticallyNotByPinOrder() async {
+        let defaults = makeSuite(named: "com.scyther.tests.featureflags.order")
+        Scyther.featureFlags.register("ScytherTestOrderZulu", remoteValue: true)
+        Scyther.featureFlags.register("ScytherTestOrderAlpha", remoteValue: true)
+
+        let viewModel = FeatureFlagsViewModel(defaults: defaults)
+        await viewModel.onFirstAppear()
+
+        // Pin Zulu first. Alphabetical ordering must still put Alpha ahead of it.
+        viewModel.togglePin(for: "ScytherTestOrderZulu")
+        viewModel.togglePin(for: "ScytherTestOrderAlpha")
+
+        let names = viewModel.pinnedToggles.map(\.name).filter { $0.hasPrefix("ScytherTestOrder") }
+        XCTAssertEqual(names, ["ScytherTestOrderAlpha", "ScytherTestOrderZulu"])
+    }
+
+    @MainActor
+    func testUnpinningLeavesTheToggleInTheFullList() async {
+        let defaults = makeSuite(named: "com.scyther.tests.featureflags.unpin")
+        Scyther.featureFlags.register("ScytherTestUnpin", remoteValue: false)
+
+        let viewModel = FeatureFlagsViewModel(defaults: defaults)
+        await viewModel.onFirstAppear()
+        viewModel.togglePin(for: "ScytherTestUnpin")
+        viewModel.togglePin(for: "ScytherTestUnpin")
+
+        XCTAssertFalse(viewModel.pinnedToggles.contains { $0.name == "ScytherTestUnpin" })
+        XCTAssertTrue(viewModel.toggles.contains { $0.name == "ScytherTestUnpin" })
+    }
+
+    @MainActor
+    func testOverridesEnabledPropagatesToTheFeatureFlagsSubsystem() {
+        let viewModel = FeatureFlagsViewModel()
+        defer { viewModel.overridesEnabled = false }
+
+        viewModel.overridesEnabled = true
+        XCTAssertTrue(Scyther.featureFlags.localOverridesEnabled)
+
+        viewModel.overridesEnabled = false
+        XCTAssertFalse(Scyther.featureFlags.localOverridesEnabled)
     }
 }
 #endif

@@ -15,6 +15,8 @@ import SwiftUI
 ///
 /// ## Features
 ///
+/// - **Menu Structure**: Supplies the ordered section layout and the set of pinned rows
+/// - **Pinning**: Persists pinned rows to Scyther's preferences suite, oldest pin first
 /// - **Network Information**: Asynchronously fetches and displays the device's current IP address
 /// - **Animation Controls**: Manages slow animations mode for UI debugging
 /// - **View Debugging**: Controls visibility of view frames and sizes
@@ -51,6 +53,15 @@ import SwiftUI
 ///
 /// ## Topics
 ///
+/// ### Menu Structure
+///
+/// - ``sections``
+/// - ``pinnedItems``
+/// - ``pinnedItemIDs``
+/// - ``isPinned(_:)``
+/// - ``togglePin(for:)``
+/// - ``developerOption(named:)``
+///
 /// ### Network Information
 ///
 /// - ``ipAddress``
@@ -65,8 +76,116 @@ import SwiftUI
 /// ### Lifecycle
 ///
 /// - ``onFirstAppear()``
+/// - ``onSubsequentAppear()``
 @MainActor
 class MenuViewModel: ViewModel {
+    // MARK: - Menu Structure
+
+    /// The key backing ``pinnedItemIDs`` in Scyther's preferences store.
+    static let pinnedItemsKey = "Scyther.Menu.PinnedItems"
+
+    /// The store pinned item identifiers are read from and written to.
+    private let defaults: UserDefaults
+
+    /// The identifiers of pinned rows, in the order they were pinned.
+    ///
+    /// An array rather than a `Set` so that oldest-first pin order survives a relaunch.
+    @Published private(set) var pinnedItemIDs: [String]
+
+    /// A snapshot of ``Scyther/developerOptions``, taken once when the view model is created.
+    ///
+    /// `Scyther.developerOptions` is a `nonisolated(unsafe)` global a host app can mutate at
+    /// any time, including while the menu is on screen. ``sections``, ``pinnedItems``, and
+    /// ``developerOption(named:)`` all derive from this single stored copy rather than
+    /// re-reading the global independently, so they can never disagree about which developer
+    /// options exist for the lifetime of this view model. Without that, a section could list a
+    /// `.developerOption(name:)` row that a later, independent lookup could no longer resolve —
+    /// `MenuView` would render nothing for that row while its swipe-to-pin action, attached
+    /// alongside the row content, remains live.
+    private let developerOptions: [DeveloperOption]
+
+    /// The full menu layout, including any host-supplied developer options.
+    var sections: [MenuSection] {
+        MenuSection.allSections(developerOptions: developerOptions)
+    }
+
+    /// Resolves a host-supplied developer option by name.
+    ///
+    /// Looks up the option in ``developerOptions``, the snapshot also used to build
+    /// ``sections`` — the same name that appears in a `.developerOption(name:)` row is
+    /// therefore always resolvable here, regardless of what a host app has since done to
+    /// `Scyther.developerOptions`.
+    ///
+    /// - Parameter name: A developer option's ``DeveloperOption/name``, as carried by a
+    ///   ``MenuItem/developerOption(name:)`` row.
+    /// - Returns: The matching option, or `nil` if none was registered under that name when
+    ///   this view model was created.
+    func developerOption(named name: String) -> DeveloperOption? {
+        developerOptions.first { $0.name == name }
+    }
+
+    /// The pinned rows, oldest pin first.
+    ///
+    /// Stored identifiers that no longer resolve to a row currently present in ``sections``
+    /// are dropped. This covers both a feature removed in a later version of Scyther and a
+    /// developer option the host app no longer registers.
+    var pinnedItems: [MenuItem] {
+        let available = Set(sections.flatMap(\.items))
+        return pinnedItemIDs
+            .compactMap(MenuItem.init(id:))
+            .filter { available.contains($0) }
+    }
+
+    /// Creates a menu view model.
+    ///
+    /// Snapshots ``Scyther/developerOptions`` at this point — see ``developerOptions``.
+    ///
+    /// - Parameter defaults: The store backing pin state. Defaults to Scyther's private
+    ///   preferences suite; tests inject a throwaway suite.
+    init(defaults: UserDefaults = .scyther) {
+        self.defaults = defaults
+        self.developerOptions = Scyther.developerOptions
+        self.pinnedItemIDs = defaults.stringArray(forKey: Self.pinnedItemsKey) ?? []
+        super.init()
+    }
+
+    /// Whether the given row is pinned.
+    ///
+    /// - Parameter item: The row to check.
+    /// - Returns: `true` when the row appears in the "Pinned" section.
+    func isPinned(_ item: MenuItem) -> Bool {
+        pinnedItemIDs.contains(item.id)
+    }
+
+    /// Pins or unpins a row, persisting the change immediately.
+    ///
+    /// Pinning appends the row to the end of the pinned list, so the "Pinned" section reads
+    /// oldest pin first. Unpinning leaves the order of the remaining rows untouched.
+    ///
+    /// - Parameter item: The row to pin or unpin.
+    func togglePin(for item: MenuItem) {
+        if let index = pinnedItemIDs.firstIndex(of: item.id) {
+            pinnedItemIDs.remove(at: index)
+        } else {
+            pinnedItemIDs.append(item.id)
+        }
+        defaults.set(pinnedItemIDs, forKey: Self.pinnedItemsKey)
+    }
+
+    /// Re-reads ``pinnedItemIDs`` from ``defaults``.
+    ///
+    /// `MenuView` sits at the root of a `UINavigationController` (see `Scyther.hideMenu()`
+    /// and `Scyther.showMenu()`), so its `@StateObject MenuViewModel` survives pushing into,
+    /// and popping back from, other screens — including the UserDefaults browser. Without
+    /// this, a "Reset all Scyther settings" or a hand-edit of `Scyther.Menu.PinnedItems`
+    /// performed while the menu is off screen would go unnoticed: ``pinnedItemIDs`` would
+    /// keep reflecting whatever was in memory when the view model was created, and the next
+    /// ``togglePin(for:)`` would write that stale array straight back to disk, undoing the
+    /// reset.
+    private func reloadPinnedItemIDs() {
+        pinnedItemIDs = defaults.stringArray(forKey: Self.pinnedItemsKey) ?? []
+    }
+
     // MARK: - Network Properties
 
     /// The device's current IP address.
@@ -136,6 +255,22 @@ class MenuViewModel: ViewModel {
         await super.onFirstAppear()
 
         await loadIPAddress()
+    }
+
+    /// Called every time the menu reappears after the first time.
+    ///
+    /// Reloads ``pinnedItemIDs`` from ``defaults`` — see ``reloadPinnedItemIDs()`` — so pins
+    /// changed while the menu was off screen (a reset of the Scyther store, or a hand-edit of
+    /// `Scyther.Menu.PinnedItems` in the UserDefaults browser) are reflected immediately on
+    /// return. Deliberately does not re-run ``loadIPAddress()``, which stays confined to
+    /// ``onFirstAppear()``.
+    ///
+    /// - Important: Always call `await super.onSubsequentAppear()` to ensure proper lifecycle
+    ///   tracking.
+    override func onSubsequentAppear() async {
+        await super.onSubsequentAppear()
+
+        reloadPinnedItemIDs()
     }
 
     // MARK: - Private Methods

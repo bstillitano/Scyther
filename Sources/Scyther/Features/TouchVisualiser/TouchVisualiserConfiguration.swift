@@ -11,7 +11,7 @@ import UIKit
 ///
 /// This structure controls the appearance and behavior of touch indicators displayed
 /// on screen when the touch visualiser is enabled. Settings are automatically persisted
-/// to UserDefaults.
+/// to `UserDefaults.scyther`, Scyther's private preferences suite.
 ///
 /// ## Usage
 /// ```swift
@@ -61,13 +61,13 @@ public struct TouchVisualiserConfiguration {
     ///
     /// When enabled, a label appears above each touch showing how long it has been active.
     /// Useful for debugging time-based interactions like long presses. Default is `false`.
-    /// This setting is persisted to UserDefaults.
+    /// This setting is persisted to `UserDefaults.scyther`.
     public var showsTouchDuration: Bool {
         get {
-            UserDefaults.standard.bool(forKey: Self.showsTouchDurationKey)
+            UserDefaults.scyther.bool(forKey: Self.showsTouchDurationKey)
         }
         set {
-            UserDefaults.standard.set(newValue, forKey: Self.showsTouchDurationKey)
+            UserDefaults.scyther.set(newValue, forKey: Self.showsTouchDurationKey)
         }
     }
 
@@ -75,13 +75,13 @@ public struct TouchVisualiserConfiguration {
     ///
     /// When enabled, touch indicators scale to match the actual touch area. This only
     /// works on physical devices, as simulators don't provide touch radius information.
-    /// Default is `false`. This setting is persisted to UserDefaults.
+    /// Default is `false`. This setting is persisted to `UserDefaults.scyther`.
     public var showsTouchRadius: Bool {
         get {
-            UserDefaults.standard.bool(forKey: Self.showsTouchRadiusKey)
+            UserDefaults.scyther.bool(forKey: Self.showsTouchRadiusKey)
         }
         set {
-            UserDefaults.standard.set(newValue, forKey: Self.showsTouchRadiusKey)
+            UserDefaults.scyther.set(newValue, forKey: Self.showsTouchRadiusKey)
         }
     }
 
@@ -89,13 +89,13 @@ public struct TouchVisualiserConfiguration {
     ///
     /// When enabled, detailed touch information is logged to the console. This has a
     /// performance impact and is automatically disabled in App Store builds regardless
-    /// of this setting. Default is `false`. This setting is persisted to UserDefaults.
+    /// of this setting. Default is `false`. This setting is persisted to `UserDefaults.scyther`.
     public var loggingEnabled: Bool {
         get {
-            return AppEnvironment.isAppStore ? false : UserDefaults.standard.bool(forKey: Self.loggingEnabledKey)
+            return AppEnvironment.isAppStore ? false : UserDefaults.scyther.bool(forKey: Self.loggingEnabledKey)
         }
         set {
-            UserDefaults.standard.set(newValue, forKey: Self.loggingEnabledKey)
+            UserDefaults.scyther.set(newValue, forKey: Self.loggingEnabledKey)
         }
     }
 

@@ -41,7 +41,8 @@ public enum FPSCounterPosition: String, CaseIterable, Sendable {
 /// - **Yellow** (30-54 FPS): Acceptable but may need optimization
 /// - **Red** (<30 FPS): Poor performance, needs investigation
 ///
-/// Settings are persisted to `UserDefaults` and automatically restored on app launch.
+/// Settings are persisted in `UserDefaults.scyther`, Scyther's private preferences suite,
+/// and automatically restored on app launch.
 ///
 /// ```swift
 /// // Enable the FPS counter
@@ -101,13 +102,13 @@ public final class FPSCounter: Sendable {
     /// Controls whether the FPS counter overlay is visible on screen.
     ///
     /// Setting this to `true` displays the FPS counter and starts measuring frame rate.
-    /// The value is persisted to UserDefaults and restored on app launch.
+    /// The value is persisted to `UserDefaults.scyther` and restored on app launch.
     public nonisolated var enabled: Bool {
         get {
-            return UserDefaults.standard.bool(forKey: FPSCounter.EnabledDefaultsKey)
+            return UserDefaults.scyther.bool(forKey: FPSCounter.EnabledDefaultsKey)
         }
         set {
-            UserDefaults.standard.setValue(newValue, forKey: FPSCounter.EnabledDefaultsKey)
+            UserDefaults.scyther.setValue(newValue, forKey: FPSCounter.EnabledDefaultsKey)
             Task { @MainActor in
                 if newValue {
                     self.start()
@@ -122,14 +123,14 @@ public final class FPSCounter: Sendable {
     /// The position of the FPS counter on screen.
     ///
     /// Choose a corner that doesn't interfere with your app's UI.
-    /// The value is persisted to UserDefaults.
+    /// The value is persisted to `UserDefaults.scyther`.
     public nonisolated var position: FPSCounterPosition {
         get {
-            let rawValue = UserDefaults.standard.string(forKey: FPSCounter.PositionDefaultsKey) ?? "topLeft"
+            let rawValue = UserDefaults.scyther.string(forKey: FPSCounter.PositionDefaultsKey) ?? "topLeft"
             return FPSCounterPosition(rawValue: rawValue) ?? .topLeft
         }
         set {
-            UserDefaults.standard.setValue(newValue.rawValue, forKey: FPSCounter.PositionDefaultsKey)
+            UserDefaults.scyther.setValue(newValue.rawValue, forKey: FPSCounter.PositionDefaultsKey)
             Task { @MainActor in
                 InterfaceToolkit.instance.fpsCounterView.updatePosition()
             }
