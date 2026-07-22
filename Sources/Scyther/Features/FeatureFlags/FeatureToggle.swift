@@ -86,7 +86,7 @@ public struct FeatureToggle {
 
     /// The local override value for this feature toggle.
     ///
-    /// When set, the value is persisted to ``UserDefaults/scyther``. This allows developers to override
+    /// When set, the value is persisted to `UserDefaults.scyther`. This allows developers to override
     /// feature flags during development and testing without modifying server configuration.
     ///
     /// - Note: The getter returns `false` when no override has been stored. Use

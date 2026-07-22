@@ -27,7 +27,7 @@ import SwiftUI
 /// Any row can be pinned via a trailing swipe action. Pinned rows appear in a "Pinned"
 /// section rendered directly beneath **Device**, and also remain in their home section, so
 /// the menu's structure never changes shape as rows are pinned. Pins are ordered oldest
-/// first and persist across launches in ``UserDefaults/scyther``.
+/// first and persist across launches in `UserDefaults.scyther`.
 public struct MenuView: View {
     @StateObject private var viewModel: MenuViewModel = MenuViewModel()
 

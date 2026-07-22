@@ -14,7 +14,7 @@ import UIKit
 /// layout alignment and spacing verification. The grid's appearance can be customized with
 /// different colors, opacity levels, and grid sizes.
 ///
-/// Settings are persisted in ``UserDefaults/scyther``, Scyther's private preferences suite,
+/// Settings are persisted in `UserDefaults.scyther`, Scyther's private preferences suite,
 /// and automatically applied when changed.
 ///
 /// ```swift
@@ -70,7 +70,7 @@ internal final class GridOverlay: Sendable {
     /// Controls whether the grid overlay is visible on screen.
     ///
     /// Setting this to `true` displays the grid overlay over the entire application interface.
-    /// The value is persisted to ``UserDefaults/scyther`` and restored on app launch.
+    /// The value is persisted to `UserDefaults.scyther` and restored on app launch.
     internal nonisolated var enabled: Bool {
         get {
             return UserDefaults.scyther.bool(forKey: GridOverlay.EnabledDefaultsKey)
@@ -84,7 +84,7 @@ internal final class GridOverlay: Sendable {
     /// The color scheme used for the grid lines.
     ///
     /// Choose from predefined color schemes to ensure the grid is visible against
-    /// your app's color scheme. The value is persisted to ``UserDefaults/scyther``.
+    /// your app's color scheme. The value is persisted to `UserDefaults.scyther`.
     internal nonisolated var colorScheme: GridOverlayColorScheme {
         get {
             return GridOverlayColorScheme(rawValue: UserDefaults.scyther.string(forKey: GridOverlay.ColorDefaultsKey) ?? "red") ?? .red
@@ -100,7 +100,7 @@ internal final class GridOverlay: Sendable {
     /// The opacity of the grid overlay.
     ///
     /// Valid range is 0.0 (fully transparent) to 1.0 (fully opaque).
-    /// Adjust this to make the grid more or less prominent. The value is persisted to ``UserDefaults/scyther``.
+    /// Adjust this to make the grid more or less prominent. The value is persisted to `UserDefaults.scyther`.
     internal nonisolated var opacity: Float {
         get {
             return UserDefaults.scyther.object(forKey: GridOverlay.OpacityDefaultsKey) as? Float ?? 0.5
@@ -116,7 +116,7 @@ internal final class GridOverlay: Sendable {
     /// The size of each grid square in points.
     ///
     /// Smaller values create a finer grid, larger values create a coarser grid.
-    /// Common values range from 4 to 16 points. The value is persisted to ``UserDefaults/scyther``.
+    /// Common values range from 4 to 16 points. The value is persisted to `UserDefaults.scyther`.
     internal nonisolated var size: Int {
         get {
             return UserDefaults.scyther.object(forKey: GridOverlay.SizeDefaultsKey) as? Int ?? 8

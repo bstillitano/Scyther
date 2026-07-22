@@ -25,7 +25,7 @@ enum DefaultsStore: String, CaseIterable, Identifiable, Sendable {
     /// The host application's own defaults — `UserDefaults.standard`.
     case app
 
-    /// Scyther's private preferences suite — ``UserDefaults/scyther``.
+    /// Scyther's private preferences suite — `UserDefaults.scyther`.
     case scyther
 
     /// Stable identifier, used for `Picker` selection and `ForEach`.

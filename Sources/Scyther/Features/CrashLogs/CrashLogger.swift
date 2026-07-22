@@ -13,7 +13,7 @@ import UIKit
 ///
 /// `CrashLogger` uses `NSSetUncaughtExceptionHandler` to intercept Objective-C
 /// and Swift exceptions before the app terminates. Captured crashes are persisted
-/// to ``UserDefaults/scyther``, Scyther's private preferences suite, and can be viewed on
+/// to `UserDefaults.scyther`, Scyther's private preferences suite, and can be viewed on
 /// subsequent app launches.
 ///
 /// ## Features
@@ -166,7 +166,7 @@ public final class CrashLogger: @unchecked Sendable {
         NotificationCenter.default.post(name: CrashLogger.didRecordCrashNotification, object: nil)
     }
 
-    /// Loads crash logs from ``UserDefaults/scyther``.
+    /// Loads crash logs from `UserDefaults.scyther`.
     private func load() -> [CrashLogEntry] {
         guard let data = UserDefaults.scyther.data(forKey: CrashLogger.storageKey) else {
             return []
@@ -179,7 +179,7 @@ public final class CrashLogger: @unchecked Sendable {
         }
     }
 
-    /// Saves crash logs to ``UserDefaults/scyther``.
+    /// Saves crash logs to `UserDefaults.scyther`.
     private func save(_ crashes: [CrashLogEntry]) {
         do {
             let data = try JSONEncoder().encode(crashes)

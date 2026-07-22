@@ -112,7 +112,7 @@ struct FeatureToggleItem: Identifiable {
 ///
 /// The view model maintains a published array of ``FeatureToggleItem`` instances that
 /// represent the current state of all feature toggles. Pin state is persisted to
-/// ``UserDefaults/scyther`` using the key `Scyther.FeatureFlags.PinnedToggles` and is
+/// `UserDefaults.scyther` using the key `Scyther.FeatureFlags.PinnedToggles` and is
 /// automatically restored when the view model loads. Pinned toggles remain in the full
 /// ``toggles`` list, so a pinned toggle is shown both in the "Pinned" section and in the
 /// main list.
@@ -174,7 +174,7 @@ class FeatureFlagsViewModel: ViewModel {
         super.init()
     }
 
-    /// The set of toggle names that have been pinned, persisted in ``UserDefaults/scyther``.
+    /// The set of toggle names that have been pinned, persisted in `UserDefaults.scyther`.
     ///
     /// This property reads from and writes to ``defaults`` using the key
     /// ``pinnedTogglesKey`` to maintain pin state across app launches.
@@ -296,7 +296,7 @@ class FeatureFlagsViewModel: ViewModel {
     /// Toggles the pinned state of a feature toggle.
     ///
     /// This method updates both the in-memory ``toggles`` array and persists
-    /// the change to ``UserDefaults/scyther`` via ``pinnedToggleNames``.
+    /// the change to `UserDefaults.scyther` via ``pinnedToggleNames``.
     ///
     /// - Parameter name: The name of the toggle to pin or unpin.
     ///

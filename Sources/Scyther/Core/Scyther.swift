@@ -481,7 +481,7 @@ public actor Servers {
 
     /// The identifier of the currently selected server.
     ///
-    /// This value is persisted across app launches in ``UserDefaults/scyther``, Scyther's
+    /// This value is persisted across app launches in `UserDefaults.scyther`, Scyther's
     /// private preferences suite, so it survives the host app clearing its own defaults.
     public var currentId: String {
         get { UserDefaults.scyther.string(forKey: defaultsKey) ?? "" }

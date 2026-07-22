@@ -32,7 +32,7 @@ import Foundation
 /// ## Migration
 ///
 /// Earlier versions of Scyther wrote to `UserDefaults.standard`. The first time
-/// ``UserDefaults/scyther`` is accessed, ``migrateIfNeeded(from:to:)`` moves every key
+/// `UserDefaults.scyther` is accessed, ``migrateIfNeeded(from:to:)`` moves every key
 /// prefixed `scyther` (compared case-insensitively) into the suite and removes it from the
 /// standard store, so existing overrides, pins and spoofed locations survive the upgrade.
 ///
@@ -50,7 +50,7 @@ import Foundation
 /// ### Construction
 /// - ``makeStore()``
 internal enum ScytherDefaults {
-    /// The name of the `UserDefaults` suite backing ``UserDefaults/scyther``.
+    /// The name of the `UserDefaults` suite backing `UserDefaults.scyther`.
     static let suiteName = "com.scyther.settings"
 
     /// The prefix every Scyther-owned defaults key carries, compared case-insensitively.

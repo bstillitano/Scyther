@@ -47,7 +47,7 @@ public enum ColorSchemeOverride: String, CaseIterable, Sendable {
 /// - **High Contrast**: Enable increased contrast mode (iOS 17+)
 /// - **Dynamic Type**: Test all content size categories
 ///
-/// Settings are persisted in ``UserDefaults/scyther``, Scyther's private preferences suite,
+/// Settings are persisted in `UserDefaults.scyther`, Scyther's private preferences suite,
 /// and automatically restored on app launch.
 ///
 /// ```swift
@@ -95,7 +95,7 @@ public final class AppearanceOverrides: Sendable {
     /// The current color scheme override setting.
     ///
     /// Setting this value immediately applies the color scheme to all windows
-    /// and persists the preference to ``UserDefaults/scyther``.
+    /// and persists the preference to `UserDefaults.scyther`.
     public nonisolated var colorScheme: ColorSchemeOverride {
         get {
             let rawValue = UserDefaults.scyther.string(forKey: AppearanceOverrides.ColorSchemeDefaultsKey) ?? "system"
@@ -115,7 +115,7 @@ public final class AppearanceOverrides: Sendable {
     ///
     /// When enabled, the system uses increased contrast colors for better visibility.
     /// This setting requires iOS 17+ to take effect via trait overrides.
-    /// The value is persisted to ``UserDefaults/scyther``.
+    /// The value is persisted to `UserDefaults.scyther`.
     public nonisolated var highContrastEnabled: Bool {
         get {
             return UserDefaults.scyther.bool(forKey: AppearanceOverrides.HighContrastDefaultsKey)
@@ -134,7 +134,7 @@ public final class AppearanceOverrides: Sendable {
     ///
     /// Use this to test how your app responds to different Dynamic Type sizes.
     /// When set to `nil`, the system default is used.
-    /// The value is persisted to ``UserDefaults/scyther``.
+    /// The value is persisted to `UserDefaults.scyther`.
     public nonisolated var contentSizeCategory: UIContentSizeCategory? {
         get {
             guard let rawValue = UserDefaults.scyther.string(forKey: AppearanceOverrides.ContentSizeCategoryDefaultsKey) else {
