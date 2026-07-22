@@ -217,6 +217,7 @@ final class FeatureFlagsTests: XCTestCase {
     @MainActor
     func testOverridesEnabledPropagatesToTheFeatureFlagsSubsystem() {
         let viewModel = FeatureFlagsViewModel()
+        defer { viewModel.overridesEnabled = false }
 
         viewModel.overridesEnabled = true
         XCTAssertTrue(Scyther.featureFlags.localOverridesEnabled)
