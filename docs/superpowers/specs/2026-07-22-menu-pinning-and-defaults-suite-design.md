@@ -255,9 +255,17 @@ hidden:
 
 - The "Pinned" and "Toggles" sections are omitted entirely.
 - The "Reset all to Remote" button is hidden, leaving "Global Settings" with a single row.
-- `.searchable` is not applied, so no dead search field filters an invisible list. `searchText`
-  and `debouncedSearchText` are cleared when overrides are switched off, so re-enabling never
-  reveals a list silently filtered by a stale query.
+- `.searchable` **is** applied unconditionally — the search field stays visible even while the
+  list is hidden. `searchText` and `debouncedSearchText` are still cleared when overrides are
+  switched off, so re-enabling never reveals a list silently filtered by a stale query.
+
+  Rationale for keeping the search field always present: applying `.searchable` conditionally
+  forces `body` to branch between two view shapes, and flipping the toggle then swaps which
+  branch renders — destroying that branch's view identity along with any `.onChange`,
+  `.onAppear` or `@State` attached inside it. The search-clearing handler would silently
+  never fire on the exact transition it exists to handle, and no test would catch it. A
+  single unconditional shape removes that failure mode entirely. A momentarily inert search
+  field is a smaller cost than structurally fragile view identity.
 - The "Global Settings" section gains a **footer** reading along the lines of
   "Enable overrides to view and modify feature flags." The footer is shown only while
   overrides are off; once enabled the flags are visible and self-explanatory, so it is

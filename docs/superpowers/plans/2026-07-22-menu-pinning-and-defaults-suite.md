@@ -2359,19 +2359,14 @@ In `Sources/Scyther/Features/FeatureFlags/FeatureFlagsView.swift`, replace `filt
     }
 ```
 
-Replace `body` with a gated version. `.searchable` cannot be applied conditionally inline, so the list is extracted and the modifier applied on one branch only.
+Replace `body` with a gated version. **`.searchable` is applied unconditionally**, so `body` stays a single view shape.
 
-**The `Group` wrapper is load-bearing — do not remove it.** Flipping `overridesEnabled` swaps which branch is rendered, which destroys the branch's view identity along with any `.onChange`, `.onAppear` or `@State` attached inside it. Attaching the lifecycle modifiers to the `Group` gives them a stable identity that survives the swap, so the "clear the search text" handler actually fires. Attached to `list` instead, it would silently never run on the very transition it exists to handle.
+This is deliberate. An earlier draft applied `.searchable` only while overrides were on, which forced `body` to branch between two shapes — and flipping `overridesEnabled` then swapped which branch rendered, destroying that branch's view identity along with any `.onChange`, `.onAppear` or `@State` attached inside it. The search-clearing handler would have silently never fired on the exact transition it exists to handle, and no test would have caught it. Keeping one unconditional shape removes that failure mode rather than engineering around it with a stabilising `Group` wrapper. The cost is a search field that is briefly inert while the list is hidden.
 
 ```swift
     var body: some View {
-        Group {
-            if viewModel.overridesEnabled {
-                list.searchable(text: $searchText, prompt: "Search toggles")
-            } else {
-                list
-            }
-        }
+        list
+        .searchable(text: $searchText, prompt: "Search toggles")
         .navigationTitle("Feature Flags")
         .onChange(of: searchText) { newValue in
             searchSubject.send(newValue)
@@ -2474,9 +2469,10 @@ Update the view's DocC comment, which currently claims pinning moves toggles to 
 /// - Search toggles by name
 /// - Reset all toggles back to their remote values
 ///
-/// While **Enable overrides** is off, the toggle list, the reset button and the search field
-/// are hidden — local overrides have no effect in that state, so presenting an interactive
-/// list would be misleading.
+/// While **Enable overrides** is off, the toggle list and the reset button are hidden —
+/// local overrides have no effect in that state, so presenting an interactive list would be
+/// misleading. The search field remains visible; `.searchable` is applied unconditionally so
+/// that `body` keeps a single view shape.
 ```
 
 - [ ] **Step 6: Build and run the full test suite**
@@ -2490,8 +2486,8 @@ Expected: `** TEST SUCCEEDED **`.
 - [ ] **Step 7: Verify the Feature Flags screen visually**
 
 Run `Example/ScytherExample`, navigate to **Data → Feature Flags**, and confirm:
-1. With overrides off: only "Enable overrides" is visible, with the explanatory footer beneath it. No reset button, no sections, no search field.
-2. Turning overrides on reveals the reset button, the Toggles section and the search field.
+1. With overrides off: only "Enable overrides" is visible, with the explanatory footer beneath it. No reset button and no sections. The search field IS still present — that is intended.
+2. Turning overrides on reveals the reset button and the Toggles section. The search field was already there and does not move or resize the navigation bar.
 3. Pinning a toggle adds a Pinned section **and** leaves the toggle in the Toggles list.
 4. Both copies show "Unpin" when swiped, and unpinning from either removes the Pinned section entry.
 5. Typing a search term, then turning overrides off and back on, leaves the search field empty and the full list visible.
@@ -2502,7 +2498,8 @@ In the `### Feature Flags` section of `README.md`, add a note after the override
 
 ```markdown
 The flag list is only shown while **Enable overrides** is on. With overrides off, local
-values have no effect, so the list, the reset button and the search field are hidden.
+values have no effect, so the list and the reset button are hidden. The search field stays
+visible.
 
 Toggles can be pinned via a left swipe. Pinned toggles appear in a **Pinned** section at the
 top of the list and also remain in the main list. Pins persist across launches in Scyther's
