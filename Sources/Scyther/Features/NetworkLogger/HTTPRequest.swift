@@ -319,14 +319,21 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
     }
 
     /// Saves the provided string data to the specified file.
+    ///
+    /// The containing directory for `toFile` is created (including any intermediate
+    /// directories) if it does not already exist. If the write fails for any reason,
+    /// the underlying error is logged via `logMessage` rather than thrown or ignored.
     /// - Parameters:
     ///   - dataString: The string data to save.
     ///   - toFile: The file path where the data should be saved.
     func saveData(_ dataString: NSString, toFile: String) {
         do {
+            let url = URL(fileURLWithPath: toFile)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
             try dataString.write(toFile: toFile, atomically: false, encoding: String.Encoding.utf8.rawValue)
         } catch {
-            logMessage("catch !!!")
+            logMessage("Scyther: failed to write body to \(toFile): \(error)")
         }
     }
 
