@@ -94,13 +94,24 @@ final class ScytherDefaultsTests: XCTestCase {
     }
 
     func testMigrationIsIdempotent() {
-        source.set(true, forKey: "Scyther_fps_counter_enabled")
+        let key = "Scyther_fps_counter_enabled"
+        source.set(true, forKey: key)
+
+        // First run: the key moves across as usual.
+        ScytherDefaults.migrate(from: source, to: destination)
+
+        // Re-seed the source with the *same* value it had originally, but give the
+        // destination a *different* value than what the source would supply. A second
+        // migration run must leave the destination's value alone - if `migrate` ever started
+        // unconditionally overwriting, this is what would catch it - while still sweeping the
+        // re-seeded key out of the source.
+        source.set(true, forKey: key)
+        destination.set(false, forKey: key)
 
         ScytherDefaults.migrate(from: source, to: destination)
-        destination.set(false, forKey: "Scyther_fps_counter_enabled")
-        ScytherDefaults.migrate(from: source, to: destination)
 
-        XCTAssertFalse(destination.bool(forKey: "Scyther_fps_counter_enabled"))
+        XCTAssertFalse(destination.bool(forKey: key), "the destination's existing value must survive a second migration run")
+        XCTAssertNil(source.object(forKey: key), "the source key must still be removed on the second run")
     }
 
     // MARK: - migrateIfNeeded(from:to:)
@@ -123,6 +134,22 @@ final class ScytherDefaultsTests: XCTestCase {
     }
 
     // MARK: - Store
+    //
+    // `UserDefaults.scyther` is a `nonisolated(unsafe) static let`, backed by the real,
+    // on-disk `com.scyther.settings` suite - not a throwaway suite like `source`/`destination`
+    // above. Because it is a `static`, the *first* access anywhere in this test binary's
+    // process runs `ScytherDefaults.makeStore()`'s one-time migration against the real
+    // `UserDefaults.standard`, once, for the lifetime of the process. Any `Scyther*` fixture a
+    // test seeds into `UserDefaults.standard` *after* that first access will never be picked
+    // up by a subsequent migration - it will just sit there looking like it "vanished" from
+    // the destination. Don't seed `Scyther*` keys into `UserDefaults.standard` expecting this
+    // store to observe them; use the `source`/`destination` throwaway suites for migration
+    // behaviour instead.
+    //
+    // The two tests below are the only ones in this file that touch the real suite, and
+    // nothing else in the suite ever cleans it. They must therefore leave it exactly as they
+    // found it - including when an assertion inside them fails - so state never leaks across
+    // test runs on the same simulator.
 
     func testScytherStoreIsNotTheStandardStore() {
         XCTAssertFalse(UserDefaults.scyther === UserDefaults.standard)
@@ -130,8 +157,14 @@ final class ScytherDefaultsTests: XCTestCase {
 
     func testScytherStoreWritesAreInvisibleToStandard() {
         let key = "Scyther_isolation_probe"
+
+        // Registered before the write, so it still runs - and removes the probe key - even if
+        // an assertion below fails or a future edit adds a path that returns early.
+        addTeardownBlock {
+            UserDefaults.scyther.removeObject(forKey: key)
+        }
+
         UserDefaults.scyther.set(true, forKey: key)
-        defer { UserDefaults.scyther.removeObject(forKey: key) }
 
         XCTAssertTrue(UserDefaults.scyther.bool(forKey: key))
         XCTAssertNil(UserDefaults.standard.persistentDomain(forName: Bundle.main.bundleIdentifier ?? "")?[key])
