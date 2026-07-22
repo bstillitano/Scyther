@@ -2522,13 +2522,23 @@ git commit -m "Gate the feature flag list behind the overrides toggle"
 
 **Files:** none modified unless a check fails.
 
-- [ ] **Step 1: Confirm no Scyther code writes to the standard store**
+- [ ] **Step 1: Confirm no Scyther *setting* is written to the standard store**
 
 ```bash
-grep -rn "UserDefaults.standard" --include="*.swift" Sources/
+grep -rln "UserDefaults.standard" --include="*.swift" Sources/
 ```
 
-Expected: exactly two results — `Shared/Extensions/UserDefaults+Extensions.swift` and `Features/CookieBrowser/CookieDetailsViewModel.swift`. Both are correct; see Task 2.
+Expected: exactly these four files, all of which reference the standard store legitimately:
+
+| File | Why it is correct |
+| --- | --- |
+| `Core/ScytherDefaults.swift` | Names `.standard` as the migration *source*, as the fallback when the suite cannot be created, and in its DocC examples |
+| `Features/UserDefaults/UserDefaultsViewModel.swift` | The browser reads the host app's defaults for the `.app` store |
+| `Features/UserDefaults/UserDefaultsView.swift` | Store-selection copy naming the app's defaults |
+| `Shared/Extensions/UserDefaults+Extensions.swift` | Display helper, called against whichever store is shown |
+| `Features/CookieBrowser/CookieDetailsViewModel.swift` | `synchronize()` flushing `HTTPCookieStorage` |
+
+The gate that actually matters: **none of the 12 files migrated in Task 2 may appear in this list.**
 
 - [ ] **Step 2: Confirm no confirmation dialogs remain**
 
