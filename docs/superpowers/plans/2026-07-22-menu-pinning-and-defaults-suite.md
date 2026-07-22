@@ -2525,13 +2525,14 @@ git commit -m "Gate the feature flag list behind the overrides toggle"
 grep -rln "UserDefaults.standard" --include="*.swift" Sources/
 ```
 
-Expected: exactly these five files, all of which reference the standard store legitimately:
+Expected: exactly these six files, all of which reference the standard store legitimately:
 
 | File | Why it is correct |
 | --- | --- |
 | `Core/ScytherDefaults.swift` | Names `.standard` as the migration *source*, as the fallback when the suite cannot be created, and in its DocC examples |
 | `Features/UserDefaults/UserDefaultsViewModel.swift` | The browser reads the host app's defaults for the `.app` store |
 | `Features/UserDefaults/UserDefaultsView.swift` | Store-selection copy naming the app's defaults |
+| `Features/UserDefaults/DefaultsStore.swift` | DocC comment describing what the `.app` case refers to (added in Task 3) |
 | `Shared/Extensions/UserDefaults+Extensions.swift` | Display helper, called against whichever store is shown |
 | `Features/CookieBrowser/CookieDetailsViewModel.swift` | `synchronize()` flushing `HTTPCookieStorage` |
 
