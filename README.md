@@ -29,6 +29,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Custom Developer Options](#custom-developer-options)
   - [Environment Variables](#environment-variables)
 - [Menu Invocation](#menu-invocation)
+  - [Pinning menu items](#pinning-menu-items)
 - [API Reference](#api-reference)
 - [FAQ](#faq)
 - [Contributing](#contributing)
@@ -972,6 +973,22 @@ if Scyther.isPresented {
     Scyther.hideMenu()
 }
 ```
+
+### Pinning menu items
+
+Any row in the main menu can be pinned. Swipe left on a row and tap **Pin**; a **Pinned**
+section appears directly beneath **Device** containing your shortcuts.
+
+Pinned rows stay in their original section as well, so the menu never changes shape — the
+Pinned section is purely an additional shortcut. Rows appear in the order you pinned them,
+oldest first. Swipe and tap **Unpin** on either copy to remove one.
+
+Everything is pinnable, including information rows such as **Bundle ID**, inline toggles
+such as **Slow Animations**, and any custom options you register via
+`Scyther.developerOptions`.
+
+Pins persist across launches in Scyther's private preferences suite, so they survive your
+app clearing its own `UserDefaults`. See [Preferences Storage](#preferences-storage).
 
 ---
 
