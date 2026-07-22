@@ -15,6 +15,8 @@ import SwiftUI
 ///
 /// ## Features
 ///
+/// - **Menu Structure**: Supplies the ordered section layout and the set of pinned rows
+/// - **Pinning**: Persists pinned rows to Scyther's preferences suite, oldest pin first
 /// - **Network Information**: Asynchronously fetches and displays the device's current IP address
 /// - **Animation Controls**: Manages slow animations mode for UI debugging
 /// - **View Debugging**: Controls visibility of view frames and sizes
@@ -51,6 +53,14 @@ import SwiftUI
 ///
 /// ## Topics
 ///
+/// ### Menu Structure
+///
+/// - ``sections``
+/// - ``pinnedItems``
+/// - ``pinnedItemIDs``
+/// - ``isPinned(_:)``
+/// - ``togglePin(for:)``
+///
 /// ### Network Information
 ///
 /// - ``ipAddress``
@@ -67,6 +77,69 @@ import SwiftUI
 /// - ``onFirstAppear()``
 @MainActor
 class MenuViewModel: ViewModel {
+    // MARK: - Menu Structure
+
+    /// The key backing ``pinnedItemIDs`` in Scyther's preferences store.
+    static let pinnedItemsKey = "Scyther.Menu.PinnedItems"
+
+    /// The store pinned item identifiers are read from and written to.
+    private let defaults: UserDefaults
+
+    /// The identifiers of pinned rows, in the order they were pinned.
+    ///
+    /// An array rather than a `Set` so that oldest-first pin order survives a relaunch.
+    @Published private(set) var pinnedItemIDs: [String]
+
+    /// The full menu layout, including any host-supplied developer options.
+    var sections: [MenuSection] {
+        MenuSection.allSections(developerOptions: Scyther.developerOptions)
+    }
+
+    /// The pinned rows, oldest pin first.
+    ///
+    /// Stored identifiers that no longer resolve to a row currently present in ``sections``
+    /// are dropped. This covers both a feature removed in a later version of Scyther and a
+    /// developer option the host app no longer registers.
+    var pinnedItems: [MenuItem] {
+        let available = Set(sections.flatMap(\.items))
+        return pinnedItemIDs
+            .compactMap(MenuItem.init(id:))
+            .filter { available.contains($0) }
+    }
+
+    /// Creates a menu view model.
+    ///
+    /// - Parameter defaults: The store backing pin state. Defaults to Scyther's private
+    ///   preferences suite; tests inject a throwaway suite.
+    init(defaults: UserDefaults = .scyther) {
+        self.defaults = defaults
+        self.pinnedItemIDs = defaults.stringArray(forKey: Self.pinnedItemsKey) ?? []
+        super.init()
+    }
+
+    /// Whether the given row is pinned.
+    ///
+    /// - Parameter item: The row to check.
+    /// - Returns: `true` when the row appears in the "Pinned" section.
+    func isPinned(_ item: MenuItem) -> Bool {
+        pinnedItemIDs.contains(item.id)
+    }
+
+    /// Pins or unpins a row, persisting the change immediately.
+    ///
+    /// Pinning appends the row to the end of the pinned list, so the "Pinned" section reads
+    /// oldest pin first. Unpinning leaves the order of the remaining rows untouched.
+    ///
+    /// - Parameter item: The row to pin or unpin.
+    func togglePin(for item: MenuItem) {
+        if let index = pinnedItemIDs.firstIndex(of: item.id) {
+            pinnedItemIDs.remove(at: index)
+        } else {
+            pinnedItemIDs.append(item.id)
+        }
+        defaults.set(pinnedItemIDs, forKey: Self.pinnedItemsKey)
+    }
+
     // MARK: - Network Properties
 
     /// The device's current IP address.
