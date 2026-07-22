@@ -197,6 +197,39 @@ final class MenuViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.pinnedItems, [.developerOption(name: "Panel")])
     }
 
+    // MARK: - Consistency under a concurrent mutation
+
+    func testDeveloperOptionRowsListedBySectionsStayResolvableAfterHostMutatesDeveloperOptions() {
+        defer {
+            wipeDefaults()
+            Scyther.developerOptions = []
+        }
+        Scyther.developerOptions = [DeveloperOption(name: "Panel", value: "x")]
+        let viewModel = MenuViewModel(defaults: makeDefaults())
+
+        // This is the same item list `MenuView` uses to decide which rows to render (and to
+        // wrap in a live swipe action via `pinnableRow`).
+        let items = viewModel.sections.flatMap(\.items)
+        XCTAssertTrue(items.contains(.developerOption(name: "Panel")))
+
+        // A host app mutates `Scyther.developerOptions` while the menu is already on screen
+        // -- e.g. between the section list being computed and a lazily-materialised row
+        // actually being rendered.
+        Scyther.developerOptions = []
+
+        // Every developer-option row already committed to the item list above must still be
+        // resolvable by name. If it isn't, `rowContent` renders nothing for that row while
+        // `pinnableRow` has already wrapped it in a live swipe action -- a blank but
+        // swipeable row.
+        for item in items {
+            guard case .developerOption(let name) = item else { continue }
+            XCTAssertNotNil(
+                viewModel.developerOption(named: name),
+                "\"\(name)\" was listed by sections but can no longer be resolved for rendering"
+            )
+        }
+    }
+
     func testIsPinnedAgreesWithPinnedItemIdentifiers() {
         defer { wipeDefaults() }
         let viewModel = MenuViewModel(defaults: makeDefaults())

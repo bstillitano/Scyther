@@ -60,6 +60,7 @@ import SwiftUI
 /// - ``pinnedItemIDs``
 /// - ``isPinned(_:)``
 /// - ``togglePin(for:)``
+/// - ``developerOption(named:)``
 ///
 /// ### Network Information
 ///
@@ -90,9 +91,36 @@ class MenuViewModel: ViewModel {
     /// An array rather than a `Set` so that oldest-first pin order survives a relaunch.
     @Published private(set) var pinnedItemIDs: [String]
 
+    /// A snapshot of ``Scyther/developerOptions``, taken once when the view model is created.
+    ///
+    /// `Scyther.developerOptions` is a `nonisolated(unsafe)` global a host app can mutate at
+    /// any time, including while the menu is on screen. ``sections``, ``pinnedItems``, and
+    /// ``developerOption(named:)`` all derive from this single stored copy rather than
+    /// re-reading the global independently, so they can never disagree about which developer
+    /// options exist for the lifetime of this view model. Without that, a section could list a
+    /// `.developerOption(name:)` row that a later, independent lookup could no longer resolve —
+    /// `MenuView` would render nothing for that row while its swipe-to-pin action, attached
+    /// alongside the row content, remains live.
+    private let developerOptions: [DeveloperOption]
+
     /// The full menu layout, including any host-supplied developer options.
     var sections: [MenuSection] {
-        MenuSection.allSections(developerOptions: Scyther.developerOptions)
+        MenuSection.allSections(developerOptions: developerOptions)
+    }
+
+    /// Resolves a host-supplied developer option by name.
+    ///
+    /// Looks up the option in ``developerOptions``, the snapshot also used to build
+    /// ``sections`` — the same name that appears in a `.developerOption(name:)` row is
+    /// therefore always resolvable here, regardless of what a host app has since done to
+    /// `Scyther.developerOptions`.
+    ///
+    /// - Parameter name: A developer option's ``DeveloperOption/name``, as carried by a
+    ///   ``MenuItem/developerOption(name:)`` row.
+    /// - Returns: The matching option, or `nil` if none was registered under that name when
+    ///   this view model was created.
+    func developerOption(named name: String) -> DeveloperOption? {
+        developerOptions.first { $0.name == name }
     }
 
     /// The pinned rows, oldest pin first.
@@ -109,10 +137,13 @@ class MenuViewModel: ViewModel {
 
     /// Creates a menu view model.
     ///
+    /// Snapshots ``Scyther/developerOptions`` at this point — see ``developerOptions``.
+    ///
     /// - Parameter defaults: The store backing pin state. Defaults to Scyther's private
     ///   preferences suite; tests inject a throwaway suite.
     init(defaults: UserDefaults = .scyther) {
         self.defaults = defaults
+        self.developerOptions = Scyther.developerOptions
         self.pinnedItemIDs = defaults.stringArray(forKey: Self.pinnedItemsKey) ?? []
         super.init()
     }

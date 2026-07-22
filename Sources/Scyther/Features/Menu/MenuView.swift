@@ -161,7 +161,13 @@ public struct MenuView: View {
 
         // MARK: Development Tools
         case .developerOption(let name):
-            if let option = Scyther.developerOptions.first(where: { $0.name == name }) {
+            // Resolved from `viewModel`'s snapshot of `Scyther.developerOptions`, the same
+            // snapshot `sections` was built from, rather than re-reading the global directly.
+            // A host app can mutate `Scyther.developerOptions` while this menu is on screen;
+            // reading the same snapshot here guarantees this lookup always succeeds for a name
+            // that `sections` listed, so a row is never left blank while `pinnableRow` has
+            // already attached a live swipe action to it.
+            if let option = viewModel.developerOption(named: name) {
                 developerOptionRow(option)
             }
 
