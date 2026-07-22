@@ -2546,7 +2546,18 @@ The gate that actually matters: **none of the 12 files migrated in Task 2 may ap
 grep -rn "confirmationDialog" --include="*.swift" Sources/
 ```
 
-Expected: no results. If any remain outside the files touched by this plan, leave them — they are out of scope — but note them in the final report.
+Expected: `Features/UserDefaults/UserDefaultsView.swift` must NOT appear — Task 3 converted it to `.alert`.
+
+Five pre-existing violations of the project's alerts-only rule remain in files this plan does not touch, and are deliberately left alone as out of scope:
+
+| File | Line |
+| --- | --- |
+| `Features/CookieBrowser/CookieBrowserView.swift` | 63 |
+| `Features/KeychainBrowser/KeychainBrowserView.swift` | 100, 216 |
+| `Features/FileBrowser/FileBrowserView.swift` | 70 |
+| `Features/FileBrowser/FileDetailView.swift` | 112 |
+
+Report these in the final summary as pre-existing debt rather than fixing them here — converting five unrelated views would balloon this branch's diff and its review surface.
 
 - [ ] **Step 3: Run the full test suite**
 
