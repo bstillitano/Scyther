@@ -1942,6 +1942,25 @@ Add these two methods immediately after `body`, before the existing `row(withLab
             }
     }
 
+    /// Builds a row that pushes a destination view.
+    ///
+    /// The label is derived entirely from the item, so every navigation row in the menu is
+    /// laid out identically and only the destination varies.
+    ///
+    /// - Parameters:
+    ///   - item: The row to render.
+    ///   - destination: The view to push when the row is tapped. Built lazily.
+    private func navigationRow<Destination: View>(
+        for item: MenuItem,
+        @ViewBuilder destination: @escaping () -> Destination
+    ) -> some View {
+        NavigationLink {
+            destination()
+        } label: {
+            row(withLabel: item.title, icon: item.icon)
+        }
+    }
+
     /// The single definition of every menu row.
     ///
     /// ``MenuItem`` supplies each row's title and icon; this method supplies everything
@@ -1994,103 +2013,43 @@ Add these two methods immediately after `body`, before the existing `row(withLab
                 andLoadingState: viewModel.isLoadingIPAddress
             )
         case .networkLogs:
-            NavigationLink {
-                NetworkLogsView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { NetworkLogsView() }
         case .serverConfiguration:
-            NavigationLink {
-                ServerConfigurationView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { ServerConfigurationView() }
         case .environmentVariables:
-            NavigationLink {
-                EnvironmentVariablesView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { EnvironmentVariablesView() }
 
         // MARK: Data
         case .featureFlags:
-            NavigationLink {
-                FeatureFlagsView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { FeatureFlagsView() }
         case .userDefaults:
-            NavigationLink {
-                UserDefaultsView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { UserDefaultsView() }
         case .cookies:
-            NavigationLink {
-                CookieBrowserView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { CookieBrowserView() }
         case .fileBrowser:
-            NavigationLink {
-                FileBrowserView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { FileBrowserView() }
         case .databaseBrowser:
-            NavigationLink {
-                DatabaseBrowserView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { DatabaseBrowserView() }
 
         // MARK: Security
         case .keychainBrowser:
-            NavigationLink {
-                KeychainBrowserView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { KeychainBrowserView() }
 
         // MARK: System Tools
         case .locationSpoofer:
-            NavigationLink {
-                LocationSpooferView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { LocationSpooferView() }
         case .consoleLogs:
-            NavigationLink {
-                ConsoleLoggerView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { ConsoleLoggerView() }
         case .deepLinkTester:
-            NavigationLink {
-                DeepLinkTesterView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { DeepLinkTesterView() }
         case .crashLogs:
-            NavigationLink {
-                CrashLogsView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { CrashLogsView() }
 
         // MARK: Notifications
         case .notificationLogger:
-            NavigationLink {
-                NotificationLoggerView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { NotificationLoggerView() }
         case .notificationTester:
-            NavigationLink {
-                NotificationTesterView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { NotificationTesterView() }
         case .apnsToken:
             row(withLabel: item.title, icon: item.icon)
         case .fcmToken:
@@ -2098,41 +2057,17 @@ Add these two methods immediately after `body`, before the existing `row(withLab
 
         // MARK: UI/UX
         case .fonts:
-            NavigationLink {
-                FontsView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { FontsView() }
         case .interfaceComponents:
-            NavigationLink {
-                InterfacePreviewsView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { InterfacePreviewsView() }
         case .gridOverlay:
-            NavigationLink {
-                GridOverlaySettingsView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { GridOverlaySettingsView() }
         case .fpsCounter:
-            NavigationLink {
-                FPSCounterSettingsView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { FPSCounterSettingsView() }
         case .touchVisualiser:
-            NavigationLink {
-                TouchVisualiserView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { TouchVisualiserView() }
         case .appearance:
-            NavigationLink {
-                AppearanceOverridesView()
-            } label: {
-                row(withLabel: item.title, icon: item.icon)
-            }
+            navigationRow(for: item) { AppearanceOverridesView() }
         case .slowAnimations:
             toggleRow(item.title, icon: item.icon, isOn: $viewModel.slowAnimationsEnabled)
         case .showViewFrames:
