@@ -282,6 +282,14 @@ Choosing **Remote** clears that flag's local override so it follows its remote v
 **Reset all to Remote** button clears every override in one tap. The **Enable overrides** toggle
 at the top gates whether these local values are applied by `isEnabled(_:)`.
 
+The flag sections and the reset button are only shown while **Enable overrides** is on. With
+overrides off, local values have no effect, so the list and the reset button are hidden; the
+search field remains visible either way.
+
+Toggles can be pinned via a left swipe. Pinned toggles appear in a **Pinned** section at the
+top of the list and also remain in the main list. Pins persist across launches in Scyther's
+private preferences suite.
+
 #### Reading an Override Off the Main Actor
 
 `Scyther.featureFlags` is `@MainActor`-isolated, but you can read a flag's developer

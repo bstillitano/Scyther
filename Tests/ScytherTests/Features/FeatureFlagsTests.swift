@@ -148,5 +148,81 @@ final class FeatureFlagsTests: XCTestCase {
 
         XCTAssertEqual(value, true)
     }
+
+    // MARK: - Pinned toggles stay in the full list
+
+    /// Flags register into the shared `Scyther.featureFlags` singleton and there is no
+    /// public API to unregister them, so these tests use distinctive names and assert by
+    /// containment rather than whole-array equality. Another test registering its own flags
+    /// must not be able to break them.
+    @MainActor
+    private func makeSuite(named suiteName: String) -> UserDefaults {
+        UserDefaults.standard.removePersistentDomain(forName: suiteName)
+        addTeardownBlock {
+            UserDefaults.standard.removePersistentDomain(forName: suiteName)
+        }
+        return UserDefaults(suiteName: suiteName)!
+    }
+
+    @MainActor
+    func testPinnedTogglesRemainInTheFullToggleList() async {
+        let defaults = makeSuite(named: "com.scyther.tests.featureflags")
+        Scyther.featureFlags.register("ScytherTestPinned", remoteValue: true)
+
+        let viewModel = FeatureFlagsViewModel(defaults: defaults)
+        await viewModel.onFirstAppear()
+        viewModel.togglePin(for: "ScytherTestPinned")
+
+        XCTAssertTrue(
+            viewModel.pinnedToggles.contains { $0.name == "ScytherTestPinned" },
+            "Pinned toggle is missing from the Pinned section"
+        )
+        XCTAssertTrue(
+            viewModel.toggles.contains { $0.name == "ScytherTestPinned" && $0.isPinned },
+            "Pinned toggle must remain in the full list, flagged as pinned"
+        )
+    }
+
+    @MainActor
+    func testPinnedTogglesAreOrderedAlphabeticallyNotByPinOrder() async {
+        let defaults = makeSuite(named: "com.scyther.tests.featureflags.order")
+        Scyther.featureFlags.register("ScytherTestOrderZulu", remoteValue: true)
+        Scyther.featureFlags.register("ScytherTestOrderAlpha", remoteValue: true)
+
+        let viewModel = FeatureFlagsViewModel(defaults: defaults)
+        await viewModel.onFirstAppear()
+
+        // Pin Zulu first. Alphabetical ordering must still put Alpha ahead of it.
+        viewModel.togglePin(for: "ScytherTestOrderZulu")
+        viewModel.togglePin(for: "ScytherTestOrderAlpha")
+
+        let names = viewModel.pinnedToggles.map(\.name).filter { $0.hasPrefix("ScytherTestOrder") }
+        XCTAssertEqual(names, ["ScytherTestOrderAlpha", "ScytherTestOrderZulu"])
+    }
+
+    @MainActor
+    func testUnpinningLeavesTheToggleInTheFullList() async {
+        let defaults = makeSuite(named: "com.scyther.tests.featureflags.unpin")
+        Scyther.featureFlags.register("ScytherTestUnpin", remoteValue: false)
+
+        let viewModel = FeatureFlagsViewModel(defaults: defaults)
+        await viewModel.onFirstAppear()
+        viewModel.togglePin(for: "ScytherTestUnpin")
+        viewModel.togglePin(for: "ScytherTestUnpin")
+
+        XCTAssertFalse(viewModel.pinnedToggles.contains { $0.name == "ScytherTestUnpin" })
+        XCTAssertTrue(viewModel.toggles.contains { $0.name == "ScytherTestUnpin" })
+    }
+
+    @MainActor
+    func testOverridesEnabledPropagatesToTheFeatureFlagsSubsystem() {
+        let viewModel = FeatureFlagsViewModel()
+
+        viewModel.overridesEnabled = true
+        XCTAssertTrue(Scyther.featureFlags.localOverridesEnabled)
+
+        viewModel.overridesEnabled = false
+        XCTAssertFalse(Scyther.featureFlags.localOverridesEnabled)
+    }
 }
 #endif

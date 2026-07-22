@@ -40,6 +40,7 @@ import Combine
 /// - ``state``
 /// - ``remoteValue``
 /// - ``isPinned``
+/// - ``pinnedRowID``
 struct FeatureToggleItem: Identifiable {
     /// Unique identifier for this toggle item.
     let id = UUID()
@@ -55,6 +56,12 @@ struct FeatureToggleItem: Identifiable {
 
     /// Whether this toggle is pinned to the top of the list.
     var isPinned: Bool
+
+    /// A namespaced identifier for rendering this toggle inside the "Pinned" section.
+    ///
+    /// Pinned toggles remain in the main list, so the same toggle appears twice in one
+    /// `List`. Namespacing the pinned copy keeps SwiftUI's row identity unambiguous.
+    var pinnedRowID: String { "pinned.\(name)" }
 }
 
 /// View model for the feature flags view.
@@ -104,11 +111,11 @@ struct FeatureToggleItem: Identifiable {
 /// ## Implementation Details
 ///
 /// The view model maintains a published array of ``FeatureToggleItem`` instances that
-/// represent the current state of all feature toggles. It provides computed properties
-/// to separate pinned and unpinned toggles for easy UI organization.
-///
-/// Pin state is persisted to ``UserDefaults/scyther`` using the key `Scyther.FeatureFlags.PinnedToggles`
-/// and is automatically restored when the view model loads.
+/// represent the current state of all feature toggles. Pin state is persisted to
+/// ``UserDefaults/scyther`` using the key `Scyther.FeatureFlags.PinnedToggles` and is
+/// automatically restored when the view model loads. Pinned toggles remain in the full
+/// ``toggles`` list, so a pinned toggle is shown both in the "Pinned" section and in the
+/// main list.
 ///
 /// ## Topics
 ///
@@ -116,7 +123,6 @@ struct FeatureToggleItem: Identifiable {
 /// - ``overridesEnabled``
 /// - ``toggles``
 /// - ``pinnedToggles``
-/// - ``unpinnedToggles``
 ///
 /// ### Toggle Operations
 /// - ``setState(_:forToggle:)``
@@ -143,9 +149,9 @@ class FeatureFlagsViewModel: ViewModel {
 
     /// All feature toggles currently displayed.
     ///
-    /// This array is sorted alphabetically by toggle name and includes both
-    /// pinned and unpinned toggles. Use ``pinnedToggles`` and ``unpinnedToggles``
-    /// to access filtered subsets.
+    /// This array is sorted alphabetically by toggle name and includes both pinned and
+    /// unpinned toggles. Use ``pinnedToggles`` to access the pinned subset; pinned toggles
+    /// remain in this array as well.
     @Published var toggles: [FeatureToggleItem] = []
 
     /// Toggles that have been pinned to the top of the list.
@@ -156,24 +162,28 @@ class FeatureFlagsViewModel: ViewModel {
         toggles.filter { $0.isPinned }
     }
 
-    /// Toggles that are not pinned.
+    /// The store pinned toggle names are read from and written to.
+    private let defaults: UserDefaults
+
+    /// Creates a feature flags view model.
     ///
-    /// This computed property filters ``toggles`` to return only items where
-    /// ``FeatureToggleItem/isPinned`` is `false`, maintaining the same sort order.
-    var unpinnedToggles: [FeatureToggleItem] {
-        toggles.filter { !$0.isPinned }
+    /// - Parameter defaults: The store backing pin state. Defaults to Scyther's private
+    ///   preferences suite; tests inject a throwaway suite.
+    init(defaults: UserDefaults = .scyther) {
+        self.defaults = defaults
+        super.init()
     }
 
     /// The set of toggle names that have been pinned, persisted in ``UserDefaults/scyther``.
     ///
-    /// This property reads from and writes to ``UserDefaults/scyther`` using the key
+    /// This property reads from and writes to ``defaults`` using the key
     /// ``pinnedTogglesKey`` to maintain pin state across app launches.
     private var pinnedToggleNames: Set<String> {
         get {
-            Set(UserDefaults.scyther.stringArray(forKey: Self.pinnedTogglesKey) ?? [])
+            Set(defaults.stringArray(forKey: Self.pinnedTogglesKey) ?? [])
         }
         set {
-            UserDefaults.scyther.set(Array(newValue), forKey: Self.pinnedTogglesKey)
+            defaults.set(Array(newValue), forKey: Self.pinnedTogglesKey)
         }
     }
 
