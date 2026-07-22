@@ -2528,7 +2528,7 @@ git commit -m "Gate the feature flag list behind the overrides toggle"
 grep -rln "UserDefaults.standard" --include="*.swift" Sources/
 ```
 
-Expected: exactly these four files, all of which reference the standard store legitimately:
+Expected: exactly these five files, all of which reference the standard store legitimately:
 
 | File | Why it is correct |
 | --- | --- |
