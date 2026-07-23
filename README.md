@@ -1,3 +1,15 @@
+<table width="100%">
+<tr><td align="center">
+
+**🤖 Looking for the Android version?**
+
+**Scizor** brings the same in-app debug toolkit to Android.
+
+<a href="https://github.com/bstillitano/scizor"><img src="https://img.shields.io/badge/Get%20Scizor%20for%20Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Scizor for Android" /></a>
+
+</td></tr>
+</table>
+
 <p align="center">
   <img width="200" height="200" src="https://github.com/bstillitano/Scyther/raw/main/Scyther.png">
 </p>
@@ -6,8 +18,6 @@
 
 [![CI](https://github.com/bstillitano/Scyther/actions/workflows/ci.yml/badge.svg)](https://github.com/bstillitano/Scyther/actions/workflows/ci.yml)
 [![documentation](https://img.shields.io/badge/docs-scyther.io-blue)](https://scyther.io/documentation/scyther) ![platform-badge](https://img.shields.io/badge/platform-iOS-blue) ![license-badge](https://img.shields.io/github/license/bstillitano/Scyther) ![swift-badge](https://img.shields.io/badge/swift-6.0-orange)
-
-> **🤖 Looking for the Android version?** It's called **[Scizor](https://github.com/bstillitano/scizor)** — the same in-app debug toolkit, built for Android.
 
 A comprehensive iOS debugging toolkit that helps you cut through bugs in your iOS app. Scyther provides tools for developers, QA testers, UI/UX teams, and backend developers. Made with love in Sydney, Australia.
 
