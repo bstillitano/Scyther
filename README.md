@@ -1,14 +1,4 @@
-<table width="100%">
-<tr><td align="center">
-
-**🤖 Looking for the Android version?**
-
-**Scizor** brings the same in-app debug toolkit to Android.
-
-<a href="https://github.com/bstillitano/scizor"><img src="https://img.shields.io/badge/Get%20Scizor%20for%20Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Scizor for Android" /></a>
-
-</td></tr>
-</table>
+<a href="https://github.com/bstillitano/scizor"><img src=".github/scizor-banner.svg" alt="Looking for the Android version? Get Scizor for Android" width="100%" /></a>
 
 <p align="center">
   <img width="200" height="200" src="https://github.com/bstillitano/Scyther/raw/main/Scyther.png">
