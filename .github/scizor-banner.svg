@@ -16,7 +16,11 @@
     <text x="600" y="54" text-anchor="middle" fill="#5BE39B" font-size="15" font-weight="700" letter-spacing="4">ALSO AVAILABLE FOR ANDROID</text>
     <text x="600" y="97" text-anchor="middle" fill="#FFFFFF" font-size="33" font-weight="800" letter-spacing="-0.5">Looking for the Android version?</text>
     <text x="600" y="127" text-anchor="middle" fill="#9BA6B4" font-size="17" font-weight="400">Scizor brings the same in-app debugging toolkit to Android.</text>
-    <rect x="450" y="149" width="300" height="38" rx="19" fill="#3DDC84"/>
-    <text x="600" y="174" text-anchor="middle" fill="#06210F" font-size="15" font-weight="800" letter-spacing="1.5">GET SCIZOR FOR ANDROID  →</text>
+    <!-- CTA button -->
+    <rect x="454" y="149" width="292" height="38" rx="19" fill="#3DDC84"/>
+    <g transform="translate(480,158) scale(0.9)" fill="#06210F">
+      <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4483-.9993.9993-.9993c.5511 0 .9993.4483.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4483-.9993.9993-.9993c.5511 0 .9993.4483.9993.9993 0 .5511-.4483.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.2439 13.8533 7.8508 12 7.8508s-3.5902.3931-5.1367 1.0989L4.841 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3435-4.1021-2.6892-7.5743-6.1185-9.4396"/>
+    </g>
+    <text x="512" y="174" text-anchor="start" fill="#06210F" font-size="15" font-weight="800" letter-spacing="1.5">GET SCIZOR FOR ANDROID</text>
   </g>
 </svg>
