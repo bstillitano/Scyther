@@ -7,6 +7,7 @@
 
 #if !os(macOS)
 @testable import Scyther
+import SwiftUI
 import XCTest
 
 final class MenuItemTests: XCTestCase {
@@ -86,15 +87,31 @@ final class MenuItemTests: XCTestCase {
         }
     }
 
-    func testDeviceAndApplicationInfoItemsHaveNoIcon() {
-        let infoItems: [MenuItem] = [
-            .osVersion, .hardware, .releaseYear, .uuid,
-            .appIdPrefix, .displayName, .bundleId, .processId,
-            .version, .buildNumber, .buildDate, .releaseType
-        ]
-        for item in infoItems {
-            XCTAssertNil(item.icon, "\(item) should not have an icon")
+    func testEveryStaticItemCarriesAnIcon() {
+        for item in MenuItem.allStaticCases {
+            XCTAssertNotNil(item.icon, "\(item) should have an icon for its section-tinted tile")
+            XCTAssertFalse(item.icon?.isEmpty ?? true, "\(item) has an empty icon name")
         }
+    }
+
+    func testDeveloperOptionHasNoBuiltInIcon() {
+        // Its icon comes from the host-supplied DeveloperOption instead.
+        XCTAssertNil(MenuItem.developerOption(name: "Panel").icon)
+    }
+
+    func testEveryStaticItemTintMatchesItsHomeSection() {
+        for section in MenuSection.allSections(developerOptions: []) {
+            for item in section.items {
+                XCTAssertEqual(item.tint, section.tint, "\(item) should wear \(section.title)'s tint")
+            }
+        }
+    }
+
+    func testDeveloperOptionTintIsTheDevelopmentToolsTint() {
+        XCTAssertEqual(
+            MenuItem.developerOption(name: "Panel").tint,
+            MenuSection.tint(forTitle: "Development Tools")
+        )
     }
 
     func testStaticCaseCountIsStable() {

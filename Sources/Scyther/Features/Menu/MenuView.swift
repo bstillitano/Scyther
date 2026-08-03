@@ -161,7 +161,7 @@ public struct MenuView: View {
                 searchResultLabel(for: entry)
             case .developerOption(let name):
                 if let option = viewModel.developerOption(named: name) {
-                    developerOptionResult(option, breadcrumbText: entry.breadcrumbText)
+                    developerOptionResult(option, entry: entry)
                 }
             default:
                 if let value = valueDescription(for: entry.target) {
@@ -191,11 +191,12 @@ public struct MenuView: View {
     /// Mirrors ``developerOptionRow(_:)`` — value options show their value, view
     /// options navigate — but wears the shared search-result anatomy.
     @ViewBuilder
-    private func developerOptionResult(_ option: DeveloperOption, breadcrumbText: String) -> some View {
+    private func developerOptionResult(_ option: DeveloperOption, entry: MenuSearchEntry) -> some View {
         let label = searchResultLabel(
             title: option.name,
             icon: option.systemImage,
-            breadcrumbText: breadcrumbText
+            tint: entry.target.tint,
+            breadcrumbText: entry.breadcrumbText
         )
         switch option.type {
         case .value:
@@ -225,16 +226,21 @@ public struct MenuView: View {
     }
 
     private func searchResultLabel(for entry: MenuSearchEntry) -> some View {
-        searchResultLabel(title: entry.title, icon: entry.icon, breadcrumbText: entry.breadcrumbText)
+        searchResultLabel(
+            title: entry.title,
+            icon: entry.icon,
+            tint: entry.target.tint,
+            breadcrumbText: entry.breadcrumbText
+        )
     }
 
     /// The shared anatomy of every search result: an iOS-Settings-style icon tile
     /// vertically centred beside the title, with the navigation path beneath the
     /// title (never beneath the tile).
-    private func searchResultLabel(title: String, icon: String?, breadcrumbText: String) -> some View {
+    private func searchResultLabel(title: String, icon: String?, tint: Color, breadcrumbText: String) -> some View {
         HStack(spacing: 12) {
             if let icon {
-                searchResultIconTile(icon)
+                iconTile(icon, tint: tint)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
@@ -245,16 +251,33 @@ public struct MenuView: View {
         }
     }
 
-    /// The rounded-square icon tile shown on search results, matching the tiles in
-    /// the iOS Settings app's search results.
-    private func searchResultIconTile(_ systemImage: String) -> some View {
-        Image(systemName: systemImage)
-            .font(.system(size: 15, weight: .medium))
+    /// The rounded-square icon tile shown beside every row, matching the icon tiles
+    /// in the iOS Settings app. Tinted with the row's home section colour.
+    private func iconTile(_ systemImage: String, tint: Color) -> some View {
+        iconTile(tint: tint) {
+            Image(systemName: systemImage)
+                .font(.system(size: 15, weight: .medium))
+        }
+    }
+
+    /// ``iconTile(_:tint:)`` for a host-supplied `UIImage` icon.
+    private func iconTile(uiImage: UIImage, tint: Color) -> some View {
+        iconTile(tint: tint) {
+            Image(uiImage: uiImage)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .padding(6)
+        }
+    }
+
+    private func iconTile(tint: Color, @ViewBuilder glyph: () -> some View) -> some View {
+        glyph()
             .foregroundStyle(.white)
             .frame(width: 29, height: 29)
             .background(
                 RoundedRectangle(cornerRadius: 6.5, style: .continuous)
-                    .fill(Color.accentColor)
+                    .fill(tint)
             )
     }
 
@@ -308,7 +331,7 @@ public struct MenuView: View {
         NavigationLink {
             destination(for: item)
         } label: {
-            row(withLabel: item.title, icon: item.icon)
+            row(withLabel: item.title, icon: item.icon, tint: item.tint)
         }
     }
 
@@ -382,7 +405,12 @@ public struct MenuView: View {
         case .osVersion, .hardware, .releaseYear, .uuid,
              .appIdPrefix, .displayName, .bundleId, .processId,
              .version, .buildNumber, .buildDate, .releaseType:
-            row(withLabel: item.title, description: valueDescription(for: item))
+            row(
+                withLabel: item.title,
+                description: valueDescription(for: item),
+                icon: item.icon,
+                tint: item.tint
+            )
 
         // MARK: Development Tools
         case .developerOption(let name):
@@ -402,6 +430,7 @@ public struct MenuView: View {
                 withLabel: item.title,
                 description: viewModel.ipAddress,
                 icon: item.icon,
+                tint: item.tint,
                 andLoadingState: viewModel.isLoadingIPAddress
             )
         case .networkLogs:
@@ -443,9 +472,9 @@ public struct MenuView: View {
         case .notificationTester:
             navigationRow(for: item)
         case .apnsToken:
-            row(withLabel: item.title, icon: item.icon)
+            row(withLabel: item.title, icon: item.icon, tint: item.tint)
         case .fcmToken:
-            row(withLabel: item.title, icon: item.icon)
+            row(withLabel: item.title, icon: item.icon, tint: item.tint)
 
         // MARK: UI/UX
         case .fonts:
@@ -461,18 +490,21 @@ public struct MenuView: View {
         case .appearance:
             navigationRow(for: item)
         case .slowAnimations:
-            toggleRow(item.title, icon: item.icon, isOn: $viewModel.slowAnimationsEnabled)
+            toggleRow(item.title, icon: item.icon, tint: item.tint, isOn: $viewModel.slowAnimationsEnabled)
         case .showViewFrames:
-            toggleRow(item.title, icon: item.icon, isOn: $viewModel.showViewFrames)
+            toggleRow(item.title, icon: item.icon, tint: item.tint, isOn: $viewModel.showViewFrames)
         case .showViewSizes:
-            toggleRow(item.title, icon: item.icon, isOn: $viewModel.showViewSizes)
+            toggleRow(item.title, icon: item.icon, tint: item.tint, isOn: $viewModel.showViewSizes)
         }
     }
 
-    func row(withLabel label: String, description: String? = nil, icon: String? = nil, andLoadingState loading: Bool = false) -> some View {
+    func row(withLabel label: String, description: String? = nil, icon: String? = nil, tint: Color = .accentColor, andLoadingState loading: Bool = false) -> some View {
         HStack {
             if let icon {
-                Label(label, systemImage: icon)
+                HStack(spacing: 12) {
+                    iconTile(icon, tint: tint)
+                    Text(label)
+                }
             } else {
                 Text(label)
             }
@@ -492,18 +524,17 @@ public struct MenuView: View {
     ///
     /// - Parameters:
     ///   - label: The row's title.
-    ///   - icon: An optional SF Symbol shown alongside the label. Rows without an icon
-    ///     (there are currently none among toggle rows, but ``MenuItem/icon`` is optional)
-    ///     render as plain text.
+    ///   - icon: An optional SF Symbol shown as a tile beside the label. Rows without an
+    ///     icon (there are currently none among toggle rows, but ``MenuItem/icon`` is
+    ///     optional) render as plain text.
+    ///   - tint: The tile's colour — the row's home section colour.
     ///   - isOn: The binding the toggle reads from and writes to.
-    func toggleRow(_ label: String, icon: String?, isOn: Binding<Bool>) -> some View {
+    func toggleRow(_ label: String, icon: String?, tint: Color = .accentColor, isOn: Binding<Bool>) -> some View {
         Toggle(isOn: isOn) {
             if let icon {
-                Label {
+                HStack(spacing: 12) {
+                    iconTile(icon, tint: tint)
                     Text(label)
-                } icon: {
-                    Image(systemName: icon)
-                        .foregroundStyle(Color.accentColor)
                 }
             } else {
                 Text(label)
@@ -546,15 +577,16 @@ public struct MenuView: View {
 
     @ViewBuilder
     func developerOptionLabel(_ option: DeveloperOption) -> some View {
+        let tint = MenuItem.developerOption(name: option.name).tint
         if let systemImage = option.systemImage {
-            Label(option.name, systemImage: systemImage)
-        } else if let icon = option.icon {
-            Label {
+            HStack(spacing: 12) {
+                iconTile(systemImage, tint: tint)
                 Text(option.name)
-            } icon: {
-                Image(uiImage: icon)
-                    .renderingMode(.template)
-                    .foregroundStyle(Color.accentColor)
+            }
+        } else if let icon = option.icon {
+            HStack(spacing: 12) {
+                iconTile(uiImage: icon, tint: tint)
+                Text(option.name)
             }
         } else {
             Text(option.name)

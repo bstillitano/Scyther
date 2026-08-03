@@ -7,6 +7,7 @@
 
 #if !os(macOS)
 @testable import Scyther
+import SwiftUI
 import XCTest
 
 @MainActor
@@ -58,6 +59,28 @@ final class MenuViewModelTests: XCTestCase {
     func testSectionIdentifiersAreUnique() {
         let ids = MenuSection.allSections(developerOptions: []).map(\.id)
         XCTAssertEqual(Set(ids).count, ids.count)
+    }
+
+    // MARK: - Section tints
+
+    func testEverySectionHasADedicatedTint() {
+        let options = [DeveloperOption(name: "Panel", value: "x")]
+        for section in MenuSection.allSections(developerOptions: options) {
+            XCTAssertNotEqual(
+                section.tint, .accentColor,
+                "\"\(section.title)\" falls back to the accent colour — add it to MenuSection.tint(forTitle:)"
+            )
+        }
+    }
+
+    func testSectionTintsAreDistinct() {
+        let options = [DeveloperOption(name: "Panel", value: "x")]
+        let tints = MenuSection.allSections(developerOptions: options).map(\.tint)
+        XCTAssertEqual(Set(tints).count, tints.count, "Two sections share a tile colour")
+    }
+
+    func testUnknownSectionTitleFallsBackToAccent() {
+        XCTAssertEqual(MenuSection.tint(forTitle: "Removed In V2"), .accentColor)
     }
 
     // MARK: - Pinning

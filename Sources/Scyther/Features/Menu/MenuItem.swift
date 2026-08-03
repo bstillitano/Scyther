@@ -228,17 +228,26 @@ enum MenuItem: Hashable, Identifiable {
 
     /// The SF Symbol shown alongside the row, or `nil` for rows that display no icon.
     ///
-    /// Device and application information rows intentionally have no icon, matching the
-    /// menu's existing appearance. ``developerOption(name:)`` also returns `nil` here — its
-    /// icon comes from the host-supplied `DeveloperOption`, which may be a `UIImage` rather
+    /// Every built-in row carries an icon, rendered as an iOS-Settings-style tile tinted
+    /// with its section's colour. ``developerOption(name:)`` returns `nil` here — its icon
+    /// comes from the host-supplied `DeveloperOption`, which may be a `UIImage` rather
     /// than an SF Symbol.
     var icon: String? {
         switch self {
-        case .osVersion, .hardware, .releaseYear, .uuid,
-             .appIdPrefix, .displayName, .bundleId, .processId,
-             .version, .buildNumber, .buildDate, .releaseType,
-             .developerOption:
+        case .developerOption:
             return nil
+        case .osVersion: return "gear"
+        case .hardware: return "cpu"
+        case .releaseYear: return "calendar"
+        case .uuid: return "number"
+        case .appIdPrefix: return "tag"
+        case .displayName: return "app"
+        case .bundleId: return "shippingbox"
+        case .processId: return "memorychip"
+        case .version: return "v.circle"
+        case .buildNumber: return "hammer"
+        case .buildDate: return "clock"
+        case .releaseType: return "checkmark.seal"
         case .ipAddress: return "network"
         case .networkLogs: return "text.page.badge.magnifyingglass"
         case .serverConfiguration: return "server.rack"
