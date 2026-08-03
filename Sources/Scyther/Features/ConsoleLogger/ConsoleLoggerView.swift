@@ -87,7 +87,6 @@ struct ConsoleLoggerView: View {
         }
         .searchable(
             text: $searchText,
-            placement: .navigationBarDrawer(displayMode: .always),
             prompt: "Search logs"
         )
         .navigationTitle("Console Logs")
