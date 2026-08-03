@@ -124,6 +124,17 @@ final class MenuSearchIndexTests: XCTestCase {
         XCTAssertEqual(titles, ["Enable Grid", "Grid Size", "Grid Opacity", "Grid Color"])
     }
 
+    func testEverySubpageTargetContributesEntries() {
+        XCTAssertEqual(
+            Set(subpageEntries.map(\.target)),
+            [
+                .gridOverlay, .fpsCounter, .touchVisualiser, .appearance,
+                .locationSpoofer, .notificationTester, .deepLinkTester
+            ],
+            "A curated sub-page target is missing from the index — its rows were silently dropped"
+        )
+    }
+
     // MARK: - Matching
 
     private func results(for query: String) -> [MenuSearchEntry] {

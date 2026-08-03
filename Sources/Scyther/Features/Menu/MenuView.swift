@@ -115,11 +115,12 @@ public struct MenuView: View {
     /// matching the iOS Settings app.
     @ViewBuilder
     private var searchResultsSection: some View {
-        if viewModel.searchResults.isEmpty {
+        let results = viewModel.searchResults
+        if results.isEmpty {
             noResults
         } else {
             Section {
-                ForEach(viewModel.searchResults) { entry in
+                ForEach(results) { entry in
                     searchResultRow(for: entry)
                 }
             }
@@ -167,7 +168,7 @@ public struct MenuView: View {
         if #available(iOS 17.0, *) {
             ContentUnavailableView.search(text: viewModel.searchText)
         } else {
-            Text("No results for \"\(viewModel.searchText)\"")
+            Text("No results for \"\(viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines))\"")
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -212,7 +213,7 @@ public struct MenuView: View {
     /// Items that are not navigation rows (value rows, toggles, tokens, developer
     /// options) return an `EmptyView`; no search entry targets them for navigation.
     @ViewBuilder
-    func destination(for item: MenuItem) -> some View {
+    private func destination(for item: MenuItem) -> some View {
         switch item {
         case .networkLogs: NetworkLogsView()
         case .serverConfiguration: ServerConfigurationView()
