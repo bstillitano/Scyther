@@ -85,7 +85,6 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Interface Previews**: Browse registered UI components
 
 ### Development Tools
-- **Global Search**: Search every menu row and settings sub-page from the main menu, iOS-Settings style, with navigation breadcrumbs on each result
 - **Console Logger**: Capture and view stdout/stderr output
 - **Custom Options**: Add your own debug options to the menu
 
