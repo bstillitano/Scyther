@@ -254,7 +254,7 @@ enum MenuItem: Hashable, Identifiable {
         case .environmentVariables: return "x.squareroot"
         case .featureFlags: return "flag"
         case .userDefaults: return "face.dashed"
-        case .cookies: return "globe"
+        case .cookies: return "info.circle"
         case .fileBrowser: return "folder"
         case .databaseBrowser: return "cylinder.split.1x2"
         case .keychainBrowser: return "key"
