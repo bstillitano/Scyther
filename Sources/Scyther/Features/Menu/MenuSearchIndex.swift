@@ -48,6 +48,31 @@ enum MenuSearchIndex {
         return mainPageEntries + subpageEntries(in: sections)
     }
 
+    /// The entries matching a search query.
+    ///
+    /// Matching uses `localizedStandardContains` — case-insensitive,
+    /// diacritic-insensitive, locale-aware — against the entry's title and each
+    /// breadcrumb component, so searching "grid" surfaces every row under Grid
+    /// Overlay as well as the page itself.
+    ///
+    /// - Parameters:
+    ///   - query: The user's search text. Leading and trailing whitespace is
+    ///     ignored; an effectively empty query matches nothing.
+    ///   - developerOptions: The host app's custom options — see ``entries(developerOptions:)``.
+    /// - Returns: Matching entries, in menu order.
+    static func entries(
+        matching query: String,
+        developerOptions: [DeveloperOption]
+    ) -> [MenuSearchEntry] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+
+        return entries(developerOptions: developerOptions).filter { entry in
+            entry.title.localizedStandardContains(trimmed)
+                || entry.breadcrumb.contains { $0.localizedStandardContains(trimmed) }
+        }
+    }
+
     /// The static rows inside settings sub-pages, keyed by the page's menu item.
     ///
     /// Hand-curated: when a settings page gains or loses a static row, update its

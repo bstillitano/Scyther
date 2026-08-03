@@ -123,5 +123,51 @@ final class MenuSearchIndexTests: XCTestCase {
         let titles = subpageEntries.filter { $0.target == .gridOverlay }.map(\.title)
         XCTAssertEqual(titles, ["Enable Grid", "Grid Size", "Grid Opacity", "Grid Color"])
     }
+
+    // MARK: - Matching
+
+    private func results(for query: String) -> [MenuSearchEntry] {
+        MenuSearchIndex.entries(matching: query, developerOptions: [])
+    }
+
+    func testEmptyQueryReturnsNothing() {
+        XCTAssertTrue(results(for: "").isEmpty)
+    }
+
+    func testWhitespaceQueryReturnsNothing() {
+        XCTAssertTrue(results(for: "   \n").isEmpty)
+    }
+
+    func testTitleMatchIsCaseInsensitive() {
+        XCTAssertTrue(results(for: "GRID COLOR").contains { $0.title == "Grid Color" })
+    }
+
+    func testTitleMatchIsDiacriticInsensitive() {
+        XCTAssertTrue(results(for: "gríd cölor").contains { $0.title == "Grid Color" })
+    }
+
+    func testBreadcrumbComponentsMatch() {
+        // "grid overlay" appears only in breadcrumbs of sub-page entries and in the
+        // page's own title; all Grid Overlay sub-page rows must surface.
+        let matches = results(for: "grid overlay").filter(\.isSubpageEntry)
+        XCTAssertEqual(
+            Set(matches.map(\.title)),
+            ["Enable Grid", "Grid Size", "Grid Opacity", "Grid Color"]
+        )
+    }
+
+    func testQueryIsTrimmedBeforeMatching() {
+        XCTAssertTrue(results(for: "  feature flags  ").contains { $0.target == .featureFlags })
+    }
+
+    func testDeveloperOptionsAreSearchable() {
+        let options = [DeveloperOption(name: "Reset Onboarding", value: "tap")]
+        let matches = MenuSearchIndex.entries(matching: "onboarding", developerOptions: options)
+        XCTAssertTrue(matches.contains { $0.target == .developerOption(name: "Reset Onboarding") })
+    }
+
+    func testUnmatchedQueryReturnsNothing() {
+        XCTAssertTrue(results(for: "zzzzzz-no-such-row").isEmpty)
+    }
 }
 #endif
