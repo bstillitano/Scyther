@@ -41,7 +41,8 @@ enum MenuSearchIndex {
                     breadcrumb: [section.title],
                     icon: item.icon,
                     target: item,
-                    isSubpageEntry: false
+                    isSubpageEntry: false,
+                    keywords: keywords[item] ?? []
                 )
             }
         }
@@ -51,9 +52,11 @@ enum MenuSearchIndex {
     /// The entries matching a search query.
     ///
     /// Matching uses `localizedStandardContains` — case-insensitive,
-    /// diacritic-insensitive, locale-aware — against the entry's title and each
-    /// breadcrumb component, so searching "grid" surfaces every row under Grid
-    /// Overlay as well as the page itself.
+    /// diacritic-insensitive, locale-aware — against the entry's title, each
+    /// breadcrumb component, and each alias keyword, so searching "grid" surfaces
+    /// every row under Grid Overlay and searching "remote config" surfaces Feature
+    /// Flags. Keywords match in both directions: a query containing a keyword
+    /// ("environment env var") and a keyword containing the query ("env va") both hit.
     ///
     /// - Parameters:
     ///   - query: The user's search text. Leading and trailing whitespace is
@@ -70,8 +73,48 @@ enum MenuSearchIndex {
         return entries(developerOptions: developerOptions).filter { entry in
             entry.title.localizedStandardContains(trimmed)
                 || entry.breadcrumb.contains { $0.localizedStandardContains(trimmed) }
+                || entry.keywords.contains {
+                    $0.localizedStandardContains(trimmed) || trimmed.localizedStandardContains($0)
+                }
         }
     }
+
+    /// Alias terms per row — jargon a developer might type instead of the visible
+    /// title. Hand-curated, matched case- and diacritic-insensitively.
+    static let keywords: [MenuItem: [String]] = [
+        .uuid: ["identifier", "idfv", "device id"],
+        .bundleId: ["bundle identifier", "app id"],
+        .version: ["build", "release"],
+        .buildNumber: ["build"],
+        .releaseType: ["configuration", "testflight", "app store", "debug"],
+        .ipAddress: ["ip", "network address"],
+        .networkLogs: ["http", "requests", "responses", "traffic", "api", "charles", "proxy"],
+        .serverConfiguration: ["backend", "staging", "production", "base url", "endpoint"],
+        .environmentVariables: ["env", "env var", "env vars", "environment"],
+        .featureFlags: ["remote config", "experiments", "toggles", "flags", "ab test", "launch darkly"],
+        .userDefaults: ["preferences", "prefs", "defaults", "nsuserdefaults", "plist"],
+        .cookies: ["http cookies"],
+        .fileBrowser: ["files", "documents", "sandbox", "caches"],
+        .databaseBrowser: ["sqlite", "core data", "coredata", "swiftdata", "db"],
+        .keychainBrowser: ["secure storage", "credentials", "passwords", "secrets"],
+        .locationSpoofer: ["gps", "fake location", "mock location", "coordinates", "geo"],
+        .consoleLogs: ["stdout", "stderr", "print", "logs", "logging"],
+        .deepLinkTester: ["url scheme", "universal link", "deeplink", "deep link"],
+        .crashLogs: ["crashes", "exceptions", "stack trace"],
+        .notificationLogger: ["push", "apns", "payload"],
+        .notificationTester: ["push", "apns", "local notification"],
+        .apnsToken: ["push token", "device token"],
+        .fcmToken: ["firebase", "push token"],
+        .fonts: ["typography", "typefaces", "text styles"],
+        .interfaceComponents: ["previews", "components", "design system"],
+        .gridOverlay: ["alignment", "layout grid"],
+        .fpsCounter: ["frame rate", "performance", "hitches"],
+        .touchVisualiser: ["touches", "taps", "gestures"],
+        .appearance: ["dark mode", "light mode", "theme", "dynamic type", "contrast"],
+        .slowAnimations: ["animation speed"],
+        .showViewFrames: ["debug view", "borders", "layout"],
+        .showViewSizes: ["dimensions", "layout"]
+    ]
 
     /// The static rows inside settings sub-pages, keyed by the page's menu item.
     ///

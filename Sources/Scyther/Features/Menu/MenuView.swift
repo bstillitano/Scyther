@@ -115,7 +115,7 @@ public struct MenuView: View {
     /// matching the iOS Settings app.
     @ViewBuilder
     private var searchResultsSection: some View {
-        let results = viewModel.searchResults
+        let results = viewModel.displayedSearchResults
         if results.isEmpty {
             noResults
         } else {

@@ -54,6 +54,11 @@ struct MenuSearchEntry: Identifiable, Hashable, Sendable {
     /// main-page row itself.
     let isSubpageEntry: Bool
 
+    /// Alias terms this entry also matches — jargon a developer might type instead
+    /// of the visible title, e.g. "remote config" for Feature Flags or "env var"
+    /// for Environment Variables. Not displayed anywhere.
+    var keywords: [String] = []
+
     /// Stable identity: the target's identifier plus the title, because sub-page
     /// entries share a ``target`` with each other and with the page's own entry.
     var id: String { "\(target.id).\(title)" }

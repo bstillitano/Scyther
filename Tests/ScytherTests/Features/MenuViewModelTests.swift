@@ -321,6 +321,101 @@ final class MenuViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.searchResults.contains { $0.target == .featureFlags })
     }
 
+    // MARK: - Assisted search
+
+    /// Returns fixed entries for a specific query, nothing otherwise, after an
+    /// optional artificial delay.
+    private struct StubAssistant: MenuSearchAssistant {
+        let query: String
+        let stubbed: [MenuSearchEntry]
+        var delay: Duration = .zero
+
+        func matches(for query: String, in entries: [MenuSearchEntry]) async -> [MenuSearchEntry] {
+            try? await Task.sleep(for: delay)
+            return query == self.query ? stubbed : []
+        }
+    }
+
+    private func indexEntry(for target: MenuItem) -> MenuSearchEntry {
+        MenuSearchIndex.entries(developerOptions: [])
+            .first { $0.target == target && !$0.isSubpageEntry }!
+    }
+
+    /// Polls until `condition` holds or ~1s elapses.
+    private func waitUntil(_ condition: @autoclosure () -> Bool) async throws {
+        for _ in 0..<100 where !condition() {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+    }
+
+    func testAssistantMatchesAppendAfterTheDebounce() async throws {
+        defer { wipeDefaults() }
+        let fps = indexEntry(for: .fpsCounter)
+        let viewModel = MenuViewModel(
+            defaults: makeDefaults(),
+            assistants: [StubAssistant(query: "zzz", stubbed: [fps])],
+            assistedSearchDelay: .milliseconds(1)
+        )
+
+        viewModel.searchText = "zzz"
+
+        try await waitUntil(!viewModel.assistedResults.isEmpty)
+        XCTAssertEqual(viewModel.assistedResults, [fps])
+        XCTAssertEqual(viewModel.displayedSearchResults, [fps], "No sync matches for zzz — display is assisted only")
+    }
+
+    func testAssistantMatchesDedupeAgainstSynchronousResults() async throws {
+        defer { wipeDefaults() }
+        let flags = indexEntry(for: .featureFlags)
+        let viewModel = MenuViewModel(
+            defaults: makeDefaults(),
+            assistants: [StubAssistant(query: "feature flags", stubbed: [flags])],
+            assistedSearchDelay: .milliseconds(1)
+        )
+
+        viewModel.searchText = "feature flags"
+
+        // Give the pipeline ample time to (wrongly) append a duplicate.
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertTrue(viewModel.searchResults.contains(flags), "Precondition: sync tier already matches")
+        XCTAssertTrue(viewModel.assistedResults.isEmpty, "Assistant duplicate of a sync result must be dropped")
+    }
+
+    func testAssistedResultsClearWhenTheQueryChanges() async throws {
+        defer { wipeDefaults() }
+        let fps = indexEntry(for: .fpsCounter)
+        let viewModel = MenuViewModel(
+            defaults: makeDefaults(),
+            assistants: [StubAssistant(query: "zzz", stubbed: [fps])],
+            assistedSearchDelay: .milliseconds(1)
+        )
+
+        viewModel.searchText = "zzz"
+        try await waitUntil(!viewModel.assistedResults.isEmpty)
+
+        viewModel.searchText = ""
+        XCTAssertTrue(viewModel.assistedResults.isEmpty)
+    }
+
+    func testStaleAssistantResponsesAreDropped() async throws {
+        defer { wipeDefaults() }
+        let fps = indexEntry(for: .fpsCounter)
+        let viewModel = MenuViewModel(
+            defaults: makeDefaults(),
+            assistants: [StubAssistant(query: "old", stubbed: [fps], delay: .milliseconds(100))],
+            assistedSearchDelay: .milliseconds(1)
+        )
+
+        viewModel.searchText = "old"
+        try await Task.sleep(for: .milliseconds(20))
+        viewModel.searchText = "new"
+
+        // Long after the slow "old" response would have landed, nothing may show:
+        // the assistant only matches "old", and that query is stale.
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertTrue(viewModel.assistedResults.isEmpty, "A response for a superseded query must be discarded")
+    }
+
     func testSearchResultsUseTheDeveloperOptionsSnapshot() {
         defer {
             wipeDefaults()

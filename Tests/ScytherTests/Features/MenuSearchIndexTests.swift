@@ -180,5 +180,38 @@ final class MenuSearchIndexTests: XCTestCase {
     func testUnmatchedQueryReturnsNothing() {
         XCTAssertTrue(results(for: "zzzzzz-no-such-row").isEmpty)
     }
+
+    // MARK: - Alias keywords
+
+    func testEnvVarAliasFindsEnvironmentVariables() {
+        XCTAssertTrue(results(for: "env var").contains { $0.target == .environmentVariables })
+    }
+
+    func testRemoteConfigAliasFindsFeatureFlags() {
+        XCTAssertTrue(results(for: "remote config").contains { $0.target == .featureFlags })
+    }
+
+    func testAliasMatchingIsCaseInsensitive() {
+        XCTAssertTrue(results(for: "REMOTE CONFIG").contains { $0.target == .featureFlags })
+    }
+
+    func testPartialAliasMatches() {
+        // The keyword "remote config" contains the partial query.
+        XCTAssertTrue(results(for: "remote confi").contains { $0.target == .featureFlags })
+    }
+
+    func testEveryKeywordKeyIsARealMenuItem() {
+        for key in MenuSearchIndex.keywords.keys {
+            XCTAssertTrue(
+                MenuItem.allStaticCases.contains(key),
+                "\(key) has keywords but is not a static menu item"
+            )
+        }
+    }
+
+    func testMainPageEntriesCarryTheirKeywords() {
+        let entry = mainPageEntries.first { $0.target == .featureFlags }
+        XCTAssertEqual(entry?.keywords, MenuSearchIndex.keywords[.featureFlags])
+    }
 }
 #endif
