@@ -62,6 +62,11 @@ import SwiftUI
 /// - ``togglePin(for:)``
 /// - ``developerOption(named:)``
 ///
+/// ### Search
+///
+/// - ``searchText``
+/// - ``searchResults``
+///
 /// ### Network Information
 ///
 /// - ``ipAddress``
@@ -184,6 +189,21 @@ class MenuViewModel: ViewModel {
     /// reset.
     private func reloadPinnedItemIDs() {
         pinnedItemIDs = defaults.stringArray(forKey: Self.pinnedItemsKey) ?? []
+    }
+
+    // MARK: - Search
+
+    /// The current global-search query, bound to `MenuView`'s search field.
+    @Published var searchText: String = ""
+
+    /// The search results for ``searchText``.
+    ///
+    /// Delegates to ``MenuSearchIndex/entries(matching:developerOptions:)`` using the
+    /// same developer-options snapshot ``sections`` is built from, so a host-supplied
+    /// row is searchable exactly when it is visible. Empty while ``searchText`` is
+    /// empty or whitespace.
+    var searchResults: [MenuSearchEntry] {
+        MenuSearchIndex.entries(matching: searchText, developerOptions: developerOptions)
     }
 
     // MARK: - Network Properties

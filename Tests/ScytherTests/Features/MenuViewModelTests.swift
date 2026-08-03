@@ -278,5 +278,42 @@ final class MenuViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.isPinned(.fpsCounter))
         XCTAssertEqual(viewModel.pinnedItemIDs, [MenuItem.gridOverlay.id])
     }
+
+    // MARK: - Search
+
+    func testSearchResultsAreEmptyByDefault() {
+        defer { wipeDefaults() }
+        let viewModel = MenuViewModel(defaults: makeDefaults())
+
+        XCTAssertEqual(viewModel.searchText, "")
+        XCTAssertTrue(viewModel.searchResults.isEmpty)
+    }
+
+    func testSearchResultsReflectTheSearchText() {
+        defer { wipeDefaults() }
+        let viewModel = MenuViewModel(defaults: makeDefaults())
+
+        viewModel.searchText = "feature flags"
+
+        XCTAssertTrue(viewModel.searchResults.contains { $0.target == .featureFlags })
+    }
+
+    func testSearchResultsUseTheDeveloperOptionsSnapshot() {
+        defer {
+            wipeDefaults()
+            Scyther.developerOptions = []
+        }
+        Scyther.developerOptions = [DeveloperOption(name: "Reset Onboarding", value: "tap")]
+        let viewModel = MenuViewModel(defaults: makeDefaults())
+
+        // Mutating the global after init must not change what search sees — the view
+        // model searches the same snapshot `sections` renders from.
+        Scyther.developerOptions = []
+        viewModel.searchText = "onboarding"
+
+        XCTAssertTrue(viewModel.searchResults.contains {
+            $0.target == .developerOption(name: "Reset Onboarding")
+        })
+    }
 }
 #endif
