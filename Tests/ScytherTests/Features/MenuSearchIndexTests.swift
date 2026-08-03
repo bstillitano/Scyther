@@ -81,5 +81,47 @@ final class MenuSearchIndexTests: XCTestCase {
         let entries = MenuSearchIndex.entries(developerOptions: [])
         XCTAssertFalse(entries.contains { $0.breadcrumb.first == "Development Tools" })
     }
+
+    // MARK: - Sub-page entries
+
+    private var subpageEntries: [MenuSearchEntry] {
+        MenuSearchIndex.entries(developerOptions: []).filter(\.isSubpageEntry)
+    }
+
+    func testSubpageEntriesExist() {
+        XCTAssertFalse(subpageEntries.isEmpty)
+    }
+
+    func testSubpageEntriesTargetRealMenuItems() {
+        for entry in subpageEntries {
+            XCTAssertTrue(
+                MenuItem.allStaticCases.contains(entry.target),
+                "\(entry.title) targets a menu item that does not exist"
+            )
+        }
+    }
+
+    func testSubpageBreadcrumbsAreSectionThenPage() {
+        let sections = MenuSection.allSections(developerOptions: [])
+        for entry in subpageEntries {
+            let home = sections.first { $0.items.contains(entry.target) }
+            XCTAssertEqual(
+                entry.breadcrumb,
+                [home?.title ?? "", entry.target.title],
+                "\(entry.title) has the wrong breadcrumb"
+            )
+        }
+    }
+
+    func testSubpageEntriesInheritTheirTargetIcon() {
+        for entry in subpageEntries {
+            XCTAssertEqual(entry.icon, entry.target.icon, "\(entry.title) has the wrong icon")
+        }
+    }
+
+    func testGridOverlaySubpageRowsAreIndexed() {
+        let titles = subpageEntries.filter { $0.target == .gridOverlay }.map(\.title)
+        XCTAssertEqual(titles, ["Enable Grid", "Grid Size", "Grid Opacity", "Grid Color"])
+    }
 }
 #endif
