@@ -76,7 +76,6 @@ struct ServerConfigurationView: View {
         }
         .searchable(
             text: $searchText,
-            placement: .navigationBarDrawer(displayMode: .always),
             prompt: "Search via name or variable key/values"
         )
         .navigationTitle("Server Configuration")

@@ -62,6 +62,13 @@ import SwiftUI
 /// - ``togglePin(for:)``
 /// - ``developerOption(named:)``
 ///
+/// ### Search
+///
+/// - ``searchText``
+/// - ``searchResults``
+/// - ``assistedResults``
+/// - ``displayedSearchResults``
+///
 /// ### Network Information
 ///
 /// - ``ipAddress``
@@ -140,12 +147,23 @@ class MenuViewModel: ViewModel {
     ///
     /// Snapshots ``Scyther/developerOptions`` at this point — see ``developerOptions``.
     ///
-    /// - Parameter defaults: The store backing pin state. Defaults to Scyther's private
-    ///   preferences suite; tests inject a throwaway suite.
-    init(defaults: UserDefaults = .scyther) {
+    /// - Parameters:
+    ///   - defaults: The store backing pin state. Defaults to Scyther's private
+    ///     preferences suite; tests inject a throwaway suite.
+    ///   - assistants: The fuzzy-search tiers, in pipeline order. Defaults to the
+    ///     tiers available on this device; tests inject mocks.
+    ///   - assistedSearchDelay: The typing pause before assistants run. Defaults to
+    ///     300 ms; tests inject something shorter.
+    init(
+        defaults: UserDefaults = .scyther,
+        assistants: [any MenuSearchAssistant] = MenuSearchAssistants.available(),
+        assistedSearchDelay: Duration = .milliseconds(300)
+    ) {
         self.defaults = defaults
         self.developerOptions = Scyther.developerOptions
         self.pinnedItemIDs = defaults.stringArray(forKey: Self.pinnedItemsKey) ?? []
+        self.assistants = assistants
+        self.assistedSearchDelay = assistedSearchDelay
         super.init()
     }
 
@@ -184,6 +202,82 @@ class MenuViewModel: ViewModel {
     /// reset.
     private func reloadPinnedItemIDs() {
         pinnedItemIDs = defaults.stringArray(forKey: Self.pinnedItemsKey) ?? []
+    }
+
+    // MARK: - Search
+
+    /// The current global-search query, bound to `MenuView`'s search field.
+    ///
+    /// Every change restarts the assisted-search pipeline — see ``assistedResults``.
+    @Published var searchText: String = "" {
+        didSet { scheduleAssistedSearch() }
+    }
+
+    /// The synchronous search results for ``searchText`` — exact and alias matches.
+    ///
+    /// Delegates to ``MenuSearchIndex/entries(matching:developerOptions:)`` using the
+    /// same developer-options snapshot ``sections`` is built from, so a host-supplied
+    /// row is searchable exactly when it is visible. Empty while ``searchText`` is
+    /// empty or whitespace.
+    var searchResults: [MenuSearchEntry] {
+        MenuSearchIndex.entries(matching: searchText, developerOptions: developerOptions)
+    }
+
+    /// Results contributed by the fuzzy tiers (``MenuSearchAssistant``), already
+    /// deduplicated against ``searchResults`` and each other.
+    ///
+    /// Populated by a debounced task so the synchronous results never wait on
+    /// inference: each edit of ``searchText`` cancels the previous task, clears
+    /// these, and — after a short pause in typing — runs each assistant in order,
+    /// appending its findings as they arrive. Responses for stale queries are
+    /// discarded.
+    @Published private(set) var assistedResults: [MenuSearchEntry] = []
+
+    /// Everything search shows, in tier order: exact/alias matches first, then
+    /// assisted matches as they arrive.
+    var displayedSearchResults: [MenuSearchEntry] {
+        searchResults + assistedResults
+    }
+
+    /// The fuzzy-search tiers, in pipeline order. Empty when none are available.
+    private let assistants: [any MenuSearchAssistant]
+
+    /// How long typing must pause before the assistants run.
+    private let assistedSearchDelay: Duration
+
+    /// The in-flight assisted search, if any.
+    private var assistedSearchTask: Task<Void, Never>?
+
+    /// Restarts the assisted-search pipeline for the current ``searchText``.
+    private func scheduleAssistedSearch() {
+        assistedSearchTask?.cancel()
+        assistedResults = []
+
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty, !assistants.isEmpty else { return }
+
+        let entries = MenuSearchIndex.entries(developerOptions: developerOptions)
+        assistedSearchTask = Task { [weak self, assistants, assistedSearchDelay] in
+            try? await Task.sleep(for: assistedSearchDelay)
+            guard !Task.isCancelled else { return }
+
+            for assistant in assistants {
+                let matches = await assistant.matches(for: query, in: entries)
+                guard let self, !Task.isCancelled else { return }
+                // Drop responses that arrive after the query has moved on.
+                guard self.searchText.trimmingCharacters(in: .whitespacesAndNewlines) == query else { return }
+                self.appendAssistedResults(matches)
+            }
+        }
+    }
+
+    /// Appends assistant matches, skipping anything an earlier tier already shows.
+    private func appendAssistedResults(_ matches: [MenuSearchEntry]) {
+        var shown = Set(displayedSearchResults.map(\.id))
+        for match in matches where !shown.contains(match.id) {
+            shown.insert(match.id)
+            assistedResults.append(match)
+        }
     }
 
     // MARK: - Network Properties

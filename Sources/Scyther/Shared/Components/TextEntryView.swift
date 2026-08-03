@@ -89,7 +89,6 @@ struct TextEntryView: View {
             .padding(.horizontal, 8)
             .searchable(
                 text: $searchText,
-                placement: .navigationBarDrawer(displayMode: .always),
                 prompt: "Search"
             )
             .navigationTitle(title)

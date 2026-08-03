@@ -48,6 +48,8 @@ import SwiftUI
 /// ### Properties
 ///
 /// - ``variables``
+/// - ``searchText``
+/// - ``filteredVariables``
 ///
 /// ### Methods
 ///
@@ -61,6 +63,23 @@ class EnvironmentVariablesViewModel: ViewModel {
     /// - `key`: The environment variable name
     /// - `value`: The environment variable value
     @Published var variables: [(key: String, value: String)] = []
+
+    /// The current search query, bound to the view's search field.
+    @Published var searchText: String = ""
+
+    /// The variables matching ``searchText``, in ``variables`` order.
+    ///
+    /// Matches case- and diacritic-insensitively against both keys and values,
+    /// consistent with the other browser screens. Underscores are treated as
+    /// spaces on both sides, so "base url" finds `API_BASE_URL`. An empty or
+    /// whitespace query returns everything.
+    var filteredVariables: [(key: String, value: String)] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return variables }
+        return variables.filter {
+            $0.key.searchMatches(query) || $0.value.searchMatches(query)
+        }
+    }
 
     /// Called when the view appears for the first time.
     ///

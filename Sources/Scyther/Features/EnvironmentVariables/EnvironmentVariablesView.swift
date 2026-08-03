@@ -11,7 +11,8 @@ import SwiftUI
 ///
 /// Shows key-value pairs of environment variables registered with Scyther,
 /// typically used for displaying configuration values, API endpoints, or
-/// feature flags. Values can be copied to the clipboard via context menu.
+/// feature flags. Values can be copied to the clipboard via context menu,
+/// and the list is searchable by key and value.
 struct EnvironmentVariablesView: View {
     @StateObject private var viewModel = EnvironmentVariablesViewModel()
 
@@ -23,8 +24,10 @@ struct EnvironmentVariablesView: View {
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
                         .frame(maxWidth: .infinity, alignment: .center)
+                } else if viewModel.filteredVariables.isEmpty {
+                    noSearchResults
                 } else {
-                    ForEach(viewModel.variables, id: \.key) { key, value in
+                    ForEach(viewModel.filteredVariables, id: \.key) { key, value in
                         LabeledContent(key, value: value)
                             .contextMenu {
                                 Button {
@@ -42,9 +45,22 @@ struct EnvironmentVariablesView: View {
                 }
             }
         }
+        .searchable(text: $viewModel.searchText, prompt: "Search keys and values")
         .navigationTitle("Environment Variables")
         .onFirstAppear {
             await viewModel.onFirstAppear()
+        }
+    }
+
+    /// Shown when a search query matches no variables.
+    @ViewBuilder
+    private var noSearchResults: some View {
+        if #available(iOS 17.0, *) {
+            ContentUnavailableView.search(text: viewModel.searchText)
+        } else {
+            Text("No results for \"\(viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines))\"")
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 }

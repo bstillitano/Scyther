@@ -10,6 +10,7 @@ import SwiftUI
 /// A SwiftUI view for browsing and managing HTTP cookies.
 ///
 /// This view displays all cookies stored in `HTTPCookieStorage` with the ability to:
+/// - Search by cookie name, domain, or value
 /// - View detailed information about each cookie
 /// - Delete individual cookies via swipe actions
 /// - Clear all cookies at once with confirmation
@@ -28,8 +29,10 @@ struct CookieBrowserView: View {
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
                         .frame(maxWidth: .infinity, alignment: .center)
+                } else if viewModel.filteredCookies.isEmpty {
+                    noSearchResults
                 } else {
-                    ForEach(viewModel.cookies) { cookie in
+                    ForEach(viewModel.filteredCookies) { cookie in
                         NavigationLink {
                             CookieDetailsView(cookie: cookie.cookie)
                         } label: {
@@ -59,11 +62,11 @@ struct CookieBrowserView: View {
                 }
             }
         }
+        .searchable(text: $viewModel.searchText, prompt: "Search names, domains and values")
         .navigationTitle("Cookie Browser")
-        .confirmationDialog(
+        .alert(
             "Clear all cookies?",
-            isPresented: $showingClearConfirmation,
-            titleVisibility: .visible
+            isPresented: $showingClearConfirmation
         ) {
             Button("Clear All", role: .destructive) {
                 viewModel.clearAllCookies()
@@ -74,6 +77,18 @@ struct CookieBrowserView: View {
         }
         .onFirstAppear {
             await viewModel.onFirstAppear()
+        }
+    }
+
+    /// Shown when a search query matches no cookies.
+    @ViewBuilder
+    private var noSearchResults: some View {
+        if #available(iOS 17.0, *) {
+            ContentUnavailableView.search(text: viewModel.searchText)
+        } else {
+            Text("No results for \"\(viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines))\"")
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 }

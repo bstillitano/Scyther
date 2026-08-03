@@ -7,6 +7,7 @@
 
 #if !os(macOS)
 @testable import Scyther
+import SwiftUI
 import XCTest
 
 @MainActor
@@ -58,6 +59,28 @@ final class MenuViewModelTests: XCTestCase {
     func testSectionIdentifiersAreUnique() {
         let ids = MenuSection.allSections(developerOptions: []).map(\.id)
         XCTAssertEqual(Set(ids).count, ids.count)
+    }
+
+    // MARK: - Section tints
+
+    func testEverySectionHasADedicatedTint() {
+        let options = [DeveloperOption(name: "Panel", value: "x")]
+        for section in MenuSection.allSections(developerOptions: options) {
+            XCTAssertNotEqual(
+                section.tint, .accentColor,
+                "\"\(section.title)\" falls back to the accent colour — add it to MenuSection.tint(forTitle:)"
+            )
+        }
+    }
+
+    func testSectionTintsAreDistinct() {
+        let options = [DeveloperOption(name: "Panel", value: "x")]
+        let tints = MenuSection.allSections(developerOptions: options).map(\.tint)
+        XCTAssertEqual(Set(tints).count, tints.count, "Two sections share a tile colour")
+    }
+
+    func testUnknownSectionTitleFallsBackToAccent() {
+        XCTAssertEqual(MenuSection.tint(forTitle: "Removed In V2"), .accentColor)
     }
 
     // MARK: - Pinning
@@ -277,6 +300,138 @@ final class MenuViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.isPinned(.gridOverlay))
         XCTAssertFalse(viewModel.isPinned(.fpsCounter))
         XCTAssertEqual(viewModel.pinnedItemIDs, [MenuItem.gridOverlay.id])
+    }
+
+    // MARK: - Search
+
+    func testSearchResultsAreEmptyByDefault() {
+        defer { wipeDefaults() }
+        let viewModel = MenuViewModel(defaults: makeDefaults())
+
+        XCTAssertEqual(viewModel.searchText, "")
+        XCTAssertTrue(viewModel.searchResults.isEmpty)
+    }
+
+    func testSearchResultsReflectTheSearchText() {
+        defer { wipeDefaults() }
+        let viewModel = MenuViewModel(defaults: makeDefaults())
+
+        viewModel.searchText = "feature flags"
+
+        XCTAssertTrue(viewModel.searchResults.contains { $0.target == .featureFlags })
+    }
+
+    // MARK: - Assisted search
+
+    /// Returns fixed entries for a specific query, nothing otherwise, after an
+    /// optional artificial delay.
+    private struct StubAssistant: MenuSearchAssistant {
+        let query: String
+        let stubbed: [MenuSearchEntry]
+        var delay: Duration = .zero
+
+        func matches(for query: String, in entries: [MenuSearchEntry]) async -> [MenuSearchEntry] {
+            try? await Task.sleep(for: delay)
+            return query == self.query ? stubbed : []
+        }
+    }
+
+    private func indexEntry(for target: MenuItem) -> MenuSearchEntry {
+        MenuSearchIndex.entries(developerOptions: [])
+            .first { $0.target == target && !$0.isSubpageEntry }!
+    }
+
+    /// Polls until `condition` holds or ~1s elapses.
+    private func waitUntil(_ condition: @autoclosure () -> Bool) async throws {
+        for _ in 0..<100 where !condition() {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+    }
+
+    func testAssistantMatchesAppendAfterTheDebounce() async throws {
+        defer { wipeDefaults() }
+        let fps = indexEntry(for: .fpsCounter)
+        let viewModel = MenuViewModel(
+            defaults: makeDefaults(),
+            assistants: [StubAssistant(query: "zzz", stubbed: [fps])],
+            assistedSearchDelay: .milliseconds(1)
+        )
+
+        viewModel.searchText = "zzz"
+
+        try await waitUntil(!viewModel.assistedResults.isEmpty)
+        XCTAssertEqual(viewModel.assistedResults, [fps])
+        XCTAssertEqual(viewModel.displayedSearchResults, [fps], "No sync matches for zzz — display is assisted only")
+    }
+
+    func testAssistantMatchesDedupeAgainstSynchronousResults() async throws {
+        defer { wipeDefaults() }
+        let flags = indexEntry(for: .featureFlags)
+        let viewModel = MenuViewModel(
+            defaults: makeDefaults(),
+            assistants: [StubAssistant(query: "feature flags", stubbed: [flags])],
+            assistedSearchDelay: .milliseconds(1)
+        )
+
+        viewModel.searchText = "feature flags"
+
+        // Give the pipeline ample time to (wrongly) append a duplicate.
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertTrue(viewModel.searchResults.contains(flags), "Precondition: sync tier already matches")
+        XCTAssertTrue(viewModel.assistedResults.isEmpty, "Assistant duplicate of a sync result must be dropped")
+    }
+
+    func testAssistedResultsClearWhenTheQueryChanges() async throws {
+        defer { wipeDefaults() }
+        let fps = indexEntry(for: .fpsCounter)
+        let viewModel = MenuViewModel(
+            defaults: makeDefaults(),
+            assistants: [StubAssistant(query: "zzz", stubbed: [fps])],
+            assistedSearchDelay: .milliseconds(1)
+        )
+
+        viewModel.searchText = "zzz"
+        try await waitUntil(!viewModel.assistedResults.isEmpty)
+
+        viewModel.searchText = ""
+        XCTAssertTrue(viewModel.assistedResults.isEmpty)
+    }
+
+    func testStaleAssistantResponsesAreDropped() async throws {
+        defer { wipeDefaults() }
+        let fps = indexEntry(for: .fpsCounter)
+        let viewModel = MenuViewModel(
+            defaults: makeDefaults(),
+            assistants: [StubAssistant(query: "old", stubbed: [fps], delay: .milliseconds(100))],
+            assistedSearchDelay: .milliseconds(1)
+        )
+
+        viewModel.searchText = "old"
+        try await Task.sleep(for: .milliseconds(20))
+        viewModel.searchText = "new"
+
+        // Long after the slow "old" response would have landed, nothing may show:
+        // the assistant only matches "old", and that query is stale.
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertTrue(viewModel.assistedResults.isEmpty, "A response for a superseded query must be discarded")
+    }
+
+    func testSearchResultsUseTheDeveloperOptionsSnapshot() {
+        defer {
+            wipeDefaults()
+            Scyther.developerOptions = []
+        }
+        Scyther.developerOptions = [DeveloperOption(name: "Reset Onboarding", value: "tap")]
+        let viewModel = MenuViewModel(defaults: makeDefaults())
+
+        // Mutating the global after init must not change what search sees — the view
+        // model searches the same snapshot `sections` renders from.
+        Scyther.developerOptions = []
+        viewModel.searchText = "onboarding"
+
+        XCTAssertTrue(viewModel.searchResults.contains {
+            $0.target == .developerOption(name: "Reset Onboarding")
+        })
     }
 }
 #endif

@@ -62,7 +62,6 @@ struct NetworkLogsView: View {
         }
         .searchable(
             text: $searchText,
-            placement: .navigationBarDrawer(displayMode: .always),
             prompt: "Search via URL, Operation, Status Code or Method"
         )
         .navigationTitle("Network logs")
