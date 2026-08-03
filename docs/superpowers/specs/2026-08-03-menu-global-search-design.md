@@ -113,9 +113,10 @@ No new persistence; search state is transient.
 
 ### `MenuView` changes
 
-- `.searchable(text: $viewModel.searchText)` on the existing `List`, with
-  `@Environment(\.isSearching)` handled via a small inner view (the environment value
-  is only set inside the searchable modifier's content).
+- `.searchable(text: $viewModel.searchText)` on the existing `List`. Search is
+  "active" when the trimmed query is non-empty — driven by the text itself, not
+  `@Environment(\.isSearching)`, so focusing the empty search field keeps the
+  browsable menu visible, matching Settings.
 - While searching (non-empty trimmed query), the section list is replaced by result
   rows; when the query matches nothing, `ContentUnavailableView.search(text:)` is
   shown (gated behind `#available(iOS 17.0, *)` with a plain-text fallback, matching
