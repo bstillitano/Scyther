@@ -77,15 +77,8 @@ class EnvironmentVariablesViewModel: ViewModel {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return variables }
         return variables.filter {
-            matches($0.key, query: query) || matches($0.value, query: query)
+            $0.key.searchMatches(query) || $0.value.searchMatches(query)
         }
-    }
-
-    /// Whether a key or value matches the query, ignoring underscore/space differences.
-    private func matches(_ text: String, query: String) -> Bool {
-        func despaced(_ s: String) -> String { s.replacingOccurrences(of: "_", with: " ") }
-        return text.localizedStandardContains(query)
-            || despaced(text).localizedStandardContains(despaced(query))
     }
 
     /// Called when the view appears for the first time.

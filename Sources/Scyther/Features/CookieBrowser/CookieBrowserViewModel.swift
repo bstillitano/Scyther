@@ -54,6 +54,11 @@ import SwiftUI
 /// - ``cookies``
 /// - ``deleteCookie(_:)``
 /// - ``clearAllCookies()``
+///
+/// ### Searching
+///
+/// - ``searchText``
+/// - ``filteredCookies``
 @MainActor
 class CookieBrowserViewModel: ViewModel {
     /// All cookies currently displayed in the browser.
@@ -62,6 +67,25 @@ class CookieBrowserViewModel: ViewModel {
     /// `HTTPCookieStorage`, sorted alphabetically by name. The array is updated
     /// when cookies are loaded, deleted, or cleared.
     @Published var cookies: [CookieItem] = []
+
+    /// The current search query, bound to the view's search field.
+    @Published var searchText: String = ""
+
+    /// The cookies matching ``searchText``, in ``cookies`` order.
+    ///
+    /// Matches against name, domain, and value with the same rules as the other
+    /// browser screens (case- and diacritic-insensitive, underscores treated as
+    /// spaces — "auth token" finds `auth_token`). An empty or whitespace query
+    /// returns everything.
+    var filteredCookies: [CookieItem] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return cookies }
+        return cookies.filter {
+            $0.name.searchMatches(query)
+                || $0.domain.searchMatches(query)
+                || $0.cookie.value.searchMatches(query)
+        }
+    }
 
     /// Called when the view appears for the first time.
     ///
