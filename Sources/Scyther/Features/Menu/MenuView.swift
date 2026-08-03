@@ -28,44 +28,32 @@ import SwiftUI
 /// section rendered directly beneath **Device**, and also remain in their home section, so
 /// the menu's structure never changes shape as rows are pinned. Pins are ordered oldest
 /// first and persist across launches in `UserDefaults.scyther`.
+///
+/// A search field (iOS-Settings style) filters a global index covering every menu row
+/// and the static rows inside settings sub-pages; each result shows its navigation
+/// path, and sub-page results push the page containing the matched row.
 public struct MenuView: View {
     @StateObject private var viewModel: MenuViewModel = MenuViewModel()
 
     public init() {}
 
+    /// Whether the menu is showing search results instead of its sections.
+    ///
+    /// Driven by the query text rather than `@Environment(\.isSearching)`: focusing
+    /// the empty search field keeps the browsable menu visible, matching Settings.
+    private var isSearchActive: Bool {
+        !viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     public var body: some View {
         List {
-            if let deviceSection = viewModel.sections.first {
-                Section {
-                    header
-                    ForEach(deviceSection.items) { item in
-                        pinnableRow(for: item)
-                    }
-                } header: {
-                    Text(deviceSection.title)
-                }
-            }
-
-            if !viewModel.pinnedItems.isEmpty {
-                Section {
-                    ForEach(viewModel.pinnedItems, id: \.pinnedRowID) { item in
-                        pinnableRow(for: item)
-                    }
-                } header: {
-                    Text("Pinned")
-                }
-            }
-
-            ForEach(Array(viewModel.sections.dropFirst())) { section in
-                Section {
-                    ForEach(section.items) { item in
-                        pinnableRow(for: item)
-                    }
-                } header: {
-                    Text(section.title)
-                }
+            if isSearchActive {
+                searchResultsSection
+            } else {
+                menuSections
             }
         }
+        .searchable(text: $viewModel.searchText, prompt: "Search")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
@@ -83,6 +71,106 @@ public struct MenuView: View {
         }
         .navigationTitle("Scyther")
         .interactiveDismissDisabled()
+    }
+
+    /// The normal browsing content: device header, Pinned, and every menu section.
+    /// This is the exact content the `List` held before search was added.
+    @ViewBuilder
+    private var menuSections: some View {
+        if let deviceSection = viewModel.sections.first {
+            Section {
+                header
+                ForEach(deviceSection.items) { item in
+                    pinnableRow(for: item)
+                }
+            } header: {
+                Text(deviceSection.title)
+            }
+        }
+
+        if !viewModel.pinnedItems.isEmpty {
+            Section {
+                ForEach(viewModel.pinnedItems, id: \.pinnedRowID) { item in
+                    pinnableRow(for: item)
+                }
+            } header: {
+                Text("Pinned")
+            }
+        }
+
+        ForEach(Array(viewModel.sections.dropFirst())) { section in
+            Section {
+                ForEach(section.items) { item in
+                    pinnableRow(for: item)
+                }
+            } header: {
+                Text(section.title)
+            }
+        }
+    }
+
+    /// The search results, or a "no results" placeholder.
+    ///
+    /// Result rows are deliberately not pinnable — pinning stays a browsing gesture,
+    /// matching the iOS Settings app.
+    @ViewBuilder
+    private var searchResultsSection: some View {
+        if viewModel.searchResults.isEmpty {
+            noResults
+        } else {
+            Section {
+                ForEach(viewModel.searchResults) { entry in
+                    searchResultRow(for: entry)
+                }
+            }
+        }
+    }
+
+    /// A single search result.
+    ///
+    /// Main-page entries reuse ``rowContent(for:)`` so a toggle result is a live
+    /// toggle and a value result shows its value; sub-page entries push the page
+    /// containing the matched row via ``destination(for:)``.
+    @ViewBuilder
+    private func searchResultRow(for entry: MenuSearchEntry) -> some View {
+        if entry.isSubpageEntry {
+            NavigationLink {
+                destination(for: entry.target)
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    if let icon = entry.icon {
+                        Label(entry.title, systemImage: icon)
+                    } else {
+                        Text(entry.title)
+                    }
+                    breadcrumb(for: entry)
+                }
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 2) {
+                rowContent(for: entry.target)
+                breadcrumb(for: entry)
+            }
+        }
+    }
+
+    /// The navigation path shown beneath a result's title, e.g. "UI/UX → Grid Overlay".
+    private func breadcrumb(for entry: MenuSearchEntry) -> some View {
+        Text(entry.breadcrumbText)
+            .font(.caption)
+            .foregroundColor(.secondary)
+    }
+
+    /// Shown when the query matches nothing.
+    @ViewBuilder
+    private var noResults: some View {
+        if #available(iOS 17.0, *) {
+            ContentUnavailableView.search(text: viewModel.searchText)
+        } else {
+            Text("No results for \"\(viewModel.searchText)\"")
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
     }
 
     /// Wraps a row in its pin/unpin swipe action.
@@ -108,20 +196,46 @@ public struct MenuView: View {
 
     /// Builds a row that pushes a destination view.
     ///
-    /// The label is derived entirely from the item, so every navigation row in the menu is
-    /// laid out identically and only the destination varies.
-    ///
-    /// - Parameters:
-    ///   - item: The row to render.
-    ///   - destination: The view to push when the row is tapped. Built lazily.
-    private func navigationRow<Destination: View>(
-        for item: MenuItem,
-        @ViewBuilder destination: @escaping () -> Destination
-    ) -> some View {
+    /// The label is derived entirely from the item, so every navigation row in the
+    /// menu is laid out identically and only the destination varies.
+    private func navigationRow(for item: MenuItem) -> some View {
         NavigationLink {
-            destination()
+            destination(for: item)
         } label: {
             row(withLabel: item.title, icon: item.icon)
+        }
+    }
+
+    /// The single item→destination mapping, shared by ``navigationRow(for:)`` and
+    /// search results (a sub-page result pushes the page containing the matched row).
+    ///
+    /// Items that are not navigation rows (value rows, toggles, tokens, developer
+    /// options) return an `EmptyView`; no search entry targets them for navigation.
+    @ViewBuilder
+    func destination(for item: MenuItem) -> some View {
+        switch item {
+        case .networkLogs: NetworkLogsView()
+        case .serverConfiguration: ServerConfigurationView()
+        case .environmentVariables: EnvironmentVariablesView()
+        case .featureFlags: FeatureFlagsView()
+        case .userDefaults: UserDefaultsView()
+        case .cookies: CookieBrowserView()
+        case .fileBrowser: FileBrowserView()
+        case .databaseBrowser: DatabaseBrowserView()
+        case .keychainBrowser: KeychainBrowserView()
+        case .locationSpoofer: LocationSpooferView()
+        case .consoleLogs: ConsoleLoggerView()
+        case .deepLinkTester: DeepLinkTesterView()
+        case .crashLogs: CrashLogsView()
+        case .notificationLogger: NotificationLoggerView()
+        case .notificationTester: NotificationTesterView()
+        case .fonts: FontsView()
+        case .interfaceComponents: InterfacePreviewsView()
+        case .gridOverlay: GridOverlaySettingsView()
+        case .fpsCounter: FPSCounterSettingsView()
+        case .touchVisualiser: TouchVisualiserView()
+        case .appearance: AppearanceOverridesView()
+        default: EmptyView()
         }
     }
 
@@ -183,43 +297,43 @@ public struct MenuView: View {
                 andLoadingState: viewModel.isLoadingIPAddress
             )
         case .networkLogs:
-            navigationRow(for: item) { NetworkLogsView() }
+            navigationRow(for: item)
         case .serverConfiguration:
-            navigationRow(for: item) { ServerConfigurationView() }
+            navigationRow(for: item)
         case .environmentVariables:
-            navigationRow(for: item) { EnvironmentVariablesView() }
+            navigationRow(for: item)
 
         // MARK: Data
         case .featureFlags:
-            navigationRow(for: item) { FeatureFlagsView() }
+            navigationRow(for: item)
         case .userDefaults:
-            navigationRow(for: item) { UserDefaultsView() }
+            navigationRow(for: item)
         case .cookies:
-            navigationRow(for: item) { CookieBrowserView() }
+            navigationRow(for: item)
         case .fileBrowser:
-            navigationRow(for: item) { FileBrowserView() }
+            navigationRow(for: item)
         case .databaseBrowser:
-            navigationRow(for: item) { DatabaseBrowserView() }
+            navigationRow(for: item)
 
         // MARK: Security
         case .keychainBrowser:
-            navigationRow(for: item) { KeychainBrowserView() }
+            navigationRow(for: item)
 
         // MARK: System Tools
         case .locationSpoofer:
-            navigationRow(for: item) { LocationSpooferView() }
+            navigationRow(for: item)
         case .consoleLogs:
-            navigationRow(for: item) { ConsoleLoggerView() }
+            navigationRow(for: item)
         case .deepLinkTester:
-            navigationRow(for: item) { DeepLinkTesterView() }
+            navigationRow(for: item)
         case .crashLogs:
-            navigationRow(for: item) { CrashLogsView() }
+            navigationRow(for: item)
 
         // MARK: Notifications
         case .notificationLogger:
-            navigationRow(for: item) { NotificationLoggerView() }
+            navigationRow(for: item)
         case .notificationTester:
-            navigationRow(for: item) { NotificationTesterView() }
+            navigationRow(for: item)
         case .apnsToken:
             row(withLabel: item.title, icon: item.icon)
         case .fcmToken:
@@ -227,17 +341,17 @@ public struct MenuView: View {
 
         // MARK: UI/UX
         case .fonts:
-            navigationRow(for: item) { FontsView() }
+            navigationRow(for: item)
         case .interfaceComponents:
-            navigationRow(for: item) { InterfacePreviewsView() }
+            navigationRow(for: item)
         case .gridOverlay:
-            navigationRow(for: item) { GridOverlaySettingsView() }
+            navigationRow(for: item)
         case .fpsCounter:
-            navigationRow(for: item) { FPSCounterSettingsView() }
+            navigationRow(for: item)
         case .touchVisualiser:
-            navigationRow(for: item) { TouchVisualiserView() }
+            navigationRow(for: item)
         case .appearance:
-            navigationRow(for: item) { AppearanceOverridesView() }
+            navigationRow(for: item)
         case .slowAnimations:
             toggleRow(item.title, icon: item.icon, isOn: $viewModel.slowAnimationsEnabled)
         case .showViewFrames:
