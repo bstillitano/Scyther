@@ -127,39 +127,144 @@ public struct MenuView: View {
         }
     }
 
-    /// A single search result.
+    /// A single search result, laid out like an iOS Settings search row.
     ///
-    /// Main-page entries reuse ``rowContent(for:)`` so a toggle result is a live
-    /// toggle and a value result shows its value; sub-page entries push the page
-    /// containing the matched row via ``destination(for:)``.
+    /// Every result shares one anatomy — an icon tile vertically centred beside a
+    /// two-line title/breadcrumb stack (see ``searchResultLabel(title:icon:breadcrumbText:)``)
+    /// — and differs only in its accessory: navigation results (sub-page entries and
+    /// main-page navigation rows) are a `NavigationLink` whose label contains the whole
+    /// stack, so the entire row including the breadcrumb is tappable; toggle results
+    /// carry their live binding; value results show their value trailing.
     @ViewBuilder
     private func searchResultRow(for entry: MenuSearchEntry) -> some View {
         if entry.isSubpageEntry {
-            NavigationLink {
-                destination(for: entry.target)
-            } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    if let icon = entry.icon {
-                        Label(entry.title, systemImage: icon)
-                    } else {
-                        Text(entry.title)
-                    }
-                    breadcrumb(for: entry)
-                }
-            }
+            navigationResult(for: entry)
         } else {
-            VStack(alignment: .leading, spacing: 2) {
-                rowContent(for: entry.target)
-                breadcrumb(for: entry)
+            switch entry.target {
+            case .slowAnimations:
+                Toggle(isOn: $viewModel.slowAnimationsEnabled) { searchResultLabel(for: entry) }
+            case .showViewFrames:
+                Toggle(isOn: $viewModel.showViewFrames) { searchResultLabel(for: entry) }
+            case .showViewSizes:
+                Toggle(isOn: $viewModel.showViewSizes) { searchResultLabel(for: entry) }
+            case .ipAddress:
+                HStack {
+                    searchResultLabel(for: entry)
+                    if viewModel.isLoadingIPAddress {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    } else {
+                        resultValue(viewModel.ipAddress)
+                    }
+                }
+            case .apnsToken, .fcmToken:
+                searchResultLabel(for: entry)
+            case .developerOption(let name):
+                if let option = viewModel.developerOption(named: name) {
+                    developerOptionResult(option, breadcrumbText: entry.breadcrumbText)
+                }
+            default:
+                if let value = valueDescription(for: entry.target) {
+                    HStack {
+                        searchResultLabel(for: entry)
+                        resultValue(value)
+                    }
+                } else {
+                    navigationResult(for: entry)
+                }
             }
         }
     }
 
-    /// The navigation path shown beneath a result's title, e.g. "UI/UX → Grid Overlay".
-    private func breadcrumb(for entry: MenuSearchEntry) -> some View {
-        Text(entry.breadcrumbText)
-            .font(.caption)
+    /// A result that pushes ``destination(for:)`` — the containing page for a
+    /// sub-page entry, the row's own destination for a main-page navigation row.
+    private func navigationResult(for entry: MenuSearchEntry) -> some View {
+        NavigationLink {
+            destination(for: entry.target)
+        } label: {
+            searchResultLabel(for: entry)
+        }
+    }
+
+    /// A search result for a host-supplied developer option.
+    ///
+    /// Mirrors ``developerOptionRow(_:)`` — value options show their value, view
+    /// options navigate — but wears the shared search-result anatomy.
+    @ViewBuilder
+    private func developerOptionResult(_ option: DeveloperOption, breadcrumbText: String) -> some View {
+        let label = searchResultLabel(
+            title: option.name,
+            icon: option.systemImage,
+            breadcrumbText: breadcrumbText
+        )
+        switch option.type {
+        case .value:
+            HStack {
+                label
+                if let value = option.value {
+                    resultValue(value)
+                }
+            }
+        case .viewController:
+            if let viewController = option.viewController {
+                NavigationLink {
+                    ViewControllerRepresentable(viewController: viewController)
+                } label: {
+                    label
+                }
+            }
+        case .swiftUIView:
+            if let swiftUIView = option.swiftUIView {
+                NavigationLink {
+                    swiftUIView
+                } label: {
+                    label
+                }
+            }
+        }
+    }
+
+    private func searchResultLabel(for entry: MenuSearchEntry) -> some View {
+        searchResultLabel(title: entry.title, icon: entry.icon, breadcrumbText: entry.breadcrumbText)
+    }
+
+    /// The shared anatomy of every search result: an iOS-Settings-style icon tile
+    /// vertically centred beside the title, with the navigation path beneath the
+    /// title (never beneath the tile).
+    private func searchResultLabel(title: String, icon: String?, breadcrumbText: String) -> some View {
+        HStack(spacing: 12) {
+            if let icon {
+                searchResultIconTile(icon)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                Text(breadcrumbText)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    /// The rounded-square icon tile shown on search results, matching the tiles in
+    /// the iOS Settings app's search results.
+    private func searchResultIconTile(_ systemImage: String) -> some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(.white)
+            .frame(width: 29, height: 29)
+            .background(
+                RoundedRectangle(cornerRadius: 6.5, style: .continuous)
+                    .fill(Color.accentColor)
+            )
+    }
+
+    /// A result's trailing value, styled like a value row's description.
+    private func resultValue(_ value: String) -> some View {
+        Text(value)
+            .lineLimit(1)
+            .truncationMode(.middle)
             .foregroundColor(.secondary)
+            .frame(maxWidth: .infinity, alignment: .trailing)
     }
 
     /// Shown when the query matches nothing.
@@ -240,6 +345,30 @@ public struct MenuView: View {
         }
     }
 
+    /// The static description shown trailing a value row, or `nil` for rows whose
+    /// content is not a plain value (navigation, toggle, token, and developer-option
+    /// rows, plus ``MenuItem/ipAddress`` which loads asynchronously).
+    ///
+    /// Single source for ``rowContent(for:)`` and ``searchResultRow(for:)``, so a
+    /// value can never differ between the menu and its search result.
+    private func valueDescription(for item: MenuItem) -> String? {
+        switch item {
+        case .osVersion: return UIDevice.current.systemVersion
+        case .hardware: return UIDevice.current.modelName
+        case .releaseYear: return UIDevice.current.generation.withoutDecimals
+        case .uuid: return UIDevice.current.identifierForVendor?.uuidString
+        case .appIdPrefix: return Bundle.main.seedId
+        case .displayName: return String(UIApplication.shared.appName)
+        case .bundleId: return Bundle.main.bundleIdentifier
+        case .processId: return String(getpid())
+        case .version: return Bundle.main.versionNumber
+        case .buildNumber: return Bundle.main.buildNumber
+        case .buildDate: return Bundle.main.buildDate.formatted()
+        case .releaseType: return AppEnvironment.configuration().rawValue
+        default: return nil
+        }
+    }
+
     /// The single definition of every menu row.
     ///
     /// ``MenuItem`` supplies each row's title and icon; this method supplies everything
@@ -249,33 +378,11 @@ public struct MenuView: View {
     @ViewBuilder
     private func rowContent(for item: MenuItem) -> some View {
         switch item {
-        // MARK: Device
-        case .osVersion:
-            row(withLabel: item.title, description: UIDevice.current.systemVersion)
-        case .hardware:
-            row(withLabel: item.title, description: UIDevice.current.modelName)
-        case .releaseYear:
-            row(withLabel: item.title, description: UIDevice.current.generation.withoutDecimals)
-        case .uuid:
-            row(withLabel: item.title, description: UIDevice.current.identifierForVendor?.uuidString)
-
-        // MARK: Application
-        case .appIdPrefix:
-            row(withLabel: item.title, description: Bundle.main.seedId)
-        case .displayName:
-            row(withLabel: item.title, description: String(UIApplication.shared.appName))
-        case .bundleId:
-            row(withLabel: item.title, description: Bundle.main.bundleIdentifier)
-        case .processId:
-            row(withLabel: item.title, description: String(getpid()))
-        case .version:
-            row(withLabel: item.title, description: Bundle.main.versionNumber)
-        case .buildNumber:
-            row(withLabel: item.title, description: Bundle.main.buildNumber)
-        case .buildDate:
-            row(withLabel: item.title, description: Bundle.main.buildDate.formatted())
-        case .releaseType:
-            row(withLabel: item.title, description: AppEnvironment.configuration().rawValue)
+        // MARK: Device & Application
+        case .osVersion, .hardware, .releaseYear, .uuid,
+             .appIdPrefix, .displayName, .bundleId, .processId,
+             .version, .buildNumber, .buildDate, .releaseType:
+            row(withLabel: item.title, description: valueDescription(for: item))
 
         // MARK: Development Tools
         case .developerOption(let name):
