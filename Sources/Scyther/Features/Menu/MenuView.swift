@@ -157,8 +157,6 @@ public struct MenuView: View {
                         resultValue(viewModel.ipAddress)
                     }
                 }
-            case .apnsToken, .fcmToken:
-                searchResultLabel(for: entry)
             case .developerOption(let name):
                 if let option = viewModel.developerOption(named: name) {
                     developerOptionResult(option, entry: entry)
@@ -388,7 +386,38 @@ public struct MenuView: View {
         case .buildNumber: return Bundle.main.buildNumber
         case .buildDate: return Bundle.main.buildDate.formatted()
         case .releaseType: return AppEnvironment.configuration().rawValue
+        case .apnsToken, .fcmToken: return tokenValue(for: item) ?? "Not set"
         default: return nil
+        }
+    }
+
+    /// The push token behind ``MenuItem/apnsToken`` / ``MenuItem/fcmToken``, or `nil` when the
+    /// host app hasn't set it yet.
+    private func tokenValue(for item: MenuItem) -> String? {
+        switch item {
+        case .apnsToken: return Scyther.apnsToken
+        case .fcmToken: return Scyther.fcmToken
+        default: return nil
+        }
+    }
+
+    /// A push-token row. The row truncates the token, so long-press copies it in full.
+    @ViewBuilder
+    private func tokenRow(for item: MenuItem) -> some View {
+        row(
+            withLabel: item.title,
+            description: valueDescription(for: item),
+            icon: item.icon,
+            tint: item.tint
+        )
+        .contextMenu {
+            if let token = tokenValue(for: item) {
+                Button {
+                    UIPasteboard.general.string = token
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
+            }
         }
     }
 
@@ -471,10 +500,8 @@ public struct MenuView: View {
             navigationRow(for: item)
         case .notificationTester:
             navigationRow(for: item)
-        case .apnsToken:
-            row(withLabel: item.title, icon: item.icon, tint: item.tint)
-        case .fcmToken:
-            row(withLabel: item.title, icon: item.icon, tint: item.tint)
+        case .apnsToken, .fcmToken:
+            tokenRow(for: item)
 
         // MARK: UI/UX
         case .fonts:
