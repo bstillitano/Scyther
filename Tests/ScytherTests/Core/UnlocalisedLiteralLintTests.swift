@@ -30,6 +30,18 @@ final class UnlocalisedLiteralLintTests: XCTestCase {
             .appendingPathComponent("Sources/Scyther")
     }
 
+    /// Whether `line` should be reported as an unlocalised literal.
+    ///
+    /// A line opts out by containing ``marker`` or by being a comment (its trimmed text starts
+    /// with `//`, which also catches `///` DocC lines); otherwise it offends when `pattern`
+    /// matches it.
+    static func offends(_ line: String) -> Bool {
+        guard !line.contains(marker) else { return false }
+        guard !line.trimmingCharacters(in: .whitespaces).hasPrefix("//") else { return false }
+        let range = NSRange(location: 0, length: (line as NSString).length)
+        return pattern.firstMatch(in: line, range: range) != nil
+    }
+
     func testConvertedDirectoriesHaveNoUnlocalisedLiterals() throws {
         var offenders: [String] = []
         for directory in Self.convertedDirectories {
@@ -38,15 +50,43 @@ final class UnlocalisedLiteralLintTests: XCTestCase {
             for case let file as URL in enumerator where file.pathExtension == "swift" {
                 let text = try String(contentsOf: file, encoding: .utf8)
                 for (index, line) in text.components(separatedBy: "\n").enumerated() {
-                    guard !line.contains(Self.marker) else { continue }
-                    guard !line.trimmingCharacters(in: .whitespaces).hasPrefix("//") else { continue }
-                    let range = NSRange(location: 0, length: (line as NSString).length)
-                    if Self.pattern.firstMatch(in: line, range: range) != nil {
+                    if Self.offends(line) {
                         offenders.append("\(file.lastPathComponent):\(index + 1): \(line.trimmingCharacters(in: .whitespaces))")
                     }
                 }
             }
         }
         XCTAssertTrue(offenders.isEmpty, "Unlocalised literals:\n" + offenders.joined(separator: "\n"))
+    }
+
+    func testPatternCatchesSwiftUILiteralsAndHonoursOptOuts() {
+        let offenders = [
+            #"Text("Network logs")"#,
+            #"Button("Delete", systemImage: "trash", role: .destructive) {"#,
+            #"Section("Overview") {"#,
+            #"LabeledContent("Method", value: viewModel.method)"#,
+            #".navigationTitle("Request Details")"#,
+            #".alert("Export Sensitive Data?", isPresented: $flag) {"#,
+            #".searchable(text: $text, prompt: "Search via URL")"#,
+            #"Label("Share Archive", systemImage: "square.and.arrow.up")"#,
+            #".accessibilityLabel("Close")"#,
+            #"MenuSection(title: "Device", items: [])"#,
+        ]
+        for line in offenders {
+            XCTAssertTrue(Self.offends(line), "should be flagged: \(line)")
+        }
+        let allowed = [
+            #"Text(localized("Network logs"))"#,
+            #"Text(verbatim: "raw")"#,
+            #"Image(systemName: "checkmark")"#,
+            #"UserDefaults.standard.set(value, forKey: "Scyther_key")"#,
+            #"/// Text("documentation example")"#,
+            #"// Text("commented out")"#,
+            #"Text("Opted out") // scyther:unlocalised pasteboard payload"#,
+            #"Text("")"#,
+        ]
+        for line in allowed {
+            XCTAssertFalse(Self.offends(line), "should not be flagged: \(line)")
+        }
     }
 }
