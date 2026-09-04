@@ -169,7 +169,7 @@ class LogDetailsViewModel: ViewModel {
         requestURL = httpRequest.requestURL ?? ""
         method = httpRequest.requestMethod ?? "-"
         responseCode = "\(httpRequest.responseCode ?? 0)"
-        responseSize = "\(httpRequest.responseBodyLength ?? 0) bytes"
+        responseSize = localized("\(httpRequest.responseBodyLength ?? 0) bytes")
         date = httpRequest.requestDate?.formatted() ?? "-"
         duration = String(format: "%.0fms", httpRequest.requestDuration ?? 0)
 

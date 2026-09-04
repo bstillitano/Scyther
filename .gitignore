@@ -101,3 +101,7 @@ CNAME
 
 # DocC build output
 docbuild/
+
+## Python
+__pycache__/
+*.pyc

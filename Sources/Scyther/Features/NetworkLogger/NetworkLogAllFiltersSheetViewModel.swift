@@ -102,12 +102,12 @@ final class NetworkLogAllFiltersSheetViewModel: ViewModel {
     /// - Parameter dimension: The dimension to describe.
     func summary(for dimension: NetworkLogFilterDimension) -> String {
         let selected = filter.selection(for: dimension)
-        guard !selected.isEmpty else { return "Any" }
+        guard !selected.isEmpty else { return localized("Any") }
         let options = sections.first { $0.dimension == dimension }?.options ?? []
         let titles = options.filter { selected.contains($0.id) }.map(\.title)
         let joined = titles.isEmpty ? selected.sorted().joined(separator: ", ") : titles.joined(separator: ", ")
         if dimension == .host, filter.hostMode == .exclude {
-            return "Exclude: \(joined)"
+            return localized("Exclude: \(joined)")
         }
         return joined
     }

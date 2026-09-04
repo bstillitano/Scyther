@@ -73,7 +73,7 @@ internal enum DataRow {
             } else if let string = String(data: inputData, encoding: .utf8) {
                 self = .string(title: title, data: string)
             } else {
-                self = .string(title: title, data: "<\(inputData.count) bytes>")
+                self = .string(title: title, data: "<\(localized("\(inputData.count) bytes"))>")
             }
         }
         // Handle String - try to parse as JSON, fallback to plain string
@@ -147,7 +147,7 @@ internal enum DataRow {
         }
         // Fallback for unsupported types
         else {
-            self = .string(title: title, data: "Unsupported (\(type(of: input)))")
+            self = .string(title: title, data: localized("Unsupported (\(String(describing: type(of: input))))"))
         }
     }
 }

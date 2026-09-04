@@ -128,7 +128,7 @@ class KeychainBrowserViewModel: ViewModel {
         }
 
         return items.compactMap { dict -> KeychainItem? in
-            let account = dict[kSecAttrAccount as String] as? String ?? dict[kSecAttrLabel as String] as? String ?? "Unknown"
+            let account = dict[kSecAttrAccount as String] as? String ?? dict[kSecAttrLabel as String] as? String ?? localized("Unknown")
             let service = dict[kSecAttrService as String] as? String
             let label = dict[kSecAttrLabel as String] as? String
 
@@ -176,23 +176,23 @@ class KeychainBrowserViewModel: ViewModel {
     /// - Returns: A user-friendly display name (e.g., "Accessible")
     private static func keychainAttributeDisplayName(_ key: String) -> String {
         let mapping: [String: String] = [
-            kSecAttrAccessible as String: "Accessible",
-            kSecAttrCreationDate as String: "Created",
-            kSecAttrModificationDate as String: "Modified",
-            kSecAttrDescription as String: "Description",
-            kSecAttrComment as String: "Comment",
-            kSecAttrCreator as String: "Creator",
-            kSecAttrType as String: "Type",
-            kSecAttrIsInvisible as String: "Invisible",
-            kSecAttrIsNegative as String: "Negative",
-            kSecAttrSynchronizable as String: "Synchronizable",
-            kSecAttrAccessGroup as String: "Access Group",
-            kSecAttrSecurityDomain as String: "Security Domain",
-            kSecAttrServer as String: "Server",
-            kSecAttrProtocol as String: "Protocol",
-            kSecAttrAuthenticationType as String: "Auth Type",
-            kSecAttrPort as String: "Port",
-            kSecAttrPath as String: "Path"
+            kSecAttrAccessible as String: localized("Accessible"),
+            kSecAttrCreationDate as String: localized("Created"),
+            kSecAttrModificationDate as String: localized("Modified"),
+            kSecAttrDescription as String: localized("Description"),
+            kSecAttrComment as String: localized("Comment"),
+            kSecAttrCreator as String: localized("Creator"),
+            kSecAttrType as String: localized("Type"),
+            kSecAttrIsInvisible as String: localized("Invisible"),
+            kSecAttrIsNegative as String: localized("Negative"),
+            kSecAttrSynchronizable as String: localized("Synchronizable"),
+            kSecAttrAccessGroup as String: localized("Access Group"),
+            kSecAttrSecurityDomain as String: localized("Security Domain"),
+            kSecAttrServer as String: localized("Server"),
+            kSecAttrProtocol as String: localized("Protocol"),
+            kSecAttrAuthenticationType as String: localized("Auth Type"),
+            kSecAttrPort as String: localized("Port"),
+            kSecAttrPath as String: localized("Path")
         ]
         return mapping[key] ?? key
     }
@@ -208,11 +208,11 @@ class KeychainBrowserViewModel: ViewModel {
             return date.formatted()
         } else if let number = value as? NSNumber {
             if CFGetTypeID(number) == CFBooleanGetTypeID() {
-                return number.boolValue ? "Yes" : "No"
+                return number.boolValue ? localized("Yes") : localized("No")
             }
             return "\(number)"
         } else if let data = value as? Data {
-            return "\(data.count) bytes"
+            return localized("\(data.count) bytes")
         } else if let string = value as? String {
             return string
         }

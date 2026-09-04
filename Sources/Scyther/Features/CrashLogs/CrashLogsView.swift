@@ -59,19 +59,19 @@ struct CrashLogsView: View {
                 crashList
             }
         }
-        .navigationTitle("Crash Logs")
-        .searchable(text: $searchText, prompt: "Search crashes")
+        .navigationTitle(localized("Crash Logs"))
+        .searchable(text: $searchText, prompt: localized("Search crashes"))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 if !viewModel.crashes.isEmpty {
-                    Button("Clear All", role: .destructive) {
+                    Button(localized("Clear All"), role: .destructive) {
                         viewModel.clearAll()
                     }
                 }
             }
             #if DEBUG
             ToolbarItem(placement: .secondaryAction) {
-                Button("Test Crash") {
+                Button(localized("Test Crash")) {
                     viewModel.triggerTestCrash()
                 }
             }
@@ -91,18 +91,18 @@ struct CrashLogsView: View {
     private var emptyState: some View {
         if #available(iOS 17.0, *) {
             ContentUnavailableView(
-                "No Crashes",
+                localized("No Crashes"),
                 systemImage: "checkmark.circle",
-                description: Text("No crashes have been recorded. That's a good thing!")
+                description: Text(localized("No crashes have been recorded. That's a good thing!"))
             )
         } else {
             VStack(spacing: 16) {
                 Image(systemName: "checkmark.circle")
                     .font(.system(size: 48))
                     .foregroundStyle(.secondary)
-                Text("No Crashes")
+                Text(localized("No Crashes"))
                     .font(.headline)
-                Text("No crashes have been recorded. That's a good thing!")
+                Text(localized("No crashes have been recorded. That's a good thing!"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -153,7 +153,7 @@ private struct CrashRowView: View {
 
                 Spacer()
 
-                Text("v\(crash.appVersion)")
+                Text(verbatim: "v\(crash.appVersion)")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

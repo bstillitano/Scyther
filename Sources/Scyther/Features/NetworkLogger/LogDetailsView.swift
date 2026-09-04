@@ -27,7 +27,7 @@ struct LogDetailsView: View {
             responseBodySection
             developerSection
         }
-        .navigationTitle("Request Details")
+        .navigationTitle(localized("Request Details"))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 exportButton
@@ -46,35 +46,35 @@ struct LogDetailsView: View {
         ShareLink(item: viewModel.curlRequest) {
             Image(systemName: "square.and.arrow.up")
         }
-        .accessibilityLabel("Export cURL request")
+        .accessibilityLabel(localized("Export cURL request"))
     }
 
     private var overviewSection: some View {
-        Section("Overview") {
+        Section(localized("Overview")) {
             NavigationLink {
-                TextReaderView(text: viewModel.requestURL, title: "Request URL")
+                TextReaderView(text: viewModel.requestURL, title: localized("Request URL"))
             } label: {
-                LabeledContent("URL", value: viewModel.requestURL)
+                LabeledContent(localized("URL"), value: viewModel.requestURL)
             }
 
-            LabeledContent("Method", value: viewModel.method)
-            LabeledContent("Response Code", value: viewModel.responseCode)
-            LabeledContent("Response Size", value: viewModel.responseSize)
-            LabeledContent("Date", value: viewModel.date)
-            LabeledContent("Duration", value: viewModel.duration)
+            LabeledContent(localized("Method"), value: viewModel.method)
+            LabeledContent(localized("Response Code"), value: viewModel.responseCode)
+            LabeledContent(localized("Response Size"), value: viewModel.responseSize)
+            LabeledContent(localized("Date"), value: viewModel.date)
+            LabeledContent(localized("Duration"), value: viewModel.duration)
         }
     }
 
     @ViewBuilder
     private var graphQLSection: some View {
         if viewModel.hasGraphQL {
-            Section("GraphQL") {
-                LabeledContent("Operation", value: viewModel.graphQLOperationName)
-                LabeledContent("Type", value: viewModel.graphQLOperationType)
+            Section("GraphQL") { // scyther:unlocalised technical token
+                LabeledContent(localized("Operation"), value: viewModel.graphQLOperationName)
+                LabeledContent(localized("Type"), value: viewModel.graphQLOperationType)
 
                 if !viewModel.graphQLVariablesDictionary.isEmpty {
-                    NavigationLink("Browse variables") {
-                        DataBrowserView(data: viewModel.graphQLVariablesDictionary, title: "Variables")
+                    NavigationLink(localized("Browse variables")) {
+                        DataBrowserView(data: viewModel.graphQLVariablesDictionary, title: localized("Variables"))
                     }
                     .foregroundStyle(.tint)
                 }
@@ -83,9 +83,9 @@ struct LogDetailsView: View {
     }
 
     private var requestHeadersSection: some View {
-        Section("Request Headers") {
+        Section(localized("Request Headers")) {
             if viewModel.requestHeaders.isEmpty {
-                Text("No headers sent")
+                Text(localized("No headers sent"))
                     .fontWeight(.bold)
                     .foregroundStyle(.gray)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -96,7 +96,7 @@ struct LogDetailsView: View {
                             Button {
                                 UIPasteboard.general.string = "\(header.key): \(header.value)"
                             } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
+                                Label(localized("Copy"), systemImage: "doc.on.doc")
                             }
                         }
                 }
@@ -105,19 +105,19 @@ struct LogDetailsView: View {
     }
 
     private var requestBodySection: some View {
-        Section("Request Body") {
+        Section(localized("Request Body")) {
             if viewModel.hasRequestBody {
-                NavigationLink("Browse request body") {
-                    DataBrowserView(data: viewModel.requestBodyDictionary, title: "Request Body")
+                NavigationLink(localized("Browse request body")) {
+                    DataBrowserView(data: viewModel.requestBodyDictionary, title: localized("Request Body"))
                 }
                 .foregroundStyle(.tint)
 
-                NavigationLink("View request body") {
-                    TextReaderView(text: viewModel.requestBody, title: "Request Body")
+                NavigationLink(localized("View request body")) {
+                    TextReaderView(text: viewModel.requestBody, title: localized("Request Body"))
                 }
                 .foregroundStyle(.tint)
             } else {
-                Text("No content sent")
+                Text(localized("No content sent"))
                     .fontWeight(.bold)
                     .foregroundStyle(.gray)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -126,9 +126,9 @@ struct LogDetailsView: View {
     }
 
     private var responseHeadersSection: some View {
-        Section("Response Headers") {
+        Section(localized("Response Headers")) {
             if viewModel.responseHeaders.isEmpty {
-                Text("No headers received")
+                Text(localized("No headers received"))
                     .fontWeight(.bold)
                     .foregroundStyle(.gray)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -139,7 +139,7 @@ struct LogDetailsView: View {
                             Button {
                                 UIPasteboard.general.string = "\(header.key): \(header.value)"
                             } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
+                                Label(localized("Copy"), systemImage: "doc.on.doc")
                             }
                         }
                 }
@@ -148,19 +148,19 @@ struct LogDetailsView: View {
     }
 
     private var responseBodySection: some View {
-        Section("Response Body") {
+        Section(localized("Response Body")) {
             if viewModel.hasResponseBody {
-                NavigationLink("Browse response body") {
-                    DataBrowserView(data: viewModel.responseBodyDictionary, title: "Response Body")
+                NavigationLink(localized("Browse response body")) {
+                    DataBrowserView(data: viewModel.responseBodyDictionary, title: localized("Response Body"))
                 }
                 .foregroundStyle(.tint)
 
-                NavigationLink("View response body") {
-                    TextReaderView(text: viewModel.responseBody, title: "Response Body")
+                NavigationLink(localized("View response body")) {
+                    TextReaderView(text: viewModel.responseBody, title: localized("Response Body"))
                 }
                 .foregroundStyle(.tint)
             } else {
-                Text("No data received")
+                Text(localized("No data received"))
                     .fontWeight(.bold)
                     .foregroundStyle(.gray)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -169,14 +169,14 @@ struct LogDetailsView: View {
     }
 
     private var developerSection: some View {
-        Section("Developer Info") {
-            LabeledContent("Request time", value: viewModel.requestTime)
-            LabeledContent("Response time", value: viewModel.responseTime)
-            LabeledContent("Cache Policy", value: viewModel.cachePolicy)
-            LabeledContent("Timeout", value: viewModel.timeout)
+        Section(localized("Developer Info")) {
+            LabeledContent(localized("Request time"), value: viewModel.requestTime)
+            LabeledContent(localized("Response time"), value: viewModel.responseTime)
+            LabeledContent(localized("Cache Policy"), value: viewModel.cachePolicy)
+            LabeledContent(localized("Timeout"), value: viewModel.timeout)
 
             ShareLink(item: viewModel.curlRequest) {
-                Text("Export cURL request")
+                Text(localized("Export cURL request"))
             }
         }
     }
@@ -191,6 +191,6 @@ struct HeaderItem: Identifiable {
 
 #Preview {
     NavigationStack {
-        Text("LogDetailsView requires an HTTPRequest")
+        Text("LogDetailsView requires an HTTPRequest") // scyther:unlocalised Xcode preview placeholder
     }
 }

@@ -40,10 +40,10 @@ struct ConsoleLoggerView: View {
                     Image(systemName: "terminal")
                         .font(.largeTitle)
                         .foregroundStyle(Self.terminalGreen.opacity(0.6))
-                    Text("No Logs")
+                    Text(localized("No Logs"))
                         .font(.headline)
                         .foregroundStyle(Self.terminalGreen)
-                    Text("Console output will appear here")
+                    Text(localized("Console output will appear here"))
                         .font(.subheadline)
                         .foregroundStyle(Self.terminalGreen.opacity(0.6))
                 }
@@ -60,12 +60,12 @@ struct ConsoleLoggerView: View {
                                         Button {
                                             UIPasteboard.general.string = log.message
                                         } label: {
-                                            Label("Copy", systemImage: "doc.on.doc")
+                                            Label(localized("Copy"), systemImage: "doc.on.doc")
                                         }
                                         Button {
                                             UIPasteboard.general.string = "[\(log.formattedTimestamp)] \(log.message)"
                                         } label: {
-                                            Label("Copy with Timestamp", systemImage: "doc.on.doc.fill")
+                                            Label(localized("Copy with Timestamp"), systemImage: "doc.on.doc.fill")
                                         }
                                     }
                             }
@@ -87,9 +87,9 @@ struct ConsoleLoggerView: View {
         }
         .searchable(
             text: $searchText,
-            prompt: "Search logs"
+            prompt: localized("Search logs")
         )
-        .navigationTitle("Console Logs")
+        .navigationTitle(localized("Console Logs"))
         .toolbarBackground(Color.black, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
@@ -98,12 +98,12 @@ struct ConsoleLoggerView: View {
                     Button(role: .destructive) {
                         viewModel.clearLogs()
                     } label: {
-                        Label("Clear Logs", systemImage: "trash")
+                        Label(localized("Clear Logs"), systemImage: "trash")
                     }
 
                     Divider()
 
-                    Toggle("Auto-scroll", isOn: $viewModel.autoScroll)
+                    Toggle(localized("Auto-scroll"), isOn: $viewModel.autoScroll)
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }

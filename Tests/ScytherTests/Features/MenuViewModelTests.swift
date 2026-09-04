@@ -68,7 +68,7 @@ final class MenuViewModelTests: XCTestCase {
         for section in MenuSection.allSections(developerOptions: options) {
             XCTAssertNotEqual(
                 section.tint, .accentColor,
-                "\"\(section.title)\" falls back to the accent colour — add it to MenuSection.tint(forTitle:)"
+                "\"\(section.id)\" falls back to the accent colour — add it to MenuSection.tint(forID:)"
             )
         }
     }
@@ -80,7 +80,7 @@ final class MenuViewModelTests: XCTestCase {
     }
 
     func testUnknownSectionTitleFallsBackToAccent() {
-        XCTAssertEqual(MenuSection.tint(forTitle: "Removed In V2"), .accentColor)
+        XCTAssertEqual(MenuSection.tint(forID: "removedInV2"), .accentColor)
     }
 
     // MARK: - Pinning

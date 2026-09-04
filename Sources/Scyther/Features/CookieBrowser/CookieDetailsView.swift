@@ -33,15 +33,15 @@ struct CookieDetailsView: View {
 
     var body: some View {
         List {
-            Section("Key/Values") {
+            Section(localized("Key/Values")) {
                 ForEach(viewModel.keyValues) { item in
                     row(for: item)
                 }
             }
 
-            Section("Properties") {
+            Section(localized("Properties")) {
                 if viewModel.properties.isEmpty {
-                    Text("No cookie properties set")
+                    Text(localized("No cookie properties set"))
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -52,7 +52,7 @@ struct CookieDetailsView: View {
                 }
             }
         }
-        .navigationTitle("Cookie Details")
+        .navigationTitle(localized("Cookie Details"))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(role: .destructive) {
@@ -79,7 +79,7 @@ struct CookieDetailsView: View {
             Button {
                 UIPasteboard.general.string = "\(item.key): \(item.value)"
             } label: {
-                Label("Copy", systemImage: "doc.on.doc")
+                Label(localized("Copy"), systemImage: "doc.on.doc")
             }
         }
     }

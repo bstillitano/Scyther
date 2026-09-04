@@ -220,11 +220,11 @@ class NetworkLogsViewModel: ViewModel {
             let id = selected.first ?? ""
             let title = options(for: dimension).first { $0.id == id }?.title ?? id
             if dimension == .host, filter.hostMode == .exclude {
-                return "Not \(title)"
+                return localized("Not \(title)")
             }
             return title
         default:
-            return "\(dimension.title) · \(selected.count)"
+            return localized("\(dimension.title) · \(selected.count)")
         }
     }
 

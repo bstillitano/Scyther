@@ -56,6 +56,9 @@ import SwiftUI
 /// - ``onFirstAppear()``
 /// - ``refresh()``
 /// - ``deleteSelectedItem()``
+///
+/// ### Presentation
+/// - ``deleteConfirmationTitle``
 @MainActor
 class FileBrowserViewModel: ViewModel {
     /// The directory being browsed, or `nil` for root directories.
@@ -84,6 +87,15 @@ class FileBrowserViewModel: ViewModel {
 
     /// The item pending deletion, set when user initiates delete action.
     @Published var itemToDelete: FileItem?
+
+    /// The localised title of the delete confirmation dialog.
+    ///
+    /// Names ``itemToDelete`` when one is pending, falling back to a generic noun so the
+    /// dialog still reads correctly if the selection was cleared. Computed on access so it
+    /// follows a language change made from the Language page.
+    var deleteConfirmationTitle: String {
+        localized("Delete \(itemToDelete?.name ?? localized("item"))?")
+    }
 
     /// Creates a file browser view model.
     ///

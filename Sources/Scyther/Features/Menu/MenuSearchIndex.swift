@@ -81,6 +81,10 @@ enum MenuSearchIndex {
 
     /// Alias terms per row — jargon a developer might type instead of the visible
     /// title. Hand-curated, matched case- and diacritic-insensitively.
+    ///
+    /// Deliberately left in English in every language: these are search aliases, never
+    /// displayed, and the jargon a developer types ("remote config", "sqlite", "env var")
+    /// is English regardless of the interface language.
     static let keywords: [MenuItem: [String]] = [
         .uuid: ["identifier", "idfv", "device id"],
         .bundleId: ["bundle identifier", "app id"],
@@ -111,6 +115,7 @@ enum MenuSearchIndex {
         .fpsCounter: ["frame rate", "performance", "hitches"],
         .touchVisualiser: ["touches", "taps", "gestures"],
         .appearance: ["dark mode", "light mode", "theme", "dynamic type", "contrast"],
+        .language: ["locale", "translation", "localisation", "localization", "i18n", "l10n", "region"],
         .slowAnimations: ["animation speed"],
         .showViewFrames: ["debug view", "borders", "layout"],
         .showViewSizes: ["dimensions", "layout"]
@@ -121,26 +126,31 @@ enum MenuSearchIndex {
     /// Hand-curated: when a settings page gains or loses a static row, update its
     /// titles here. Titles should match the visible row labels closely enough that
     /// searching what the user can read finds the page.
-    private static let subpageTitles: [(target: MenuItem, titles: [String])] = [
-        (.gridOverlay, ["Enable Grid", "Grid Size", "Grid Opacity", "Grid Color"]),
-        (.fpsCounter, ["Enable FPS Counter", "FPS Counter Position"]),
+    ///
+    /// Computed rather than stored so the labels are resolved in the language that is
+    /// effective *now*: a stored property would cache whatever language was active the first
+    /// time search ran, and results would stay in that language after the user switched.
+    private static var subpageTitles: [(target: MenuItem, titles: [String])] {[
+        (.gridOverlay, [localized("Enable Grid"), localized("Grid Size"), localized("Grid Opacity"), localized("Grid Color")]),
+        (.fpsCounter, [localized("Enable FPS Counter"), localized("FPS Counter Position")]),
         (.touchVisualiser, [
-            "Show Screen Touches", "Log Screen Touches",
-            "Show Touch Duration", "Show Touch Radius"
+            localized("Show Screen Touches"), localized("Log Screen Touches"),
+            localized("Show Touch Duration"), localized("Show Touch Radius")
         ]),
         (.appearance, [
-            "Color Scheme", "Dynamic Type", "Override Text Size",
-            "Increase Contrast", "Reset to System Defaults"
+            localized("Color Scheme"), localized("Dynamic Type"), localized("Override Text Size"),
+            localized("Increase Contrast"), localized("Reset to System Defaults")
         ]),
         (.locationSpoofer, [
-            "Enable Location Spoofing", "Location Presets", "Custom Location"
+            localized("Enable Location Spoofing"), localized("Location Presets"), localized("Custom Location")
         ]),
         (.notificationTester, [
-            "Request Notification Permission", "Send Push Notification",
-            "Badge Count", "Cancel Scheduled Notifications", "Clear Badge & Notifications"
+            localized("Request Notification Permission"), localized("Send Push Notification"),
+            localized("Badge Count"), localized("Cancel Scheduled Notifications"), localized("Clear Badge & Notifications")
         ]),
-        (.deepLinkTester, ["Open URL", "Deep Link Presets", "Deep Link History"])
-    ]
+        (.deepLinkTester, [localized("Open URL"), localized("Deep Link Presets"), localized("Deep Link History")]),
+        (.language, [localized("System Default"), localized("Reset Language Override")])
+    ]}
 
     /// Builds the sub-page entries, resolving each target's home section from the
     /// live layout so breadcrumbs can never drift from the real menu.

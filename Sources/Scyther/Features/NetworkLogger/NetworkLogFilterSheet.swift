@@ -30,7 +30,7 @@ struct NetworkLogFilterSheet: View {
             List {
                 Section {
                     if viewModel.options.isEmpty {
-                        NetworkLogFilterEmptyRow(dimensionName: viewModel.title.lowercased())
+                        NetworkLogFilterEmptyRow(dimensionName: viewModel.title)
                     } else {
                         ForEach(viewModel.options) { option in
                             NetworkLogFilterOptionRow(
@@ -51,7 +51,7 @@ struct NetworkLogFilterSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if viewModel.canReset {
-                        Button("Reset") { viewModel.reset() }
+                        Button(localized("Reset")) { viewModel.reset() }
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {

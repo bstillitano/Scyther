@@ -23,9 +23,9 @@ struct CookieBrowserView: View {
 
     var body: some View {
         List {
-            Section("HTTPCookieStorage Cookies") {
+            Section(localized("HTTPCookieStorage Cookies")) {
                 if viewModel.cookies.isEmpty {
-                    Text("No HTTP Cookies")
+                    Text(localized("No HTTP Cookies"))
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -47,7 +47,7 @@ struct CookieBrowserView: View {
                             Button(role: .destructive) {
                                 viewModel.deleteCookie(cookie)
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                Label(localized("Delete"), systemImage: "trash")
                             }
                         }
                     }
@@ -56,24 +56,24 @@ struct CookieBrowserView: View {
 
             if !viewModel.cookies.isEmpty {
                 Section {
-                    Button("Clear all cookies", role: .destructive) {
+                    Button(localized("Clear all cookies"), role: .destructive) {
                         showingClearConfirmation = true
                     }
                 }
             }
         }
-        .searchable(text: $viewModel.searchText, prompt: "Search names, domains and values")
-        .navigationTitle("Cookie Browser")
+        .searchable(text: $viewModel.searchText, prompt: localized("Search names, domains and values"))
+        .navigationTitle(localized("Cookie Browser"))
         .alert(
-            "Clear all cookies?",
+            localized("Clear the entire cookie store?"),
             isPresented: $showingClearConfirmation
         ) {
-            Button("Clear All", role: .destructive) {
+            Button(localized("Clear All"), role: .destructive) {
                 viewModel.clearAllCookies()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localized("Cancel"), role: .cancel) {}
         } message: {
-            Text("This action cannot be undone.")
+            Text(localized("This action cannot be undone."))
         }
         .onFirstAppear {
             await viewModel.onFirstAppear()
@@ -86,7 +86,7 @@ struct CookieBrowserView: View {
         if #available(iOS 17.0, *) {
             ContentUnavailableView.search(text: viewModel.searchText)
         } else {
-            Text("No results for \"\(viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines))\"")
+            Text(localized("No results for \"\(viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines))\""))
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
         }

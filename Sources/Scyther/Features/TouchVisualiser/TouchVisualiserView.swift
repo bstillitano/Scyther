@@ -23,16 +23,16 @@ struct TouchVisualiserView: View {
     var body: some View {
         List {
             Section {
-                Toggle("Show screen touches", isOn: $viewModel.visualiseTouches)
+                Toggle(localized("Show Screen Touches"), isOn: $viewModel.visualiseTouches)
 
                 if viewModel.visualiseTouches {
-                    Toggle("Show touch duration", isOn: $viewModel.showTouchDuration)
-                    Toggle("Show touch radius", isOn: $viewModel.showTouchRadius)
-                    Toggle("Log screen touches", isOn: $viewModel.loggingEnabled)
+                    Toggle(localized("Show Touch Duration"), isOn: $viewModel.showTouchDuration)
+                    Toggle(localized("Show Touch Radius"), isOn: $viewModel.showTouchRadius)
+                    Toggle(localized("Log Screen Touches"), isOn: $viewModel.loggingEnabled)
                 }
             }
         }
-        .navigationTitle("Visualise Touches")
+        .navigationTitle(localized("Visualise Touches"))
         .animation(.default, value: viewModel.visualiseTouches)
         .onFirstAppear {
             await viewModel.onFirstAppear()

@@ -134,18 +134,18 @@ class DataBrowserViewModel: ViewModel {
             arrayData.enumerated().forEach { index, element in
                 subData["\(index)"] = element
             }
-            let nestedData: [String: [String: Any]] = ["Array Data": subData]
+            let nestedData: [String: [String: Any]] = [localized("Array Data"): subData]
             return DataBrowserItem(
                 key: title ?? key,
-                valueDescription: "Array",
+                valueDescription: localized("Array"),
                 itemType: .navigable(data: nestedData)
             )
 
         case .dictionary(let title, let dictionaryData):
-            let nestedData: [String: [String: Any]] = ["Dictionary Data": dictionaryData as [String: Any]]
+            let nestedData: [String: [String: Any]] = [localized("Dictionary Data"): dictionaryData as [String: Any]]
             return DataBrowserItem(
                 key: title ?? key,
-                valueDescription: "Dictionary",
+                valueDescription: localized("Dictionary"),
                 itemType: .navigable(data: nestedData)
             )
 
@@ -155,17 +155,17 @@ class DataBrowserViewModel: ViewModel {
                 arrayData.enumerated().forEach { index, element in
                     subData["\(index)"] = element
                 }
-                let nestedData: [String: [String: Any]] = ["Array Data": subData]
+                let nestedData: [String: [String: Any]] = [localized("Array Data"): subData]
                 return DataBrowserItem(
                     key: title ?? key,
-                    valueDescription: "Array",
+                    valueDescription: localized("Array"),
                     itemType: .navigable(data: nestedData)
                 )
             } else if let dictionaryData = jsonData as? NSDictionary {
-                let nestedData: [String: [String: Any]] = ["Dictionary Data": dictionaryData.swiftDictionary]
+                let nestedData: [String: [String: Any]] = [localized("Dictionary Data"): dictionaryData.swiftDictionary]
                 return DataBrowserItem(
                     key: title ?? key,
-                    valueDescription: "Dictionary",
+                    valueDescription: localized("Dictionary"),
                     itemType: .navigable(data: nestedData)
                 )
             } else {

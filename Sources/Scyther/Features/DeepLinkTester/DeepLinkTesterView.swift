@@ -31,7 +31,7 @@ struct DeepLinkTesterView: View {
                 historySection
             }
         }
-        .navigationTitle("Deep Link Tester")
+        .navigationTitle(localized("Deep Link Tester"))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -47,8 +47,8 @@ struct DeepLinkTesterView: View {
                 showingScanner = false
             }
         }
-        .alert("Result", isPresented: $viewModel.showingResult) {
-            Button("OK", role: .cancel) { }
+        .alert(localized("Result"), isPresented: $viewModel.showingResult) {
+            Button(localized("OK"), role: .cancel) { }
         } message: {
             Text(viewModel.resultMessage)
         }
@@ -61,7 +61,7 @@ struct DeepLinkTesterView: View {
 
     private var urlInputSection: some View {
         Section {
-            TextField("Enter URL (e.g., myapp://home)", text: $viewModel.urlText)
+            TextField(localized("Enter URL (e.g., myapp://home)"), text: $viewModel.urlText)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .keyboardType(.URL)
@@ -79,14 +79,14 @@ struct DeepLinkTesterView: View {
                     } else {
                         Image(systemName: "arrow.up.forward.app")
                     }
-                    Text("Open URL")
+                    Text(localized("Open URL"))
                 }
             }
             .disabled(viewModel.urlText.isEmpty || viewModel.isLoading)
         } header: {
-            Text("Test URL")
+            Text(localized("Test URL"))
         } footer: {
-            Text("Enter a custom URL scheme (myapp://...) or universal link (https://...).")
+            Text(localized("Enter a custom URL scheme (myapp://...) or universal link (https://...)."))
         }
     }
 
@@ -116,9 +116,9 @@ struct DeepLinkTesterView: View {
                 }
             }
         } header: {
-            Text("Presets")
+            Text(localized("Presets"))
         } footer: {
-            Text("Configure presets via Scyther.deepLinks.presets")
+            Text(localized("Configure presets via Scyther.deepLinks.presets"))
         }
     }
 
@@ -148,7 +148,7 @@ struct DeepLinkTesterView: View {
                     Button(role: .destructive) {
                         viewModel.deleteHistoryEntry(entry)
                     } label: {
-                        Label("Delete", systemImage: "trash")
+                        Label(localized("Delete"), systemImage: "trash")
                     }
                 }
             }
@@ -156,10 +156,10 @@ struct DeepLinkTesterView: View {
             Button(role: .destructive) {
                 viewModel.clearHistory()
             } label: {
-                Text("Clear History")
+                Text(localized("Clear History"))
             }
         } header: {
-            Text("History")
+            Text(localized("History"))
         }
     }
 }

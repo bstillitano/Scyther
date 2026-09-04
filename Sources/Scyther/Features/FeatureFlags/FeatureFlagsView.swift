@@ -45,8 +45,8 @@ struct FeatureFlagsView: View {
 
     var body: some View {
         list
-            .searchable(text: $searchText, prompt: "Search toggles")
-            .navigationTitle("Feature Flags")
+            .searchable(text: $searchText, prompt: localized("Search toggles"))
+            .navigationTitle(localized("Feature Flags"))
             .onChange(of: searchText) { newValue in
                 searchSubject.send(newValue)
             }
@@ -68,24 +68,24 @@ struct FeatureFlagsView: View {
     private var list: some View {
         List {
             Section {
-                Toggle("Enable overrides", isOn: $viewModel.overridesEnabled)
+                Toggle(localized("Enable overrides"), isOn: $viewModel.overridesEnabled)
 
                 if viewModel.overridesEnabled {
-                    Button("Reset all to Remote") {
+                    Button(localized("Reset all to Remote")) {
                         viewModel.resetAllToRemote()
                     }
                 }
             } header: {
-                Text("Global Settings")
+                Text(localized("Global Settings"))
             } footer: {
                 if !viewModel.overridesEnabled {
-                    Text("Enable overrides to view and modify feature flags.")
+                    Text(localized("Enable overrides to view and modify feature flags."))
                 }
             }
 
             if viewModel.overridesEnabled {
                 if !filteredPinnedToggles.isEmpty {
-                    Section("Pinned") {
+                    Section(localized("Pinned")) {
                         ForEach(filteredPinnedToggles, id: \.pinnedRowID) { toggle in
                             toggleRow(for: toggle)
                                 .swipeActions(edge: .trailing) {
@@ -95,14 +95,14 @@ struct FeatureFlagsView: View {
                     }
                 }
 
-                Section("Toggles") {
+                Section(localized("Toggles")) {
                     if viewModel.toggles.isEmpty {
-                        Text("No toggles configured")
+                        Text(localized("No toggles configured"))
                             .fontWeight(.bold)
                             .foregroundStyle(.gray)
                             .frame(maxWidth: .infinity, alignment: .center)
                     } else if filteredToggles.isEmpty {
-                        Text("No matching toggles")
+                        Text(localized("No matching toggles"))
                             .fontWeight(.bold)
                             .foregroundStyle(.gray)
                             .frame(maxWidth: .infinity, alignment: .center)
@@ -129,7 +129,7 @@ struct FeatureFlagsView: View {
             viewModel.togglePin(for: toggle.name)
         } label: {
             Label(
-                toggle.isPinned ? "Unpin" : "Pin",
+                toggle.isPinned ? localized("Unpin") : localized("Pin"),
                 systemImage: toggle.isPinned ? "pin.slash" : "pin"
             )
         }
@@ -141,7 +141,7 @@ struct FeatureFlagsView: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(toggle.name)
-                Text("Remote: \(toggle.remoteValue ? "true" : "false")")
+                Text(localized("Remote: \(toggle.remoteValue ? "true" : "false")"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -86,7 +86,7 @@ enum MenuItem: Hashable, Identifiable {
 
     // UI/UX
     case fonts, interfaceComponents, gridOverlay, fpsCounter
-    case touchVisualiser, appearance
+    case touchVisualiser, appearance, language
     case slowAnimations, showViewFrames, showViewSizes
 
     /// The identifier prefix distinguishing host-supplied rows from built-in ones.
@@ -106,7 +106,7 @@ enum MenuItem: Hashable, Identifiable {
         .locationSpoofer, .consoleLogs, .deepLinkTester, .crashLogs,
         .notificationLogger, .notificationTester, .apnsToken, .fcmToken,
         .fonts, .interfaceComponents, .gridOverlay, .fpsCounter,
-        .touchVisualiser, .appearance,
+        .touchVisualiser, .appearance, .language,
         .slowAnimations, .showViewFrames, .showViewSizes
     ]
 
@@ -150,6 +150,7 @@ enum MenuItem: Hashable, Identifiable {
         case .fpsCounter: return "fpsCounter"
         case .touchVisualiser: return "touchVisualiser"
         case .appearance: return "appearance"
+        case .language: return "language"
         case .slowAnimations: return "slowAnimations"
         case .showViewFrames: return "showViewFrames"
         case .showViewSizes: return "showViewSizes"
@@ -180,49 +181,57 @@ enum MenuItem: Hashable, Identifiable {
         self = match
     }
 
-    /// The row's display label.
+    /// The row's display label, localised into the effective language.
+    ///
+    /// Two labels are deliberately not localised: `UUID` and `UserDefaults` are technical
+    /// tokens that read identically in every language. ``developerOption(name:)`` returns the
+    /// host-supplied name unchanged, because Scyther cannot translate copy it does not own.
+    ///
+    /// - Important: This is display copy and changes with the language. Never key behaviour on
+    ///   it — use ``id`` instead.
     var title: String {
         switch self {
-        case .osVersion: return "OS Version"
-        case .hardware: return "Hardware"
-        case .releaseYear: return "Release Year"
+        case .osVersion: return localized("OS Version")
+        case .hardware: return localized("Hardware")
+        case .releaseYear: return localized("Release Year")
         case .uuid: return "UUID"
-        case .appIdPrefix: return "App ID Prefix"
-        case .displayName: return "Display Name"
-        case .bundleId: return "Bundle ID"
-        case .processId: return "Process ID"
-        case .version: return "Version"
-        case .buildNumber: return "Build Number"
-        case .buildDate: return "Build Date"
-        case .releaseType: return "Release Type"
+        case .appIdPrefix: return localized("App ID Prefix")
+        case .displayName: return localized("Display Name")
+        case .bundleId: return localized("Bundle ID")
+        case .processId: return localized("Process ID")
+        case .version: return localized("Version")
+        case .buildNumber: return localized("Build Number")
+        case .buildDate: return localized("Build Date")
+        case .releaseType: return localized("Release Type")
         case .developerOption(let name): return name
-        case .ipAddress: return "IP Address"
-        case .networkLogs: return "Network Logs"
-        case .serverConfiguration: return "Server Configuration"
-        case .environmentVariables: return "Environment Variables"
-        case .featureFlags: return "Feature Flags"
+        case .ipAddress: return localized("IP Address")
+        case .networkLogs: return localized("Network Logs")
+        case .serverConfiguration: return localized("Server Configuration")
+        case .environmentVariables: return localized("Environment Variables")
+        case .featureFlags: return localized("Feature Flags")
         case .userDefaults: return "UserDefaults"
-        case .cookies: return "Cookies"
-        case .fileBrowser: return "File Browser"
-        case .databaseBrowser: return "Database Browser"
-        case .keychainBrowser: return "Keychain Browser"
-        case .locationSpoofer: return "Location Spoofer"
-        case .consoleLogs: return "Console Logs"
-        case .deepLinkTester: return "Deep Link Tester"
-        case .crashLogs: return "Crash Logs"
-        case .notificationLogger: return "Notification Logger"
-        case .notificationTester: return "Notification Tester"
-        case .apnsToken: return "APNS Token"
-        case .fcmToken: return "FCM Token"
-        case .fonts: return "Fonts"
-        case .interfaceComponents: return "Interface Components"
-        case .gridOverlay: return "Grid Overlay"
-        case .fpsCounter: return "FPS Counter"
-        case .touchVisualiser: return "Touch Visualiser"
-        case .appearance: return "Appearance"
-        case .slowAnimations: return "Slow Animations"
-        case .showViewFrames: return "Show View Frames"
-        case .showViewSizes: return "Show View Sizes"
+        case .cookies: return localized("Cookies")
+        case .fileBrowser: return localized("File Browser")
+        case .databaseBrowser: return localized("Database Browser")
+        case .keychainBrowser: return localized("Keychain Browser")
+        case .locationSpoofer: return localized("Location Spoofer")
+        case .consoleLogs: return localized("Console Logs")
+        case .deepLinkTester: return localized("Deep Link Tester")
+        case .crashLogs: return localized("Crash Logs")
+        case .notificationLogger: return localized("Notification Logger")
+        case .notificationTester: return localized("Notification Tester")
+        case .apnsToken: return localized("APNS Token")
+        case .fcmToken: return localized("FCM Token")
+        case .fonts: return localized("Fonts")
+        case .interfaceComponents: return localized("Interface Components")
+        case .gridOverlay: return localized("Grid Overlay")
+        case .fpsCounter: return localized("FPS Counter")
+        case .touchVisualiser: return localized("Touch Visualiser")
+        case .appearance: return localized("Appearance")
+        case .language: return localized("Language")
+        case .slowAnimations: return localized("Slow Animations")
+        case .showViewFrames: return localized("Show View Frames")
+        case .showViewSizes: return localized("Show View Sizes")
         }
     }
 
@@ -272,6 +281,7 @@ enum MenuItem: Hashable, Identifiable {
         case .fpsCounter: return "speedometer"
         case .touchVisualiser: return "hand.point.up"
         case .appearance: return "paintbrush"
+        case .language: return "globe"
         case .slowAnimations: return "tortoise"
         case .showViewFrames: return "rectangle.dashed"
         case .showViewSizes: return "ruler"

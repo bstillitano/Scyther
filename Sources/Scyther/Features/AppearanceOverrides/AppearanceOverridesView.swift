@@ -31,7 +31,7 @@ struct AppearanceOverridesView: View {
 
             resetSection
         }
-        .navigationTitle("Appearance")
+        .navigationTitle(localized("Appearance"))
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }
@@ -62,9 +62,9 @@ struct AppearanceOverridesView: View {
                 }
             }
         } header: {
-            Text("Color Scheme")
+            Text(localized("Color Scheme"))
         } footer: {
-            Text("Override the system appearance for this app.")
+            Text(localized("Override the system appearance for this app."))
         }
     }
 
@@ -73,16 +73,16 @@ struct AppearanceOverridesView: View {
         Section {
             Toggle(isOn: $viewModel.highContrastEnabled) {
                 Label {
-                    Text("Increase Contrast")
+                    Text(localized("Increase Contrast"))
                 } icon: {
                     Image(systemName: "circle.lefthalf.filled")
                         .foregroundStyle(Color.accentColor)
                 }
             }
         } header: {
-            Text("Accessibility")
+            Text(localized("Accessibility"))
         } footer: {
-            Text("Enables increased contrast colors for better visibility.")
+            Text(localized("Enables increased contrast colors for better visibility."))
         }
     }
 
@@ -90,7 +90,7 @@ struct AppearanceOverridesView: View {
         Section {
             Toggle(isOn: $viewModel.dynamicTypeOverrideEnabled) {
                 Label {
-                    Text("Override Text Size")
+                    Text(localized("Override Text Size"))
                 } icon: {
                     Image(systemName: "textformat.size")
                         .foregroundStyle(Color.accentColor)
@@ -100,7 +100,7 @@ struct AppearanceOverridesView: View {
             if viewModel.dynamicTypeOverrideEnabled {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("Size:")
+                        Text(localized("Size"))
                         Spacer()
                         Text(viewModel.selectedSizeCategory.displayName)
                             .foregroundStyle(.secondary)
@@ -113,10 +113,10 @@ struct AppearanceOverridesView: View {
                     )
 
                     HStack {
-                        Text("Aa")
+                        Text(verbatim: "Aa") // scyther:unlocalised Latin type specimen
                             .font(.caption2)
                         Spacer()
-                        Text("Aa")
+                        Text(verbatim: "Aa") // scyther:unlocalised Latin type specimen
                             .font(.largeTitle)
                     }
                     .foregroundStyle(.secondary)
@@ -124,7 +124,7 @@ struct AppearanceOverridesView: View {
 
                 if viewModel.selectedSizeCategory.isAccessibilityCategory {
                     Label {
-                        Text("Accessibility sizes may cause layout issues in apps not designed for them.")
+                        Text(localized("Accessibility sizes may cause layout issues in apps not designed for them."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } icon: {
@@ -134,9 +134,9 @@ struct AppearanceOverridesView: View {
                 }
             }
         } header: {
-            Text("Dynamic Type")
+            Text(localized("Dynamic Type"))
         } footer: {
-            Text("Test how your app responds to different text size settings.")
+            Text(localized("Test how your app responds to different text size settings."))
         }
         .animation(.default, value: viewModel.dynamicTypeOverrideEnabled)
     }
@@ -146,7 +146,7 @@ struct AppearanceOverridesView: View {
             Button(role: .destructive) {
                 viewModel.resetToDefaults()
             } label: {
-                Text("Reset to System Defaults")
+                Text(localized("Reset to System Defaults"))
             }
         }
     }

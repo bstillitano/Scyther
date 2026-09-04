@@ -23,45 +23,45 @@ struct NotificationLoggerView: View {
     var body: some View {
         List {
             if viewModel.notifications.isEmpty {
-                Text("No notifications received")
+                Text(localized("No notifications received"))
                     .fontWeight(.bold)
                     .foregroundStyle(.gray)
                     .frame(maxWidth: .infinity, alignment: .center)
             } else {
                 ForEach(viewModel.notifications) { notification in
                     Section(notification.receivedAt) {
-                        LabeledContent("Title", value: notification.title ?? "-")
-                        LabeledContent("Subtitle", value: notification.subtitle ?? "-")
-                        LabeledContent("Body", value: notification.body ?? "-")
+                        LabeledContent(localized("Title"), value: notification.title ?? "-")
+                        LabeledContent(localized("Subtitle"), value: notification.subtitle ?? "-")
+                        LabeledContent(localized("Body"), value: notification.body ?? "-")
 
                         if let badge = notification.badge {
-                            LabeledContent("Badge", value: "\(badge)")
+                            LabeledContent(localized("Badge"), value: "\(badge)")
                         }
 
                         if let category = notification.category {
-                            LabeledContent("Category", value: category)
+                            LabeledContent(localized("Category"), value: category)
                         }
 
                         if let contentAvailable = notification.contentAvailable {
-                            LabeledContent("Content-Available", value: "\(contentAvailable)")
+                            LabeledContent("Content-Available", value: "\(contentAvailable)") // scyther:unlocalised APNS payload key name
                         }
 
                         if let sound = notification.sound {
-                            LabeledContent("Sound", value: sound)
+                            LabeledContent(localized("Sound"), value: sound)
                         }
 
-                        NavigationLink("View User-Additional Data") {
+                        NavigationLink(localized("View User-Additional Data")) {
                             TextReaderView(
                                 text: notification.additionalDataJson,
-                                title: "Additional Push Data"
+                                title: localized("Additional Push Data")
                             )
                         }
                         .foregroundStyle(.tint)
 
-                        NavigationLink("View Raw Payload") {
+                        NavigationLink(localized("View Raw Payload")) {
                             TextReaderView(
                                 text: notification.rawPayloadJson,
-                                title: "Raw Push Payload"
+                                title: localized("Raw Push Payload")
                             )
                         }
                         .foregroundStyle(.tint)
@@ -69,7 +69,7 @@ struct NotificationLoggerView: View {
                 }
             }
         }
-        .navigationTitle("Notification Logger")
+        .navigationTitle(localized("Notification Logger"))
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }

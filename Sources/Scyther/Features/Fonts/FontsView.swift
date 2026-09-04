@@ -26,7 +26,7 @@ struct FontsView: View {
                 }
             }
         }
-        .navigationTitle("Fonts")
+        .navigationTitle(localized("Fonts"))
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }

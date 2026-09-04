@@ -49,25 +49,25 @@ public enum DatabaseBrowserError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .connectionFailed(let message):
-            return "Connection failed: \(message)"
+            return localized("Connection failed: \(message)")
         case .queryFailed(let message):
-            return "Query failed: \(message)"
+            return localized("Query failed: \(message)")
         case .tableNotFound(let name):
-            return "Table not found: \(name)"
+            return localized("Table not found: \(name)")
         case .recordNotFound:
-            return "Record not found"
+            return localized("Record not found")
         case .writeNotSupported:
-            return "Write operations are not supported by this database"
+            return localized("Write operations are not supported by this database")
         case .invalidPrimaryKey:
-            return "Invalid or missing primary key"
+            return localized("Invalid or missing primary key")
         case .constraintViolation(let message):
-            return "Constraint violation: \(message)"
+            return localized("Constraint violation: \(message)")
         case .invalidSQL(let message):
-            return "Invalid SQL: \(message)"
+            return localized("Invalid SQL: \(message)")
         case .fileNotFound(let path):
-            return "Database file not found: \(path)"
+            return localized("Database file not found: \(path)")
         case .databaseLocked:
-            return "Database is locked by another process"
+            return localized("Database is locked by another process")
         case .general(let message):
             return message
         }

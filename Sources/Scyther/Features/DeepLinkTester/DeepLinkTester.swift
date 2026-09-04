@@ -56,11 +56,11 @@ public enum DeepLinkError: Error, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Invalid URL format"
+            return localized("Invalid URL format")
         case .cannotOpen:
-            return "This URL cannot be opened"
+            return localized("This URL cannot be opened")
         case .openFailed:
-            return "Failed to open URL"
+            return localized("Failed to open URL")
         }
     }
 }

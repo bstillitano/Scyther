@@ -72,6 +72,7 @@ public protocol ScytherDelegate: AnyObject {
 /// - ``console``: View captured console output
 /// - ``interface``: Enable UI debugging overlays
 /// - ``location``: Spoof device location
+/// - ``localization``: Force the host app's language
 ///
 /// ## Topics
 ///
@@ -92,6 +93,7 @@ public protocol ScytherDelegate: AnyObject {
 /// - ``console``
 /// - ``interface``
 /// - ``location``
+/// - ``localization``
 ///
 /// ### Configuration
 /// - ``developerOptions``
@@ -156,6 +158,9 @@ public enum Scyther {
 
     /// Database browsing and querying.
     public static let database = DatabaseBrowsing.shared
+
+    /// App language override. Forces the host app's language via `AppleLanguages`.
+    public static let localization = LanguageOverride.shared
 
     // MARK: - Configuration
 
@@ -599,19 +604,23 @@ public final class Notifications: Sendable {
     /// to send a real push notification from a server.
     ///
     /// - Parameters:
-    ///   - title: The notification title.
-    ///   - body: The notification body text.
+    ///   - title: The notification title. Pass `nil` for Scyther's own localised title.
+    ///   - body: The notification body text. Pass `nil` for Scyther's own localised body.
     ///   - delay: Seconds to wait before showing the notification.
     ///   - sound: Whether to play the default notification sound.
     ///   - incrementBadge: Whether to increment the app's badge number.
-    public func scheduleTest(title: String = "Test Notification",
-                             body: String = "This is a test notification.",
+    ///
+    /// - Note: `title` and `body` are optional so that the fallback copy can be resolved from
+    ///   Scyther's String Catalog when the notification is scheduled, rather than being frozen
+    ///   into an English default argument.
+    public func scheduleTest(title: String? = nil,
+                             body: String? = nil,
                              delay: TimeInterval = 5,
                              sound: Bool = true,
                              incrementBadge: Bool = false) {
         NotificationTester.instance.scheduleNotification(
-            withTitle: title,
-            withBody: body,
+            withTitle: title ?? localized("Test Notification"),
+            withBody: body ?? localized("This is a test notification."),
             withSound: sound,
             withDelay: delay,
             andIncreaseBadge: incrementBadge

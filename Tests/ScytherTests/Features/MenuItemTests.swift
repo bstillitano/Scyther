@@ -80,7 +80,7 @@ final class MenuItemTests: XCTestCase {
             .userDefaults, .cookies, .fileBrowser, .databaseBrowser, .keychainBrowser,
             .locationSpoofer, .consoleLogs, .deepLinkTester, .crashLogs,
             .notificationLogger, .notificationTester, .fonts, .interfaceComponents,
-            .gridOverlay, .fpsCounter, .touchVisualiser, .appearance
+            .gridOverlay, .fpsCounter, .touchVisualiser, .appearance, .language
         ]
         for item in navigationItems {
             XCTAssertNotNil(item.icon, "\(item) should have an icon")
@@ -110,12 +110,12 @@ final class MenuItemTests: XCTestCase {
     func testDeveloperOptionTintIsTheDevelopmentToolsTint() {
         XCTAssertEqual(
             MenuItem.developerOption(name: "Panel").tint,
-            MenuSection.tint(forTitle: "Development Tools")
+            MenuSection.tint(forID: MenuSectionID.developmentTools)
         )
     }
 
     func testStaticCaseCountIsStable() {
-        XCTAssertEqual(MenuItem.allStaticCases.count, 39)
+        XCTAssertEqual(MenuItem.allStaticCases.count, 40)
     }
 }
 #endif

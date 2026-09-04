@@ -49,7 +49,7 @@ struct TextReaderView: View {
     let text: String
 
     /// The navigation title for the view.
-    var title: String = "Text"
+    var title: String = localized("Text")
 
     /// The current search query entered by the user.
     @State private var searchText: String = ""
@@ -108,7 +108,7 @@ struct TextReaderView: View {
                 }
             }
         }
-        .searchable(text: $searchText, prompt: "Search")
+        .searchable(text: $searchText, prompt: localized("Search"))
         .onChange(of: searchText) { newValue in
             searchSubject.send(newValue)
         }
@@ -307,7 +307,7 @@ private struct SearchNavigationButtons: View {
                     .buttonStyle(.glass)
                     .glassEffectUnion(id: "search-nav", namespace: namespace)
 
-                    Text("\(currentMatch) of \(totalMatches)")
+                    Text(localized("\(currentMatch) of \(totalMatches)"))
                         .font(.subheadline)
                         .monospacedDigit()
                         .padding(.horizontal, 8)
@@ -330,7 +330,7 @@ private struct SearchNavigationButtons: View {
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
 
-                Text("\(currentMatch) of \(totalMatches)")
+                Text(localized("\(currentMatch) of \(totalMatches)"))
                     .font(.subheadline)
                     .monospacedDigit()
 
@@ -354,7 +354,7 @@ private struct SearchNavigationButtons: View {
                 "age": 30
             }
             """,
-            title: "Response Body"
+            title: localized("Response Body")
         )
     }
 }

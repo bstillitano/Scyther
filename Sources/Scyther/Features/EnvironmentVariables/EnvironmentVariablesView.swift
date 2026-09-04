@@ -18,9 +18,9 @@ struct EnvironmentVariablesView: View {
 
     var body: some View {
         List {
-            Section("Custom Key/Values") {
+            Section(localized("Custom Key/Values")) {
                 if viewModel.variables.isEmpty {
-                    Text("No variables configured")
+                    Text(localized("No variables configured"))
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -33,20 +33,20 @@ struct EnvironmentVariablesView: View {
                                 Button {
                                     UIPasteboard.general.string = value
                                 } label: {
-                                    Label("Copy Value", systemImage: "doc.on.doc")
+                                    Label(localized("Copy Value"), systemImage: "doc.on.doc")
                                 }
                                 Button {
                                     UIPasteboard.general.string = "\(key): \(value)"
                                 } label: {
-                                    Label("Copy Key & Value", systemImage: "doc.on.doc")
+                                    Label(localized("Copy Key & Value"), systemImage: "doc.on.doc")
                                 }
                             }
                     }
                 }
             }
         }
-        .searchable(text: $viewModel.searchText, prompt: "Search keys and values")
-        .navigationTitle("Environment Variables")
+        .searchable(text: $viewModel.searchText, prompt: localized("Search keys and values"))
+        .navigationTitle(localized("Environment Variables"))
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }
@@ -58,7 +58,7 @@ struct EnvironmentVariablesView: View {
         if #available(iOS 17.0, *) {
             ContentUnavailableView.search(text: viewModel.searchText)
         } else {
-            Text("No results for \"\(viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines))\"")
+            Text(localized("No results for \"\(viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines))\""))
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
         }

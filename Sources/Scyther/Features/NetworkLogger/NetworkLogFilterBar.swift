@@ -52,8 +52,8 @@ struct NetworkLogFilterBar: View {
                 systemImage: "slider.horizontal.3",
                 style: filter.isActive ? .active : .inactive,
                 accessibilityLabel: filter.isActive
-                    ? "All filters, \(filter.totalSelectionCount) selected"
-                    : "All filters",
+                    ? localized("All filters, \(filter.totalSelectionCount) selected")
+                    : localized("All filters"),
                 namespace: namespace,
                 action: onSelectAll
             )
@@ -63,17 +63,17 @@ struct NetworkLogFilterBar: View {
                     title: chipTitle(dimension),
                     systemImage: dimension.systemImage,
                     style: count > 0 ? .active : .inactive,
-                    accessibilityLabel: count > 0 ? "\(dimension.title), \(count) selected" : dimension.title,
+                    accessibilityLabel: count > 0 ? localized("\(dimension.title), \(count) selected") : dimension.title,
                     namespace: namespace,
                     action: { onSelect(dimension) }
                 )
             }
             if filter.isActive {
                 NetworkLogFilterChip(
-                    title: "Clear",
+                    title: localized("Clear"),
                     systemImage: "xmark",
                     style: .destructive,
-                    accessibilityLabel: "Clear all filters",
+                    accessibilityLabel: localized("Clear all filters"),
                     namespace: namespace,
                     action: onClear
                 )

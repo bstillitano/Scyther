@@ -17,7 +17,7 @@ struct FileBrowserView: View {
 
     /// Creates a file browser starting at the root directories.
     init() {
-        _viewModel = StateObject(wrappedValue: FileBrowserViewModel(directory: nil, title: "File Browser"))
+        _viewModel = StateObject(wrappedValue: FileBrowserViewModel(directory: nil, title: localized("File Browser")))
     }
 
     /// Creates a file browser for a specific directory.
@@ -45,7 +45,7 @@ struct FileBrowserView: View {
                                 viewModel.itemToDelete = item
                                 viewModel.showingDeleteConfirmation = true
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                Label(localized("Delete"), systemImage: "trash")
                             }
                         }
                     } else {
@@ -59,7 +59,7 @@ struct FileBrowserView: View {
                                 viewModel.itemToDelete = item
                                 viewModel.showingDeleteConfirmation = true
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                Label(localized("Delete"), systemImage: "trash")
                             }
                         }
                     }
@@ -68,25 +68,25 @@ struct FileBrowserView: View {
         }
         .navigationTitle(viewModel.title)
         .confirmationDialog(
-            "Delete \(viewModel.itemToDelete?.name ?? "item")?",
+            viewModel.deleteConfirmationTitle,
             isPresented: $viewModel.showingDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button(localized("Delete"), role: .destructive) {
                 viewModel.deleteSelectedItem()
             }
-            Button("Cancel", role: .cancel) {
+            Button(localized("Cancel"), role: .cancel) {
                 viewModel.itemToDelete = nil
             }
         } message: {
             if viewModel.itemToDelete?.isDirectory == true {
-                Text("This will delete the folder and all its contents. This action cannot be undone.")
+                Text(localized("This will delete the folder and all its contents. This action cannot be undone."))
             } else {
-                Text("This action cannot be undone.")
+                Text(localized("This action cannot be undone."))
             }
         }
-        .alert("Error", isPresented: $viewModel.showingError) {
-            Button("OK", role: .cancel) {}
+        .alert(localized("Error"), isPresented: $viewModel.showingError) {
+            Button(localized("OK"), role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage)
         }
@@ -110,7 +110,7 @@ struct FileBrowserView: View {
                 Image(systemName: "folder")
                     .font(.largeTitle)
                     .foregroundStyle(.secondary)
-                Text("Empty Folder")
+                Text(localized("Empty Folder"))
                     .font(.headline)
                     .foregroundStyle(.secondary)
             }

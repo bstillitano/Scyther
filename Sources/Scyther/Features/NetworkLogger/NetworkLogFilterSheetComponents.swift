@@ -37,11 +37,12 @@ struct NetworkLogFilterOptionRow: View {
 
 /// The placeholder shown when a log-derived dimension has no values yet.
 struct NetworkLogFilterEmptyRow: View {
-    /// The lowercased dimension name, e.g. "host".
+    /// The dimension name as shown in the UI, e.g. "Host". Used verbatim, so it keeps the
+    /// capitalisation the current language expects.
     let dimensionName: String
 
     var body: some View {
-        Text("No \(dimensionName) values captured yet")
+        Text(localized("No values captured yet for \(dimensionName)"))
             .fontWeight(.bold)
             .foregroundStyle(.gray)
             .frame(maxWidth: .infinity, alignment: .center)
@@ -66,7 +67,7 @@ struct NetworkLogFilterConfirmButton: View {
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.capsule)
-            .accessibilityLabel("Done")
+            .accessibilityLabel(localized("Done"))
         }
     }
 }
@@ -80,7 +81,7 @@ struct NetworkLogHostModePicker: View {
     let onChange: (HostFilterMode) -> Void
 
     var body: some View {
-        Picker("Host mode", selection: Binding(get: { mode }, set: onChange)) {
+        Picker(localized("Host mode"), selection: Binding(get: { mode }, set: onChange)) {
             ForEach(HostFilterMode.allCases, id: \.self) { mode in
                 Text(mode.displayName).tag(mode)
             }

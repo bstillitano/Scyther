@@ -29,9 +29,9 @@ struct DatabaseBrowserView: View {
             } else if viewModel.databases.isEmpty {
                 Section {
                     emptyStateView(
-                        title: "No Databases Found",
+                        title: localized("No Databases Found"),
                         systemImage: "cylinder.fill",
-                        description: "No SQLite databases were found in this app's container. If using a custom database, register an adapter with Scyther.database.registerAdapter()."
+                        description: localized("No SQLite databases were found in this app's container. If using a custom database, register an adapter with Scyther.database.registerAdapter().")
                     )
                 }
             } else {
@@ -46,7 +46,7 @@ struct DatabaseBrowserView: View {
                             }
                         }
                     } header: {
-                        Text("SQLite Databases")
+                        Text(localized("SQLite Databases"))
                     }
                 }
 
@@ -61,20 +61,20 @@ struct DatabaseBrowserView: View {
                             }
                         }
                     } header: {
-                        Text("Custom Databases")
+                        Text(localized("Custom Databases"))
                     }
                 }
             }
         }
-        .navigationTitle("Database Browser")
+        .navigationTitle(localized("Database Browser"))
         .refreshable {
             await viewModel.refresh()
         }
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }
-        .alert("Error", isPresented: $viewModel.showingError) {
-            Button("OK", role: .cancel) {}
+        .alert(localized("Error"), isPresented: $viewModel.showingError) {
+            Button(localized("OK"), role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage)
         }
@@ -119,7 +119,7 @@ struct DatabaseBrowserView: View {
                         .foregroundStyle(.secondary)
 
                     if let size = database.formattedFileSize {
-                        Text("•")
+                        Text(verbatim: "•")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Text(size)

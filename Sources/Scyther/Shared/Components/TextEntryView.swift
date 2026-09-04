@@ -65,7 +65,7 @@ struct TextEntryView: View {
     @Binding var text: String
 
     /// The navigation title for the view.
-    var title: String = "Edit Text"
+    var title: String = localized("Edit Text")
 
     /// Optional callback invoked when the save button is tapped.
     ///
@@ -89,7 +89,7 @@ struct TextEntryView: View {
             .padding(.horizontal, 8)
             .searchable(
                 text: $searchText,
-                prompt: "Search"
+                prompt: localized("Search")
             )
             .navigationTitle(title)
             .toolbar {
@@ -100,7 +100,7 @@ struct TextEntryView: View {
                         }
 
                         if let onSave {
-                            Button("Save") {
+                            Button(localized("Save")) {
                                 onSave(text)
                                 dismiss()
                             }
@@ -122,7 +122,7 @@ struct TextEntryView: View {
 
         var body: some View {
             NavigationStack {
-                TextEntryView(text: $text, title: "Edit JSON")
+                TextEntryView(text: $text, title: localized("Edit JSON"))
             }
         }
     }

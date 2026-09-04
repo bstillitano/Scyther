@@ -45,10 +45,10 @@ struct LocationSpooferView: View {
         List {
             Section {
                 Toggle(isOn: $isEnabled) {
-                    Text("Enable location spoofing")
+                    Text(localized("Enable Location Spoofing"))
                 }
             } footer: {
-                Text("This will only affect this app. All other apps and device location services will remain accurate.")
+                Text(localized("This will only affect this app. All other apps and device location services will remain accurate."))
             }
             
             if isEnabled {
@@ -81,11 +81,11 @@ struct LocationSpooferView: View {
         .onChange(of: isEnabled) { newValue in
             LocationSpoofer.instance.spoofingEnabled = newValue
         }
-        .navigationTitle("Location Spoofer")
+        .navigationTitle(localized("Location Spoofer"))
     }
     
     private var presetTypePicker: some View {
-        Picker("Preset Type", selection: $presetType) {
+        Picker(localized("Preset Type"), selection: $presetType) {
             ForEach(LocationSpooferPresetType.allCases, id: \.rawValue) { value in
                 Text(value.label)
                     .tag(value)
@@ -128,7 +128,7 @@ struct LocationSpooferView: View {
                         .foregroundStyle(Color.accentColor)
                 }
             } label: {
-                Text(value.location!.name)
+                Text(value.location!.displayName)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
@@ -147,7 +147,7 @@ struct LocationSpooferView: View {
                         .foregroundStyle(Color.accentColor)
                 }
             } label: {
-                Text(value.route!.name)
+                Text(value.route!.displayName)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
@@ -160,16 +160,16 @@ struct LocationSpooferView: View {
     
     @ViewBuilder private var customLocationContent: some View {
         HStack {
-            Text("Latitude")
+            Text(localized("Latitude"))
             Spacer()
-            TextField("Latitude", text: $latitude)
+            TextField(localized("Latitude"), text: $latitude)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
         }
         HStack {
-            Text("Longitude")
+            Text(localized("Longitude"))
             Spacer()
-            TextField("Longitude", text: $longitude)
+            TextField(localized("Longitude"), text: $longitude)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
         }

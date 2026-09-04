@@ -45,6 +45,11 @@ jobs:
         with:
           xcode-version: '26.0'
 
+      - name: Catalog generator tests
+        run: |
+          python3 -m unittest Scripts/localization/test_build_catalog.py -v
+          python3 Scripts/localization/build_catalog.py && git diff --exit-code Sources/Scyther/Resources/Localizable.xcstrings
+
       - name: Run Tests
         run: |
           xcodebuild test \

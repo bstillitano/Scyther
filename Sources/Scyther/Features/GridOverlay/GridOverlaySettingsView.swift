@@ -21,13 +21,13 @@ struct GridOverlaySettingsView: View {
     var body: some View {
         List {
             Section {
-                Toggle("Enable grid", isOn: $viewModel.isEnabled)
+                Toggle(localized("Enable Grid"), isOn: $viewModel.isEnabled)
             }
 
             if viewModel.isEnabled {
-                Section("Grid Options") {
+                Section(localized("Grid Options")) {
                     VStack(alignment: .leading) {
-                        Text("Grid size: \(viewModel.gridSize)")
+                        Text(localized("Grid Size: \(viewModel.gridSize)"))
                         Slider(
                             value: $viewModel.gridSizeFloat,
                             in: 1...100,
@@ -36,7 +36,7 @@ struct GridOverlaySettingsView: View {
                     }
 
                     VStack(alignment: .leading) {
-                        Text("Opacity: \(viewModel.opacity)%")
+                        Text(localized("Opacity: \(viewModel.opacity)%"))
                         Slider(
                             value: $viewModel.opacityFloat,
                             in: 1...100,
@@ -45,13 +45,13 @@ struct GridOverlaySettingsView: View {
                     }
                 }
 
-                Section("Grid Color") {
+                Section(localized("Grid Color")) {
                     ForEach(GridOverlayColorScheme.allCases, id: \.rawValue) { color in
                         Button {
                             viewModel.selectColor(color)
                         } label: {
                             HStack {
-                                Text(color.rawValue.capitalized)
+                                Text(viewModel.displayName(for: color))
                                     .foregroundStyle(.primary)
                                 Spacer()
                                 if viewModel.selectedColor == color {
@@ -64,7 +64,7 @@ struct GridOverlaySettingsView: View {
                 }
             }
         }
-        .navigationTitle("Grid Overlay")
+        .navigationTitle(localized("Grid Overlay"))
         .animation(.default, value: viewModel.isEnabled)
         .onFirstAppear {
             await viewModel.onFirstAppear()

@@ -46,12 +46,12 @@ struct RecordDetailView: View {
             // Primary Key Section
             if let pk = viewModel.record.primaryKey, !pk.isNull {
                 Section {
-                    LabeledContent("Primary Key", value: pk.displayString)
+                    LabeledContent(localized("Primary Key"), value: pk.displayString)
                         .contextMenu {
                             Button {
                                 UIPasteboard.general.string = pk.displayString
                             } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
+                                Label(localized("Copy"), systemImage: "doc.on.doc")
                             }
                         }
                 }
@@ -63,10 +63,10 @@ struct RecordDetailView: View {
                     columnRow(column)
                 }
             } header: {
-                Text("Values")
+                Text(localized("Values"))
             }
         }
-        .navigationTitle("Record Details")
+        .navigationTitle(localized("Record Details"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if adapter.supportsWrite {
@@ -100,18 +100,18 @@ struct RecordDetailView: View {
             }
         }
         .alert(
-            "Delete Record?",
+            localized("Delete Record?"),
             isPresented: $viewModel.showingDeleteConfirmation
         ) {
-            Button("Delete", role: .destructive) {
+            Button(localized("Delete"), role: .destructive) {
                 Task { await viewModel.deleteRecord() }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localized("Cancel"), role: .cancel) {}
         } message: {
-            Text("This action cannot be undone.")
+            Text(localized("This action cannot be undone."))
         }
-        .alert("Error", isPresented: $viewModel.showingError) {
-            Button("OK", role: .cancel) {}
+        .alert(localized("Error"), isPresented: $viewModel.showingError) {
+            Button(localized("OK"), role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage)
         }
@@ -137,7 +137,7 @@ struct RecordDetailView: View {
                     .foregroundStyle(.secondary)
 
                 if isPrimaryKey {
-                    Text("PK")
+                    Text(localized("PK"))
                         .font(.caption2.bold())
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
@@ -159,13 +159,13 @@ struct RecordDetailView: View {
             Button {
                 UIPasteboard.general.string = value.displayString
             } label: {
-                Label("Copy Value", systemImage: "doc.on.doc")
+                Label(localized("Copy Value"), systemImage: "doc.on.doc")
             }
 
             Button {
                 UIPasteboard.general.string = column
             } label: {
-                Label("Copy Column Name", systemImage: "textformat")
+                Label(localized("Copy Column Name"), systemImage: "textformat")
             }
         }
     }
@@ -174,7 +174,7 @@ struct RecordDetailView: View {
     private func valueDisplay(_ value: DatabaseValue) -> some View {
         switch value {
         case .null:
-            Text("NULL")
+            Text(verbatim: "NULL")
                 .font(.body.monospaced())
                 .foregroundStyle(.secondary)
                 .italic()
@@ -183,14 +183,14 @@ struct RecordDetailView: View {
             HStack {
                 Image(systemName: "doc.fill")
                     .foregroundStyle(.blue)
-                Text("\(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .memory))")
+                Text(verbatim: "\(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .memory))")
                     .font(.body.monospaced())
             }
 
         case .text(let string):
             if string.count > 200 {
                 NavigationLink {
-                    TextReaderView(text: string, title: "Value")
+                    TextReaderView(text: string, title: localized("Value"))
                 } label: {
                     Text(string.prefix(100) + "...")
                         .font(.body.monospaced())

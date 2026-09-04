@@ -112,10 +112,14 @@ class NotificationTesterViewModel: ViewModel {
     }
 
     /// The title for the test notification.
-    @Published var pushTitle: String = "Scyther Notification"
+    ///
+    /// Seeded with the localised sample title so the banner matches Scyther's effective language.
+    @Published var pushTitle: String = localized("Scyther Notification")
 
     /// The body text for the test notification.
-    @Published var pushBody: String = "This is a dummy notification powered by Scyther."
+    ///
+    /// Seeded with the localised sample body so the banner matches Scyther's effective language.
+    @Published var pushBody: String = localized("This is a dummy notification powered by Scyther.")
 
     /// Optional JSON payload to include with the test notification.
     @Published var pushPayload: String? = nil
@@ -149,21 +153,21 @@ class NotificationTesterViewModel: ViewModel {
 
     // MARK: - Computed Properties
 
-    /// A human-readable text representation of the current authorization status.
+    /// A human-readable, localised text representation of the current authorization status.
     var permissionStatusText: String {
         switch authorizationStatus {
         case .notDetermined:
-            return "Not Determined"
+            return localized("Not Determined")
         case .denied:
-            return "Denied"
+            return localized("Denied")
         case .authorized:
-            return "Authorized"
+            return localized("Authorized")
         case .provisional:
-            return "Provisional"
+            return localized("Provisional")
         case .ephemeral:
-            return "Ephemeral"
+            return localized("Ephemeral")
         @unknown default:
-            return "Unknown"
+            return localized("Unknown")
         }
     }
 
@@ -207,8 +211,8 @@ class NotificationTesterViewModel: ViewModel {
     func refreshScheduledNotifications() async {
         let requests = await UNUserNotificationCenter.current().pendingNotificationRequests()
         scheduledNotifications = requests.map { request in
-            let title = request.content.title.isEmpty ? "(No title)" : request.content.title
-            let body = request.content.body.isEmpty ? "(No body)" : request.content.body
+            let title = request.content.title.isEmpty ? localized("(No title)") : request.content.title
+            let body = request.content.body.isEmpty ? localized("(No body)") : request.content.body
 
             var fireDate: Date? = nil
             var repeats = false

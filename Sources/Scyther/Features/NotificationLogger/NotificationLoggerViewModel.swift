@@ -95,7 +95,7 @@ class NotificationLoggerViewModel: ViewModel {
             .sorted { ($0.receivedAt ?? Date()) > ($1.receivedAt ?? Date()) }
             .map { notification in
                 NotificationLogItem(
-                    receivedAt: notification.receivedAt?.formatted(format: "dd MMM yyyy h:mm:ss a") ?? "Unknown",
+                    receivedAt: notification.receivedAt?.formatted(format: "dd MMM yyyy h:mm:ss a") ?? localized("Unknown"),
                     title: notification.aps.alert.title,
                     subtitle: notification.aps.alert.subtitle,
                     body: notification.aps.alert.body,

@@ -21,7 +21,7 @@ import Combine
 /// keys represent sections, and each section contains key-value pairs to display.
 struct DataBrowserView: View {
     let data: [String: [String: Any]]
-    var title: String = "Data Browser"
+    var title: String
     var path: [String] = []
 
     @StateObject private var viewModel: DataBrowserViewModel
@@ -30,7 +30,7 @@ struct DataBrowserView: View {
     @State private var searchSubject = PassthroughSubject<String, Never>()
     @State private var cancellable: AnyCancellable?
 
-    init(data: [String: [String: Any]], title: String = "Data Browser", path: [String] = []) {
+    init(data: [String: [String: Any]], title: String = localized("Data Browser"), path: [String] = []) {
         self.data = data
         self.title = title
         self.path = path
@@ -61,7 +61,7 @@ struct DataBrowserView: View {
             ForEach(filteredSections) { section in
                 Section(section.title) {
                     if section.items.isEmpty {
-                        Text("No \(section.title)")
+                        Text(localized("No \(section.title)"))
                             .fontWeight(.bold)
                             .foregroundStyle(.gray)
                             .frame(maxWidth: .infinity, alignment: .center)
@@ -74,7 +74,7 @@ struct DataBrowserView: View {
             }
         }
         .navigationTitle(title)
-        .searchable(text: $searchText, prompt: "Search keys and values")
+        .searchable(text: $searchText, prompt: localized("Search keys and values"))
         .onChange(of: searchText) { newValue in
             searchSubject.send(newValue)
         }
@@ -104,7 +104,7 @@ struct DataBrowserView: View {
                     Button {
                         UIPasteboard.general.string = "\(item.key): \(item.valueDescription ?? "")"
                     } label: {
-                        Label("Copy", systemImage: "doc.on.doc")
+                        Label(localized("Copy"), systemImage: "doc.on.doc")
                     }
                 }
         }

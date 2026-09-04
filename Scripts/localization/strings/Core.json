@@ -1,0 +1,24 @@
+{
+  "Language": {
+    "comment": "Menu row and page title for the app language override",
+    "fr": "Langue", "de": "Sprache", "es": "Idioma", "it": "Lingua", "pt-BR": "Idioma", "nl": "Taal",
+    "ja": "言語", "zh-Hans": "语言", "zh-Hant": "語言", "ko": "언어", "ru": "Язык", "ar": "اللغة"
+  },
+  "%lld selected": {
+    "comment": "Accessibility suffix for a filter chip with a selection count",
+    "plural": true,
+    "en":      { "one": "%lld selected", "other": "%lld selected" },
+    "fr":      { "one": "%lld sélectionné", "other": "%lld sélectionnés" },
+    "de":      { "one": "%lld ausgewählt", "other": "%lld ausgewählt" },
+    "es":      { "one": "%lld seleccionado", "other": "%lld seleccionados" },
+    "it":      { "one": "%lld selezionato", "other": "%lld selezionati" },
+    "pt-BR":   { "one": "%lld selecionado", "other": "%lld selecionados" },
+    "nl":      { "one": "%lld geselecteerd", "other": "%lld geselecteerd" },
+    "ja":      { "other": "%lld件選択済み" },
+    "zh-Hans": { "other": "已选择 %lld 项" },
+    "zh-Hant": { "other": "已選取 %lld 項" },
+    "ko":      { "other": "%lld개 선택됨" },
+    "ru":      { "one": "Выбран %lld", "few": "Выбрано %lld", "many": "Выбрано %lld", "other": "Выбрано %lld" },
+    "ar":      { "zero": "لم يتم تحديد شيء", "one": "تم تحديد عنصر واحد", "two": "تم تحديد عنصرين", "few": "تم تحديد %lld عناصر", "many": "تم تحديد %lld عنصرًا", "other": "تم تحديد %lld عنصر" }
+  }
+}

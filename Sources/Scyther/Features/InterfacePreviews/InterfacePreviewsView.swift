@@ -21,7 +21,7 @@ struct InterfacePreviewsView: View {
                 PreviewableRowView(item: item)
             }
         }
-        .navigationTitle("UI Previews")
+        .navigationTitle(localized("UI Previews"))
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }

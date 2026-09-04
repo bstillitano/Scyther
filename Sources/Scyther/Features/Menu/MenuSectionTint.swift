@@ -8,34 +8,37 @@
 import SwiftUI
 
 extension MenuSection {
-    /// The tile colour for rows belonging to a section, keyed by section title.
+    /// The tile colour for rows belonging to a section, keyed by ``MenuSectionID``.
     ///
     /// Every row's icon tile is tinted with its *home* section's colour, giving each
     /// section a distinct identity the way the iOS Settings app colours its icons.
     /// Rows rendered outside their home section — the "Pinned" section and search
     /// results — keep their home colour, so a row is recognisable wherever it appears.
     ///
-    /// - Parameter title: A section title, as produced by
-    ///   ``allSections(developerOptions:)``. Unknown titles fall back to the app's
-    ///   accent colour rather than failing.
+    /// Keyed on the identifier rather than the title because ``MenuSection/title`` is
+    /// localised: a title-keyed switch would fall through to the accent colour for every
+    /// section as soon as the user picked a language other than English.
+    ///
+    /// - Parameter id: A section identifier, as declared in ``MenuSectionID``. Unknown
+    ///   identifiers fall back to the app's accent colour rather than failing.
     /// - Returns: The section's tile colour.
-    static func tint(forTitle title: String) -> Color {
-        switch title {
-        case "Device": return .gray
-        case "Application": return .indigo
-        case "Development Tools": return .brown
-        case "Networking": return .blue
-        case "Data": return .orange
-        case "Security": return .green
-        case "System Tools": return .purple
-        case "Notifications": return .red
-        case "UI/UX": return .teal
+    static func tint(forID id: String) -> Color {
+        switch id {
+        case MenuSectionID.device: return .gray
+        case MenuSectionID.application: return .indigo
+        case MenuSectionID.developmentTools: return .brown
+        case MenuSectionID.networking: return .blue
+        case MenuSectionID.data: return .orange
+        case MenuSectionID.security: return .green
+        case MenuSectionID.systemTools: return .purple
+        case MenuSectionID.notifications: return .red
+        case MenuSectionID.uiux: return .teal
         default: return .accentColor
         }
     }
 
-    /// This section's tile colour — see ``tint(forTitle:)``.
-    var tint: Color { Self.tint(forTitle: title) }
+    /// This section's tile colour — see ``tint(forID:)``.
+    var tint: Color { Self.tint(forID: id) }
 }
 
 extension MenuItem {
@@ -44,10 +47,10 @@ extension MenuItem {
     /// A computed sibling of ``title`` and ``icon``, so a row's whole presentation
     /// reads off the item itself. Home sections of built-in rows are static layout
     /// (``MenuSection/allSections(developerOptions:)``), and a developer option always
-    /// lives in "Development Tools", so no live menu state is needed.
+    /// lives in the Development Tools section, so no live menu state is needed.
     var tint: Color {
         if case .developerOption = self {
-            return MenuSection.tint(forTitle: "Development Tools")
+            return MenuSection.tint(forID: MenuSectionID.developmentTools)
         }
         let home = MenuSection.allSections(developerOptions: []).first { $0.items.contains(self) }
         return home?.tint ?? .accentColor

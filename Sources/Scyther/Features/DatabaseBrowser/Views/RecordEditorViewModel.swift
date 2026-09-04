@@ -93,7 +93,7 @@ final class RecordEditorViewModel: ViewModel {
 
     /// The title for the view.
     var title: String {
-        isAddMode ? "Add Record" : "Edit Record"
+        isAddMode ? localized("Add Record") : localized("Edit Record")
     }
 
     /// The columns to display in the editor.

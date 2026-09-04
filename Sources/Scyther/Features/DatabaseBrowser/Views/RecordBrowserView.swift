@@ -30,7 +30,7 @@ struct RecordBrowserView: View {
                 Button {
                     showingSchema = true
                 } label: {
-                    Label("View Schema", systemImage: "tablecells")
+                    Label(localized("View Schema"), systemImage: "tablecells")
                 }
             }
 
@@ -45,9 +45,9 @@ struct RecordBrowserView: View {
                     }
                 } else if viewModel.records.isEmpty {
                     emptyStateView(
-                        title: "No Records",
+                        title: localized("No Records"),
                         systemImage: "tray",
-                        description: "This table is empty."
+                        description: localized("This table is empty.")
                     )
                 } else {
                     ForEach(viewModel.records) { record in
@@ -68,7 +68,7 @@ struct RecordBrowserView: View {
                                     viewModel.recordToDelete = record
                                     viewModel.showingDeleteConfirmation = true
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Label(localized("Delete"), systemImage: "trash")
                                 }
                             }
                         }
@@ -84,7 +84,7 @@ struct RecordBrowserView: View {
                                 if viewModel.isLoading {
                                     ProgressView()
                                 } else {
-                                    Text("Load More...")
+                                    Text(localized("Load More..."))
                                 }
                                 Spacer()
                             }
@@ -93,7 +93,7 @@ struct RecordBrowserView: View {
                     }
                 }
             } header: {
-                Text("Records (\(viewModel.totalCount))")
+                Text(localized("Records (\(viewModel.totalCount))"))
             }
         }
         .navigationTitle(table.name)
@@ -128,18 +128,18 @@ struct RecordBrowserView: View {
             }
         }
         .alert(
-            "Delete Record?",
+            localized("Delete Record?"),
             isPresented: $viewModel.showingDeleteConfirmation
         ) {
-            Button("Delete", role: .destructive) {
+            Button(localized("Delete"), role: .destructive) {
                 Task { await viewModel.deleteRecord() }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localized("Cancel"), role: .cancel) {}
         } message: {
-            Text("This action cannot be undone.")
+            Text(localized("This action cannot be undone."))
         }
-        .alert("Error", isPresented: $viewModel.showingError) {
-            Button("OK", role: .cancel) {}
+        .alert(localized("Error"), isPresented: $viewModel.showingError) {
+            Button(localized("OK"), role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage)
         }
@@ -174,7 +174,7 @@ struct RecordBrowserView: View {
         VStack(alignment: .leading, spacing: 4) {
             // Primary key
             if let pk = record.primaryKey, !pk.isNull {
-                Text("ID: \(pk.displayString)")
+                Text(localized("ID: \(pk.displayString)"))
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
             }
@@ -194,7 +194,7 @@ struct RecordBrowserView: View {
             }
 
             if record.values.count > 3 {
-                Text("+ \(record.values.count - 3) more columns")
+                Text(localized("+ \(record.values.count - 3) more columns"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }

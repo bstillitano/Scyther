@@ -42,11 +42,13 @@ enum FeatureToggleState: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 
     /// The user-facing label shown in the dropdown menu.
+    ///
+    /// Resolved in Scyther's effective language on each access.
     var displayName: String {
         switch self {
-        case .on: return "True"
-        case .off: return "False"
-        case .remote: return "Remote"
+        case .on: return localized("True")
+        case .off: return localized("False")
+        case .remote: return localized("Remote")
         }
     }
 }

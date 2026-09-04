@@ -45,9 +45,9 @@ struct RecordEditorView: View {
             if viewModel.editableColumns.isEmpty {
                 Section {
                     emptyStateView(
-                        title: "No Schema",
+                        title: localized("No Schema"),
                         systemImage: "exclamationmark.triangle",
-                        description: "Could not load table schema. Cannot edit records."
+                        description: localized("Could not load table schema. Cannot edit records.")
                     )
                 }
             } else {
@@ -60,20 +60,20 @@ struct RecordEditorView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("Cancel") {
+                Button(localized("Cancel")) {
                     dismiss()
                 }
             }
 
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Save") {
+                Button(localized("Save")) {
                     Task { await viewModel.save() }
                 }
                 .disabled(viewModel.isSaving)
             }
         }
-        .alert("Error", isPresented: $viewModel.showingError) {
-            Button("OK", role: .cancel) {}
+        .alert(localized("Error"), isPresented: $viewModel.showingError) {
+            Button(localized("OK"), role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage)
         }
@@ -97,7 +97,7 @@ struct RecordEditorView: View {
                         .font(.headline)
 
                     if column.isPrimaryKey {
-                        Text("PK")
+                        Text(localized("PK"))
                             .font(.caption2.bold())
                             .padding(.horizontal, 4)
                             .padding(.vertical, 2)
@@ -114,7 +114,7 @@ struct RecordEditorView: View {
 
                 // NULL toggle
                 if column.isNullable {
-                    Toggle("NULL", isOn: Binding(
+                    Toggle("NULL", isOn: Binding( // scyther:unlocalised SQL keyword
                         get: { viewModel.isNull[column.name] ?? false },
                         set: { _ in viewModel.toggleNull(for: column.name) }
                     ))
@@ -139,33 +139,33 @@ struct RecordEditorView: View {
 
         if type.contains("TEXT") || type.contains("VARCHAR") || type.contains("CHAR") {
             // Multi-line text input for TEXT types
-            TextField("Value", text: binding, axis: .vertical)
+            TextField(localized("Value"), text: binding, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(3...6)
         } else if type.contains("INT") {
             // Number input for integers
-            TextField("Value", text: binding)
+            TextField(localized("Value"), text: binding)
                 .textFieldStyle(.roundedBorder)
                 .keyboardType(.numberPad)
         } else if type.contains("REAL") || type.contains("FLOAT") || type.contains("DOUBLE") {
             // Decimal input for floats
-            TextField("Value", text: binding)
+            TextField(localized("Value"), text: binding)
                 .textFieldStyle(.roundedBorder)
                 .keyboardType(.decimalPad)
         } else if type.contains("BLOB") {
             // Base64 input for blobs
             VStack(alignment: .leading, spacing: 4) {
-                TextField("Base64 Data", text: binding, axis: .vertical)
+                TextField(localized("Base64 Data"), text: binding, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(2...4)
                     .font(.body.monospaced())
-                Text("Enter data as Base64-encoded string")
+                Text(localized("Enter data as Base64-encoded string"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
         } else {
             // Default text input
-            TextField("Value", text: binding)
+            TextField(localized("Value"), text: binding)
                 .textFieldStyle(.roundedBorder)
         }
     }

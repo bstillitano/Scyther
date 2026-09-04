@@ -48,12 +48,12 @@ struct NetworkLogAllFiltersSheet: View {
                     }
                 }
             }
-            .navigationTitle("Filters")
+            .navigationTitle(localized("Filters"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if viewModel.canReset {
-                        Button("Reset") { viewModel.reset() }
+                        Button(localized("Reset")) { viewModel.reset() }
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
@@ -82,7 +82,7 @@ struct NetworkLogFilterDimensionPage: View {
         List {
             Section {
                 if section.options.isEmpty {
-                    NetworkLogFilterEmptyRow(dimensionName: section.dimension.title.lowercased())
+                    NetworkLogFilterEmptyRow(dimensionName: section.dimension.title)
                 } else {
                     ForEach(section.options) { option in
                         NetworkLogFilterOptionRow(
@@ -103,7 +103,7 @@ struct NetworkLogFilterDimensionPage: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if viewModel.canReset(section.dimension) {
-                    Button("Reset") { viewModel.reset(section.dimension) }
+                    Button(localized("Reset")) { viewModel.reset(section.dimension) }
                 }
             }
         }

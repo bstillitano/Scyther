@@ -86,8 +86,10 @@ public final class NotificationTester: Sendable {
     /// All scheduled notifications are automatically logged to the notification history.
     ///
     /// - Parameters:
-    ///   - title: The title text displayed in the notification. Defaults to "Scyther Notification".
-    ///   - body: The body text displayed in the notification. Defaults to "This is a dummy notification powered by Scyther.".
+    ///   - title: The title text displayed in the notification. Defaults to the localised
+    ///     "Scyther Notification", so the banner matches Scyther's effective language.
+    ///   - body: The body text displayed in the notification. Defaults to the localised
+    ///     "This is a dummy notification powered by Scyther.".
     ///   - withSound: Whether to play a sound when the notification is delivered. Defaults to `true`.
     ///   - delay: The delay in seconds before the notification is delivered. Defaults to 2 seconds.
     ///   - repeats: Whether the notification should repeat indefinitely. Defaults to `false`.
@@ -95,8 +97,8 @@ public final class NotificationTester: Sendable {
     ///
     /// - Note: The notification is logged immediately and will appear in the notification logger
     ///   even before it's delivered to the user.
-    internal func scheduleNotification(withTitle title: String = "Scyther Notification",
-                                       withBody body: String = "This is a dummy notification powered by Scyther.",
+    internal func scheduleNotification(withTitle title: String = localized("Scyther Notification"),
+                                       withBody body: String = localized("This is a dummy notification powered by Scyther."),
                                        withSound: Bool = true,
                                        withDelay delay: TimeInterval = 2,
                                        withRepeat repeats: Bool = false,

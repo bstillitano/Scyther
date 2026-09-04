@@ -1,0 +1,770 @@
+{
+  "Network Logs": {
+    "comment": "Navigation title of the captured request list",
+    "fr": "Journaux réseau", "de": "Netzwerkprotokolle", "es": "Registros de red", "it": "Log di rete",
+    "pt-BR": "Registros de rede", "nl": "Netwerklogboeken", "ja": "ネットワークログ",
+    "zh-Hans": "网络日志", "zh-Hant": "網路記錄", "ko": "네트워크 로그", "ru": "Сетевые журналы", "ar": "سجلات الشبكة"
+  },
+  "Search via URL, Operation, Status Code or Method": {
+    "comment": "Search field prompt above the request list",
+    "fr": "Rechercher par URL, opération, code de statut ou méthode",
+    "de": "Nach URL, Operation, Statuscode oder Methode suchen",
+    "es": "Buscar por URL, operación, código de estado o método",
+    "it": "Cerca per URL, operazione, codice di stato o metodo",
+    "pt-BR": "Buscar por URL, operação, código de status ou método",
+    "nl": "Zoeken op URL, bewerking, statuscode of methode",
+    "ja": "URL、オペレーション、ステータスコード、メソッドで検索",
+    "zh-Hans": "按 URL、操作、状态码或方法搜索",
+    "zh-Hant": "依 URL、操作、狀態碼或方法搜尋",
+    "ko": "URL, 오퍼레이션, 상태 코드 또는 메서드로 검색",
+    "ru": "Поиск по URL, операции, коду состояния или методу",
+    "ar": "بحث حسب URL أو العملية أو رمز الحالة أو الأسلوب"
+  },
+  "Export": {
+    "comment": "Toolbar button that opens the export sheet, and the destructive confirm button in the sensitivity alert",
+    "fr": "Exporter", "de": "Exportieren", "es": "Exportar", "it": "Esporta", "pt-BR": "Exportar",
+    "nl": "Exporteren", "ja": "書き出す", "zh-Hans": "导出", "zh-Hant": "匯出", "ko": "내보내기",
+    "ru": "Экспортировать", "ar": "تصدير"
+  },
+  "Delete": {
+    "comment": "Toolbar button that clears every captured request",
+    "fr": "Supprimer", "de": "Löschen", "es": "Eliminar", "it": "Elimina", "pt-BR": "Excluir",
+    "nl": "Verwijderen", "ja": "削除", "zh-Hans": "删除", "zh-Hant": "刪除", "ko": "삭제",
+    "ru": "Удалить", "ar": "حذف"
+  },
+  "Request Details": {
+    "comment": "Navigation title of a single captured request",
+    "fr": "Détails de la requête", "de": "Anfragedetails", "es": "Detalles de la solicitud",
+    "it": "Dettagli richiesta", "pt-BR": "Detalhes da solicitação", "nl": "Verzoekdetails",
+    "ja": "リクエストの詳細", "zh-Hans": "请求详情", "zh-Hant": "請求詳細資訊",
+    "ko": "요청 세부사항", "ru": "Сведения о запросе", "ar": "تفاصيل الطلب"
+  },
+  "Export cURL request": {
+    "comment": "Share button and row that shares the request as a cURL command",
+    "fr": "Exporter la requête cURL", "de": "cURL-Anfrage exportieren", "es": "Exportar solicitud cURL",
+    "it": "Esporta richiesta cURL", "pt-BR": "Exportar solicitação cURL", "nl": "cURL-verzoek exporteren",
+    "ja": "cURLリクエストを書き出す", "zh-Hans": "导出 cURL 请求", "zh-Hant": "匯出 cURL 請求",
+    "ko": "cURL 요청 내보내기", "ru": "Экспортировать запрос cURL", "ar": "تصدير طلب cURL"
+  },
+  "Overview": {
+    "comment": "Section header for the request summary rows",
+    "fr": "Aperçu", "de": "Übersicht", "es": "Resumen", "it": "Panoramica", "pt-BR": "Visão geral",
+    "nl": "Overzicht", "ja": "概要", "zh-Hans": "概览", "zh-Hant": "概覽", "ko": "개요",
+    "ru": "Обзор", "ar": "نظرة عامة"
+  },
+  "Request URL": {
+    "comment": "Title of the full-screen reader showing the request URL",
+    "fr": "URL de la requête", "de": "Anfrage-URL", "es": "URL de la solicitud", "it": "URL della richiesta",
+    "pt-BR": "URL da solicitação", "nl": "Verzoek-URL", "ja": "リクエストURL", "zh-Hans": "请求 URL",
+    "zh-Hant": "請求 URL", "ko": "요청 URL", "ru": "URL запроса", "ar": "عنوان URL للطلب"
+  },
+  "URL": {
+    "comment": "Overview row label for the request URL",
+    "fr": "URL", "de": "URL", "es": "URL", "it": "URL", "pt-BR": "URL", "nl": "URL",
+    "ja": "URL", "zh-Hans": "URL", "zh-Hant": "URL", "ko": "URL", "ru": "URL", "ar": "عنوان URL"
+  },
+  "Method": {
+    "comment": "Overview row label and filter chip title for the HTTP method",
+    "fr": "Méthode", "de": "Methode", "es": "Método", "it": "Metodo", "pt-BR": "Método",
+    "nl": "Methode", "ja": "メソッド", "zh-Hans": "方法", "zh-Hant": "方法", "ko": "메서드",
+    "ru": "Метод", "ar": "الأسلوب"
+  },
+  "Response Code": {
+    "comment": "Overview row label for the HTTP status code",
+    "fr": "Code de réponse", "de": "Antwortcode", "es": "Código de respuesta", "it": "Codice di risposta",
+    "pt-BR": "Código de resposta", "nl": "Antwoordcode", "ja": "レスポンスコード", "zh-Hans": "响应码",
+    "zh-Hant": "回應碼", "ko": "응답 코드", "ru": "Код ответа", "ar": "رمز الاستجابة"
+  },
+  "Response Size": {
+    "comment": "Overview row label for the response body size",
+    "fr": "Taille de la réponse", "de": "Antwortgröße", "es": "Tamaño de la respuesta",
+    "it": "Dimensione risposta", "pt-BR": "Tamanho da resposta", "nl": "Antwoordgrootte",
+    "ja": "レスポンスサイズ", "zh-Hans": "响应大小", "zh-Hant": "回應大小", "ko": "응답 크기",
+    "ru": "Размер ответа", "ar": "حجم الاستجابة"
+  },
+  "Date": {
+    "comment": "Overview row label for when the request was sent",
+    "fr": "Date", "de": "Datum", "es": "Fecha", "it": "Data", "pt-BR": "Data", "nl": "Datum",
+    "ja": "日付", "zh-Hans": "日期", "zh-Hant": "日期", "ko": "날짜", "ru": "Дата", "ar": "التاريخ"
+  },
+  "Duration": {
+    "comment": "Overview row label and filter chip title for how long the request took",
+    "fr": "Durée", "de": "Dauer", "es": "Duración", "it": "Durata", "pt-BR": "Duração", "nl": "Duur",
+    "ja": "所要時間", "zh-Hans": "时长", "zh-Hant": "時長", "ko": "소요 시간", "ru": "Длительность", "ar": "المدة"
+  },
+  "Operation": {
+    "comment": "GraphQL section row label for the operation name",
+    "fr": "Opération", "de": "Operation", "es": "Operación", "it": "Operazione", "pt-BR": "Operação",
+    "nl": "Bewerking", "ja": "オペレーション", "zh-Hans": "操作", "zh-Hant": "操作", "ko": "오퍼레이션",
+    "ru": "Операция", "ar": "العملية"
+  },
+  "Type": {
+    "comment": "GraphQL operation type row label and the content type filter chip title",
+    "fr": "Type", "de": "Typ", "es": "Tipo", "it": "Tipo", "pt-BR": "Tipo", "nl": "Type",
+    "ja": "タイプ", "zh-Hans": "类型", "zh-Hant": "類型", "ko": "유형", "ru": "Тип", "ar": "النوع"
+  },
+  "Browse variables": {
+    "comment": "Link that opens the GraphQL variables in the structured data browser",
+    "fr": "Parcourir les variables", "de": "Variablen durchsuchen", "es": "Explorar variables",
+    "it": "Esplora variabili", "pt-BR": "Explorar variáveis", "nl": "Variabelen bekijken",
+    "ja": "変数をブラウズ", "zh-Hans": "浏览变量", "zh-Hant": "瀏覽變數", "ko": "변수 탐색",
+    "ru": "Просмотреть переменные", "ar": "استعراض المتغيرات"
+  },
+  "Variables": {
+    "comment": "Title of the structured browser showing the GraphQL variables",
+    "fr": "Variables", "de": "Variablen", "es": "Variables", "it": "Variabili", "pt-BR": "Variáveis",
+    "nl": "Variabelen", "ja": "変数", "zh-Hans": "变量", "zh-Hant": "變數", "ko": "변수",
+    "ru": "Переменные", "ar": "المتغيرات"
+  },
+  "Request Headers": {
+    "comment": "Section header for the headers that were sent",
+    "fr": "En-têtes de requête", "de": "Anfrage-Header", "es": "Encabezados de solicitud",
+    "it": "Intestazioni richiesta", "pt-BR": "Cabeçalhos da solicitação", "nl": "Verzoekheaders",
+    "ja": "リクエストヘッダー", "zh-Hans": "请求标头", "zh-Hant": "請求標頭", "ko": "요청 헤더",
+    "ru": "Заголовки запроса", "ar": "ترويسات الطلب"
+  },
+  "No headers sent": {
+    "comment": "Placeholder when the request carried no headers",
+    "fr": "Aucun en-tête envoyé", "de": "Keine Header gesendet", "es": "No se enviaron encabezados",
+    "it": "Nessuna intestazione inviata", "pt-BR": "Nenhum cabeçalho enviado", "nl": "Geen headers verzonden",
+    "ja": "送信されたヘッダーはありません", "zh-Hans": "未发送标头", "zh-Hant": "未傳送標頭",
+    "ko": "전송된 헤더 없음", "ru": "Заголовки не отправлены", "ar": "لم يتم إرسال أي ترويسات"
+  },
+  "Copy": {
+    "comment": "Context menu action that copies a header to the pasteboard",
+    "fr": "Copier", "de": "Kopieren", "es": "Copiar", "it": "Copia", "pt-BR": "Copiar", "nl": "Kopiëren",
+    "ja": "コピー", "zh-Hans": "拷贝", "zh-Hant": "拷貝", "ko": "복사", "ru": "Скопировать", "ar": "نسخ"
+  },
+  "Request Body": {
+    "comment": "Section header and reader title for the request payload",
+    "fr": "Corps de la requête", "de": "Anfrage-Body", "es": "Cuerpo de la solicitud",
+    "it": "Corpo della richiesta", "pt-BR": "Corpo da solicitação", "nl": "Verzoek-body",
+    "ja": "リクエストボディ", "zh-Hans": "请求正文", "zh-Hant": "請求內容", "ko": "요청 본문",
+    "ru": "Тело запроса", "ar": "محتوى الطلب"
+  },
+  "Browse request body": {
+    "comment": "Link that opens the request payload in the structured data browser",
+    "fr": "Parcourir le corps de la requête", "de": "Anfrage-Body durchsuchen",
+    "es": "Explorar cuerpo de la solicitud", "it": "Esplora corpo della richiesta",
+    "pt-BR": "Explorar corpo da solicitação", "nl": "Verzoek-body bekijken",
+    "ja": "リクエストボディをブラウズ", "zh-Hans": "浏览请求正文", "zh-Hant": "瀏覽請求內容",
+    "ko": "요청 본문 탐색", "ru": "Просмотреть тело запроса", "ar": "استعراض محتوى الطلب"
+  },
+  "View request body": {
+    "comment": "Link that opens the request payload as plain text",
+    "fr": "Afficher le corps de la requête", "de": "Anfrage-Body anzeigen",
+    "es": "Ver cuerpo de la solicitud", "it": "Visualizza corpo della richiesta",
+    "pt-BR": "Ver corpo da solicitação", "nl": "Verzoek-body tonen", "ja": "リクエストボディを表示",
+    "zh-Hans": "查看请求正文", "zh-Hant": "檢視請求內容", "ko": "요청 본문 보기",
+    "ru": "Показать тело запроса", "ar": "عرض محتوى الطلب"
+  },
+  "No content sent": {
+    "comment": "Placeholder when the request had no body",
+    "fr": "Aucun contenu envoyé", "de": "Kein Inhalt gesendet", "es": "No se envió contenido",
+    "it": "Nessun contenuto inviato", "pt-BR": "Nenhum conteúdo enviado", "nl": "Geen inhoud verzonden",
+    "ja": "送信されたコンテンツはありません", "zh-Hans": "未发送内容", "zh-Hant": "未傳送內容",
+    "ko": "전송된 콘텐츠 없음", "ru": "Содержимое не отправлено", "ar": "لم يتم إرسال أي محتوى"
+  },
+  "Response Headers": {
+    "comment": "Section header for the headers that came back",
+    "fr": "En-têtes de réponse", "de": "Antwort-Header", "es": "Encabezados de respuesta",
+    "it": "Intestazioni risposta", "pt-BR": "Cabeçalhos da resposta", "nl": "Antwoordheaders",
+    "ja": "レスポンスヘッダー", "zh-Hans": "响应标头", "zh-Hant": "回應標頭", "ko": "응답 헤더",
+    "ru": "Заголовки ответа", "ar": "ترويسات الاستجابة"
+  },
+  "No headers received": {
+    "comment": "Placeholder when the response carried no headers",
+    "fr": "Aucun en-tête reçu", "de": "Keine Header empfangen", "es": "No se recibieron encabezados",
+    "it": "Nessuna intestazione ricevuta", "pt-BR": "Nenhum cabeçalho recebido", "nl": "Geen headers ontvangen",
+    "ja": "受信したヘッダーはありません", "zh-Hans": "未接收标头", "zh-Hant": "未接收標頭",
+    "ko": "수신된 헤더 없음", "ru": "Заголовки не получены", "ar": "لم يتم استلام أي ترويسات"
+  },
+  "Response Body": {
+    "comment": "Section header and reader title for the response payload",
+    "fr": "Corps de la réponse", "de": "Antwort-Body", "es": "Cuerpo de la respuesta",
+    "it": "Corpo della risposta", "pt-BR": "Corpo da resposta", "nl": "Antwoord-body",
+    "ja": "レスポンスボディ", "zh-Hans": "响应正文", "zh-Hant": "回應內容", "ko": "응답 본문",
+    "ru": "Тело ответа", "ar": "محتوى الاستجابة"
+  },
+  "Browse response body": {
+    "comment": "Link that opens the response payload in the structured data browser",
+    "fr": "Parcourir le corps de la réponse", "de": "Antwort-Body durchsuchen",
+    "es": "Explorar cuerpo de la respuesta", "it": "Esplora corpo della risposta",
+    "pt-BR": "Explorar corpo da resposta", "nl": "Antwoord-body bekijken",
+    "ja": "レスポンスボディをブラウズ", "zh-Hans": "浏览响应正文", "zh-Hant": "瀏覽回應內容",
+    "ko": "응답 본문 탐색", "ru": "Просмотреть тело ответа", "ar": "استعراض محتوى الاستجابة"
+  },
+  "View response body": {
+    "comment": "Link that opens the response payload as plain text",
+    "fr": "Afficher le corps de la réponse", "de": "Antwort-Body anzeigen",
+    "es": "Ver cuerpo de la respuesta", "it": "Visualizza corpo della risposta",
+    "pt-BR": "Ver corpo da resposta", "nl": "Antwoord-body tonen", "ja": "レスポンスボディを表示",
+    "zh-Hans": "查看响应正文", "zh-Hant": "檢視回應內容", "ko": "응답 본문 보기",
+    "ru": "Показать тело ответа", "ar": "عرض محتوى الاستجابة"
+  },
+  "No data received": {
+    "comment": "Placeholder when the response had no body",
+    "fr": "Aucune donnée reçue", "de": "Keine Daten empfangen", "es": "No se recibieron datos",
+    "it": "Nessun dato ricevuto", "pt-BR": "Nenhum dado recebido", "nl": "Geen gegevens ontvangen",
+    "ja": "受信したデータはありません", "zh-Hans": "未接收数据", "zh-Hant": "未接收資料",
+    "ko": "수신된 데이터 없음", "ru": "Данные не получены", "ar": "لم يتم استلام أي بيانات"
+  },
+  "Developer Info": {
+    "comment": "Section header for timestamps, cache policy, timeout and cURL export",
+    "fr": "Infos développeur", "de": "Entwicklerinfos", "es": "Información de desarrollador",
+    "it": "Info sviluppatore", "pt-BR": "Informações do desenvolvedor", "nl": "Ontwikkelaarsinfo",
+    "ja": "開発者情報", "zh-Hans": "开发者信息", "zh-Hant": "開發者資訊", "ko": "개발자 정보",
+    "ru": "Сведения для разработчика", "ar": "معلومات المطوّر"
+  },
+  "Request time": {
+    "comment": "Developer info row label for the timestamp the request was sent",
+    "fr": "Heure de la requête", "de": "Anfragezeit", "es": "Hora de la solicitud",
+    "it": "Ora della richiesta", "pt-BR": "Hora da solicitação", "nl": "Verzoektijd",
+    "ja": "リクエスト時刻", "zh-Hans": "请求时间", "zh-Hant": "請求時間", "ko": "요청 시각",
+    "ru": "Время запроса", "ar": "وقت الطلب"
+  },
+  "Response time": {
+    "comment": "Developer info row label for the timestamp the response arrived",
+    "fr": "Heure de la réponse", "de": "Antwortzeit", "es": "Hora de la respuesta",
+    "it": "Ora della risposta", "pt-BR": "Hora da resposta", "nl": "Antwoordtijd",
+    "ja": "レスポンス時刻", "zh-Hans": "响应时间", "zh-Hant": "回應時間", "ko": "응답 시각",
+    "ru": "Время ответа", "ar": "وقت الاستجابة"
+  },
+  "Cache Policy": {
+    "comment": "Developer info row label for the URL request cache policy",
+    "fr": "Politique de cache", "de": "Cache-Richtlinie", "es": "Política de caché",
+    "it": "Criterio di cache", "pt-BR": "Política de cache", "nl": "Cachebeleid",
+    "ja": "キャッシュポリシー", "zh-Hans": "缓存策略", "zh-Hant": "快取政策", "ko": "캐시 정책",
+    "ru": "Политика кэширования", "ar": "سياسة التخزين المؤقت"
+  },
+  "Timeout": {
+    "comment": "Developer info row label for the request timeout",
+    "fr": "Délai d’expiration", "de": "Zeitlimit", "es": "Tiempo de espera", "it": "Timeout",
+    "pt-BR": "Tempo limite", "nl": "Time-out", "ja": "タイムアウト", "zh-Hans": "超时",
+    "zh-Hant": "逾時", "ko": "시간 초과", "ru": "Тайм-аут", "ar": "مهلة"
+  },
+  "Filters": {
+    "comment": "Navigation title of the all-filters sheet",
+    "fr": "Filtres", "de": "Filter", "es": "Filtros", "it": "Filtri", "pt-BR": "Filtros",
+    "nl": "Filters", "ja": "フィルタ", "zh-Hans": "筛选", "zh-Hant": "篩選", "ko": "필터",
+    "ru": "Фильтры", "ar": "عوامل التصفية"
+  },
+  "Reset": {
+    "comment": "Toolbar button that clears the selection in a filter sheet",
+    "fr": "Réinitialiser", "de": "Zurücksetzen", "es": "Restablecer", "it": "Ripristina",
+    "pt-BR": "Redefinir", "nl": "Herstellen", "ja": "リセット", "zh-Hans": "重置", "zh-Hant": "重設",
+    "ko": "재설정", "ru": "Сбросить", "ar": "إعادة تعيين"
+  },
+  "Clear": {
+    "comment": "Filter bar chip that removes every filter constraint",
+    "fr": "Effacer", "de": "Leeren", "es": "Borrar", "it": "Cancella", "pt-BR": "Limpar",
+    "nl": "Wissen", "ja": "消去", "zh-Hans": "清除", "zh-Hant": "清除", "ko": "지우기",
+    "ru": "Очистить", "ar": "مسح"
+  },
+  "All filters": {
+    "comment": "Accessibility label of the leading filter bar chip when nothing is selected",
+    "fr": "Tous les filtres", "de": "Alle Filter", "es": "Todos los filtros", "it": "Tutti i filtri",
+    "pt-BR": "Todos os filtros", "nl": "Alle filters", "ja": "すべてのフィルタ",
+    "zh-Hans": "所有筛选条件", "zh-Hant": "所有篩選條件", "ko": "모든 필터", "ru": "Все фильтры",
+    "ar": "كل عوامل التصفية"
+  },
+  "Clear all filters": {
+    "comment": "Accessibility label of the clear chip in the filter bar",
+    "fr": "Effacer tous les filtres", "de": "Alle Filter leeren", "es": "Borrar todos los filtros",
+    "it": "Cancella tutti i filtri", "pt-BR": "Limpar todos os filtros", "nl": "Alle filters wissen",
+    "ja": "すべてのフィルタを消去", "zh-Hans": "清除所有筛选条件", "zh-Hant": "清除所有篩選條件",
+    "ko": "모든 필터 지우기", "ru": "Очистить все фильтры", "ar": "مسح كل عوامل التصفية"
+  },
+  "No values captured yet for %@": {
+    "comment": "Placeholder in a filter sheet whose options come from the captured logs; %@ is the dimension name as titled in the UI",
+    "fr": "Aucune valeur capturée pour %@ pour le moment",
+    "de": "Noch keine Werte für %@ erfasst",
+    "es": "Aún no se han capturado valores para %@",
+    "it": "Nessun valore acquisito finora per %@",
+    "pt-BR": "Nenhum valor capturado ainda para %@",
+    "nl": "Nog geen waarden vastgelegd voor %@",
+    "ja": "%@の値はまだ記録されていません",
+    "zh-Hans": "尚未捕获 %@ 的值",
+    "zh-Hant": "尚未擷取 %@ 的值",
+    "ko": "%@에 대해 아직 캡처된 값이 없습니다",
+    "ru": "Значения для %@ ещё не собраны",
+    "ar": "لم يتم التقاط أي قيم لـ %@ بعد"
+  },
+  "Done": {
+    "comment": "Accessibility label of the confirm button that dismisses a filter sheet",
+    "fr": "Terminé", "de": "Fertig", "es": "Listo", "it": "Fine", "pt-BR": "Concluído",
+    "nl": "Gereed", "ja": "完了", "zh-Hans": "完成", "zh-Hant": "完成", "ko": "완료",
+    "ru": "Готово", "ar": "تم"
+  },
+  "Host mode": {
+    "comment": "Accessibility label of the Include / Exclude segmented control on the host filter",
+    "fr": "Mode d’hôte", "de": "Host-Modus", "es": "Modo de host", "it": "Modalità host",
+    "pt-BR": "Modo de host", "nl": "Hostmodus", "ja": "ホストモード", "zh-Hans": "主机模式",
+    "zh-Hant": "主機模式", "ko": "호스트 모드", "ru": "Режим хоста", "ar": "وضع المضيف"
+  },
+  "Export Network Log": {
+    "comment": "Navigation title of the export sheet",
+    "fr": "Exporter le journal réseau", "de": "Netzwerkprotokoll exportieren",
+    "es": "Exportar registro de red", "it": "Esporta log di rete", "pt-BR": "Exportar registro de rede",
+    "nl": "Netwerklogboek exporteren", "ja": "ネットワークログを書き出す", "zh-Hans": "导出网络日志",
+    "zh-Hant": "匯出網路記錄", "ko": "네트워크 로그 내보내기", "ru": "Экспорт сетевого журнала",
+    "ar": "تصدير سجل الشبكة"
+  },
+  "Close": {
+    "comment": "Accessibility label of the button that dismisses the export sheet",
+    "fr": "Fermer", "de": "Schließen", "es": "Cerrar", "it": "Chiudi", "pt-BR": "Fechar",
+    "nl": "Sluiten", "ja": "閉じる", "zh-Hans": "关闭", "zh-Hant": "關閉", "ko": "닫기",
+    "ru": "Закрыть", "ar": "إغلاق"
+  },
+  "Export Sensitive Data?": {
+    "comment": "Title of the alert shown before sharing the archive",
+    "fr": "Exporter des données sensibles ?", "de": "Sensible Daten exportieren?",
+    "es": "¿Exportar datos confidenciales?", "it": "Esportare dati sensibili?",
+    "pt-BR": "Exportar dados confidenciais?", "nl": "Gevoelige gegevens exporteren?",
+    "ja": "機密データを書き出しますか？", "zh-Hans": "要导出敏感数据吗？", "zh-Hant": "要匯出敏感資料嗎？",
+    "ko": "민감한 데이터를 내보내시겠습니까?", "ru": "Экспортировать конфиденциальные данные?",
+    "ar": "هل تريد تصدير بيانات حساسة؟"
+  },
+  "Cancel": {
+    "comment": "Cancel button in the export sensitivity alert",
+    "fr": "Annuler", "de": "Abbrechen", "es": "Cancelar", "it": "Annulla", "pt-BR": "Cancelar",
+    "nl": "Annuleren", "ja": "キャンセル", "zh-Hans": "取消", "zh-Hant": "取消", "ko": "취소",
+    "ru": "Отмена", "ar": "إلغاء"
+  },
+  "Redaction is on, but it is best effort and not a guarantee of privacy.": {
+    "comment": "Sentence appended to the export warning when redaction is enabled",
+    "fr": "Le masquage est activé, mais il reste indicatif et ne garantit pas la confidentialité.",
+    "de": "Die Schwärzung ist aktiviert, erfolgt aber nach bestem Bemühen und garantiert keine Vertraulichkeit.",
+    "es": "La ocultación está activada, pero se aplica en la medida de lo posible y no garantiza la privacidad.",
+    "it": "L’oscuramento è attivo, ma è a titolo indicativo e non garantisce la riservatezza.",
+    "pt-BR": "A ocultação está ativada, mas é feita da melhor forma possível e não garante privacidade.",
+    "nl": "Maskering staat aan, maar is een inspanningsverplichting en geen garantie voor privacy.",
+    "ja": "秘匿化は有効ですが、あくまで最善の努力であり、プライバシーを保証するものではありません。",
+    "zh-Hans": "脱敏已启用，但仅尽力而为，并不保证隐私安全。",
+    "zh-Hant": "遮蔽已啟用，但僅盡力而為，並不保證隱私安全。",
+    "ko": "가림 처리가 켜져 있지만 최선의 노력일 뿐 개인정보 보호를 보장하지는 않습니다.",
+    "ru": "Маскирование включено, но выполняется по мере возможности и не гарантирует конфиденциальность.",
+    "ar": "الإخفاء مفعّل، لكنه يعتمد على أفضل جهد ولا يضمن الخصوصية."
+  },
+  "Archive": {
+    "comment": "Section header for the archive being built in the export sheet",
+    "fr": "Archive", "de": "Archiv", "es": "Archivo comprimido", "it": "Archivio",
+    "pt-BR": "Arquivo compactado", "nl": "Archief", "ja": "アーカイブ", "zh-Hans": "归档",
+    "zh-Hant": "封存", "ko": "아카이브", "ru": "Архив", "ar": "الأرشيف"
+  },
+  "File": {
+    "comment": "Row label above the archive's file name",
+    "fr": "Fichier", "de": "Datei", "es": "Archivo", "it": "File", "pt-BR": "Arquivo",
+    "nl": "Bestand", "ja": "ファイル", "zh-Hans": "文件", "zh-Hant": "檔案", "ko": "파일",
+    "ru": "Файл", "ar": "الملف"
+  },
+  "Requests": {
+    "comment": "Row label for how many requests the archive holds",
+    "fr": "Requêtes", "de": "Anfragen", "es": "Solicitudes", "it": "Richieste", "pt-BR": "Solicitações",
+    "nl": "Verzoeken", "ja": "リクエスト", "zh-Hans": "请求", "zh-Hant": "請求", "ko": "요청",
+    "ru": "Запросы", "ar": "الطلبات"
+  },
+  "Contents": {
+    "comment": "Section header listing what the archive contains",
+    "fr": "Contenu", "de": "Inhalt", "es": "Contenido", "it": "Contenuto", "pt-BR": "Conteúdo",
+    "nl": "Inhoud", "ja": "内容", "zh-Hans": "内容", "zh-Hant": "內容", "ko": "내용",
+    "ru": "Содержимое", "ar": "المحتويات"
+  },
+  "Raw request and response bodies": {
+    "comment": "Archive contents row",
+    "fr": "Corps bruts des requêtes et des réponses", "de": "Rohe Anfrage- und Antwort-Bodys",
+    "es": "Cuerpos sin procesar de solicitudes y respuestas", "it": "Corpi grezzi di richieste e risposte",
+    "pt-BR": "Corpos brutos de solicitações e respostas", "nl": "Ruwe verzoek- en antwoord-bodys",
+    "ja": "リクエストとレスポンスの生ボディ", "zh-Hans": "原始请求和响应正文",
+    "zh-Hant": "原始請求與回應內容", "ko": "원본 요청 및 응답 본문",
+    "ru": "Необработанные тела запросов и ответов", "ar": "محتويات الطلبات والاستجابات الأولية"
+  },
+  "cURL command per request": {
+    "comment": "Archive contents row",
+    "fr": "Commande cURL par requête", "de": "cURL-Befehl pro Anfrage", "es": "Comando cURL por solicitud",
+    "it": "Comando cURL per richiesta", "pt-BR": "Comando cURL por solicitação",
+    "nl": "cURL-opdracht per verzoek", "ja": "リクエストごとのcURLコマンド",
+    "zh-Hans": "每个请求的 cURL 命令", "zh-Hant": "每個請求的 cURL 指令", "ko": "요청별 cURL 명령",
+    "ru": "Команда cURL для каждого запроса", "ar": "أمر cURL لكل طلب"
+  },
+  "Redact sensitive values": {
+    "comment": "Toggle that rebuilds the archive with sensitive values masked",
+    "fr": "Masquer les valeurs sensibles", "de": "Sensible Werte schwärzen",
+    "es": "Ocultar valores confidenciales", "it": "Oscura i valori sensibili",
+    "pt-BR": "Ocultar valores confidenciais", "nl": "Gevoelige waarden maskeren",
+    "ja": "機密値を秘匿化", "zh-Hans": "脱敏处理敏感值", "zh-Hant": "遮蔽敏感值",
+    "ko": "민감한 값 가리기", "ru": "Маскировать конфиденциальные значения", "ar": "إخفاء القيم الحساسة"
+  },
+  "Redaction": {
+    "comment": "Section header for the redaction toggle",
+    "fr": "Masquage", "de": "Schwärzung", "es": "Ocultación", "it": "Oscuramento", "pt-BR": "Ocultação",
+    "nl": "Maskering", "ja": "秘匿化", "zh-Hans": "脱敏", "zh-Hant": "遮蔽", "ko": "가림 처리",
+    "ru": "Маскирование", "ar": "الإخفاء"
+  },
+  "Replaces common tokens, cookies, passwords, and API keys in headers, URLs, bodies, and cURL commands with REDACTED. This is an attempt, not a guarantee of privacy.": {
+    "comment": "Footer explaining what the redaction toggle does. REDACTED is the literal replacement marker written into the archive",
+    "fr": "Remplace les jetons, cookies, mots de passe et clés d’API courants dans les en-têtes, les URL, les corps et les commandes cURL par REDACTED. Il s’agit d’une tentative, pas d’une garantie de confidentialité.",
+    "de": "Ersetzt gängige Tokens, Cookies, Passwörter und API-Schlüssel in Headern, URLs, Bodys und cURL-Befehlen durch REDACTED. Das ist ein Versuch, keine Garantie für Vertraulichkeit.",
+    "es": "Sustituye tokens, cookies, contraseñas y claves de API habituales en encabezados, URL, cuerpos y comandos cURL por REDACTED. Es un intento, no una garantía de privacidad.",
+    "it": "Sostituisce token, cookie, password e chiavi API comuni in intestazioni, URL, corpi e comandi cURL con REDACTED. È un tentativo, non una garanzia di riservatezza.",
+    "pt-BR": "Substitui tokens, cookies, senhas e chaves de API comuns em cabeçalhos, URLs, corpos e comandos cURL por REDACTED. É uma tentativa, não uma garantia de privacidade.",
+    "nl": "Vervangt gangbare tokens, cookies, wachtwoorden en API-sleutels in headers, URL’s, bodys en cURL-opdrachten door REDACTED. Dit is een poging, geen garantie voor privacy.",
+    "ja": "ヘッダー、URL、ボディ、cURLコマンド内の一般的なトークン、Cookie、パスワード、APIキーをREDACTEDに置き換えます。これは試みであり、プライバシーの保証ではありません。",
+    "zh-Hans": "将标头、URL、正文和 cURL 命令中常见的令牌、Cookie、密码和 API 密钥替换为 REDACTED。这只是一种尝试，并不保证隐私安全。",
+    "zh-Hant": "將標頭、URL、內容和 cURL 指令中常見的權杖、Cookie、密碼和 API 金鑰替換為 REDACTED。這只是一種嘗試，並不保證隱私安全。",
+    "ko": "헤더, URL, 본문, cURL 명령에서 일반적인 토큰, 쿠키, 비밀번호, API 키를 REDACTED로 대체합니다. 이는 시도일 뿐 개인정보 보호를 보장하지 않습니다.",
+    "ru": "Заменяет распространённые токены, cookie, пароли и ключи API в заголовках, URL, телах и командах cURL на REDACTED. Это попытка, а не гарантия конфиденциальности.",
+    "ar": "يستبدل الرموز المميزة وملفات تعريف الارتباط وكلمات المرور ومفاتيح API الشائعة في الترويسات وعناوين URL والمحتويات وأوامر cURL بـ REDACTED. هذه محاولة وليست ضمانًا للخصوصية."
+  },
+  "2xx Success": {
+    "comment": "Status class filter option for 2xx responses",
+    "fr": "2xx Succès", "de": "2xx Erfolg", "es": "2xx Éxito", "it": "2xx Successo", "pt-BR": "2xx Sucesso",
+    "nl": "2xx Succes", "ja": "2xx成功", "zh-Hans": "2xx 成功", "zh-Hant": "2xx 成功", "ko": "2xx 성공",
+    "ru": "2xx Успех", "ar": "2xx نجاح"
+  },
+  "3xx Redirect": {
+    "comment": "Status class filter option for 3xx responses",
+    "fr": "3xx Redirection", "de": "3xx Weiterleitung", "es": "3xx Redirección",
+    "it": "3xx Reindirizzamento", "pt-BR": "3xx Redirecionamento", "nl": "3xx Omleiding",
+    "ja": "3xxリダイレクト", "zh-Hans": "3xx 重定向", "zh-Hant": "3xx 重新導向", "ko": "3xx 리디렉션",
+    "ru": "3xx Перенаправление", "ar": "3xx إعادة توجيه"
+  },
+  "4xx Client Error": {
+    "comment": "Status class filter option for 4xx responses",
+    "fr": "4xx Erreur client", "de": "4xx Clientfehler", "es": "4xx Error de cliente",
+    "it": "4xx Errore client", "pt-BR": "4xx Erro do cliente", "nl": "4xx Clientfout",
+    "ja": "4xxクライアントエラー", "zh-Hans": "4xx 客户端错误", "zh-Hant": "4xx 用戶端錯誤",
+    "ko": "4xx 클라이언트 오류", "ru": "4xx Ошибка клиента", "ar": "4xx خطأ العميل"
+  },
+  "5xx Server Error": {
+    "comment": "Status class filter option for 5xx responses",
+    "fr": "5xx Erreur serveur", "de": "5xx Serverfehler", "es": "5xx Error de servidor",
+    "it": "5xx Errore server", "pt-BR": "5xx Erro do servidor", "nl": "5xx Serverfout",
+    "ja": "5xxサーバーエラー", "zh-Hans": "5xx 服务器错误", "zh-Hant": "5xx 伺服器錯誤",
+    "ko": "5xx 서버 오류", "ru": "5xx Ошибка сервера", "ar": "5xx خطأ الخادم"
+  },
+  "Pending / No Response": {
+    "comment": "Status class filter option for requests with no response yet",
+    "fr": "En attente / Aucune réponse", "de": "Ausstehend / Keine Antwort", "es": "Pendiente / Sin respuesta",
+    "it": "In attesa / Nessuna risposta", "pt-BR": "Pendente / Sem resposta",
+    "nl": "In behandeling / Geen antwoord", "ja": "保留中／レスポンスなし", "zh-Hans": "待处理／无响应",
+    "zh-Hant": "待處理／無回應", "ko": "대기 중 / 응답 없음", "ru": "В ожидании / Нет ответа",
+    "ar": "قيد الانتظار / لا استجابة"
+  },
+  "Query": {
+    "comment": "GraphQL operation filter option",
+    "fr": "Requête", "de": "Abfrage", "es": "Consulta", "it": "Query", "pt-BR": "Consulta",
+    "nl": "Query", "ja": "クエリ", "zh-Hans": "查询", "zh-Hant": "查詢", "ko": "쿼리",
+    "ru": "Запрос", "ar": "استعلام"
+  },
+  "Mutation": {
+    "comment": "GraphQL operation filter option",
+    "fr": "Mutation", "de": "Mutation", "es": "Mutación", "it": "Mutazione", "pt-BR": "Mutação",
+    "nl": "Mutatie", "ja": "ミューテーション", "zh-Hans": "变更", "zh-Hant": "變更", "ko": "뮤테이션",
+    "ru": "Мутация", "ar": "تعديل"
+  },
+  "Subscription": {
+    "comment": "GraphQL operation filter option",
+    "fr": "Abonnement", "de": "Abonnement", "es": "Suscripción", "it": "Sottoscrizione",
+    "pt-BR": "Assinatura", "nl": "Abonnement", "ja": "サブスクリプション", "zh-Hans": "订阅",
+    "zh-Hant": "訂閱", "ko": "구독", "ru": "Подписка", "ar": "اشتراك"
+  },
+  "Batch / Unknown": {
+    "comment": "GraphQL operation filter option for batched or untyped payloads",
+    "fr": "Lot / Inconnu", "de": "Batch / Unbekannt", "es": "Lote / Desconocido",
+    "it": "Batch / Sconosciuto", "pt-BR": "Lote / Desconhecido", "nl": "Batch / Onbekend",
+    "ja": "バッチ／不明", "zh-Hans": "批量／未知", "zh-Hant": "批次／未知", "ko": "배치 / 알 수 없음",
+    "ru": "Пакет / Неизвестно", "ar": "دفعة / غير معروف"
+  },
+  "Under 100ms": {
+    "comment": "Duration bucket filter option",
+    "fr": "Moins de 100 ms", "de": "Unter 100 ms", "es": "Menos de 100 ms", "it": "Meno di 100 ms",
+    "pt-BR": "Menos de 100 ms", "nl": "Minder dan 100 ms", "ja": "100ms未満", "zh-Hans": "小于 100ms",
+    "zh-Hant": "小於 100ms", "ko": "100ms 미만", "ru": "Менее 100 мс", "ar": "أقل من 100 ms"
+  },
+  "100ms to 500ms": {
+    "comment": "Duration bucket filter option",
+    "fr": "100 ms à 500 ms", "de": "100 ms bis 500 ms", "es": "100 ms a 500 ms", "it": "Da 100 ms a 500 ms",
+    "pt-BR": "100 ms a 500 ms", "nl": "100 ms tot 500 ms", "ja": "100ms〜500ms", "zh-Hans": "100ms 至 500ms",
+    "zh-Hant": "100ms 至 500ms", "ko": "100ms~500ms", "ru": "100 мс – 500 мс", "ar": "من 100 ms إلى 500 ms"
+  },
+  "500ms to 1s": {
+    "comment": "Duration bucket filter option",
+    "fr": "500 ms à 1 s", "de": "500 ms bis 1 s", "es": "500 ms a 1 s", "it": "Da 500 ms a 1 s",
+    "pt-BR": "500 ms a 1 s", "nl": "500 ms tot 1 s", "ja": "500ms〜1秒", "zh-Hans": "500ms 至 1 秒",
+    "zh-Hant": "500ms 至 1 秒", "ko": "500ms~1초", "ru": "500 мс – 1 с", "ar": "من 500 ms إلى ثانية واحدة"
+  },
+  "1s to 3s": {
+    "comment": "Duration bucket filter option",
+    "fr": "1 s à 3 s", "de": "1 s bis 3 s", "es": "1 s a 3 s", "it": "Da 1 s a 3 s", "pt-BR": "1 s a 3 s",
+    "nl": "1 s tot 3 s", "ja": "1秒〜3秒", "zh-Hans": "1 秒至 3 秒", "zh-Hant": "1 秒至 3 秒",
+    "ko": "1초~3초", "ru": "1 с – 3 с", "ar": "من ثانية إلى 3 ثوانٍ"
+  },
+  "Over 3s": {
+    "comment": "Duration bucket filter option",
+    "fr": "Plus de 3 s", "de": "Über 3 s", "es": "Más de 3 s", "it": "Oltre 3 s", "pt-BR": "Mais de 3 s",
+    "nl": "Meer dan 3 s", "ja": "3秒超", "zh-Hans": "大于 3 秒", "zh-Hant": "大於 3 秒",
+    "ko": "3초 초과", "ru": "Более 3 с", "ar": "أكثر من 3 ثوانٍ"
+  },
+  "Last minute": {
+    "comment": "Recency window filter option",
+    "fr": "Dernière minute", "de": "Letzte Minute", "es": "Último minuto", "it": "Ultimo minuto",
+    "pt-BR": "Último minuto", "nl": "Laatste minuut", "ja": "直近1分", "zh-Hans": "最近 1 分钟",
+    "zh-Hant": "最近 1 分鐘", "ko": "최근 1분", "ru": "Последняя минута", "ar": "آخر دقيقة"
+  },
+  "Last 5 minutes": {
+    "comment": "Recency window filter option",
+    "fr": "5 dernières minutes", "de": "Letzte 5 Minuten", "es": "Últimos 5 minutos",
+    "it": "Ultimi 5 minuti", "pt-BR": "Últimos 5 minutos", "nl": "Laatste 5 minuten", "ja": "直近5分",
+    "zh-Hans": "最近 5 分钟", "zh-Hant": "最近 5 分鐘", "ko": "최근 5분", "ru": "Последние 5 минут",
+    "ar": "آخر 5 دقائق"
+  },
+  "Last 15 minutes": {
+    "comment": "Recency window filter option",
+    "fr": "15 dernières minutes", "de": "Letzte 15 Minuten", "es": "Últimos 15 minutos",
+    "it": "Ultimi 15 minuti", "pt-BR": "Últimos 15 minutos", "nl": "Laatste 15 minuten", "ja": "直近15分",
+    "zh-Hans": "最近 15 分钟", "zh-Hant": "最近 15 分鐘", "ko": "최근 15분", "ru": "Последние 15 минут",
+    "ar": "آخر 15 دقيقة"
+  },
+  "Last hour": {
+    "comment": "Recency window filter option",
+    "fr": "Dernière heure", "de": "Letzte Stunde", "es": "Última hora", "it": "Ultima ora",
+    "pt-BR": "Última hora", "nl": "Laatste uur", "ja": "直近1時間", "zh-Hans": "最近 1 小时",
+    "zh-Hant": "最近 1 小時", "ko": "최근 1시간", "ru": "Последний час", "ar": "آخر ساعة"
+  },
+  "Include": {
+    "comment": "Host filter segment that keeps only the selected hosts",
+    "fr": "Inclure", "de": "Einschließen", "es": "Incluir", "it": "Includi", "pt-BR": "Incluir",
+    "nl": "Opnemen", "ja": "含める", "zh-Hans": "包含", "zh-Hant": "包含", "ko": "포함",
+    "ru": "Включить", "ar": "تضمين"
+  },
+  "Exclude": {
+    "comment": "Host filter segment that hides the selected hosts",
+    "fr": "Exclure", "de": "Ausschließen", "es": "Excluir", "it": "Escludi", "pt-BR": "Excluir",
+    "nl": "Uitsluiten", "ja": "除外", "zh-Hans": "排除", "zh-Hant": "排除", "ko": "제외",
+    "ru": "Исключить", "ar": "استبعاد"
+  },
+  "Request": {
+    "comment": "Group header for the filter dimensions describing what was sent",
+    "fr": "Requête", "de": "Anfrage", "es": "Solicitud", "it": "Richiesta", "pt-BR": "Solicitação",
+    "nl": "Verzoek", "ja": "リクエスト", "zh-Hans": "请求", "zh-Hant": "請求", "ko": "요청",
+    "ru": "Запрос", "ar": "طلب"
+  },
+  "Response": {
+    "comment": "Group header for the filter dimensions describing what came back",
+    "fr": "Réponse", "de": "Antwort", "es": "Respuesta", "it": "Risposta", "pt-BR": "Resposta",
+    "nl": "Antwoord", "ja": "レスポンス", "zh-Hans": "响应", "zh-Hant": "回應", "ko": "응답",
+    "ru": "Ответ", "ar": "استجابة"
+  },
+  "Timing": {
+    "comment": "Group header for the duration and recency filter dimensions",
+    "fr": "Chronométrage", "de": "Zeitverhalten", "es": "Tiempos", "it": "Tempi", "pt-BR": "Tempos",
+    "nl": "Timing", "ja": "タイミング", "zh-Hans": "时间", "zh-Hant": "時間", "ko": "타이밍",
+    "ru": "Тайминг", "ar": "التوقيت"
+  },
+  "Status": {
+    "comment": "Filter chip title for the response status class",
+    "fr": "Statut", "de": "Status", "es": "Estado", "it": "Stato", "pt-BR": "Status", "nl": "Status",
+    "ja": "ステータス", "zh-Hans": "状态", "zh-Hant": "狀態", "ko": "상태", "ru": "Статус", "ar": "الحالة"
+  },
+  "Host": {
+    "comment": "Filter chip title for the request host",
+    "fr": "Hôte", "de": "Host", "es": "Host", "it": "Host", "pt-BR": "Host", "nl": "Host",
+    "ja": "ホスト", "zh-Hans": "主机", "zh-Hant": "主機", "ko": "호스트", "ru": "Хост", "ar": "المضيف"
+  },
+  "Code": {
+    "comment": "Filter chip title for the exact response status code",
+    "fr": "Code", "de": "Code", "es": "Código", "it": "Codice", "pt-BR": "Código", "nl": "Code",
+    "ja": "コード", "zh-Hans": "状态码", "zh-Hant": "狀態碼", "ko": "코드", "ru": "Код", "ar": "الرمز"
+  },
+  "Recency": {
+    "comment": "Filter chip title for how recently the request was sent",
+    "fr": "Récence", "de": "Aktualität", "es": "Actualidad", "it": "Recenza", "pt-BR": "Recência",
+    "nl": "Recentheid", "ja": "経過時間", "zh-Hans": "时效", "zh-Hant": "時效", "ko": "최근성",
+    "ru": "Давность", "ar": "الحداثة"
+  },
+  "(anonymous)": {
+    "comment": "Operation name shown for a GraphQL document that declares no name",
+    "fr": "(anonyme)", "de": "(anonym)", "es": "(anónima)", "it": "(anonima)", "pt-BR": "(anônima)",
+    "nl": "(anoniem)", "ja": "（匿名）", "zh-Hans": "（匿名）", "zh-Hant": "（匿名）", "ko": "(익명)",
+    "ru": "(аноним)", "ar": "(مجهول)"
+  },
+  "Image": {
+    "comment": "Content type filter option for image responses",
+    "fr": "Image", "de": "Bild", "es": "Imagen", "it": "Immagine", "pt-BR": "Imagem",
+    "nl": "Afbeelding", "ja": "画像", "zh-Hans": "图像", "zh-Hant": "影像", "ko": "이미지",
+    "ru": "Изображение", "ar": "صورة"
+  },
+  "Other": {
+    "comment": "Content type filter option for responses that are not JSON, XML, HTML or an image",
+    "fr": "Autre", "de": "Andere", "es": "Otro", "it": "Altro", "pt-BR": "Outro", "nl": "Overig",
+    "ja": "その他", "zh-Hans": "其他", "zh-Hant": "其他", "ko": "기타", "ru": "Другое", "ar": "أخرى"
+  },
+  "Not %@": {
+    "comment": "Host filter chip title when a single host is excluded; %@ is the host name",
+    "fr": "Sauf %@", "de": "Nicht %@", "es": "Excepto %@", "it": "Tranne %@", "pt-BR": "Exceto %@",
+    "nl": "Niet %@", "ja": "%@以外", "zh-Hans": "非 %@", "zh-Hant": "非 %@", "ko": "%@ 제외",
+    "ru": "Кроме %@", "ar": "ليس %@"
+  },
+  "%@ · %lld": {
+    "comment": "Filter chip title when several values are selected; %@ is the dimension title and %lld the count",
+    "fr": "%@ · %lld", "de": "%@ · %lld", "es": "%@ · %lld", "it": "%@ · %lld", "pt-BR": "%@ · %lld",
+    "nl": "%@ · %lld", "ja": "%@ · %lld", "zh-Hans": "%@ · %lld", "zh-Hant": "%@ · %lld",
+    "ko": "%@ · %lld", "ru": "%@ · %lld", "ar": "%@ · %lld"
+  },
+  "Any": {
+    "comment": "All-filters row summary when a dimension has no selection",
+    "fr": "Tous", "de": "Alle", "es": "Cualquiera", "it": "Qualsiasi", "pt-BR": "Qualquer",
+    "nl": "Alle", "ja": "すべて", "zh-Hans": "任意", "zh-Hant": "任意", "ko": "모두",
+    "ru": "Любой", "ar": "أي"
+  },
+  "Exclude: %@": {
+    "comment": "All-filters row summary for excluded hosts; %@ is the comma separated host list",
+    "fr": "Exclure : %@", "de": "Ausschließen: %@", "es": "Excluir: %@", "it": "Escludi: %@",
+    "pt-BR": "Excluir: %@", "nl": "Uitsluiten: %@", "ja": "除外：%@", "zh-Hans": "排除：%@",
+    "zh-Hant": "排除：%@", "ko": "제외: %@", "ru": "Кроме: %@", "ar": "استبعاد: %@"
+  },
+  "All filters, %lld selected": {
+    "comment": "Accessibility label of the leading filter bar chip when something is selected",
+    "plural": true,
+    "en":      { "one": "All filters, %lld selected", "other": "All filters, %lld selected" },
+    "fr":      { "one": "Tous les filtres, %lld sélectionné", "other": "Tous les filtres, %lld sélectionnés" },
+    "de":      { "one": "Alle Filter, %lld ausgewählt", "other": "Alle Filter, %lld ausgewählt" },
+    "es":      { "one": "Todos los filtros, %lld seleccionado", "other": "Todos los filtros, %lld seleccionados" },
+    "it":      { "one": "Tutti i filtri, %lld selezionato", "other": "Tutti i filtri, %lld selezionati" },
+    "pt-BR":   { "one": "Todos os filtros, %lld selecionado", "other": "Todos os filtros, %lld selecionados" },
+    "nl":      { "one": "Alle filters, %lld geselecteerd", "other": "Alle filters, %lld geselecteerd" },
+    "ja":      { "other": "すべてのフィルタ、%lld件選択済み" },
+    "zh-Hans": { "other": "所有筛选条件，已选择 %lld 项" },
+    "zh-Hant": { "other": "所有篩選條件，已選取 %lld 項" },
+    "ko":      { "other": "모든 필터, %lld개 선택됨" },
+    "ru":      { "one": "Все фильтры, выбран %lld", "few": "Все фильтры, выбрано %lld", "many": "Все фильтры, выбрано %lld", "other": "Все фильтры, выбрано %lld" },
+    "ar":      { "zero": "كل عوامل التصفية، %lld محدد", "one": "كل عوامل التصفية، %lld محدد", "two": "كل عوامل التصفية، %lld محددان", "few": "كل عوامل التصفية، %lld محددة", "many": "كل عوامل التصفية، %lld محددًا", "other": "كل عوامل التصفية، %lld محدد" }
+  },
+  "%@, %lld selected": {
+    "comment": "Accessibility label of a dimension chip with a selection; %@ is the dimension title and %lld the count",
+    "plural": true,
+    "en":      { "one": "%@, %lld selected", "other": "%@, %lld selected" },
+    "fr":      { "one": "%@, %lld sélectionné", "other": "%@, %lld sélectionnés" },
+    "de":      { "one": "%@, %lld ausgewählt", "other": "%@, %lld ausgewählt" },
+    "es":      { "one": "%@, %lld seleccionado", "other": "%@, %lld seleccionados" },
+    "it":      { "one": "%@, %lld selezionato", "other": "%@, %lld selezionati" },
+    "pt-BR":   { "one": "%@, %lld selecionado", "other": "%@, %lld selecionados" },
+    "nl":      { "one": "%@, %lld geselecteerd", "other": "%@, %lld geselecteerd" },
+    "ja":      { "other": "%@、%lld件選択済み" },
+    "zh-Hans": { "other": "%@，已选择 %lld 项" },
+    "zh-Hant": { "other": "%@，已選取 %lld 項" },
+    "ko":      { "other": "%@, %lld개 선택됨" },
+    "ru":      { "one": "%@, выбран %lld", "few": "%@, выбрано %lld", "many": "%@, выбрано %lld", "other": "%@, выбрано %lld" },
+    "ar":      { "zero": "%@، %lld محدد", "one": "%@، %lld محدد", "two": "%@، %lld محددان", "few": "%@، %lld محددة", "many": "%@، %lld محددًا", "other": "%@، %lld محدد" }
+  },
+  "The archive contains the full headers, cookies, authentication tokens, and request and response bodies of the %lld requests currently shown. This data may be extremely sensitive. Handle and share it with extreme care.": {
+    "comment": "Body of the alert shown before sharing the archive; %lld is the request count",
+    "plural": true,
+    "en": {
+      "one": "The archive contains the full headers, cookies, authentication tokens, and request and response bodies of the %lld request currently shown. This data may be extremely sensitive. Handle and share it with extreme care.",
+      "other": "The archive contains the full headers, cookies, authentication tokens, and request and response bodies of the %lld requests currently shown. This data may be extremely sensitive. Handle and share it with extreme care."
+    },
+    "fr": {
+      "one": "L’archive contient l’intégralité des en-têtes, cookies, jetons d’authentification et corps de requête et de réponse de la %lld requête actuellement affichée. Ces données peuvent être extrêmement sensibles. Manipulez-les et partagez-les avec la plus grande prudence.",
+      "other": "L’archive contient l’intégralité des en-têtes, cookies, jetons d’authentification et corps de requête et de réponse des %lld requêtes actuellement affichées. Ces données peuvent être extrêmement sensibles. Manipulez-les et partagez-les avec la plus grande prudence."
+    },
+    "de": {
+      "one": "Das Archiv enthält die vollständigen Header, Cookies, Authentifizierungstokens sowie Anfrage- und Antwort-Bodys der %lld derzeit angezeigten Anfrage. Diese Daten können äußerst sensibel sein. Gehen Sie damit und mit der Weitergabe äußerst sorgfältig um.",
+      "other": "Das Archiv enthält die vollständigen Header, Cookies, Authentifizierungstokens sowie Anfrage- und Antwort-Bodys der %lld derzeit angezeigten Anfragen. Diese Daten können äußerst sensibel sein. Gehen Sie damit und mit der Weitergabe äußerst sorgfältig um."
+    },
+    "es": {
+      "one": "El archivo contiene los encabezados completos, las cookies, los tokens de autenticación y los cuerpos de solicitud y respuesta de la %lld solicitud que se muestra ahora. Estos datos pueden ser extremadamente confidenciales. Manéjalos y compártelos con sumo cuidado.",
+      "other": "El archivo contiene los encabezados completos, las cookies, los tokens de autenticación y los cuerpos de solicitud y respuesta de las %lld solicitudes que se muestran ahora. Estos datos pueden ser extremadamente confidenciales. Manéjalos y compártelos con sumo cuidado."
+    },
+    "it": {
+      "one": "L’archivio contiene le intestazioni complete, i cookie, i token di autenticazione e i corpi di richiesta e risposta della %lld richiesta attualmente mostrata. Questi dati possono essere estremamente sensibili. Gestiscili e condividili con la massima cautela.",
+      "other": "L’archivio contiene le intestazioni complete, i cookie, i token di autenticazione e i corpi di richiesta e risposta delle %lld richieste attualmente mostrate. Questi dati possono essere estremamente sensibili. Gestiscili e condividili con la massima cautela."
+    },
+    "pt-BR": {
+      "one": "O arquivo contém todos os cabeçalhos, cookies, tokens de autenticação e corpos de solicitação e resposta da %lld solicitação exibida no momento. Esses dados podem ser extremamente confidenciais. Manuseie e compartilhe com extremo cuidado.",
+      "other": "O arquivo contém todos os cabeçalhos, cookies, tokens de autenticação e corpos de solicitação e resposta das %lld solicitações exibidas no momento. Esses dados podem ser extremamente confidenciais. Manuseie e compartilhe com extremo cuidado."
+    },
+    "nl": {
+      "one": "Het archief bevat de volledige headers, cookies, verificatietokens en verzoek- en antwoord-bodys van het %lld verzoek dat nu wordt getoond. Deze gegevens kunnen uiterst gevoelig zijn. Ga er uiterst zorgvuldig mee om bij gebruik en delen.",
+      "other": "Het archief bevat de volledige headers, cookies, verificatietokens en verzoek- en antwoord-bodys van de %lld verzoeken die nu worden getoond. Deze gegevens kunnen uiterst gevoelig zijn. Ga er uiterst zorgvuldig mee om bij gebruik en delen."
+    },
+    "ja": {
+      "other": "アーカイブには、現在表示されている%lld件のリクエストのヘッダー、Cookie、認証トークン、リクエストおよびレスポンスのボディがすべて含まれます。これらのデータは極めて機密性が高い場合があります。取り扱いと共有には細心の注意を払ってください。"
+    },
+    "zh-Hans": {
+      "other": "归档包含当前显示的 %lld 个请求的完整标头、Cookie、认证令牌以及请求和响应正文。这些数据可能极为敏感。请极其谨慎地处理和共享。"
+    },
+    "zh-Hant": {
+      "other": "封存包含目前顯示的 %lld 個請求的完整標頭、Cookie、驗證權杖以及請求和回應內容。這些資料可能極為敏感。請極為謹慎地處理和分享。"
+    },
+    "ko": {
+      "other": "아카이브에는 현재 표시된 요청 %lld개의 전체 헤더, 쿠키, 인증 토큰, 요청 및 응답 본문이 포함됩니다. 이 데이터는 매우 민감할 수 있습니다. 취급과 공유에 각별히 주의하십시오."
+    },
+    "ru": {
+      "one": "Архив содержит полные заголовки, файлы cookie, токены аутентификации, а также тела запроса и ответа %lld показанного запроса. Эти данные могут быть крайне конфиденциальными. Обращайтесь с ними и делитесь ими с особой осторожностью.",
+      "few": "Архив содержит полные заголовки, файлы cookie, токены аутентификации, а также тела запросов и ответов %lld показанных запросов. Эти данные могут быть крайне конфиденциальными. Обращайтесь с ними и делитесь ими с особой осторожностью.",
+      "many": "Архив содержит полные заголовки, файлы cookie, токены аутентификации, а также тела запросов и ответов %lld показанных запросов. Эти данные могут быть крайне конфиденциальными. Обращайтесь с ними и делитесь ими с особой осторожностью.",
+      "other": "Архив содержит полные заголовки, файлы cookie, токены аутентификации, а также тела запросов и ответов %lld показанных запросов. Эти данные могут быть крайне конфиденциальными. Обращайтесь с ними и делитесь ими с особой осторожностью."
+    },
+    "ar": {
+      "zero": "يحتوي الأرشيف على الترويسات وملفات تعريف الارتباط ورموز المصادقة ومحتويات الطلب والاستجابة كاملةً لـ %lld طلب معروض حاليًا. قد تكون هذه البيانات بالغة الحساسية. تعامل معها وشاركها بحذر شديد.",
+      "one": "يحتوي الأرشيف على الترويسات وملفات تعريف الارتباط ورموز المصادقة ومحتويات الطلب والاستجابة كاملةً لـ %lld طلب معروض حاليًا. قد تكون هذه البيانات بالغة الحساسية. تعامل معها وشاركها بحذر شديد.",
+      "two": "يحتوي الأرشيف على الترويسات وملفات تعريف الارتباط ورموز المصادقة ومحتويات الطلبات والاستجابات كاملةً لـ %lld طلبين معروضين حاليًا. قد تكون هذه البيانات بالغة الحساسية. تعامل معها وشاركها بحذر شديد.",
+      "few": "يحتوي الأرشيف على الترويسات وملفات تعريف الارتباط ورموز المصادقة ومحتويات الطلبات والاستجابات كاملةً لـ %lld طلبات معروضة حاليًا. قد تكون هذه البيانات بالغة الحساسية. تعامل معها وشاركها بحذر شديد.",
+      "many": "يحتوي الأرشيف على الترويسات وملفات تعريف الارتباط ورموز المصادقة ومحتويات الطلبات والاستجابات كاملةً لـ %lld طلبًا معروضًا حاليًا. قد تكون هذه البيانات بالغة الحساسية. تعامل معها وشاركها بحذر شديد.",
+      "other": "يحتوي الأرشيف على الترويسات وملفات تعريف الارتباط ورموز المصادقة ومحتويات الطلبات والاستجابات كاملةً لـ %lld طلب معروض حاليًا. قد تكون هذه البيانات بالغة الحساسية. تعامل معها وشاركها بحذر شديد."
+    }
+  },
+  "Preparing archive of %lld requests…": {
+    "comment": "Progress row shown while the export archive is being written",
+    "plural": true,
+    "en":      { "one": "Preparing archive of %lld request…", "other": "Preparing archive of %lld requests…" },
+    "fr":      { "one": "Préparation de l’archive de %lld requête…", "other": "Préparation de l’archive de %lld requêtes…" },
+    "de":      { "one": "Archiv mit %lld Anfrage wird vorbereitet…", "other": "Archiv mit %lld Anfragen wird vorbereitet…" },
+    "es":      { "one": "Preparando el archivo de %lld solicitud…", "other": "Preparando el archivo de %lld solicitudes…" },
+    "it":      { "one": "Preparazione dell’archivio di %lld richiesta…", "other": "Preparazione dell’archivio di %lld richieste…" },
+    "pt-BR":   { "one": "Preparando arquivo de %lld solicitação…", "other": "Preparando arquivo de %lld solicitações…" },
+    "nl":      { "one": "Archief van %lld verzoek wordt voorbereid…", "other": "Archief van %lld verzoeken wordt voorbereid…" },
+    "ja":      { "other": "%lld件のリクエストのアーカイブを準備中…" },
+    "zh-Hans": { "other": "正在准备 %lld 个请求的归档…" },
+    "zh-Hant": { "other": "正在準備 %lld 個請求的封存…" },
+    "ko":      { "other": "요청 %lld개의 아카이브를 준비하는 중…" },
+    "ru":      { "one": "Подготовка архива из %lld запроса…", "few": "Подготовка архива из %lld запросов…", "many": "Подготовка архива из %lld запросов…", "other": "Подготовка архива из %lld запросов…" },
+    "ar":      { "zero": "جارٍ تحضير أرشيف لـ %lld طلب…", "one": "جارٍ تحضير أرشيف لـ %lld طلب…", "two": "جارٍ تحضير أرشيف لـ %lld طلبين…", "few": "جارٍ تحضير أرشيف لـ %lld طلبات…", "many": "جارٍ تحضير أرشيف لـ %lld طلبًا…", "other": "جارٍ تحضير أرشيف لـ %lld طلب…" }
+  },
+  "Batch (%lld operations)": {
+    "comment": "Operation name shown for a batched GraphQL payload; %lld is the operation count",
+    "plural": true,
+    "en":      { "one": "Batch (%lld operation)", "other": "Batch (%lld operations)" },
+    "fr":      { "one": "Lot (%lld opération)", "other": "Lot (%lld opérations)" },
+    "de":      { "one": "Batch (%lld Operation)", "other": "Batch (%lld Operationen)" },
+    "es":      { "one": "Lote (%lld operación)", "other": "Lote (%lld operaciones)" },
+    "it":      { "one": "Batch (%lld operazione)", "other": "Batch (%lld operazioni)" },
+    "pt-BR":   { "one": "Lote (%lld operação)", "other": "Lote (%lld operações)" },
+    "nl":      { "one": "Batch (%lld bewerking)", "other": "Batch (%lld bewerkingen)" },
+    "ja":      { "other": "バッチ（%lld件のオペレーション）" },
+    "zh-Hans": { "other": "批量（%lld 个操作）" },
+    "zh-Hant": { "other": "批次（%lld 個操作）" },
+    "ko":      { "other": "배치(오퍼레이션 %lld개)" },
+    "ru":      { "one": "Пакет (%lld операция)", "few": "Пакет (%lld операции)", "many": "Пакет (%lld операций)", "other": "Пакет (%lld операции)" },
+    "ar":      { "zero": "دفعة (%lld عملية)", "one": "دفعة (%lld عملية)", "two": "دفعة (%lld عمليتان)", "few": "دفعة (%lld عمليات)", "many": "دفعة (%lld عملية)", "other": "دفعة (%lld عملية)" }
+  },
+  "%lld bytes": {
+    "comment": "Response size row value; %lld is the response body length in bytes",
+    "plural": true,
+    "en":      { "one": "%lld byte", "other": "%lld bytes" },
+    "fr":      { "one": "%lld octet", "other": "%lld octets" },
+    "de":      { "one": "%lld Byte", "other": "%lld Bytes" },
+    "es":      { "one": "%lld byte", "other": "%lld bytes" },
+    "it":      { "one": "%lld byte", "other": "%lld byte" },
+    "pt-BR":   { "one": "%lld byte", "other": "%lld bytes" },
+    "nl":      { "one": "%lld byte", "other": "%lld bytes" },
+    "ja":      { "other": "%lldバイト" },
+    "zh-Hans": { "other": "%lld 字节" },
+    "zh-Hant": { "other": "%lld 位元組" },
+    "ko":      { "other": "%lld바이트" },
+    "ru":      { "one": "%lld байт", "few": "%lld байта", "many": "%lld байт", "other": "%lld байта" },
+    "ar":      { "zero": "%lld بايت", "one": "%lld بايت", "two": "%lld بايت", "few": "%lld بايت", "many": "%lld بايت", "other": "%lld بايت" }
+  }
+}

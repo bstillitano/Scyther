@@ -41,7 +41,7 @@ struct NetworkLogExportSheet: View {
                 redactionSection
                 exportSection
             }
-            .navigationTitle("Export Network Log")
+            .navigationTitle(localized("Export Network Log"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -50,12 +50,12 @@ struct NetworkLogExportSheet: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel("Close")
+                    .accessibilityLabel(localized("Close"))
                 }
             }
-            .alert("Export Sensitive Data?", isPresented: $showingWarning) {
-                Button("Cancel", role: .cancel) {}
-                Button("Export", role: .destructive) {
+            .alert(localized("Export Sensitive Data?"), isPresented: $showingWarning) {
+                Button(localized("Cancel"), role: .cancel) {}
+                Button(localized("Export"), role: .destructive) {
                     showingShareSheet = true
                 }
             } message: {
@@ -79,31 +79,30 @@ struct NetworkLogExportSheet: View {
     }
 
     private var warningMessage: String {
-        let base = "The archive contains the full headers, cookies, authentication tokens, and request and response bodies of the \(viewModel.requestCount) requests currently shown. This data may be extremely sensitive. Handle and share it with extreme care."
-        return viewModel.redactSensitiveValues
-            ? base + " Redaction is on, but it is best effort and not a guarantee of privacy."
-            : base
+        let base = localized("The archive contains the full headers, cookies, authentication tokens, and request and response bodies of the \(viewModel.requestCount) requests currently shown. This data may be extremely sensitive. Handle and share it with extreme care.")
+        guard viewModel.redactSensitiveValues else { return base }
+        return base + " " + localized("Redaction is on, but it is best effort and not a guarantee of privacy.")
     }
 
     @ViewBuilder
     private var archiveSection: some View {
         switch viewModel.state {
         case .preparing:
-            Section("Archive") {
+            Section(localized("Archive")) {
                 HStack(spacing: 12) {
                     ProgressView()
-                    Text("Preparing archive of \(viewModel.requestCount) requests…")
+                    Text(localized("Preparing archive of \(viewModel.requestCount) requests…"))
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)
             }
         case .ready(let url):
-            Section("Archive") {
+            Section(localized("Archive")) {
                 // The spinner stays mounted as a trailing accessory and only changes
                 // opacity, so the row never re-lays out when a rebuild starts or ends.
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("File")
+                        Text(localized("File"))
                         Text(url.lastPathComponent)
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -112,10 +111,10 @@ struct NetworkLogExportSheet: View {
                     ProgressView()
                         .opacity(viewModel.isRebuilding ? 1 : 0)
                 }
-                LabeledContent("Requests", value: "\(viewModel.requestCount)")
+                LabeledContent(localized("Requests"), value: "\(viewModel.requestCount)")
             }
         case .failed(let message):
-            Section("Archive") {
+            Section(localized("Archive")) {
                 Label(message, systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.red)
             }
@@ -123,26 +122,26 @@ struct NetworkLogExportSheet: View {
     }
 
     private var contentsSection: some View {
-        Section("Contents") {
-            Label("network-log.har (HAR 1.2)", systemImage: "doc.text")
-            Label("Raw request and response bodies", systemImage: "folder")
-            Label("cURL command per request", systemImage: "terminal")
+        Section(localized("Contents")) {
+            Label("network-log.har (HAR 1.2)", systemImage: "doc.text") // scyther:unlocalised archive file name
+            Label(localized("Raw request and response bodies"), systemImage: "folder")
+            Label(localized("cURL command per request"), systemImage: "terminal")
         }
     }
 
     private var redactionSection: some View {
         Section {
             Toggle(
-                "Redact sensitive values",
+                localized("Redact sensitive values"),
                 isOn: Binding(
                     get: { viewModel.redactSensitiveValues },
                     set: { viewModel.setRedaction($0) }
                 )
             )
         } header: {
-            Text("Redaction")
+            Text(localized("Redaction"))
         } footer: {
-            Text("Replaces common tokens, cookies, passwords, and API keys in headers, URLs, bodies, and cURL commands with REDACTED. This is an attempt, not a guarantee of privacy.")
+            Text(localized("Replaces common tokens, cookies, passwords, and API keys in headers, URLs, bodies, and cURL commands with REDACTED. This is an attempt, not a guarantee of privacy."))
         }
     }
 
@@ -151,7 +150,7 @@ struct NetworkLogExportSheet: View {
             Button(role: .destructive) {
                 showingWarning = true
             } label: {
-                Text("Export")
+                Text(localized("Export"))
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
             }
