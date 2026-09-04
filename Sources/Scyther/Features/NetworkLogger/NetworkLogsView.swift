@@ -16,9 +16,11 @@ import SwiftUI
 /// ## Features
 /// - Real-time updates as new requests are captured
 /// - Search functionality across URLs, status codes, and HTTP methods
-/// - Filter chips for method, status class, host, content type, GraphQL kind, duration, exact status
-///   code, and recency, each opening a selection sheet, plus an all-filters chip that edits every
-///   dimension on one screen
+/// - Filter chips for method, status class, host, content type, API kind, GraphQL operation,
+///   duration, exact status code, and recency, each opening a selection sheet, plus an all-filters
+///   chip that edits every dimension from one Filters sheet
+/// - Export of the requests currently shown as a zip archive (HAR plus raw bodies), with optional
+///   redaction and a sensitivity alert before sharing
 /// - Color-coded status indicators
 /// - Navigation to detailed request view
 ///
@@ -37,6 +39,9 @@ struct NetworkLogsView: View {
 
     /// Whether the all-filters sheet is presented.
     @State private var showingAllFilters: Bool = false
+
+    /// The requests snapshotted for export when the export button was tapped, if any.
+    @State private var exportRequests: [HTTPRequest]?
 
     /// View model managing the network logs state and filtering.
     @StateObject private var viewModel: NetworkLogsViewModel = .init()
@@ -92,12 +97,24 @@ struct NetworkLogsView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
+                Button("Export", systemImage: "square.and.arrow.up") {
+                    exportRequests = viewModel.requests
+                }
+                .disabled(viewModel.requests.isEmpty)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button("Delete", systemImage: "trash", role: .destructive) {
                     Task {
                         await viewModel.didPressDeleteButton()
                     }
                 }
             }
+        }
+        .sheet(item: Binding(
+            get: { exportRequests.map(NetworkLogExportBatch.init) },
+            set: { exportRequests = $0?.requests }
+        )) { batch in
+            NetworkLogExportSheet(viewModel: NetworkLogExportViewModel(requests: batch.requests))
         }
         .searchable(
             text: $searchText,
@@ -108,4 +125,10 @@ struct NetworkLogsView: View {
             viewModel.setSearchTerm(to: $0)
         }
     }
+}
+
+/// An identifiable wrapper for the requests snapshotted at export time, used to drive the export sheet.
+struct NetworkLogExportBatch: Identifiable {
+    let id = UUID()
+    let requests: [HTTPRequest]
 }
