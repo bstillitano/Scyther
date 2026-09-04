@@ -131,8 +131,8 @@ extension Location {
             return localized("Nairobi, Kenya")
         case "Marseille, France":
             return localized("Marseille, France")
-        case "Manila, Phillipines":
-            return localized("Manila, Phillipines")
+        case "Manila, Philippines":
+            return localized("Manila, Philippines")
         case "New York, USA":
             return localized("New York, USA")
         case "Mumbai, India":
@@ -219,7 +219,7 @@ extension Location {
                                     latitude: 43.2965,
                                     longitude: 5.3698)
     static let manila = Location(id: "manila",
-                                 name: "Manila, Phillipines",
+                                 name: "Manila, Philippines",
                                  latitude: 14.5995,
                                  longitude: 120.9842)
     static let newYork = Location(id: "newYork",

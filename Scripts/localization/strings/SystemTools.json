@@ -374,8 +374,8 @@
     "ru": "Марсель, Франция",
     "ar": "مرسيليا، فرنسا"
   },
-  "Manila, Phillipines": {
-    "comment": "Location preset name. The English source misspells Philippines; keep the translations correct",
+  "Manila, Philippines": {
+    "comment": "Location preset name",
     "fr": "Manille, Philippines",
     "de": "Manila, Philippinen",
     "es": "Manila, Filipinas",
