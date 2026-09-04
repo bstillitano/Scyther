@@ -91,7 +91,7 @@ struct FeatureToggleItem: Identifiable {
 ///
 ///     var body: some View {
 ///         List {
-///             Toggle("Enable overrides", isOn: $viewModel.overridesEnabled)
+///             Toggle(localized("Enable overrides"), isOn: $viewModel.overridesEnabled)
 ///             ForEach(viewModel.pinnedToggles) { toggle in
 ///                 Picker(toggle.name, selection: viewModel.binding(for: toggle.name)) {
 ///                     ForEach(FeatureToggleState.allCases) { state in

@@ -22,12 +22,14 @@ public enum FPSCounterPosition: String, CaseIterable, Sendable {
     case bottomRight
 
     /// Human-readable display name for the position.
+    ///
+    /// Resolved in Scyther's effective language on each access.
     var displayName: String {
         switch self {
-        case .topLeft: return "Top Left"
-        case .topRight: return "Top Right"
-        case .bottomLeft: return "Bottom Left"
-        case .bottomRight: return "Bottom Right"
+        case .topLeft: return localized("Top Left")
+        case .topRight: return localized("Top Right")
+        case .bottomLeft: return localized("Bottom Left")
+        case .bottomRight: return localized("Bottom Right")
         }
     }
 }

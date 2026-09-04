@@ -31,6 +31,14 @@ final class UnlocalisedLiteralLintTests: XCTestCase {
         "Features/DeepLinkTester",
         "Features/ServerConfiguration",
         "Features/EnvironmentVariables",
+        "Features/AppearanceOverrides",
+        "Features/FPSCounter",
+        "Features/GridOverlay",
+        "Features/TouchVisualiser",
+        "Features/FeatureFlags",
+        "Features/ConsoleLogger",
+        "Features/Fonts",
+        "Features/InterfacePreviews",
         "Shared",
     ]
 

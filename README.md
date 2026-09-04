@@ -298,6 +298,17 @@ Toggles can be pinned via a left swipe. Pinned toggles appear in a **Pinned** se
 top of the list and also remain in the main list. Pins persist across launches in Scyther's
 private preferences suite.
 
+#### Language
+
+The Feature Flags screen is fully localised: the navigation title, the search prompt, the
+**Enable overrides** switch, the **Reset all to Remote** button, the Global Settings and
+Toggles section headers, the empty and no-match states, the pin and unpin swipe actions, and
+the **True / False / Remote** dropdown options are read from Scyther's String Catalog and
+follow the effective menu language.
+
+Flag names stay exactly as your app registered them, and the `Remote: true` / `Remote: false`
+caption keeps its boolean literal, because both are data rather than copy.
+
 #### Reading an Override Off the Main Actor
 
 `Scyther.featureFlags` is `@MainActor`-isolated, but you can read a flag's developer
@@ -495,6 +506,14 @@ Scyther.console.stopCapturing()
 // Clear all logs
 Scyther.console.clear()
 ```
+
+#### Language
+
+The Console Logs screen is fully localised: the navigation title, the search prompt, the
+**No Logs** empty state, the **Copy** and **Copy with Timestamp** context menu actions, and the
+**Clear Logs** and **Auto-scroll** toolbar items follow the effective menu language.
+
+Captured log lines and their timestamps are never translated — they are your app's output.
 
 ---
 
@@ -854,7 +873,7 @@ Schedule local test notifications to verify your notification handling.
 #### Scheduling Test Notifications
 
 ```swift
-// Simple test notification
+// Simple test notification. Omit title and body to use Scyther's own localised copy.
 Scyther.notifications.scheduleTest(
     title: "Order Update",
     body: "Your order #12345 has shipped!",
@@ -1007,6 +1026,21 @@ Scyther.appearance.contentSizeCategory = nil
 ```
 
 All appearance settings are persisted across app launches and can be configured via the Scyther menu under **UI/UX > Appearance**.
+
+#### Language
+
+Every UI/UX screen is fully localised and follows the effective menu language: the Grid Overlay
+settings including the size and opacity labels and the red, green and blue colour options; the
+FPS Counter settings including the corner positions and the performance legend; the Touch
+Visualiser switches; the Appearance page including the colour scheme options and all twelve
+Dynamic Type size names; and the navigation titles of the Fonts and UI Previews screens.
+
+Some on-screen text stays in English because it is measurement rather than copy: the `FPS`
+suffix and the numeric readout drawn by the FPS overlay, the `w:` / `h:` view size labels, the
+grid's pixel labels, the touch duration timer, and the `Aa` type specimens beside the Dynamic
+Type slider. Font family and PostScript names, and the names and descriptions of the components
+your app registers via `ScytherPreviewable`, are data supplied by the system or your app and are
+shown verbatim.
 
 ---
 

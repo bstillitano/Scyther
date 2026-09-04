@@ -23,14 +23,14 @@ struct FPSCounterSettingsView: View {
             Section {
                 Toggle(isOn: $viewModel.isEnabled) {
                     Label {
-                        Text("Enable FPS Counter")
+                        Text(localized("Enable FPS Counter"))
                     } icon: {
                         Image(systemName: "speedometer")
                             .foregroundStyle(Color.accentColor)
                     }
                 }
             } footer: {
-                Text("Displays a real-time frame rate indicator on screen.")
+                Text(localized("Displays a real-time frame rate indicator on screen."))
             }
 
             if viewModel.isEnabled {
@@ -51,29 +51,29 @@ struct FPSCounterSettingsView: View {
                         }
                     }
                 } header: {
-                    Text("Position")
+                    Text(localized("Position"))
                 } footer: {
-                    Text("Choose which corner of the screen to display the FPS counter.")
+                    Text(localized("Choose which corner of the screen to display the FPS counter."))
                 }
 
                 Section {
                     HStack {
-                        Text("Current FPS")
+                        Text(localized("Current FPS"))
                         Spacer()
-                        Text("\(viewModel.currentFPS)")
+                        Text(verbatim: "\(viewModel.currentFPS)")
                             .foregroundStyle(Color(FPSCounter.color(for: viewModel.currentFPS)))
                             .fontWeight(.semibold)
                             .monospacedDigit()
                     }
                 } header: {
-                    Text("Status")
+                    Text(localized("Status"))
                 } footer: {
                     VStack(alignment: .leading, spacing: 4) {
-                        Label("55+ FPS: Excellent", systemImage: "circle.fill")
+                        Label(localized("55+ FPS: Excellent"), systemImage: "circle.fill")
                             .foregroundStyle(.green)
-                        Label("30-54 FPS: Acceptable", systemImage: "circle.fill")
+                        Label(localized("30-54 FPS: Acceptable"), systemImage: "circle.fill")
                             .foregroundStyle(.yellow)
-                        Label("<30 FPS: Poor", systemImage: "circle.fill")
+                        Label(localized("<30 FPS: Poor"), systemImage: "circle.fill")
                             .foregroundStyle(.red)
                     }
                     .font(.caption)
@@ -81,7 +81,7 @@ struct FPSCounterSettingsView: View {
                 }
             }
         }
-        .navigationTitle("FPS Counter")
+        .navigationTitle(localized("FPS Counter"))
         .animation(.default, value: viewModel.isEnabled)
         .onFirstAppear {
             await viewModel.onFirstAppear()

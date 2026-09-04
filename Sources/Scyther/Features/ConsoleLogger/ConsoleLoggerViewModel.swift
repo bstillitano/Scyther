@@ -38,10 +38,10 @@ import SwiftUI
 ///             await viewModel.onFirstAppear()
 ///         }
 ///         .toolbar {
-///             Button("Clear") {
+///             Button(localized("Clear")) {
 ///                 viewModel.clearLogs()
 ///             }
-///             Toggle("Auto-scroll", isOn: $viewModel.autoScroll)
+///             Toggle(localized("Auto-scroll"), isOn: $viewModel.autoScroll)
 ///         }
 ///     }
 /// }
@@ -132,7 +132,7 @@ class ConsoleLoggerViewModel: ViewModel {
     /// Button(role: .destructive) {
     ///     viewModel.clearLogs()
     /// } label: {
-    ///     Label("Clear Logs", systemImage: "trash")
+    ///     Label(localized("Clear Logs"), systemImage: "trash")
     /// }
     /// ```
     func clearLogs() {

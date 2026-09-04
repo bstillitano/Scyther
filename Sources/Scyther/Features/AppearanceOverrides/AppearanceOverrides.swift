@@ -29,12 +29,12 @@ public enum ColorSchemeOverride: String, CaseIterable, Sendable {
         }
     }
 
-    /// Human-readable display name.
+    /// Human-readable display name, resolved in Scyther's effective language on each access.
     var displayName: String {
         switch self {
-        case .system: return "System"
-        case .light: return "Light"
-        case .dark: return "Dark"
+        case .system: return localized("System")
+        case .light: return localized("Light")
+        case .dark: return localized("Dark")
         }
     }
 }
@@ -244,25 +244,31 @@ extension UIContentSizeCategory {
     ]
 
     /// Human-readable display name for this content size category.
+    ///
+    /// Resolved in Scyther's effective language on each access, so it follows a language
+    /// override without a relaunch. Unknown categories fall back to their raw value.
     public var displayName: String {
         switch self {
-        case .extraSmall: return "Extra Small"
-        case .small: return "Small"
-        case .medium: return "Medium"
-        case .large: return "Large (Default)"
-        case .extraLarge: return "Extra Large"
-        case .extraExtraLarge: return "XX Large"
-        case .extraExtraExtraLarge: return "XXX Large"
-        case .accessibilityMedium: return "Accessibility M"
-        case .accessibilityLarge: return "Accessibility L"
-        case .accessibilityExtraLarge: return "Accessibility XL"
-        case .accessibilityExtraExtraLarge: return "Accessibility XXL"
-        case .accessibilityExtraExtraExtraLarge: return "Accessibility XXXL"
+        case .extraSmall: return localized("Extra Small")
+        case .small: return localized("Small")
+        case .medium: return localized("Medium")
+        case .large: return localized("Large (Default)")
+        case .extraLarge: return localized("Extra Large")
+        case .extraExtraLarge: return localized("XX Large")
+        case .extraExtraExtraLarge: return localized("XXX Large")
+        case .accessibilityMedium: return localized("Accessibility M")
+        case .accessibilityLarge: return localized("Accessibility L")
+        case .accessibilityExtraLarge: return localized("Accessibility XL")
+        case .accessibilityExtraExtraLarge: return localized("Accessibility XXL")
+        case .accessibilityExtraExtraExtraLarge: return localized("Accessibility XXXL")
         default: return rawValue
         }
     }
 
     /// Short display name for use in compact UI.
+    ///
+    /// These are size abbreviations rather than words, so they are the same in every
+    /// language and are deliberately not routed through `localized(_:)`.
     public var shortDisplayName: String {
         switch self {
         case .extraSmall: return "XS"

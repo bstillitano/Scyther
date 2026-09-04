@@ -29,7 +29,7 @@ import SwiftUI
 ///
 ///     var body: some View {
 ///         List {
-///             Toggle("Enable grid", isOn: $viewModel.isEnabled)
+///             Toggle(localized("Enable Grid"), isOn: $viewModel.isEnabled)
 ///             Slider(value: $viewModel.gridSizeFloat, in: 1...100)
 ///         }
 ///         .onFirstAppear {
@@ -60,6 +60,7 @@ import SwiftUI
 /// ### Actions
 ///
 /// - ``selectColor(_:)``
+/// - ``displayName(for:)``
 class GridOverlayViewModel: ViewModel {
     /// Whether the grid overlay is currently enabled.
     ///
@@ -131,6 +132,21 @@ class GridOverlayViewModel: ViewModel {
         gridSize = GridOverlay.instance.size
         opacity = Int(GridOverlay.instance.opacity * 100)
         selectedColor = GridOverlay.instance.colorScheme
+    }
+
+    /// The localised name shown for a grid colour option.
+    ///
+    /// `GridOverlayColorScheme` stores its cases as lowercase raw values, which are not
+    /// user-facing copy, so the label is resolved from the String Catalog on each access.
+    ///
+    /// - Parameter color: The colour scheme to describe.
+    /// - Returns: The colour's name in Scyther's effective language.
+    func displayName(for color: GridOverlayColorScheme) -> String {
+        switch color {
+        case .red: return localized("Red")
+        case .green: return localized("Green")
+        case .blue: return localized("Blue")
+        }
     }
 
     /// Updates the selected color scheme and synchronizes to `GridOverlay.instance`.
