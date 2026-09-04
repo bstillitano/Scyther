@@ -147,36 +147,26 @@ Scyther uses `nonisolated` properties for UserDefaults-backed settings to avoid 
 
 ### Localisation
 
-Scyther's UI ships in English plus French, German, Spanish, Italian, Brazilian Portuguese, Dutch,
-Japanese, Simplified Chinese, Traditional Chinese, Korean, Russian, and Arabic. Strings live in
-per-module fragments under `Scripts/localization/strings/`; `Scripts/localization/build_catalog.py`
-merges them into `Sources/Scyther/Resources/Localizable.xcstrings`.
+Scyther's own interface is available in twelve languages besides English: French, German,
+Spanish, Italian, Brazilian Portuguese, Dutch, Japanese, Simplified and Traditional Chinese,
+Korean, Russian, and Arabic. It picks one the same way any app does — from the language the
+user is running — so a developer on a French device opens a French debug menu without
+configuring anything. Arabic lays the menu out right to left.
 
-Every user-facing string in the package goes through `localized(_:)`, which reads from the package
-bundle (or the forced language's table when the Language override is active). A lint test fails the
-test suite if a SwiftUI literal bypasses it, and a catalog test fails if any key is missing a
-language.
-
-To add a string: use `localized("Your English text")` at the call site, add the key with all
-twelve languages to the module's fragment, and run the generator. To add a language: add its code
-to `LANGUAGES` in the generator and to `ScytherLocalization.supportedLanguages`, then fill every
-fragment.
-
-Every non-English translation in the catalog was machine-authored and is marked `needs_review`
-rather than `translated`, so a native speaker still needs to check and approve each string —
-in Xcode's String Catalog editor, or by editing the fragment and re-running the generator — before
-it should be considered final.
+Every non-English string was machine-authored and is marked `needs_review` in the catalog
+rather than `translated`. Treat them as a working draft until a native speaker has approved
+them.
 
 #### The Language page
 
-**UI/UX → Language** lists the host app's own localisations (from `Bundle.main.localizations`) as
-a native inline picker. Choosing a language writes it to `AppleLanguages`, which changes the whole
-host app's language **the next time it launches**; any host view already on screen keeps showing
-its current language until then. Scyther's own menu does not wait for that relaunch — it re-reads
-its String Catalog through the override immediately, so the menu can briefly be in a different
-language than the still-running host app. The page then shows an alert explaining the relaunch,
-offering **Later** or a destructive **Quit App** — Scyther never quits the app on its own; that
-only happens if the user taps **Quit App**.
+**UI/UX → Language** lists your app's own localisations and switches between them, so a tester
+can check a screen in Japanese without changing the device language or reinstalling.
+
+The switch takes effect app-wide on the next launch, so the page offers to quit — **Later** or
+**Quit App**, and Scyther never quits on its own. Scyther's menu switches immediately, which
+means it can briefly be in a different language than the screen behind it. That is expected:
+iOS reads the app's language once at launch, and no app can retranslate views already on
+screen without restarting.
 
 #### `Scyther.localization`
 
@@ -196,6 +186,19 @@ sample notification copy instead of English placeholder text.
 The example app at `Example/ScytherExample` ships its own
 `Example/ScytherExample/Resources/Localizable.xcstrings`, so it is fully localised in the same
 languages independently of the package's own catalog.
+
+#### Adding or correcting a translation
+
+Strings live in per-module fragments under `Scripts/localization/strings/`, which
+`Scripts/localization/build_catalog.py` merges into the shipped String Catalog. Edit the
+fragment and re-run the generator rather than editing the catalog directly — CI regenerates
+it and fails on any drift.
+
+To add a string, call `localized("Your English text")` at the call site and add the key with
+every supported language to that module's fragment. To add a language, list its code in the
+generator's `LANGUAGES` and in `ScytherLocalization.supportedLanguages`, then fill in every
+fragment. A test fails the suite if a SwiftUI literal bypasses `localized(_:)`, and another
+fails if any key is missing a language.
 
 ## Preferences Storage
 
@@ -1104,23 +1107,16 @@ app clearing its own `UserDefaults`. See [Preferences Storage](#preferences-stor
 
 ### Menu language
 
-Every label in the main menu — the section headers, the row titles, the search field, the
-pin and unpin actions, and the search results including the labels of rows inside settings
-pages — is read from Scyther's String Catalog and shown in the effective language. Scyther
-ships English plus French, German, Spanish, Italian, Brazilian Portuguese, Dutch, Japanese,
-Simplified and Traditional Chinese, Korean, Russian and Arabic.
+Scyther's menu follows your app. If your app is localised into any of the twelve languages
+Scyther ships, the menu appears in whichever one the user is running; otherwise it follows
+the device language and falls back to English. There is nothing to configure and no setup
+step — adding a localisation to your app is enough.
 
-A few labels stay in English everywhere because they are technical tokens rather than copy:
-`UUID`, `UserDefaults`, `HAR`, `cURL`, HTTP method names, and the `Scyther` brand itself.
-Search alias keywords ("remote config", "sqlite", "env var") also stay English — they are
-never displayed, and they are the jargon a developer types regardless of interface language.
-Rows you register through `Scyther.developerOptions` show the name you supply, unchanged.
+Rows you register through `Scyther.developerOptions` display the name you pass in, unchanged,
+so localise that string yourself if you want it translated alongside the rest.
 
-Section identity is separate from section copy. Each section carries a stable `id`
-(`device`, `application`, `developmentTools`, `networking`, `data`, `security`,
-`systemTools`, `notifications`, `uiux`, plus `pinned`), and the iOS-Settings-style icon
-tile colours are keyed on that id rather than on the header text — so a row keeps its
-colour in every language.
+To read the menu in a language your app does not ship, or to check how your own screens look
+in one, use **UI/UX → Language**. See [Localisation](#localisation).
 
 ---
 
