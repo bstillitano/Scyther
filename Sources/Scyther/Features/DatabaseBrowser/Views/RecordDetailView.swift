@@ -137,7 +137,7 @@ struct RecordDetailView: View {
                     .foregroundStyle(.secondary)
 
                 if isPrimaryKey {
-                    Text(verbatim: "PK")
+                    Text(localized("PK"))
                         .font(.caption2.bold())
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)

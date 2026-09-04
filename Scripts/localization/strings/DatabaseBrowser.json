@@ -391,6 +391,21 @@
     "ru": "Первичный ключ",
     "ar": "المفتاح الأساسي"
   },
+  "PK": {
+    "comment": "Badge marking a primary-key column; keep short",
+    "fr": "PK",
+    "de": "PK",
+    "es": "PK",
+    "it": "PK",
+    "pt-BR": "PK",
+    "nl": "PK",
+    "ja": "PK",
+    "zh-Hans": "主键",
+    "zh-Hant": "主鍵",
+    "ko": "PK",
+    "ru": "PK",
+    "ar": "PK"
+  },
   "Values": {
     "comment": "Section header above a record's column values",
     "fr": "Valeurs",

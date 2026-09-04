@@ -97,7 +97,7 @@ struct RecordEditorView: View {
                         .font(.headline)
 
                     if column.isPrimaryKey {
-                        Text(verbatim: "PK")
+                        Text(localized("PK"))
                             .font(.caption2.bold())
                             .padding(.horizontal, 4)
                             .padding(.vertical, 2)

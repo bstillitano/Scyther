@@ -98,7 +98,7 @@ struct SchemaView: View {
                 Spacer()
 
                 if column.isPrimaryKey {
-                    Text(verbatim: "PK")
+                    Text(localized("PK"))
                         .font(.caption2.bold())
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
