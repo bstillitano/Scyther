@@ -28,9 +28,25 @@ struct LogDetailsView: View {
             developerSection
         }
         .navigationTitle("Request Details")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                exportButton
+            }
+        }
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }
+    }
+
+    /// Shares the request as a cURL command from the navigation bar.
+    ///
+    /// Presents the same system share sheet as the "Export cURL request" row in the
+    /// developer section, using ``LogDetailsViewModel/curlRequest`` as the shared item.
+    private var exportButton: some View {
+        ShareLink(item: viewModel.curlRequest) {
+            Image(systemName: "square.and.arrow.up")
+        }
+        .accessibilityLabel("Export cURL request")
     }
 
     private var overviewSection: some View {
