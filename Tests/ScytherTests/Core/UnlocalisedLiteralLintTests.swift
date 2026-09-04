@@ -13,33 +13,10 @@ import XCTest
 final class UnlocalisedLiteralLintTests: XCTestCase {
 
     /// Directories under `Sources/Scyther` that have been converted. Grows task by task.
+    ///
+    /// A single `""` entry means the whole of `Sources/Scyther` is covered.
     static let convertedDirectories: [String] = [
-        "Core",
-        "Features/Localization",
-        "Features/NetworkLogger",
-        "Features/Menu",
-        "Features/DatabaseBrowser",
-        "Features/NotificationTester",
-        "Features/NotificationLogger",
-        "Features/UserDefaults",
-        "Features/KeychainBrowser",
-        "Features/CookieBrowser",
-        "Features/CrashLogs",
-        "Features/FileBrowser",
-        "Features/DataBrowser",
-        "Features/LocationSpoofer",
-        "Features/DeepLinkTester",
-        "Features/ServerConfiguration",
-        "Features/EnvironmentVariables",
-        "Features/AppearanceOverrides",
-        "Features/FPSCounter",
-        "Features/GridOverlay",
-        "Features/TouchVisualiser",
-        "Features/FeatureFlags",
-        "Features/ConsoleLogger",
-        "Features/Fonts",
-        "Features/InterfacePreviews",
-        "Shared",
+        "",
     ]
 
     static let marker = "// scyther:unlocalised"
@@ -81,6 +58,13 @@ final class UnlocalisedLiteralLintTests: XCTestCase {
             }
         }
         XCTAssertTrue(offenders.isEmpty, "Unlocalised literals:\n" + offenders.joined(separator: "\n"))
+    }
+
+    func testEveryFeatureDirectoryIsCovered() throws {
+        let features = sourcesRoot.appendingPathComponent("Features")
+        let names = try FileManager.default.contentsOfDirectory(atPath: features.path).sorted()
+        XCTAssertFalse(names.isEmpty)
+        XCTAssertEqual(Self.convertedDirectories, [""], "lint must cover the whole source tree once every module is converted")
     }
 
     func testPatternCatchesSwiftUILiteralsAndHonoursOptOuts() {
