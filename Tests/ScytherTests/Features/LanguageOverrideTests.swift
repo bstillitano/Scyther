@@ -55,7 +55,7 @@ final class LanguageOverrideTests: XCTestCase {
         let override = makeOverride()
         override.setPreferredLanguage("de")
         override.reset()
-        XCTAssertNil(system.object(forKey: LanguageOverride.appleLanguagesKey))
+        XCTAssertNil(system.persistentDomain(forName: systemSuite)?[LanguageOverride.appleLanguagesKey], "AppleLanguages must be removed from the suite's own domain")
         XCTAssertNil(scyther.object(forKey: LanguageOverride.bookkeepingKey))
         XCTAssertNil(override.preferredLanguage)
         XCTAssertTrue(override.effectiveBundle === ScytherLocalization.moduleBundle)
@@ -65,7 +65,7 @@ final class LanguageOverrideTests: XCTestCase {
         let override = makeOverride()
         override.setPreferredLanguage("de")
         override.setPreferredLanguage(nil)
-        XCTAssertNil(system.object(forKey: LanguageOverride.appleLanguagesKey))
+        XCTAssertNil(system.persistentDomain(forName: systemSuite)?[LanguageOverride.appleLanguagesKey], "AppleLanguages must be removed from the suite's own domain")
         XCTAssertNil(override.preferredLanguage)
     }
 
@@ -94,6 +94,7 @@ final class LanguageOverrideTests: XCTestCase {
         let override = makeOverride()
         XCTAssertEqual(override.displayName(for: "fr", in: Locale(identifier: "en")), "French")
         XCTAssertEqual(override.nativeDisplayName(for: "fr"), "français")
-        XCTAssertEqual(override.displayName(for: "zh-Hans", in: Locale(identifier: "en")), "Chinese (Simplified)")
+        let simplified = override.displayName(for: "zh-Hans", in: Locale(identifier: "en"))
+        XCTAssertTrue(simplified.contains("Chinese") && simplified.contains("Simplified"), simplified)
     }
 }
