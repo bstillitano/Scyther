@@ -72,6 +72,7 @@ public protocol ScytherDelegate: AnyObject {
 /// - ``console``: View captured console output
 /// - ``interface``: Enable UI debugging overlays
 /// - ``location``: Spoof device location
+/// - ``localization``: Force the host app's language
 ///
 /// ## Topics
 ///
@@ -92,6 +93,7 @@ public protocol ScytherDelegate: AnyObject {
 /// - ``console``
 /// - ``interface``
 /// - ``location``
+/// - ``localization``
 ///
 /// ### Configuration
 /// - ``developerOptions``
@@ -156,6 +158,9 @@ public enum Scyther {
 
     /// Database browsing and querying.
     public static let database = DatabaseBrowsing.shared
+
+    /// App language override. Forces the host app's language via `AppleLanguages`.
+    public static let localization = LanguageOverride.shared
 
     // MARK: - Configuration
 

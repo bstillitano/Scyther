@@ -35,6 +35,10 @@ import SwiftUI
 public struct MenuView: View {
     @StateObject private var viewModel: MenuViewModel = MenuViewModel()
 
+    /// The live language override, so the whole menu re-renders the moment a language is picked
+    /// on the Language page rather than waiting for the next launch.
+    @ObservedObject private var languageOverride = LanguageOverride.shared
+
     public init() {}
 
     /// Whether the menu is showing search results instead of its sections.
@@ -71,6 +75,8 @@ public struct MenuView: View {
         }
         .navigationTitle("Scyther") // scyther:unlocalised product name
         .interactiveDismissDisabled()
+        .environment(\.locale, languageOverride.effectiveLocale ?? .current)
+        .environment(\.layoutDirection, Locale.Language(identifier: languageOverride.preferredLanguage ?? Locale.current.identifier).characterDirection == .rightToLeft ? .rightToLeft : .leftToRight)
     }
 
     /// The normal browsing content: device header, Pinned, and every menu section.
@@ -365,6 +371,7 @@ public struct MenuView: View {
         case .fpsCounter: FPSCounterSettingsView()
         case .touchVisualiser: TouchVisualiserView()
         case .appearance: AppearanceOverridesView()
+        case .language: LanguageView()
         default: EmptyView()
         }
     }
@@ -518,6 +525,8 @@ public struct MenuView: View {
         case .touchVisualiser:
             navigationRow(for: item)
         case .appearance:
+            navigationRow(for: item)
+        case .language:
             navigationRow(for: item)
         case .slowAnimations:
             toggleRow(item.title, icon: item.icon, tint: item.tint, isOn: $viewModel.slowAnimationsEnabled)

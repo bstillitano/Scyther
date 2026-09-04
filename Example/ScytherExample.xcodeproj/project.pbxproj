@@ -12,6 +12,7 @@
 		A10000010000000000000003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000003 /* Assets.xcassets */; };
 		A10000010000000000000004 /* LocationTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000004 /* LocationTestView.swift */; };
 		A10000010000000000000005 /* DemoModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000005 /* DemoModels.swift */; };
+		A10000010000000000000006 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000006 /* Localizable.xcstrings */; };
 		A10000010000000000000010 /* Scyther in Frameworks */ = {isa = PBXBuildFile; productRef = A10000030000000000000010 /* Scyther */; };
 /* End PBXBuildFile section */
 
@@ -21,6 +22,7 @@
 		A10000020000000000000003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A10000020000000000000004 /* LocationTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationTestView.swift; sourceTree = "<group>"; };
 		A10000020000000000000005 /* DemoModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoModels.swift; sourceTree = "<group>"; };
+		A10000020000000000000006 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		A10000020000000000000099 /* ScytherExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScytherExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -76,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000020000000000000003 /* Assets.xcassets */,
+				A10000020000000000000006 /* Localizable.xcstrings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -125,6 +128,18 @@
 			knownRegions = (
 				en,
 				Base,
+				fr,
+				de,
+				es,
+				it,
+				"pt-BR",
+				nl,
+				ja,
+				"zh-Hans",
+				"zh-Hant",
+				ko,
+				ru,
+				ar,
 			);
 			mainGroup = A10000050000000000000001;
 			packageReferences = (
@@ -145,6 +160,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000010000000000000003 /* Assets.xcassets in Resources */,
+				A10000010000000000000006 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -86,7 +86,7 @@ enum MenuItem: Hashable, Identifiable {
 
     // UI/UX
     case fonts, interfaceComponents, gridOverlay, fpsCounter
-    case touchVisualiser, appearance
+    case touchVisualiser, appearance, language
     case slowAnimations, showViewFrames, showViewSizes
 
     /// The identifier prefix distinguishing host-supplied rows from built-in ones.
@@ -106,7 +106,7 @@ enum MenuItem: Hashable, Identifiable {
         .locationSpoofer, .consoleLogs, .deepLinkTester, .crashLogs,
         .notificationLogger, .notificationTester, .apnsToken, .fcmToken,
         .fonts, .interfaceComponents, .gridOverlay, .fpsCounter,
-        .touchVisualiser, .appearance,
+        .touchVisualiser, .appearance, .language,
         .slowAnimations, .showViewFrames, .showViewSizes
     ]
 
@@ -150,6 +150,7 @@ enum MenuItem: Hashable, Identifiable {
         case .fpsCounter: return "fpsCounter"
         case .touchVisualiser: return "touchVisualiser"
         case .appearance: return "appearance"
+        case .language: return "language"
         case .slowAnimations: return "slowAnimations"
         case .showViewFrames: return "showViewFrames"
         case .showViewSizes: return "showViewSizes"
@@ -227,6 +228,7 @@ enum MenuItem: Hashable, Identifiable {
         case .fpsCounter: return localized("FPS Counter")
         case .touchVisualiser: return localized("Touch Visualiser")
         case .appearance: return localized("Appearance")
+        case .language: return localized("Language")
         case .slowAnimations: return localized("Slow Animations")
         case .showViewFrames: return localized("Show View Frames")
         case .showViewSizes: return localized("Show View Sizes")
@@ -279,6 +281,7 @@ enum MenuItem: Hashable, Identifiable {
         case .fpsCounter: return "speedometer"
         case .touchVisualiser: return "hand.point.up"
         case .appearance: return "paintbrush"
+        case .language: return "globe"
         case .slowAnimations: return "tortoise"
         case .showViewFrames: return "rectangle.dashed"
         case .showViewSizes: return "ruler"

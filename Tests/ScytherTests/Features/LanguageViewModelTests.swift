@@ -1,0 +1,82 @@
+//
+//  LanguageViewModelTests.swift
+//  ScytherTests
+//
+
+@testable import Scyther
+import XCTest
+
+@MainActor
+final class LanguageViewModelTests: XCTestCase {
+
+    // `nonisolated(unsafe)` because `setUpWithError()`/`tearDownWithError()` are nonisolated
+    // overrides on a `@MainActor` test case. `UserDefaults` is thread-safe, and XCTest runs
+    // setup, the test body, and teardown strictly in sequence on one test.
+    private nonisolated(unsafe) var system: UserDefaults!
+    private nonisolated(unsafe) var scyther: UserDefaults!
+    private nonisolated(unsafe) var suites: [String] = []
+
+    override func setUpWithError() throws {
+        let a = "LanguageViewModelTests.a.\(UUID().uuidString)", b = "LanguageViewModelTests.b.\(UUID().uuidString)"
+        suites = [a, b]
+        system = try XCTUnwrap(UserDefaults(suiteName: a))
+        scyther = try XCTUnwrap(UserDefaults(suiteName: b))
+    }
+
+    override func tearDownWithError() throws {
+        system.removePersistentDomain(forName: suites[0])
+        scyther.removePersistentDomain(forName: suites[1])
+    }
+
+    private func makeViewModel() -> LanguageViewModel {
+        let override = LanguageOverride(
+            systemDefaults: system, scytherDefaults: scyther,
+            hostBundle: ScytherLocalization.moduleBundle, moduleBundle: ScytherLocalization.moduleBundle
+        )
+        return LanguageViewModel(override: override)
+    }
+
+    func testRowsStartWithSystemDefaultThenHostLanguages() {
+        let viewModel = makeViewModel()
+        XCTAssertEqual(viewModel.rows.first?.id, LanguageViewModel.systemDefaultID)
+        XCTAssertTrue(viewModel.rows.dropFirst().map(\.id).contains("fr"))
+        XCTAssertTrue(viewModel.isSelected(viewModel.rows[0]))
+        XCTAssertFalse(viewModel.canReset)
+    }
+
+    func testSelectingLanguageSetsOverrideAndRequestsRelaunch() {
+        let viewModel = makeViewModel()
+        let french = viewModel.rows.first { $0.id == "fr" }!
+        viewModel.select(french)
+        XCTAssertEqual(system.stringArray(forKey: LanguageOverride.appleLanguagesKey), ["fr"])
+        XCTAssertTrue(viewModel.isSelected(french))
+        XCTAssertTrue(viewModel.showingRelaunchAlert)
+        XCTAssertTrue(viewModel.canReset)
+    }
+
+    func testSelectingSystemDefaultResets() {
+        let viewModel = makeViewModel()
+        viewModel.select(viewModel.rows.first { $0.id == "de" }!)
+        viewModel.select(viewModel.rows[0])
+        // `object(forKey:)` would still see `AppleLanguages` inherited from NSGlobalDomain, so
+        // assert against the suite's own persistent domain — the only place the override writes.
+        XCTAssertNil(system.persistentDomain(forName: suites[0])?[LanguageOverride.appleLanguagesKey])
+        XCTAssertFalse(viewModel.canReset)
+        XCTAssertTrue(viewModel.showingRelaunchAlert)
+    }
+
+    func testResetClearsOverride() {
+        let viewModel = makeViewModel()
+        viewModel.select(viewModel.rows.first { $0.id == "ja" }!)
+        viewModel.reset()
+        XCTAssertNil(system.persistentDomain(forName: suites[0])?[LanguageOverride.appleLanguagesKey])
+        XCTAssertFalse(viewModel.canReset)
+    }
+
+    func testRowsCarryNativeAndLocalisedNames() {
+        let viewModel = makeViewModel()
+        let french = viewModel.rows.first { $0.id == "fr" }!
+        XCTAssertEqual(french.nativeName, "français")
+        XCTAssertFalse(french.localizedName.isEmpty)
+    }
+}

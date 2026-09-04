@@ -115,6 +115,7 @@ enum MenuSearchIndex {
         .fpsCounter: ["frame rate", "performance", "hitches"],
         .touchVisualiser: ["touches", "taps", "gestures"],
         .appearance: ["dark mode", "light mode", "theme", "dynamic type", "contrast"],
+        .language: ["locale", "translation", "localisation", "localization", "i18n", "l10n", "region"],
         .slowAnimations: ["animation speed"],
         .showViewFrames: ["debug view", "borders", "layout"],
         .showViewSizes: ["dimensions", "layout"]
@@ -147,7 +148,8 @@ enum MenuSearchIndex {
             localized("Request Notification Permission"), localized("Send Push Notification"),
             localized("Badge Count"), localized("Cancel Scheduled Notifications"), localized("Clear Badge & Notifications")
         ]),
-        (.deepLinkTester, [localized("Open URL"), localized("Deep Link Presets"), localized("Deep Link History")])
+        (.deepLinkTester, [localized("Open URL"), localized("Deep Link Presets"), localized("Deep Link History")]),
+        (.language, [localized("System Default"), localized("Reset Language Override")])
     ]}
 
     /// Builds the sub-page entries, resolving each target's home section from the
