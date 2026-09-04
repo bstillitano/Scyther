@@ -43,6 +43,7 @@ import Foundation
 /// - ``devicePreferredLanguages(systemDefaults:)``
 ///
 /// ### Display
+/// - ``namingLocale``
 /// - ``availableLanguages``
 /// - ``displayName(for:in:)``
 /// - ``nativeDisplayName(for:)``
@@ -127,6 +128,10 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
     /// Writes `[identifier]` to `AppleLanguages` in the system defaults and records the choice in
     /// Scyther's private suite. Passing `nil` is equivalent to ``reset()``.
     ///
+    /// The host app still switches to `identifier`; Scyther's own strings fall back to the device's
+    /// language when the catalog ships no `.lproj` for it, matching ``init(systemDefaults:scytherDefaults:hostBundle:moduleBundle:)``
+    /// and ``reset()`` rather than leaving the menu on whatever language the process launched in.
+    ///
     /// - Parameter identifier: A BCP 47 language identifier such as `"fr"` or `"zh-Hans"`.
     public func setPreferredLanguage(_ identifier: String?) {
         guard let identifier, !identifier.isEmpty else {
@@ -135,7 +140,8 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
         }
         systemDefaults.set([identifier], forKey: Self.appleLanguagesKey)
         scytherDefaults.set(identifier, forKey: Self.bookkeepingKey)
-        let bundle = Self.languageBundle(for: identifier, in: moduleBundle) ?? moduleBundle
+        let bundle = Self.languageBundle(for: identifier, in: moduleBundle)
+            ?? Self.deviceLanguageBundle(systemDefaults: systemDefaults, moduleBundle: moduleBundle)
         lock.withLock {
             _preferredLanguage = identifier
             resolvedBundle = bundle
@@ -241,15 +247,18 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
 
     // MARK: - Display
 
-    /// The locale every name on the Language page is rendered in: the forced language when one is
+    /// The locale Scyther renders names, dates, and numbers in: the forced language when one is
     /// set, otherwise the *device's* language.
     ///
-    /// Without this the page's chrome would switch language while every language name and the
-    /// Current section stayed behind, which reads as a half-translated screen. The no-override
-    /// fallback deliberately reads the device language rather than `Locale.current`, which is
-    /// frozen at launch and would still say "français" in a session relaunched under a French
-    /// override that the user has since cleared.
-    private var namingLocale: Locale {
+    /// Every caller that would otherwise reach for `Locale.current` should use this instead —
+    /// ``LanguageView``'s rows, and the `\.locale` and `\.layoutDirection` environment values
+    /// ``MenuView`` installs. Without it the chrome would switch language while every language
+    /// name stayed behind, which reads as a half-translated screen.
+    ///
+    /// The no-override fallback deliberately reads the device language rather than
+    /// `Locale.current`, which is frozen at launch and would still say "français" in a session
+    /// relaunched under a French override that the user has since cleared.
+    public var namingLocale: Locale {
         if let effectiveLocale { return effectiveLocale }
         guard let device = Self.devicePreferredLanguages(systemDefaults: systemDefaults).first else { return .current }
         return Locale(identifier: device)

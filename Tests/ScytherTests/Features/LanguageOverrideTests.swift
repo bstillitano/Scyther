@@ -93,10 +93,13 @@ final class LanguageOverrideTests: XCTestCase {
         XCTAssertEqual(override.preferredLanguage, "ja")
     }
 
-    func testLanguageNotInCatalogFallsBackToModuleBundle() {
+    /// The host app still switches to a language Scyther has no `.lproj` for; Scyther's own strings
+    /// fall back to the device's language rather than to whatever the process launched in.
+    func testLanguageNotInCatalogFallsBackToTheDeviceLanguage() {
         let override = makeOverride()
         override.setPreferredLanguage("xx")
-        XCTAssertTrue(override.effectiveBundle === ScytherLocalization.moduleBundle)
+        XCTAssertEqual(override.preferredLanguage, "xx")
+        XCTAssertEqual(override.effectiveBundle.bundlePath, deviceLanguageBundle.bundlePath)
     }
 
     func testAvailableLanguagesExcludeBaseAndSortByDisplayName() {

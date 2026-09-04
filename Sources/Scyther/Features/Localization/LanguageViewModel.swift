@@ -52,9 +52,10 @@ final class LanguageViewModel: ViewModel {
             nativeName: localized("System Default"),
             localizedName: localized("Follow the device language")
         )
-        // Named in the effective locale, not the device's, so a French override lists "allemand"
-        // rather than "German" beneath "Deutsch".
-        let naming = override.effectiveLocale ?? .current
+        // Named in the override's naming locale, so a French override lists "allemand" rather than
+        // "German" beneath "Deutsch" — and a cleared override falls back to the *device's* language
+        // rather than the language the process happens to have launched in.
+        let naming = override.namingLocale
         let languages = override.availableLanguages.map {
             LanguageRow(id: $0, nativeName: override.nativeDisplayName(for: $0), localizedName: override.displayName(for: $0, in: naming))
         }

@@ -115,6 +115,21 @@ final class LanguageViewModelTests: XCTestCase {
         XCTAssertEqual(german.localizedName, "allemand", "row names must be rendered in the forced language")
     }
 
+    /// A session that launched under a French override and then cleared it must name its rows in the
+    /// *device's* language, not the language the process started in.
+    func testRowNamesFollowTheDeviceAfterResetInARelaunchedSession() {
+        system.set(["fr"], forKey: LanguageOverride.appleLanguagesKey)
+        scyther.set("fr", forKey: LanguageOverride.bookkeepingKey)
+        let viewModel = makeViewModel()
+        XCTAssertEqual(viewModel.rows.first { $0.id == "de" }?.localizedName, "allemand")
+
+        viewModel.reset()
+
+        let device = LanguageOverride.devicePreferredLanguages(systemDefaults: system).first ?? Locale.current.identifier
+        let expected = Locale(identifier: device).localizedString(forIdentifier: "de") ?? "de"
+        XCTAssertEqual(viewModel.rows.first { $0.id == "de" }?.localizedName, expected)
+    }
+
     func testRowsCarryNativeAndLocalisedNames() {
         let viewModel = makeViewModel()
         let french = viewModel.rows.first { $0.id == "fr" }!

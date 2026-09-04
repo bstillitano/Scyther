@@ -75,8 +75,8 @@ public struct MenuView: View {
         }
         .navigationTitle("Scyther") // scyther:unlocalised product name
         .interactiveDismissDisabled()
-        .environment(\.locale, languageOverride.effectiveLocale ?? .current)
-        .environment(\.layoutDirection, Locale.Language(identifier: languageOverride.preferredLanguage ?? Locale.current.identifier).characterDirection == .rightToLeft ? .rightToLeft : .leftToRight)
+        .environment(\.locale, languageOverride.namingLocale)
+        .environment(\.layoutDirection, Locale.Language(identifier: languageOverride.namingLocale.identifier).characterDirection == .rightToLeft ? .rightToLeft : .leftToRight)
     }
 
     /// The normal browsing content: device header, Pinned, and every menu section.
