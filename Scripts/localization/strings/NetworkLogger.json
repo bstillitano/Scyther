@@ -1,5 +1,5 @@
 {
-  "Network logs": {
+  "Network Logs": {
     "comment": "Navigation title of the captured request list",
     "fr": "Journaux réseau", "de": "Netzwerkprotokolle", "es": "Registros de red", "it": "Log di rete",
     "pt-BR": "Registros de rede", "nl": "Netwerklogboeken", "ja": "ネットワークログ",

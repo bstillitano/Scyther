@@ -17,6 +17,8 @@ final class UnlocalisedLiteralLintTests: XCTestCase {
         "Core",
         "Features/Localization",
         "Features/NetworkLogger",
+        "Features/Menu",
+        "Shared",
     ]
 
     static let marker = "// scyther:unlocalised"

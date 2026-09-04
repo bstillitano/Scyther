@@ -32,6 +32,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Environment Variables](#environment-variables)
 - [Menu Invocation](#menu-invocation)
   - [Pinning menu items](#pinning-menu-items)
+  - [Menu language](#menu-language)
 - [API Reference](#api-reference)
 - [FAQ](#faq)
 - [Contributing](#contributing)
@@ -1021,6 +1022,26 @@ such as **Slow Animations**, and any custom options you register via
 
 Pins persist across launches in Scyther's private preferences suite, so they survive your
 app clearing its own `UserDefaults`. See [Preferences Storage](#preferences-storage).
+
+### Menu language
+
+Every label in the main menu — the section headers, the row titles, the search field, the
+pin and unpin actions, and the search results including the labels of rows inside settings
+pages — is read from Scyther's String Catalog and shown in the effective language. Scyther
+ships English plus French, German, Spanish, Italian, Brazilian Portuguese, Dutch, Japanese,
+Simplified and Traditional Chinese, Korean, Russian and Arabic.
+
+A few labels stay in English everywhere because they are technical tokens rather than copy:
+`UUID`, `UserDefaults`, `HAR`, `cURL`, HTTP method names, and the `Scyther` brand itself.
+Search alias keywords ("remote config", "sqlite", "env var") also stay English — they are
+never displayed, and they are the jargon a developer types regardless of interface language.
+Rows you register through `Scyther.developerOptions` show the name you supply, unchanged.
+
+Section identity is separate from section copy. Each section carries a stable `id`
+(`device`, `application`, `developmentTools`, `networking`, `data`, `security`,
+`systemTools`, `notifications`, `uiux`, plus `pinned`), and the iOS-Settings-style icon
+tile colours are keyed on that id rather than on the header text — so a row keeps its
+colour in every language.
 
 ---
 

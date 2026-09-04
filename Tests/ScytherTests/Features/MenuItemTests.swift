@@ -110,7 +110,7 @@ final class MenuItemTests: XCTestCase {
     func testDeveloperOptionTintIsTheDevelopmentToolsTint() {
         XCTAssertEqual(
             MenuItem.developerOption(name: "Panel").tint,
-            MenuSection.tint(forTitle: "Development Tools")
+            MenuSection.tint(forID: MenuSectionID.developmentTools)
         )
     }
 

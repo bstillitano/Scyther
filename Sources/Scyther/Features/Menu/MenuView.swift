@@ -53,7 +53,7 @@ public struct MenuView: View {
                 menuSections
             }
         }
-        .searchable(text: $viewModel.searchText, prompt: "Search")
+        .searchable(text: $viewModel.searchText, prompt: localized("Search"))
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
@@ -69,7 +69,7 @@ public struct MenuView: View {
         .onSubsequentAppear {
             await viewModel.onSubsequentAppear()
         }
-        .navigationTitle("Scyther")
+        .navigationTitle("Scyther") // scyther:unlocalised product name
         .interactiveDismissDisabled()
     }
 
@@ -89,13 +89,16 @@ public struct MenuView: View {
         }
 
         if !viewModel.pinnedItems.isEmpty {
+            // Identified by ``MenuSectionID/pinned`` rather than by its header text, which is
+            // localised: a language switch must not read as a different section to SwiftUI.
             Section {
                 ForEach(viewModel.pinnedItems, id: \.pinnedRowID) { item in
                     pinnableRow(for: item)
                 }
             } header: {
-                Text("Pinned")
+                Text(localized("Pinned"))
             }
+            .id(MenuSectionID.pinned)
         }
 
         ForEach(Array(viewModel.sections.dropFirst())) { section in
@@ -294,7 +297,7 @@ public struct MenuView: View {
         if #available(iOS 17.0, *) {
             ContentUnavailableView.search(text: viewModel.searchText)
         } else {
-            Text("No results for \"\(viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines))\"")
+            Text(localized("No results for \"\(viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines))\""))
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -313,7 +316,7 @@ public struct MenuView: View {
                     viewModel.togglePin(for: item)
                 } label: {
                     Label(
-                        viewModel.isPinned(item) ? "Unpin" : "Pin",
+                        viewModel.isPinned(item) ? localized("Unpin") : localized("Pin"),
                         systemImage: viewModel.isPinned(item) ? "pin.slash" : "pin"
                     )
                 }
@@ -386,7 +389,7 @@ public struct MenuView: View {
         case .buildNumber: return Bundle.main.buildNumber
         case .buildDate: return Bundle.main.buildDate.formatted()
         case .releaseType: return AppEnvironment.configuration().rawValue
-        case .apnsToken, .fcmToken: return tokenValue(for: item) ?? "Not set"
+        case .apnsToken, .fcmToken: return tokenValue(for: item) ?? localized("Not set")
         default: return nil
         }
     }
@@ -415,7 +418,7 @@ public struct MenuView: View {
                 Button {
                     UIPasteboard.general.string = token
                 } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
+                    Label(localized("Copy"), systemImage: "doc.on.doc")
                 }
             }
         }

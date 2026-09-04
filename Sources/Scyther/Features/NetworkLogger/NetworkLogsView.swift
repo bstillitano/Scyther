@@ -120,7 +120,7 @@ struct NetworkLogsView: View {
             text: $searchText,
             prompt: localized("Search via URL, Operation, Status Code or Method")
         )
-        .navigationTitle(localized("Network logs"))
+        .navigationTitle(localized("Network Logs"))
         .onChange(of: searchText) {
             viewModel.setSearchTerm(to: $0)
         }
