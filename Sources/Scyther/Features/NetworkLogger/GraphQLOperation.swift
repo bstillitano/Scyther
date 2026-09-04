@@ -59,7 +59,7 @@ struct GraphQLOperation {
             guard queryCount > 0 || pathHint else { return nil }
             let count = queryCount > 0 ? queryCount : array.count
             return GraphQLOperation(
-                operationName: "Batch (\(count) operations)",
+                operationName: localized("Batch (\(count) operations)"),
                 type: nil,
                 isBatch: true,
                 batchCount: count,
@@ -99,7 +99,7 @@ struct GraphQLOperation {
     private static func resolveName(explicit: String?, query: String?) -> String {
         if let explicit, !explicit.isEmpty { return explicit }
         if let parsed = parsedName(from: query) { return parsed }
-        return "(anonymous)"
+        return localized("(anonymous)")
     }
 
     /// The lowercased leading keyword of the document, or `nil` for shorthand `{ ... }`.

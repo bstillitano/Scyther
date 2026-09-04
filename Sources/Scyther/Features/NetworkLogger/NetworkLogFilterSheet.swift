@@ -51,7 +51,7 @@ struct NetworkLogFilterSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if viewModel.canReset {
-                        Button("Reset") { viewModel.reset() }
+                        Button(localized("Reset")) { viewModel.reset() }
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {

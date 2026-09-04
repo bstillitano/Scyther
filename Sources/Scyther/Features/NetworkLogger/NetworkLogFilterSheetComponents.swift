@@ -41,7 +41,7 @@ struct NetworkLogFilterEmptyRow: View {
     let dimensionName: String
 
     var body: some View {
-        Text("No \(dimensionName) values captured yet")
+        Text(localized("No \(dimensionName) values captured yet"))
             .fontWeight(.bold)
             .foregroundStyle(.gray)
             .frame(maxWidth: .infinity, alignment: .center)
@@ -66,7 +66,7 @@ struct NetworkLogFilterConfirmButton: View {
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.capsule)
-            .accessibilityLabel("Done")
+            .accessibilityLabel(localized("Done"))
         }
     }
 }
@@ -80,7 +80,7 @@ struct NetworkLogHostModePicker: View {
     let onChange: (HostFilterMode) -> Void
 
     var body: some View {
-        Picker("Host mode", selection: Binding(get: { mode }, set: onChange)) {
+        Picker(localized("Host mode"), selection: Binding(get: { mode }, set: onChange)) {
             ForEach(HostFilterMode.allCases, id: \.self) { mode in
                 Text(mode.displayName).tag(mode)
             }

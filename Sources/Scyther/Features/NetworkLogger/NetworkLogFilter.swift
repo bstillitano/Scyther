@@ -26,11 +26,11 @@ enum HTTPStatusClass: String, CaseIterable, Hashable, Sendable {
     /// A short label suitable for display in a chip or list row.
     var displayName: String {
         switch self {
-        case .success: return "2xx Success"
-        case .redirect: return "3xx Redirect"
-        case .clientError: return "4xx Client Error"
-        case .serverError: return "5xx Server Error"
-        case .pending: return "Pending / No Response"
+        case .success: return localized("2xx Success")
+        case .redirect: return localized("3xx Redirect")
+        case .clientError: return localized("4xx Client Error")
+        case .serverError: return localized("5xx Server Error")
+        case .pending: return localized("Pending / No Response")
         }
     }
 
@@ -85,10 +85,10 @@ enum GraphQLOperationFilter: String, CaseIterable, Hashable, Sendable {
     /// A short label suitable for display in a list row.
     var displayName: String {
         switch self {
-        case .query: return "Query"
-        case .mutation: return "Mutation"
-        case .subscription: return "Subscription"
-        case .batch: return "Batch / Unknown"
+        case .query: return localized("Query")
+        case .mutation: return localized("Mutation")
+        case .subscription: return localized("Subscription")
+        case .batch: return localized("Batch / Unknown")
         }
     }
 
@@ -117,11 +117,11 @@ enum DurationBucket: String, CaseIterable, Hashable, Sendable {
     /// A short label suitable for display in a list row.
     var displayName: String {
         switch self {
-        case .under100ms: return "Under 100ms"
-        case .from100msTo500ms: return "100ms to 500ms"
-        case .from500msTo1s: return "500ms to 1s"
-        case .from1sTo3s: return "1s to 3s"
-        case .over3s: return "Over 3s"
+        case .under100ms: return localized("Under 100ms")
+        case .from100msTo500ms: return localized("100ms to 500ms")
+        case .from500msTo1s: return localized("500ms to 1s")
+        case .from1sTo3s: return localized("1s to 3s")
+        case .over3s: return localized("Over 3s")
         }
     }
 
@@ -150,10 +150,10 @@ enum RecencyWindow: String, CaseIterable, Hashable, Sendable {
     /// A short label suitable for display in a list row.
     var displayName: String {
         switch self {
-        case .lastMinute: return "Last minute"
-        case .lastFiveMinutes: return "Last 5 minutes"
-        case .lastFifteenMinutes: return "Last 15 minutes"
-        case .lastHour: return "Last hour"
+        case .lastMinute: return localized("Last minute")
+        case .lastFiveMinutes: return localized("Last 5 minutes")
+        case .lastFifteenMinutes: return localized("Last 15 minutes")
+        case .lastHour: return localized("Last hour")
         }
     }
 
@@ -187,8 +187,8 @@ enum HostFilterMode: String, CaseIterable, Hashable, Sendable {
     /// The segment label for this mode.
     var displayName: String {
         switch self {
-        case .include: return "Include"
-        case .exclude: return "Exclude"
+        case .include: return localized("Include")
+        case .exclude: return localized("Exclude")
         }
     }
 }
@@ -207,9 +207,9 @@ enum NetworkLogFilterGroup: String, CaseIterable, Identifiable, Sendable {
     /// The section header for this group.
     var title: String {
         switch self {
-        case .request: return "Request"
-        case .response: return "Response"
-        case .timing: return "Timing"
+        case .request: return localized("Request")
+        case .response: return localized("Response")
+        case .timing: return localized("Timing")
         }
     }
 
@@ -249,15 +249,15 @@ enum NetworkLogFilterDimension: String, CaseIterable, Identifiable, Sendable {
     /// The chip and sheet title for this dimension.
     var title: String {
         switch self {
-        case .method: return "Method"
-        case .status: return "Status"
-        case .host: return "Host"
-        case .contentType: return "Type"
+        case .method: return localized("Method")
+        case .status: return localized("Status")
+        case .host: return localized("Host")
+        case .contentType: return localized("Type")
         case .api: return "API"
         case .graphQL: return "GraphQL"
-        case .duration: return "Duration"
-        case .statusCode: return "Code"
-        case .recency: return "Recency"
+        case .duration: return localized("Duration")
+        case .statusCode: return localized("Code")
+        case .recency: return localized("Recency")
         }
     }
 
@@ -485,7 +485,7 @@ struct NetworkLogFilterOption: Identifiable, Hashable, Sendable {
         case .status:
             return HTTPStatusClass.allCases.map { NetworkLogFilterOption(id: $0.rawValue, title: $0.displayName) }
         case .contentType:
-            return HTTPModelShortType.allCases.map { NetworkLogFilterOption(id: $0.rawValue, title: $0.rawValue) }
+            return HTTPModelShortType.allCases.map { NetworkLogFilterOption(id: $0.rawValue, title: $0.displayName) }
         case .api:
             return APIKind.allCases.map { NetworkLogFilterOption(id: $0.rawValue, title: $0.displayName) }
         case .graphQL:

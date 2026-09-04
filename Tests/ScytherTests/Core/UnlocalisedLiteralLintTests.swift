@@ -16,6 +16,7 @@ final class UnlocalisedLiteralLintTests: XCTestCase {
     static let convertedDirectories: [String] = [
         "Core",
         "Features/Localization",
+        "Features/NetworkLogger",
     ]
 
     static let marker = "// scyther:unlocalised"

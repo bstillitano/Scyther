@@ -97,13 +97,13 @@ struct NetworkLogsView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Export", systemImage: "square.and.arrow.up") {
+                Button(localized("Export"), systemImage: "square.and.arrow.up") {
                     exportRequests = viewModel.requests
                 }
                 .disabled(viewModel.requests.isEmpty)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Delete", systemImage: "trash", role: .destructive) {
+                Button(localized("Delete"), systemImage: "trash", role: .destructive) {
                     Task {
                         await viewModel.didPressDeleteButton()
                     }
@@ -118,9 +118,9 @@ struct NetworkLogsView: View {
         }
         .searchable(
             text: $searchText,
-            prompt: "Search via URL, Operation, Status Code or Method"
+            prompt: localized("Search via URL, Operation, Status Code or Method")
         )
-        .navigationTitle("Network logs")
+        .navigationTitle(localized("Network logs"))
         .onChange(of: searchText) {
             viewModel.setSearchTerm(to: $0)
         }

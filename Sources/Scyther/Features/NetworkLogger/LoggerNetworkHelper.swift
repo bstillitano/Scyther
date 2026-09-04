@@ -38,6 +38,19 @@ public enum HTTPModelShortType: String, CaseIterable, Sendable {
 
     /// Any other response type not covered by the above categories.
     case OTHER = "Other"
+
+    /// The label shown for this type in the network log content-type filter.
+    ///
+    /// `JSON`, `XML`, and `HTML` are technical tokens and are shown verbatim; the remaining
+    /// cases are translated. The ``RawRepresentable/rawValue`` is unchanged, so it remains the
+    /// stable identifier stored in a ``NetworkLogFilter``.
+    public var displayName: String {
+        switch self {
+        case .JSON, .XML, .HTML: return rawValue
+        case .IMAGE: return localized("Image")
+        case .OTHER: return localized("Other")
+        }
+    }
 }
 
 /// Extension providing helper properties for `URLRequest` used by the network logger.
