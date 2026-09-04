@@ -32,7 +32,29 @@ import Foundation
 ///   - comment: Context for translators. Not used at runtime.
 /// - Returns: The string in the effective language, or the English source if the key is missing.
 func localized(_ key: String.LocalizationValue, comment: StaticString? = nil) -> String {
-    String(localized: key, bundle: LanguageOverride.shared.effectiveBundle, comment: comment)
+    localized(key, comment: comment, override: .shared)
+}
+
+/// Resolves a piece of Scyther's own UI copy against a specific ``LanguageOverride``.
+///
+/// The seam ``localized(_:comment:)`` is built on, so tests can drive a throwaway override backed
+/// by its own `UserDefaults` suites instead of mutating the shared one.
+///
+/// Both the table *and* the locale come from `override`. `bundle` alone is not enough:
+/// `String(localized:bundle:locale:)` picks the `.lproj` table from `bundle`, but selects the CLDR
+/// plural category and formats `%lld` using `locale`, which otherwise defaults to `Locale.current`
+/// — frozen at process launch and so still the *launch* language after a switch on the Language
+/// page. Passing ``LanguageOverride/resolutionLocale`` keeps the two in step, so a Russian override
+/// gets Russian's `few`/`many` forms rather than English's `one`/`other`.
+///
+/// - Parameters:
+///   - key: The English source text, which is also the catalog key.
+///   - comment: Context for translators. Not used at runtime.
+///   - override: The override supplying the table and the resolution locale.
+/// - Returns: The string in the override's effective language, or the English source if the key is
+///   missing.
+func localized(_ key: String.LocalizationValue, comment: StaticString? = nil, override: LanguageOverride) -> String {
+    String(localized: key, bundle: override.effectiveBundle, locale: override.resolutionLocale, comment: comment)
 }
 
 /// Package-level localisation constants.

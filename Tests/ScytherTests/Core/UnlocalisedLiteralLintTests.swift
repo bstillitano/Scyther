@@ -60,11 +60,11 @@ final class UnlocalisedLiteralLintTests: XCTestCase {
         XCTAssertTrue(offenders.isEmpty, "Unlocalised literals:\n" + offenders.joined(separator: "\n"))
     }
 
-    func testEveryFeatureDirectoryIsCovered() throws {
+    func testLintCoversTheWholeSourceTree() throws {
         let features = sourcesRoot.appendingPathComponent("Features")
         let names = try FileManager.default.contentsOfDirectory(atPath: features.path).sorted()
         XCTAssertFalse(names.isEmpty)
-        XCTAssertEqual(Self.convertedDirectories, [""], "lint must cover the whole source tree once every module is converted")
+        XCTAssertEqual(Self.convertedDirectories, [""], "lint must cover the whole source tree")
     }
 
     func testPatternCatchesSwiftUILiteralsAndHonoursOptOuts() {

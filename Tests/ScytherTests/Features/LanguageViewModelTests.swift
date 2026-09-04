@@ -130,6 +130,33 @@ final class LanguageViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows.first { $0.id == "de" }?.localizedName, expected)
     }
 
+    func testHasLanguagesIsTrueWhenTheHostDeclaresSeveral() {
+        let viewModel = makeViewModel()
+        XCTAssertTrue(viewModel.override.availableLanguages.count > 1)
+        XCTAssertTrue(viewModel.hasLanguages)
+    }
+
+    /// An English-only host still reports `["en"]`, so `!isEmpty` was true for every app and the
+    /// "no localisations" footer could never appear. There is a choice to make only from two up.
+    func testHasLanguagesIsFalseWhenTheHostDeclaresOnlyOne() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SingleLocalisation.\(UUID().uuidString).bundle")
+        try FileManager.default.createDirectory(
+            at: root.appendingPathComponent("en.lproj"), withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: root) }
+        let host = try XCTUnwrap(Bundle(path: root.path))
+        XCTAssertEqual(host.localizations, ["en"], "fixture must declare exactly one localisation")
+
+        let override = LanguageOverride(
+            systemDefaults: system, scytherDefaults: scyther,
+            hostBundle: host, moduleBundle: ScytherLocalization.moduleBundle
+        )
+        let viewModel = LanguageViewModel(override: override)
+        XCTAssertFalse(viewModel.hasLanguages)
+        XCTAssertEqual(viewModel.rows.map(\.id), [LanguageViewModel.systemDefaultID, "en"], "the sole localisation is not a choice")
+    }
+
     func testRowsCarryNativeAndLocalisedNames() {
         let viewModel = makeViewModel()
         let french = viewModel.rows.first { $0.id == "fr" }!

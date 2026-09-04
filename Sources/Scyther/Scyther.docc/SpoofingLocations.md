@@ -42,13 +42,13 @@ Scyther includes 20+ major cities as presets:
 LocationSpoofer.instance.spoofedLocation = .sydney
 LocationSpoofer.instance.spoofedLocation = .tokyo
 LocationSpoofer.instance.spoofedLocation = .newYork
-LocationSpoofer.instance.spoofedLocation = .london
+LocationSpoofer.instance.spoofedLocation = .oslo
 LocationSpoofer.instance.spoofedLocation = .berlin
-LocationSpoofer.instance.spoofedLocation = .paris
+LocationSpoofer.instance.spoofedLocation = .marseille
 LocationSpoofer.instance.spoofedLocation = .sanFrancisco
-LocationSpoofer.instance.spoofedLocation = .losAngeles
-LocationSpoofer.instance.spoofedLocation = .dubai
-LocationSpoofer.instance.spoofedLocation = .singapore
+LocationSpoofer.instance.spoofedLocation = .mexico
+LocationSpoofer.instance.spoofedLocation = .mumbai
+LocationSpoofer.instance.spoofedLocation = .manila
 ```
 
 ## Custom Locations
@@ -174,7 +174,7 @@ Test region-specific features:
 LocationSpoofer.instance.spoofedLocation = .newYork
 
 // Test EU content
-LocationSpoofer.instance.spoofedLocation = .london
+LocationSpoofer.instance.spoofedLocation = .berlin
 
 // Test APAC content
 LocationSpoofer.instance.spoofedLocation = .tokyo

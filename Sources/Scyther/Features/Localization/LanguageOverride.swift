@@ -37,9 +37,11 @@ import Foundation
 ///
 /// ### Resolution
 /// - ``effectiveLocale``
+/// - ``resolutionLocale``
 /// - ``effectiveBundle``
 /// - ``languageBundle(for:in:)``
 /// - ``deviceLanguageBundle(systemDefaults:moduleBundle:)``
+/// - ``deviceLocale(systemDefaults:)``
 /// - ``devicePreferredLanguages(systemDefaults:)``
 ///
 /// ### Display
@@ -73,8 +75,8 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
     /// run off the main actor.
     public let objectWillChange = ObservableObjectPublisher()
 
-    /// Serialises access to ``_preferredLanguage`` and ``resolvedBundle``, the two properties that
-    /// change together whenever the override is set or cleared.
+    /// Serialises access to ``_preferredLanguage``, ``resolvedBundle`` and ``resolvedLocale``, the
+    /// three properties that change together whenever the override is set or cleared.
     private let lock = NSLock()
 
     /// Where `AppleLanguages` is written.
@@ -91,6 +93,10 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
 
     /// The bundle ``effectiveBundle`` currently returns. Guarded by ``lock``.
     private var resolvedBundle: Bundle
+
+    /// The locale ``resolutionLocale`` currently returns, chosen from the same language as
+    /// ``resolvedBundle``. Guarded by ``lock``.
+    private var resolvedLocale: Locale
 
     /// Backing storage for ``preferredLanguage``. Guarded by ``lock``.
     private var _preferredLanguage: String?
@@ -114,11 +120,9 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
         self.moduleBundle = moduleBundle
         let stored = scytherDefaults.string(forKey: Self.bookkeepingKey)
         self._preferredLanguage = stored
-        if let stored, let bundle = Self.languageBundle(for: stored, in: moduleBundle) {
-            self.resolvedBundle = bundle
-        } else {
-            self.resolvedBundle = Self.deviceLanguageBundle(systemDefaults: systemDefaults, moduleBundle: moduleBundle)
-        }
+        let resolution = Self.resolution(forcing: stored, systemDefaults: systemDefaults, moduleBundle: moduleBundle)
+        self.resolvedBundle = resolution.bundle
+        self.resolvedLocale = resolution.locale
     }
 
     // MARK: - Override
@@ -140,11 +144,11 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
         }
         systemDefaults.set([identifier], forKey: Self.appleLanguagesKey)
         scytherDefaults.set(identifier, forKey: Self.bookkeepingKey)
-        let bundle = Self.languageBundle(for: identifier, in: moduleBundle)
-            ?? Self.deviceLanguageBundle(systemDefaults: systemDefaults, moduleBundle: moduleBundle)
+        let resolution = Self.resolution(forcing: identifier, systemDefaults: systemDefaults, moduleBundle: moduleBundle)
         lock.withLock {
             _preferredLanguage = identifier
-            resolvedBundle = bundle
+            resolvedBundle = resolution.bundle
+            resolvedLocale = resolution.locale
         }
         notifyObservers()
     }
@@ -161,10 +165,11 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
     public func reset() {
         systemDefaults.removeObject(forKey: Self.appleLanguagesKey)
         scytherDefaults.removeObject(forKey: Self.bookkeepingKey)
-        let bundle = Self.deviceLanguageBundle(systemDefaults: systemDefaults, moduleBundle: moduleBundle)
+        let resolution = Self.resolution(forcing: nil, systemDefaults: systemDefaults, moduleBundle: moduleBundle)
         lock.withLock {
             _preferredLanguage = nil
-            resolvedBundle = bundle
+            resolvedBundle = resolution.bundle
+            resolvedLocale = resolution.locale
         }
         notifyObservers()
     }
@@ -190,12 +195,64 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
         preferredLanguage.map(Locale.init(identifier:))
     }
 
+    /// The locale Scyther resolves plural rules and number formatting with. Never `nil`.
+    ///
+    /// This is *not* the same question as ``effectiveLocale``, which reports whether an override is
+    /// set and is `nil` when it is not. `String(localized:bundle:locale:)` uses `bundle` only to
+    /// choose the `.lproj` table; the CLDR plural category (`one`/`few`/`many`/`two`/…) and the way
+    /// `%lld` is rendered come from `locale`, which defaults to `Locale.current` — frozen at launch,
+    /// and therefore still the launch language after the user picks a new one on the Language page.
+    /// Without this, a Russian override would read its copy from `ru.lproj` but pick the English
+    /// `one`/`other` categories, so "Выбран 5" would appear instead of "Выбрано 5".
+    ///
+    /// It always names a real language: the forced language when the catalog ships a table for it,
+    /// otherwise the device's own first preferred language — the same choice
+    /// ``effectiveBundle`` makes, so the table and the plural rules can never disagree.
+    public var resolutionLocale: Locale {
+        lock.withLock { resolvedLocale }
+    }
+
     /// The bundle Scyther's strings are read from.
     ///
     /// The forced language's `.lproj` sub-bundle when an override is set and the catalog contains
     /// that language; otherwise the module bundle, which follows the device's preferred languages.
     public var effectiveBundle: Bundle {
         lock.withLock { resolvedBundle }
+    }
+
+    /// The table and the locale Scyther should resolve its strings with, chosen together.
+    ///
+    /// A single source for ``init(systemDefaults:scytherDefaults:hostBundle:moduleBundle:)``,
+    /// ``setPreferredLanguage(_:)`` and ``reset()``, so ``effectiveBundle`` and
+    /// ``resolutionLocale`` are always drawn from the same language.
+    ///
+    /// - Parameters:
+    ///   - identifier: The forced language identifier, or `nil` for the device language.
+    ///   - systemDefaults: The defaults object used to read the global domain.
+    ///   - moduleBundle: The bundle holding Scyther's catalog.
+    /// - Returns: The `.lproj` sub-bundle to read from and the locale to format with.
+    static func resolution(
+        forcing identifier: String?,
+        systemDefaults: UserDefaults,
+        moduleBundle: Bundle
+    ) -> (bundle: Bundle, locale: Locale) {
+        if let identifier, let bundle = languageBundle(for: identifier, in: moduleBundle) {
+            return (bundle, Locale(identifier: identifier))
+        }
+        return (
+            deviceLanguageBundle(systemDefaults: systemDefaults, moduleBundle: moduleBundle),
+            deviceLocale(systemDefaults: systemDefaults)
+        )
+    }
+
+    /// The locale matching the *device's* first preferred language, ignoring any forced language.
+    ///
+    /// Falls back to `Locale.current` only when the device reports no preferred languages at all.
+    ///
+    /// - Parameter systemDefaults: The defaults object used to read the global domain.
+    static func deviceLocale(systemDefaults: UserDefaults) -> Locale {
+        guard let first = devicePreferredLanguages(systemDefaults: systemDefaults).first else { return .current }
+        return Locale(identifier: first)
     }
 
     /// The `.lproj` sub-bundle matching the *device's* languages, ignoring any forced language.
@@ -258,11 +315,12 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
     /// The no-override fallback deliberately reads the device language rather than
     /// `Locale.current`, which is frozen at launch and would still say "français" in a session
     /// relaunched under a French override that the user has since cleared.
-    public var namingLocale: Locale {
-        if let effectiveLocale { return effectiveLocale }
-        guard let device = Self.devicePreferredLanguages(systemDefaults: systemDefaults).first else { return .current }
-        return Locale(identifier: device)
-    }
+    ///
+    /// It is exactly ``resolutionLocale``: the same language Scyther's own copy is read in, so the
+    /// chrome and the language names on the page can never disagree. Reading the resolved value
+    /// also keeps this cheap — ``availableLanguages`` sorts through it, and recomputing it would
+    /// hit `persistentDomain(forName:)` once per comparison.
+    public var namingLocale: Locale { resolutionLocale }
 
     /// The localisations the host app declares, excluding `Base`, sorted by their name in
     /// ``namingLocale`` — so the list re-sorts to match whatever language is in effect.

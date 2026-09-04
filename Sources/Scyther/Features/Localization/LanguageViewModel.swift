@@ -62,8 +62,13 @@ final class LanguageViewModel: ViewModel {
         return [system] + languages
     }
 
-    /// Whether the host app declares any language beyond the base localisation.
-    var hasLanguages: Bool { !override.availableLanguages.isEmpty }
+    /// Whether the host app offers a language to switch *to*.
+    ///
+    /// Counts rather than checks for emptiness: a host that ships a single localisation still
+    /// reports it (an English-only app reports `["en"]`), so `!isEmpty` was true for every app and
+    /// the "no localisations" footer on ``LanguageView`` could never appear. There is only a choice
+    /// to make once a second language is declared.
+    var hasLanguages: Bool { override.availableLanguages.count > 1 }
 
     /// Whether an override is currently set.
     var canReset: Bool { override.preferredLanguage != nil }

@@ -154,7 +154,8 @@ merges them into `Sources/Scyther/Resources/Localizable.xcstrings`.
 
 Every user-facing string in the package goes through `localized(_:)`, which reads from the package
 bundle (or the forced language's table when the Language override is active). A lint test fails the
-build if a SwiftUI literal bypasses it, and a catalog test fails if any key is missing a language.
+test suite if a SwiftUI literal bypasses it, and a catalog test fails if any key is missing a
+language.
 
 To add a string: use `localized("Your English text")` at the call site, add the key with all
 twelve languages to the module's fragment, and run the generator. To add a language: add its code

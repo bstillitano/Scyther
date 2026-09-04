@@ -94,8 +94,12 @@ func localized(_ key: String.LocalizationValue, comment: StaticString? = nil) ->
   `effectiveBundle` is the `<language>.lproj` sub-bundle of `Bundle.module` for the forced
   language (falling back to `Bundle.module` when no override is set or the language is not in
   the catalog). Reading from the sub-bundle is what lets Scyther's menu switch language without a
-  relaunch. Note: the `locale:` parameter of `String(localized:)` only formats interpolated
-  arguments; it does not choose the language table, so it is not used for switching.
+  relaunch. Note: the `locale:` parameter of `String(localized:)` does not choose the language
+  table, so it cannot do the switching on its own — but it *does* select the CLDR plural category
+  (`one`/`few`/`many`/`two`/…) and format numeric placeholders such as `%lld`. It defaults to
+  `Locale.current`, which is frozen at launch, so the helper passes the override's resolution
+  locale alongside the bundle; otherwise a Russian override would read `ru.lproj` while picking
+  English's `one`/`other` forms.
 - Takes `String.LocalizationValue`, so a literal at the call site is typed as a localisation
   value and Xcode's compiler-driven catalog sync recognises it. Interpolations become
   format placeholders automatically.

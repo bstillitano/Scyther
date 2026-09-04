@@ -47,7 +47,7 @@ than a bare string literal. That function:
 3. Falls back to the English source text if the key or the language is missing from the catalog.
 
 Two automated checks keep this honest. A lint test walks every file under `Sources/Scyther` and
-fails the build if a SwiftUI `Text`, `Label`, or similar literal bypasses `localized(_:)`. A
+fails the test suite if a SwiftUI `Text`, `Label`, or similar literal bypasses `localized(_:)`. A
 catalog test fails if any key in `Localizable.xcstrings` is missing one of the twelve languages
 above.
 
