@@ -49,6 +49,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Network Logging**: Automatically intercept and log all HTTP requests/responses
 - **Request Details**: View headers, body, timing, and response codes
 - **cURL Export**: Generate cURL commands for any captured request
+- **Filter Chips**: Narrow the network log by method, status class, host, content type, API kind, GraphQL operation, duration, exact status code, or recency from glass chips pinned above the list, or edit every filter at once from the all-filters sheet
 - **Server Configuration**: Switch between development, staging, and production environments
 - **IP Address**: Display the device's public IP address
 
@@ -401,7 +402,16 @@ Network requests are displayed in the Scyther UI under **Network Logs**. Each re
 - Request/response headers
 - Request/response body — both a structured **Browse** view (JSON tree) and a raw **View** view
 - Status code and timing
-- cURL command for reproduction
+- cURL command for reproduction, shareable from the export button in the navigation bar or the "Export cURL request" row at the bottom of the page
+
+Above the list, a row of filter chips narrows the log: Method, Status, Host, Type, API, GraphQL,
+Duration, Code, and Recency. Tapping a chip opens a sheet with a multi-select checklist;
+selections apply immediately and combine with the search field. Active chips are fully tinted
+and show the selected value, or a count when several are selected; the Clear chip is red. Method, host, and exact status code options are built from the
+captured requests, so you only ever choose from values that exist. The Host list has an Include /
+Exclude control in its header, so the selected hosts can act as an allow list or a deny list. An icon-only chip at the start
+of the row opens a Filters sheet listing every dimension, grouped into Request, Response, and Timing, with
+its current selection; each row pushes that dimension's checklist. A Clear chip appears whenever a filter is active.
 
 #### GraphQL Support
 

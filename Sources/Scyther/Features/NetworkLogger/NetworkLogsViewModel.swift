@@ -17,6 +17,8 @@ import Combine
 /// ## Features
 /// - Real-time updates from `NetworkLogger`
 /// - Debounced search (300ms delay)
+/// - Chip-driven filtering by method, status class, host, content type, API kind, GraphQL operation, duration,
+///   exact status code, and recency via ``NetworkLogFilter``
 /// - Background filtering for better performance
 /// - Automatic cleanup on deinitialization
 ///
@@ -33,6 +35,25 @@ class NetworkLogsViewModel: ViewModel {
 
     /// Current search term used for filtering requests.
     private var searchTerm: String = ""
+
+    /// The chip-driven filter applied alongside the search term.
+    ///
+    /// Changing this value re-runs filtering immediately (no debounce).
+    @Published var filter: NetworkLogFilter = NetworkLogFilter() {
+        didSet {
+            guard filter != oldValue else { return }
+            scheduleFilter()
+        }
+    }
+
+    /// The distinct HTTP methods present in the captured logs, uppercased and sorted.
+    @Published private(set) var availableMethods: [String] = []
+
+    /// The distinct request hosts present in the captured logs, lowercased and sorted.
+    @Published private(set) var availableHosts: [String] = []
+
+    /// The distinct response status codes present in the captured logs, sorted ascending.
+    @Published private(set) var availableStatusCodes: [Int] = []
 
     /// Subject for debouncing search input.
     private var searchSubject = PassthroughSubject<String, Never>()
@@ -52,6 +73,9 @@ class NetworkLogsViewModel: ViewModel {
     /// Internal array of all network requests before filtering.
     private var items: [HTTPRequest] = [] {
         didSet {
+            availableMethods = Self.availableMethods(in: items)
+            availableHosts = Self.availableHosts(in: items)
+            availableStatusCodes = Self.availableStatusCodes(in: items)
             scheduleFilter()
         }
     }
@@ -113,21 +137,100 @@ class NetworkLogsViewModel: ViewModel {
         }
     }
 
-    /// Filters requests by matching the search term against URL, operation name, status code, or method.
+    /// Filters requests by matching the search term against URL, operation name, status code, or method,
+    /// and by the chip-driven ``NetworkLogFilter``.
     ///
     /// - Parameters:
     ///   - items: The requests to filter.
     ///   - searchTerm: The raw search term (case-insensitive; whitespace is trimmed).
-    /// - Returns: All items when the term is empty, otherwise the matching subset.
-    nonisolated static func filter(items: [HTTPRequest], searchTerm: String) -> [HTTPRequest] {
+    ///   - filter: The dimension constraints to apply. Defaults to an empty filter.
+    /// - Returns: All items when the term is empty and the filter is inactive, otherwise the matching subset.
+    nonisolated static func filter(
+        items: [HTTPRequest],
+        searchTerm: String,
+        filter: NetworkLogFilter = NetworkLogFilter()
+    ) -> [HTTPRequest] {
         let predicate = searchTerm.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !predicate.isEmpty else { return items }
+        guard !predicate.isEmpty || filter.isActive else { return items }
         return items.filter { item in
-            item.responseCode?.description.lowercased().contains(predicate) == true ||
-            item.requestURL?.lowercased().contains(predicate) == true ||
-            item.requestMethod?.lowercased().contains(predicate) == true ||
-            item.graphQLOperationName?.lowercased().contains(predicate) == true
+            guard filter.matches(item) else { return false }
+            guard !predicate.isEmpty else { return true }
+            return item.responseCode?.description.lowercased().contains(predicate) == true ||
+                item.requestURL?.lowercased().contains(predicate) == true ||
+                item.requestMethod?.lowercased().contains(predicate) == true ||
+                item.graphQLOperationName?.lowercased().contains(predicate) == true
         }
+    }
+
+    /// The distinct HTTP methods present in `items`, uppercased and sorted.
+    ///
+    /// - Parameter items: The requests to inspect.
+    nonisolated static func availableMethods(in items: [HTTPRequest]) -> [String] {
+        Set(items.compactMap { $0.requestMethod?.uppercased() }).sorted()
+    }
+
+    /// The distinct request hosts present in `items`, lowercased and sorted.
+    ///
+    /// - Parameter items: The requests to inspect.
+    nonisolated static func availableHosts(in items: [HTTPRequest]) -> [String] {
+        Set(items.compactMap(\.host)).sorted()
+    }
+
+    /// The distinct response status codes present in `items`, sorted ascending.
+    ///
+    /// Requests with no response (a `nil` or zero code) are excluded.
+    ///
+    /// - Parameter items: The requests to inspect.
+    nonisolated static func availableStatusCodes(in items: [HTTPRequest]) -> [Int] {
+        Set(items.compactMap { $0.responseCode }.filter { $0 > 0 }).sorted()
+    }
+
+    /// The selectable options for a filter dimension.
+    ///
+    /// Method, host, and exact status code options are derived from the captured logs; every
+    /// other dimension uses its fixed list from ``NetworkLogFilterOption/staticOptions(for:)``.
+    ///
+    /// - Parameter dimension: The dimension being edited.
+    func options(for dimension: NetworkLogFilterDimension) -> [NetworkLogFilterOption] {
+        switch dimension {
+        case .method:
+            return availableMethods.map { NetworkLogFilterOption(id: $0, title: $0) }
+        case .host:
+            return availableHosts.map { NetworkLogFilterOption(id: $0, title: $0) }
+        case .statusCode:
+            return availableStatusCodes.map { NetworkLogFilterOption(id: String($0), title: String($0)) }
+        case .status, .contentType, .api, .graphQL, .duration, .recency:
+            return NetworkLogFilterOption.staticOptions(for: dimension)
+        }
+    }
+
+    /// The text shown on a dimension's chip.
+    ///
+    /// Returns the dimension title when nothing is selected, the selected option's title when
+    /// exactly one value is selected (prefixed with "Not " for a single excluded host), and
+    /// "Title · N" when several are selected.
+    ///
+    /// - Parameter dimension: The dimension whose chip is being drawn.
+    func chipTitle(for dimension: NetworkLogFilterDimension) -> String {
+        let selected = filter.selection(for: dimension)
+        switch selected.count {
+        case 0:
+            return dimension.title
+        case 1:
+            let id = selected.first ?? ""
+            let title = options(for: dimension).first { $0.id == id }?.title ?? id
+            if dimension == .host, filter.hostMode == .exclude {
+                return "Not \(title)"
+            }
+            return title
+        default:
+            return "\(dimension.title) · \(selected.count)"
+        }
+    }
+
+    /// Removes every chip constraint.
+    func clearFilter() {
+        filter.clear()
     }
 
     /// Filters the network requests based on the current search term.
@@ -139,13 +242,14 @@ class NetworkLogsViewModel: ViewModel {
     private func updateData() async {
         let currentItems = items
         let currentSearchTerm = searchTerm.trimmingCharacters(in: .whitespacesAndNewlines)
+        let currentFilter = filter
 
-        if currentSearchTerm.isEmpty {
+        if currentSearchTerm.isEmpty && !currentFilter.isActive {
             requests = currentItems
         } else {
             // Filter on background thread
             let filtered = await Task.detached(priority: .userInitiated) {
-                Self.filter(items: currentItems, searchTerm: currentSearchTerm)
+                Self.filter(items: currentItems, searchTerm: currentSearchTerm, filter: currentFilter)
             }.value
 
             // Check if task was cancelled before updating
