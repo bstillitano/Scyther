@@ -87,6 +87,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Appearance Overrides**: Force dark/light mode, high contrast, and Dynamic Type sizes
 - **Font Browser**: View all available system fonts
 - **Interface Previews**: Browse registered UI components
+- **Language**: Force the app's language from the debug menu (applies on next launch; Scyther's own menu switches immediately)
 
 ### Development Tools
 - **Console Logger**: Capture and view stdout/stderr output
@@ -115,6 +116,7 @@ Scyther is fully compatible with Swift 6 strict concurrency checking. The librar
 | `Scyther.crashes` | `@MainActor` | Crash logging facade |
 | `Scyther.interface` | `@MainActor` | UI tools facade |
 | `Scyther.location` | `@MainActor` | Location spoofing facade |
+| `Scyther.localization` | `@unchecked Sendable` | `LanguageOverride`, lock-guarded language override facade |
 
 ### Working with Actors
 
@@ -142,6 +144,57 @@ Key public types conform to `Sendable` for safe cross-actor usage:
 ### Performance Optimizations
 
 Scyther uses `nonisolated` properties for UserDefaults-backed settings to avoid actor hop overhead in hot paths. This ensures the debugging tools don't impact your app's UI performance.
+
+### Localisation
+
+Scyther's UI ships in English plus French, German, Spanish, Italian, Brazilian Portuguese, Dutch,
+Japanese, Simplified Chinese, Traditional Chinese, Korean, Russian, and Arabic. Strings live in
+per-module fragments under `Scripts/localization/strings/`; `Scripts/localization/build_catalog.py`
+merges them into `Sources/Scyther/Resources/Localizable.xcstrings`.
+
+Every user-facing string in the package goes through `localized(_:)`, which reads from the package
+bundle (or the forced language's table when the Language override is active). A lint test fails the
+build if a SwiftUI literal bypasses it, and a catalog test fails if any key is missing a language.
+
+To add a string: use `localized("Your English text")` at the call site, add the key with all
+twelve languages to the module's fragment, and run the generator. To add a language: add its code
+to `LANGUAGES` in the generator and to `ScytherLocalization.supportedLanguages`, then fill every
+fragment.
+
+Every non-English translation in the catalog was machine-authored and is marked `needs_review`
+rather than `translated`, so a native speaker still needs to check and approve each string —
+in Xcode's String Catalog editor, or by editing the fragment and re-running the generator — before
+it should be considered final.
+
+#### The Language page
+
+**UI/UX → Language** lists the host app's own localisations (from `Bundle.main.localizations`) as
+a native inline picker. Choosing a language writes it to `AppleLanguages`, which changes the whole
+host app's language **the next time it launches**; any host view already on screen keeps showing
+its current language until then. Scyther's own menu does not wait for that relaunch — it re-reads
+its String Catalog through the override immediately, so the menu can briefly be in a different
+language than the still-running host app. The page then shows an alert explaining the relaunch,
+offering **Later** or a destructive **Quit App** — Scyther never quits the app on its own; that
+only happens if the user taps **Quit App**.
+
+#### `Scyther.localization`
+
+The override is also available programmatically, as `Scyther.localization` (`LanguageOverride`):
+
+```swift
+Scyther.localization.setPreferredLanguage("fr")  // forces French app-wide on next launch
+Scyther.localization.preferredLanguage           // "fr", or nil for the device default
+Scyther.localization.availableLanguages          // the host app's declared localisations
+Scyther.localization.reset()                     // back to the device language
+```
+
+`Scyther.notifications.scheduleTest(title:body:delay:sound:incrementBadge:)` takes optional
+`title` and `body`; omitting either (or passing `nil`) falls back to Scyther's own localised
+sample notification copy instead of English placeholder text.
+
+The example app at `Example/ScytherExample` ships its own
+`Example/ScytherExample/Resources/Localizable.xcstrings`, so it is fully localised in the same
+languages independently of the package's own catalog.
 
 ## Preferences Storage
 
@@ -298,17 +351,6 @@ Toggles can be pinned via a left swipe. Pinned toggles appear in a **Pinned** se
 top of the list and also remain in the main list. Pins persist across launches in Scyther's
 private preferences suite.
 
-#### Language
-
-The Feature Flags screen is fully localised: the navigation title, the search prompt, the
-**Enable overrides** switch, the **Reset all to Remote** button, the Global Settings and
-Toggles section headers, the empty and no-match states, the pin and unpin swipe actions, and
-the **True / False / Remote** dropdown options are read from Scyther's String Catalog and
-follow the effective menu language.
-
-Flag names stay exactly as your app registered them, and the `Remote: true` / `Remote: false`
-caption keeps its boolean literal, because both are data rather than copy.
-
 #### Reading an Override Off the Main Actor
 
 `Scyther.featureFlags` is `@MainActor`-isolated, but you can read a flag's developer
@@ -393,16 +435,6 @@ class AppCoordinator: ScytherDelegate {
     }
 }
 ```
-
-#### Language
-
-The Server Configuration screen is fully localised: the navigation title, the Configuration and
-Variables section headers, the "No configurations" and "No variables" empty states, the search
-prompt, and the Copy Value and Copy Key & Value context menu actions.
-
-The configurations themselves are never translated. The IDs you pass to
-`Scyther.servers.register(id:variables:)` and every variable key and value — `API_URL`,
-`https://dev-api.example.com` and the rest — are your data and appear verbatim in every language.
 
 ---
 
@@ -507,14 +539,6 @@ Scyther.console.stopCapturing()
 Scyther.console.clear()
 ```
 
-#### Language
-
-The Console Logs screen is fully localised: the navigation title, the search prompt, the
-**No Logs** empty state, the **Copy** and **Copy with Timestamp** context menu actions, and the
-**Clear Logs** and **Auto-scroll** toolbar items follow the effective menu language.
-
-Captured log lines and their timestamps are never translated — they are your app's output.
-
 ---
 
 ### Crash Logging
@@ -606,18 +630,6 @@ Scyther.crashes.triggerTestCrash()
 - **Symbolication**: Stack traces contain memory addresses. Use Xcode's crash log tools for symbolicated traces.
 - **Storage**: Up to 50 crashes are stored (oldest are removed automatically).
 
-#### Language
-
-The Crash Logs list and the crash details screen are fully localised and follow the effective
-menu language: the search prompts, the empty state, the Clear All and Test Crash buttons, the
-Exception, Timestamp, Environment and Stack Trace section headers, the Name, Reason, Date,
-App Version, Build Number, OS Version and Device row labels, and the Copy and Share actions.
-
-The crash data itself is never translated. Exception names and reasons, stack frames, version
-strings, timestamps and the plain-text report produced by `CrashLogEntry.fullReport` — the
-text the Copy and Share actions put on the pasteboard — stay exactly as captured, so a report
-shared from a device running in any language is still readable by everyone.
-
 ---
 
 ### File Browser
@@ -625,18 +637,6 @@ shared from a device running in any language is still readable by everyone.
 Browse the app sandbox from **System Tools → File Browser**: the `Documents`, `Library`,
 `Caches` and `tmp` roots, any subdirectory, and a detail screen per file with its attributes,
 a text, JSON, property list or image preview, Quick Look, Share, Copy Path and Delete.
-
-#### Language
-
-The browser is fully localised: the empty-folder state, the Information, Actions, Content and
-Preview section headers, the Size, Type, Path, Name, Created, Modified and Permissions
-attribute labels, the Directory, File and Symbolic Link type values, the Quick Look, Share,
-Copy, Copy Path and Delete actions, and both delete confirmations.
-
-The file system itself is never translated. The four sandbox root names (`Documents`,
-`Library`, `Caches`, `tmp`) are folder names and appear verbatim, as do every file name, path,
-extension and the file contents shown in the preview. Sizes and dates are formatted by the
-system for the device locale.
 
 ---
 
@@ -718,26 +718,6 @@ The `DatabaseBrowserAdapter` protocol requires:
 Three screens inspect the values your app has already stored: **Data → UserDefaults**,
 **Security → Keychain Browser** and **Data → Cookies**.
 
-#### Language
-
-All three are fully localised and follow the effective menu language. In the UserDefaults
-browser that covers the store picker, the section headers and footers, the empty and
-no-results states, the reset button and its confirmation, the array and dictionary browsers,
-and the string and number editors. In the Keychain browser it covers the security class
-section headers, the account, service, label and type rows, the attribute row labels
-(Accessible, Created, Modified, Access Group, Security Domain, Auth Type and the rest), the
-Yes/No values of boolean attributes, and both destructive confirmations. In the Cookie
-browser it covers the list, the clear-all confirmation, and every cookie detail row label:
-Name, Value, Path, Domain, Comment, Comment URL, Expires, HTTP Only, HTTPS Only, Session
-Only, Ports and Version.
-
-The data itself is never translated. Stored keys and values, keychain attribute values,
-cookie names, domains and values, the raw `HTTPCookiePropertyKey` names listed under
-**Properties**, and the `com.scyther.settings` suite name all appear exactly as stored.
-Technical tokens stay in English too: `UserDefaults`, `UserDefaults.standard`, `Keychain`,
-`HTTPCookieStorage`, `Base64`, and the `Scyther` brand — which is also why the UserDefaults
-screen is titled `UserDefaults` rather than a translated phrase, matching its menu row.
-
 ---
 
 ### Location Spoofing
@@ -768,7 +748,7 @@ Scyther includes 20+ preset locations:
 LocationSpoofer.instance.spoofedLocation = .sydney
 LocationSpoofer.instance.spoofedLocation = .tokyo
 LocationSpoofer.instance.spoofedLocation = .newYork
-LocationSpoofer.instance.spoofedLocation = .london
+LocationSpoofer.instance.spoofedLocation = .oslo
 LocationSpoofer.instance.spoofedLocation = .berlin
 // ... and many more
 ```
@@ -806,20 +786,6 @@ Simulate movement along a route:
 LocationSpoofer.instance.spoofedRoute = .driveCityToSuburb
 ```
 
-#### Language
-
-The Location Spoofer and the custom location picker are fully localised: the navigation titles,
-the Enable Location Spoofing toggle and its footer, the Cities, Routes and Custom segments, the
-Map and Coordinates section headers with their footers, the Latitude and Longitude labels and
-fields, and the Save and Done buttons.
-
-Scyther's own preset names are localised too, so a city reads "Tokyo, Japan" in English and
-"東京、日本" in Japanese. The English text stays the stored value: `Location.name` and `Route.name`
-keep their English wording for persistence, GPX output and your own code, and the views read the
-`displayName` computed property, which resolves that name through the String Catalog at display
-time. A `Location` or `Route` you create yourself is not a catalog key, so its name is shown
-exactly as you wrote it. Coordinates are formatted by the system for the device locale.
-
 ---
 
 ### Deep Link Testing
@@ -853,17 +819,6 @@ The Deep Link Tester also includes:
 
 > **Note**: To use the QR code scanner, your app must include `NSCameraUsageDescription` in its Info.plist with a description explaining camera usage (e.g., "Used to scan QR codes for deep link testing").
 
-#### Language
-
-The Deep Link Tester and the QR code scanner are fully localised: the navigation titles, the
-Test URL, Presets and History section headers and footers, the URL field placeholder, the Open
-URL button, the Delete and Clear History actions, the result alert with its success and failure
-messages, and the scanner's instruction, permission-denied copy and Open Settings button.
-
-The links themselves are never translated. Preset names and URLs you set through
-`Scyther.deepLinks.presets`, the URL you type, and every history entry appear verbatim, as do
-the `myapp://` and `https://` scheme examples in the on-screen hints.
-
 ---
 
 ### Push Notification Testing
@@ -889,17 +844,6 @@ Scyther.notifications.scheduleTest(
     incrementBadge: true
 )
 ```
-
-#### Language
-
-The Notification Tester and Notification Logger screens are fully localised: the permission
-status, the content and option rows, the scheduled notification list, and every payload row
-label in the logger are read from Scyther's String Catalog and follow the effective menu
-language. When you send a test notification without supplying your own copy, the sample title
-and body Scyther schedules are localised too, so the banner matches the rest of the interface.
-
-Payload identifiers stay in English because they are data, not copy: the `aps` and `alert`
-dictionary keys, the `content-available` row label, and the raw values themselves.
 
 #### Viewing Logged Notifications
 
@@ -1027,21 +971,6 @@ Scyther.appearance.contentSizeCategory = nil
 
 All appearance settings are persisted across app launches and can be configured via the Scyther menu under **UI/UX > Appearance**.
 
-#### Language
-
-Every UI/UX screen is fully localised and follows the effective menu language: the Grid Overlay
-settings including the size and opacity labels and the red, green and blue colour options; the
-FPS Counter settings including the corner positions and the performance legend; the Touch
-Visualiser switches; the Appearance page including the colour scheme options and all twelve
-Dynamic Type size names; and the navigation titles of the Fonts and UI Previews screens.
-
-Some on-screen text stays in English because it is measurement rather than copy: the `FPS`
-suffix and the numeric readout drawn by the FPS overlay, the `w:` / `h:` view size labels, the
-grid's pixel labels, the touch duration timer, and the `Aa` type specimens beside the Dynamic
-Type slider. Font family and PostScript names, and the names and descriptions of the components
-your app registers via `ScytherPreviewable`, are data supplied by the system or your app and are
-shown verbatim.
-
 ---
 
 ### Custom Developer Options
@@ -1111,13 +1040,6 @@ Scyther.environmentVariables = [
 ```
 
 These are displayed under **Networking > Environment Variables** in the menu.
-
-#### Language
-
-The Environment Variables screen is fully localised: the navigation title, the Custom Key/Values
-section header, the "No variables configured" empty state, the no-results state, the search
-prompt, and the Copy Value and Copy Key & Value context menu actions. The keys and values you
-register are your data and are shown verbatim in every language.
 
 ---
 
@@ -1234,6 +1156,7 @@ colour in every language.
 | `Scyther.notifications` | `Notifications` | Push notification testing |
 | `Scyther.appearance` | `Appearance` | Appearance overrides (dark/light mode, Dynamic Type) |
 | `Scyther.deepLinks` | `DeepLinks` | Deep link testing with QR scanner |
+| `Scyther.localization` | `LanguageOverride` | App language override |
 
 ---
 

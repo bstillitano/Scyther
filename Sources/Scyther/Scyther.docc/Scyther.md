@@ -108,6 +108,11 @@ Scyther is fully compatible with Swift 6 strict concurrency. Key components use 
 
 - ``NotificationTester``
 
+### Language Support
+
+- <doc:Localisation>
+- ``LanguageOverride``
+
 ### Customization
 
 - ``DeveloperOption``
