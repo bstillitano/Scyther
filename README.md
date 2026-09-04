@@ -49,6 +49,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Network Logging**: Automatically intercept and log all HTTP requests/responses
 - **Request Details**: View headers, body, timing, and response codes
 - **cURL Export**: Generate cURL commands for any captured request
+- **Log Export**: Share the captured requests as a zip containing a HAR 1.2 file, raw bodies, and a cURL command per request, with best-effort redaction and a sensitivity warning
 - **Filter Chips**: Narrow the network log by method, status class, host, content type, API kind, GraphQL operation, duration, exact status code, or recency from glass chips pinned above the list, or edit every filter at once from the all-filters sheet
 - **Server Configuration**: Switch between development, staging, and production environments
 - **IP Address**: Display the device's public IP address
@@ -412,6 +413,15 @@ captured requests, so you only ever choose from values that exist. The Host list
 Exclude control in its header, so the selected hosts can act as an allow list or a deny list. An icon-only chip at the start
 of the row opens a Filters sheet listing every dimension, grouped into Request, Response, and Timing, with
 its current selection; each row pushes that dimension's checklist. A Clear chip appears whenever a filter is active.
+
+The export button in the navigation bar shares the requests currently shown (so search and
+filters narrow the archive) as `<App-Name>-Network-Log-<timestamp>.zip`, named after the host app. The zip holds a HAR 1.2
+file that opens in Charles, Proxyman, or Chrome DevTools, plus a folder per request with the raw
+request body, raw response body, and a cURL command. The export sheet shows progress while the
+zip is built, and a Redaction toggle (on by default) replaces common tokens, cookies, passwords,
+and API keys in headers, URLs, bodies, and cURL commands with `REDACTED`, as a best-effort attempt
+rather than a guarantee. Because the archive can include full headers, cookies, tokens, and
+bodies, tapping Export shows a sensitivity alert before the system share sheet opens.
 
 #### GraphQL Support
 

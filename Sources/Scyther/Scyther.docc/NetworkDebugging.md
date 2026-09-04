@@ -91,6 +91,29 @@ dimension name with a count when several are. A Reset button appears in each
 sheet while it has a selection, and a red Clear chip appears in the bar whenever any filter is active.
 Filters are held in memory for the current session only.
 
+## Exporting the Whole Log
+
+The export button in the Network Logs navigation bar packages the requests currently shown into
+`<App-Name>-Network-Log-<timestamp>.zip`, named after the host app. Search and filter chips narrow what is included.
+
+The archive contains:
+
+- `network-log.har`, a HAR 1.2 document readable by Charles, Proxyman, Chrome DevTools, and most
+  HTTP tooling. Image bodies are embedded as base64.
+- `requests/<index>-<METHOD>-<host>/` per request, holding `request.curl` and the raw request
+  and response bodies when they exist.
+
+The export sheet shows progress while the zip is built. A **Redaction** toggle, on by default,
+replaces values whose header name, query parameter, JSON key, or form field looks sensitive
+(authorization, tokens, cookies, passwords, API keys, sessions) with `REDACTED`, and scrubs
+`Bearer` credentials and JWT-shaped strings wherever they appear. Redacted HAR files carry a
+`log.comment` saying so. This is an attempt, not a guarantee: secrets under unusual names or in
+formats the patterns do not cover pass through untouched.
+
+Because the archive can include full headers, cookies, authentication tokens, and bodies, tapping
+**Export** shows a sensitivity alert first; confirming opens the system share sheet. The file is
+deleted when the sheet closes.
+
 ## Exporting cURL Commands
 
 Every request can be exported as a cURL command from the request details page. Tap the
