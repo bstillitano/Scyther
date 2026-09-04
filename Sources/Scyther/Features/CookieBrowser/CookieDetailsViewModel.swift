@@ -115,18 +115,18 @@ class CookieDetailsViewModel: ViewModel {
     /// for boolean flags.
     private func prepareObjects() async {
         keyValues = [
-            CookieDetailItem(key: "Name", value: cookie.name),
-            CookieDetailItem(key: "Value", value: cookie.value.isEmpty ? "-" : cookie.value),
-            CookieDetailItem(key: "Path", value: cookie.path),
-            CookieDetailItem(key: "Domain", value: cookie.domain),
-            CookieDetailItem(key: "Comment", value: cookie.comment ?? "-"),
-            CookieDetailItem(key: "Comment URL", value: cookie.commentURL?.absoluteString ?? "-"),
-            CookieDetailItem(key: "Expires", value: cookie.expiresDate?.formatted() ?? "-"),
-            CookieDetailItem(key: "HTTP Only", value: cookie.isHTTPOnly ? "Yes" : "No"),
-            CookieDetailItem(key: "HTTPS Only", value: cookie.isSecure ? "Yes" : "No"),
-            CookieDetailItem(key: "Session Only", value: cookie.isSessionOnly ? "Yes" : "No"),
-            CookieDetailItem(key: "Ports", value: cookie.portList?.map { "\($0)" }.joined(separator: ", ") ?? "-"),
-            CookieDetailItem(key: "Version", value: "\(cookie.version)")
+            CookieDetailItem(key: localized("Name"), value: cookie.name),
+            CookieDetailItem(key: localized("Value"), value: cookie.value.isEmpty ? "-" : cookie.value),
+            CookieDetailItem(key: localized("Path"), value: cookie.path),
+            CookieDetailItem(key: localized("Domain"), value: cookie.domain),
+            CookieDetailItem(key: localized("Comment"), value: cookie.comment ?? "-"),
+            CookieDetailItem(key: localized("Comment URL"), value: cookie.commentURL?.absoluteString ?? "-"),
+            CookieDetailItem(key: localized("Expires"), value: cookie.expiresDate?.formatted() ?? "-"),
+            CookieDetailItem(key: localized("HTTP Only"), value: cookie.isHTTPOnly ? localized("Yes") : localized("No")),
+            CookieDetailItem(key: localized("HTTPS Only"), value: cookie.isSecure ? localized("Yes") : localized("No")),
+            CookieDetailItem(key: localized("Session Only"), value: cookie.isSessionOnly ? localized("Yes") : localized("No")),
+            CookieDetailItem(key: localized("Ports"), value: cookie.portList?.map { "\($0)" }.joined(separator: ", ") ?? "-"),
+            CookieDetailItem(key: localized("Version"), value: "\(cookie.version)")
         ]
 
         properties = (cookie.properties ?? [:]).map { key, value in

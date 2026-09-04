@@ -25,6 +25,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Console Logging](#console-logging)
   - [Crash Logging](#crash-logging)
   - [Database Browser](#database-browser)
+  - [Data Browsers](#data-browsers)
   - [Location Spoofing](#location-spoofing)
   - [Push Notification Testing](#push-notification-testing)
   - [UI Debugging Tools](#ui-debugging-tools)
@@ -639,6 +640,33 @@ The `DatabaseBrowserAdapter` protocol requires:
 | `update(in:primaryKey:values:)` | Update an existing record |
 | `delete(from:primaryKey:)` | Delete a record |
 | `executeQuery(_:)` | Execute raw SQL (if supported) |
+
+---
+
+### Data Browsers
+
+Three screens inspect the values your app has already stored: **Data → UserDefaults**,
+**Security → Keychain Browser** and **Data → Cookies**.
+
+#### Language
+
+All three are fully localised and follow the effective menu language. In the UserDefaults
+browser that covers the store picker, the section headers and footers, the empty and
+no-results states, the reset button and its confirmation, the array and dictionary browsers,
+and the string and number editors. In the Keychain browser it covers the security class
+section headers, the account, service, label and type rows, the attribute row labels
+(Accessible, Created, Modified, Access Group, Security Domain, Auth Type and the rest), the
+Yes/No values of boolean attributes, and both destructive confirmations. In the Cookie
+browser it covers the list, the clear-all confirmation, and every cookie detail row label:
+Name, Value, Path, Domain, Comment, Comment URL, Expires, HTTP Only, HTTPS Only, Session
+Only, Ports and Version.
+
+The data itself is never translated. Stored keys and values, keychain attribute values,
+cookie names, domains and values, the raw `HTTPCookiePropertyKey` names listed under
+**Properties**, and the `com.scyther.settings` suite name all appear exactly as stored.
+Technical tokens stay in English too: `UserDefaults`, `UserDefaults.standard`, `Keychain`,
+`HTTPCookieStorage`, `Base64`, and the `Scyther` brand — which is also why the UserDefaults
+screen is titled `UserDefaults` rather than a translated phrase, matching its menu row.
 
 ---
 

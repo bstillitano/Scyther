@@ -42,7 +42,7 @@ struct UserDefaultsView: View {
     var body: some View {
         List {
             Section {
-                Picker("Store", selection: $viewModel.store) {
+                Picker(localized("Store"), selection: $viewModel.store) {
                     ForEach(DefaultsStore.allCases) { store in
                         Text(store.title).tag(store)
                     }
@@ -51,18 +51,18 @@ struct UserDefaultsView: View {
                 .labelsHidden()
             } footer: {
                 Text(viewModel.store == .app
-                     ? "Values your app stored in UserDefaults.standard."
-                     : "Values Scyther stored in its private com.scyther.settings suite.")
+                     ? localized("Values your app stored in UserDefaults.standard.")
+                     : localized("Values Scyther stored in its private com.scyther.settings suite."))
             }
 
-            Section("Key/Values") {
+            Section(localized("Key/Values")) {
                 if viewModel.keyValues.isEmpty {
-                    Text("No user defaults")
+                    Text(localized("No user defaults"))
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
                         .frame(maxWidth: .infinity, alignment: .center)
                 } else if filteredItems.isEmpty {
-                    Text("No matching items")
+                    Text(localized("No matching items"))
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -73,7 +73,7 @@ struct UserDefaultsView: View {
                                 Button(role: .destructive) {
                                     viewModel.deleteKey(item.key)
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Label(localized("Delete"), systemImage: "trash")
                                 }
                             }
                     }
@@ -83,20 +83,22 @@ struct UserDefaultsView: View {
             if debouncedSearchText.isEmpty {
                 Section {
                     Button(
-                        viewModel.store == .app ? "Reset UserDefaults.standard" : "Reset all Scyther settings",
+                        viewModel.store == .app
+                            ? localized("Reset UserDefaults.standard")
+                            : localized("Reset all Scyther settings"),
                         role: .destructive
                     ) {
                         showingResetConfirmation = true
                     }
                 } footer: {
                     Text(viewModel.store == .app
-                         ? "This will delete all values stored inside `UserDefaults.standard`, created by your app. Scyther's own settings live in a separate store and are not affected."
-                         : "This will delete every setting Scyther has stored, including pinned menu items and feature flag overrides.")
+                         ? localized("This will delete all values stored inside `UserDefaults.standard`, created by your app. Scyther's own settings live in a separate store and are not affected.")
+                         : localized("This will delete every setting Scyther has stored, including pinned menu items and feature flag overrides."))
                 }
             }
         }
-        .navigationTitle("User Defaults")
-        .searchable(text: $searchText, prompt: "Search keys and values")
+        .navigationTitle("UserDefaults") // scyther:unlocalised technical token, matches the menu row
+        .searchable(text: $searchText, prompt: localized("Search keys and values"))
         .onChange(of: searchText) { newValue in
             searchSubject.send(newValue)
         }
@@ -105,15 +107,15 @@ struct UserDefaultsView: View {
                 .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
                 .sink { debouncedSearchText = $0 }
         }
-        .alert("Reset UserDefaults?", isPresented: $showingResetConfirmation) {
-            Button("Reset All", role: .destructive) {
+        .alert(localized("Reset UserDefaults?"), isPresented: $showingResetConfirmation) {
+            Button(localized("Reset All"), role: .destructive) {
                 viewModel.resetAllDefaults()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localized("Cancel"), role: .cancel) {}
         } message: {
             Text(viewModel.store == .app
-                 ? "This will permanently delete your app's stored values. This action cannot be undone."
-                 : "This will permanently delete every Scyther setting, including pinned menu items and feature flag overrides. This action cannot be undone.")
+                 ? localized("This will permanently delete your app's stored values. This action cannot be undone.")
+                 : localized("This will permanently delete every Scyther setting, including pinned menu items and feature flag overrides. This action cannot be undone."))
         }
         .onFirstAppear {
             await viewModel.onFirstAppear()
@@ -168,17 +170,18 @@ struct UserDefaultsView: View {
                     Button {
                         UIPasteboard.general.string = "\(item.key): \(value.formatted())"
                     } label: {
-                        Label("Copy", systemImage: "doc.on.doc")
+                        Label(localized("Copy"), systemImage: "doc.on.doc")
                     }
                 }
 
-        case .data(let value):
-            LabeledContent(item.key, value: "\(value.count) bytes")
+        case .data:
+            // `displayValue` already renders the byte count through `localized(_:)`.
+            LabeledContent(item.key, value: item.displayValue)
                 .contextMenu {
                     Button {
-                        UIPasteboard.general.string = "\(item.key): \(value.count) bytes"
+                        UIPasteboard.general.string = "\(item.key): \(item.displayValue)"
                     } label: {
-                        Label("Copy", systemImage: "doc.on.doc")
+                        Label(localized("Copy"), systemImage: "doc.on.doc")
                     }
                 }
 
@@ -188,7 +191,7 @@ struct UserDefaultsView: View {
                     Button {
                         UIPasteboard.general.string = "\(item.key): \(item.displayValue)"
                     } label: {
-                        Label("Copy", systemImage: "doc.on.doc")
+                        Label(localized("Copy"), systemImage: "doc.on.doc")
                     }
                 }
         }
@@ -223,9 +226,9 @@ struct UserDefaultsArrayView: View {
 
     var body: some View {
         List {
-            Section("Array Elements") {
+            Section(localized("Array Elements")) {
                 if items.isEmpty {
-                    Text("Empty array")
+                    Text(localized("Empty array"))
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -244,24 +247,25 @@ struct UserDefaultsArrayView: View {
         let displayValue = UserDefaultsViewModel.displayString(for: element)
         let valueType = UserDefaultsViewModel.detectValueType(element)
         let childPath = keyPath + [index]
+        let indexLabel = "[\(index)]"
 
         switch valueType {
         case .array(let nestedArray):
             NavigationLink {
-                UserDefaultsArrayView(key: "[\(index)]", items: nestedArray, store: store, rootKey: rootKey, keyPath: childPath, onUpdate: onUpdate)
+                UserDefaultsArrayView(key: indexLabel, items: nestedArray, store: store, rootKey: rootKey, keyPath: childPath, onUpdate: onUpdate)
             } label: {
-                LabeledContent("[\(index)]", value: displayValue)
+                LabeledContent(indexLabel, value: displayValue)
             }
 
         case .dictionary(let nestedDict):
             NavigationLink {
-                UserDefaultsDictionaryView(key: "[\(index)]", dictionary: nestedDict, store: store, rootKey: rootKey, keyPath: childPath, onUpdate: onUpdate)
+                UserDefaultsDictionaryView(key: indexLabel, dictionary: nestedDict, store: store, rootKey: rootKey, keyPath: childPath, onUpdate: onUpdate)
             } label: {
-                LabeledContent("[\(index)]", value: displayValue)
+                LabeledContent(indexLabel, value: displayValue)
             }
 
         case .bool(let value):
-            Toggle("[\(index)]", isOn: Binding(
+            Toggle(indexLabel, isOn: Binding(
                 get: { value },
                 set: { newValue in
                     updateNestedValue(newValue, at: childPath)
@@ -270,29 +274,29 @@ struct UserDefaultsArrayView: View {
 
         case .string(let value):
             NavigationLink {
-                UserDefaultsStringEditorView(key: "[\(index)]", initialValue: value) { newValue in
+                UserDefaultsStringEditorView(key: indexLabel, initialValue: value) { newValue in
                     updateNestedValue(newValue, at: childPath)
                 }
             } label: {
-                LabeledContent("[\(index)]", value: displayValue)
+                LabeledContent(indexLabel, value: displayValue)
             }
 
         case .number(let value):
             NavigationLink {
-                UserDefaultsNumberEditorView(key: "[\(index)]", initialValue: value) { newValue in
+                UserDefaultsNumberEditorView(key: indexLabel, initialValue: value) { newValue in
                     updateNestedValue(newValue, at: childPath)
                 }
             } label: {
-                LabeledContent("[\(index)]", value: displayValue)
+                LabeledContent(indexLabel, value: displayValue)
             }
 
         default:
-            LabeledContent("[\(index)]", value: displayValue)
+            LabeledContent(indexLabel, value: displayValue)
                 .contextMenu {
                     Button {
-                        UIPasteboard.general.string = "[\(index)]: \(displayValue)"
+                        UIPasteboard.general.string = "\(indexLabel): \(displayValue)"
                     } label: {
-                        Label("Copy", systemImage: "doc.on.doc")
+                        Label(localized("Copy"), systemImage: "doc.on.doc")
                     }
                 }
         }
@@ -364,9 +368,9 @@ struct UserDefaultsDictionaryView: View {
 
     var body: some View {
         List {
-            Section("Dictionary Entries") {
+            Section(localized("Dictionary Entries")) {
                 if dictionary.isEmpty {
-                    Text("Empty dictionary")
+                    Text(localized("Empty dictionary"))
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -435,7 +439,7 @@ struct UserDefaultsDictionaryView: View {
                     Button {
                         UIPasteboard.general.string = "\(rowKey): \(displayValue)"
                     } label: {
-                        Label("Copy", systemImage: "doc.on.doc")
+                        Label(localized("Copy"), systemImage: "doc.on.doc")
                     }
                 }
         }
@@ -486,15 +490,15 @@ struct UserDefaultsStringEditorView: View {
 
     var body: some View {
         Form {
-            Section("Value") {
-                TextField("Value", text: $text, axis: .vertical)
+            Section(localized("Value")) {
+                TextField(localized("Value"), text: $text, axis: .vertical)
                     .lineLimit(5...10)
             }
         }
         .navigationTitle(key)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Save") {
+                Button(localized("Save")) {
                     onSave(text)
                     dismiss()
                 }
@@ -524,23 +528,23 @@ struct UserDefaultsNumberEditorView: View {
 
     var body: some View {
         Form {
-            Section("Value (\(isInteger ? "Integer" : "Decimal"))") {
-                TextField("Value", text: $text)
+            Section(isInteger ? localized("Value (Integer)") : localized("Value (Decimal)")) {
+                TextField(localized("Value"), text: $text)
                     .keyboardType(isInteger ? .numberPad : .decimalPad)
             }
         }
         .navigationTitle(key)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Save") {
+                Button(localized("Save")) {
                     saveValue()
                 }
             }
         }
-        .alert("Invalid Number", isPresented: $showingError) {
-            Button("OK", role: .cancel) {}
+        .alert(localized("Invalid Number"), isPresented: $showingError) {
+            Button(localized("OK"), role: .cancel) {}
         } message: {
-            Text("Please enter a valid number.")
+            Text(localized("Please enter a valid number."))
         }
         .onAppear {
             text = "\(initialValue)"

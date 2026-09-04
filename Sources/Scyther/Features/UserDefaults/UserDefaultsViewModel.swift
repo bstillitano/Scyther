@@ -174,13 +174,13 @@ class UserDefaultsViewModel: ViewModel {
             return date.formatted()
         }
         if let data = value as? Data {
-            return "\(data.count) bytes"
+            return localized("\(data.count) bytes")
         }
         if let array = value as? [Any] {
-            return "\(array.count) elements"
+            return localized("\(array.count) elements")
         }
         if let dict = value as? [String: Any] {
-            return "\(dict.count) entries"
+            return localized("\(dict.count) entries")
         }
 
         return String(describing: value)

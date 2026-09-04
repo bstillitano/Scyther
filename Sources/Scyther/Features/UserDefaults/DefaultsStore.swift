@@ -34,8 +34,8 @@ enum DefaultsStore: String, CaseIterable, Identifiable, Sendable {
     /// The human-readable name shown in the store picker.
     var title: String {
         switch self {
-        case .app: return "App"
-        case .scyther: return "Scyther"
+        case .app: return localized("App")
+        case .scyther: return "Scyther" // scyther:unlocalised brand name
         }
     }
 

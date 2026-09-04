@@ -40,12 +40,12 @@ struct KeychainBrowserView: View {
 
                 Section(section.title) {
                     if section.items.isEmpty {
-                        Text("No items")
+                        Text(localized("No items"))
                             .fontWeight(.bold)
                             .foregroundStyle(.gray)
                             .frame(maxWidth: .infinity, alignment: .center)
                     } else if filtered.isEmpty {
-                        Text("No matching items")
+                        Text(localized("No matching items"))
                             .fontWeight(.bold)
                             .foregroundStyle(.gray)
                             .frame(maxWidth: .infinity, alignment: .center)
@@ -69,7 +69,7 @@ struct KeychainBrowserView: View {
                                 Button(role: .destructive) {
                                     viewModel.deleteItem(item)
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Label(localized("Delete"), systemImage: "trash")
                                 }
                             }
                         }
@@ -79,16 +79,16 @@ struct KeychainBrowserView: View {
 
             if debouncedSearchText.isEmpty {
                 Section {
-                    Button("Clear Keychain", role: .destructive) {
+                    Button(localized("Clear Keychain"), role: .destructive) {
                         showingClearConfirmation = true
                     }
                 } footer: {
-                    Text("This will delete all keychain items stored by this app. This action cannot be undone.")
+                    Text(localized("This will delete all keychain items stored by this app. This action cannot be undone."))
                 }
             }
         }
-        .navigationTitle("Keychain Browser")
-        .searchable(text: $searchText, prompt: "Search accounts and services")
+        .navigationTitle(localized("Keychain Browser"))
+        .searchable(text: $searchText, prompt: localized("Search accounts and services"))
         .onChange(of: searchText) { newValue in
             searchSubject.send(newValue)
         }
@@ -98,16 +98,16 @@ struct KeychainBrowserView: View {
                 .sink { debouncedSearchText = $0 }
         }
         .confirmationDialog(
-            "Clear Keychain?",
+            localized("Clear the entire keychain?"),
             isPresented: $showingClearConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Clear All", role: .destructive) {
+            Button(localized("Clear All"), role: .destructive) {
                 viewModel.clearKeychain()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localized("Cancel"), role: .cancel) {}
         } message: {
-            Text("This will delete all keychain items. This action cannot be undone.")
+            Text(localized("This will delete all keychain items. This action cannot be undone."))
         }
         .onFirstAppear {
             await viewModel.onFirstAppear()
@@ -127,35 +127,35 @@ struct KeychainItemDetailView: View {
 
     var body: some View {
         List {
-            Section("Account") {
-                LabeledContent("Account", value: item.account)
+            Section(localized("Account")) {
+                LabeledContent(localized("Account"), value: item.account)
                     .contextMenu {
                         Button {
                             UIPasteboard.general.string = item.account
                         } label: {
-                            Label("Copy", systemImage: "doc.on.doc")
+                            Label(localized("Copy"), systemImage: "doc.on.doc")
                         }
                     }
 
                 if let service = item.service {
-                    LabeledContent("Service", value: service)
+                    LabeledContent(localized("Service"), value: service)
                         .contextMenu {
                             Button {
                                 UIPasteboard.general.string = service
                             } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
+                                Label(localized("Copy"), systemImage: "doc.on.doc")
                             }
                         }
                 }
 
                 if let label = item.label {
-                    LabeledContent("Label", value: label)
+                    LabeledContent(localized("Label"), value: label)
                 }
 
-                LabeledContent("Type", value: item.securityClass.displayName)
+                LabeledContent(localized("Type"), value: item.securityClass.displayName)
             }
 
-            Section("Value") {
+            Section(localized("Value")) {
                 if let stringValue = item.stringValue {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -173,33 +173,33 @@ struct KeychainItemDetailView: View {
                         Button {
                             UIPasteboard.general.string = stringValue
                         } label: {
-                            Label("Copy Value", systemImage: "doc.on.doc")
+                            Label(localized("Copy Value"), systemImage: "doc.on.doc")
                         }
                     }
                 } else if let dataValue = item.dataValue {
-                    LabeledContent("Data", value: "\(dataValue.count) bytes")
+                    LabeledContent(localized("Data"), value: localized("\(dataValue.count) bytes"))
                         .contextMenu {
                             Button {
                                 UIPasteboard.general.string = dataValue.base64EncodedString()
                             } label: {
-                                Label("Copy Base64", systemImage: "doc.on.doc")
+                                Label(localized("Copy Base64"), systemImage: "doc.on.doc")
                             }
                         }
                 } else {
-                    Text("Unable to read value")
+                    Text(localized("Unable to read value"))
                         .foregroundStyle(.secondary)
                 }
             }
 
             if !item.attributes.isEmpty {
-                Section("Attributes") {
+                Section(localized("Attributes")) {
                     ForEach(item.attributes.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
                         LabeledContent(key, value: value)
                             .contextMenu {
                                 Button {
                                     UIPasteboard.general.string = "\(key): \(value)"
                                 } label: {
-                                    Label("Copy", systemImage: "doc.on.doc")
+                                    Label(localized("Copy"), systemImage: "doc.on.doc")
                                 }
                             }
                     }
@@ -207,23 +207,23 @@ struct KeychainItemDetailView: View {
             }
 
             Section {
-                Button("Delete Item", role: .destructive) {
+                Button(localized("Delete Item"), role: .destructive) {
                     showingDeleteConfirmation = true
                 }
             }
         }
-        .navigationTitle("Keychain Item")
+        .navigationTitle(localized("Keychain Item"))
         .confirmationDialog(
-            "Delete this keychain item?",
+            localized("Delete this keychain item?"),
             isPresented: $showingDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button(localized("Delete"), role: .destructive) {
                 KeychainBrowserViewModel.deleteKeychainItem(item)
                 onDelete()
                 dismiss()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localized("Cancel"), role: .cancel) {}
         }
     }
 }
@@ -249,21 +249,21 @@ enum KeychainSecurityClass: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .genericPassword: return "Generic Password"
-        case .internetPassword: return "Internet Password"
-        case .identity: return "Identity"
-        case .certificate: return "Certificate"
-        case .key: return "Key"
+        case .genericPassword: return localized("Generic Password")
+        case .internetPassword: return localized("Internet Password")
+        case .identity: return localized("Identity")
+        case .certificate: return localized("Certificate")
+        case .key: return localized("Key")
         }
     }
 
     var sectionTitle: String {
         switch self {
-        case .genericPassword: return "Generic Passwords"
-        case .internetPassword: return "Internet Passwords"
-        case .identity: return "Identities"
-        case .certificate: return "Certificates"
-        case .key: return "Keys"
+        case .genericPassword: return localized("Generic Passwords")
+        case .internetPassword: return localized("Internet Passwords")
+        case .identity: return localized("Identities")
+        case .certificate: return localized("Certificates")
+        case .key: return localized("Keys")
         }
     }
 }
@@ -290,9 +290,9 @@ struct KeychainItem: Identifiable {
         if let stringValue = stringValue {
             return stringValue
         } else if let dataValue = dataValue {
-            return "\(dataValue.count) bytes"
+            return localized("\(dataValue.count) bytes")
         }
-        return "N/A"
+        return localized("N/A")
     }
 }
 
