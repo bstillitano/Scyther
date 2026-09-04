@@ -17,9 +17,9 @@ struct LocationTestView: View {
     var body: some View {
         List {
             Section {
-                LabeledContent("Spoofing Enabled", value: Scyther.location.spoofingEnabled ? "Yes" : "No")
+                LabeledContent("Spoofing Enabled", value: Scyther.location.spoofingEnabled ? String(localized: "Yes") : String(localized: "No"))
                     .foregroundStyle(Scyther.location.spoofingEnabled ? .green : .primary)
-                LabeledContent("Swizzle Active", value: CLLocationManager.isLocationSwizzled ? "Yes" : "No")
+                LabeledContent("Swizzle Active", value: CLLocationManager.isLocationSwizzled ? String(localized: "Yes") : String(localized: "No"))
                     .foregroundStyle(CLLocationManager.isLocationSwizzled ? .green : .red)
 
                 if Scyther.location.spoofingEnabled {
