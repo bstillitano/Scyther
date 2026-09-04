@@ -62,6 +62,27 @@ public struct Route: Sendable {
     }
 }
 
+// MARK: - Display
+extension Route {
+    /// The route's name in the language Scyther is currently displaying.
+    ///
+    /// Scyther's own preset routes store an English ``name`` so that persisted data and tests stay
+    /// stable regardless of the selected language. This property resolves that English name through
+    /// the String Catalog at display time, which is why views show `displayName` rather than
+    /// ``name``. A route supplied by the host app is not a catalog key, so its ``name`` is returned
+    /// unchanged.
+    ///
+    /// - Returns: The translated preset name, or ``name`` when the route is not a Scyther preset.
+    var displayName: String {
+        switch name {
+        case "Drive from city to suburb":
+            return localized("Drive from city to suburb")
+        default:
+            return name
+        }
+    }
+}
+
 // MARK: - Presets
 /// Extension providing preset routes for common scenarios.
 extension Route {

@@ -27,6 +27,10 @@ final class UnlocalisedLiteralLintTests: XCTestCase {
         "Features/CrashLogs",
         "Features/FileBrowser",
         "Features/DataBrowser",
+        "Features/LocationSpoofer",
+        "Features/DeepLinkTester",
+        "Features/ServerConfiguration",
+        "Features/EnvironmentVariables",
         "Shared",
     ]
 

@@ -27,11 +27,11 @@ enum LocationSpooferPresetType: String, CaseIterable {
     var label: String {
         switch self {
         case .city:
-            "Cities"
+            localized("Cities")
         case .route:
-            "Routes"
+            localized("Routes")
         case .custom:
-            "Custom"
+            localized("Custom")
         }
     }
 }

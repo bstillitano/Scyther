@@ -41,7 +41,7 @@ struct QRCodeScannerView: View {
                                 }
                             }
 
-                        Text("Point camera at QR code")
+                        Text(localized("Point camera at QR code"))
                             .font(.headline)
                             .foregroundStyle(.white)
                             .padding(.top, 20)
@@ -51,14 +51,14 @@ struct QRCodeScannerView: View {
                 } else if viewModel.permissionDenied {
                     permissionDeniedView
                 } else {
-                    ProgressView("Requesting camera access...")
+                    ProgressView(localized("Requesting camera access..."))
                 }
             }
-            .navigationTitle("Scan QR Code")
+            .navigationTitle(localized("Scan QR Code"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
+                    Button(localized("Cancel")) {
                         dismiss()
                     }
                 }
@@ -83,16 +83,16 @@ struct QRCodeScannerView: View {
                 .font(.system(size: 60))
                 .foregroundStyle(.secondary)
 
-            Text("Camera Access Required")
+            Text(localized("Camera Access Required"))
                 .font(.headline)
 
-            Text("Please enable camera access in Settings to scan QR codes.")
+            Text(localized("Please enable camera access in Settings to scan QR codes."))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
-            Button("Open Settings") {
+            Button(localized("Open Settings")) {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }

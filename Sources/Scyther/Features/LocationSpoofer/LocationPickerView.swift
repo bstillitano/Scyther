@@ -51,29 +51,29 @@ struct LocationPickerView: View {
                         .foregroundStyle(Color.red)
                 }.listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
             } header: {
-                Text("Map")
+                Text(localized("Map"))
             } footer: {
-                Text("Drag the map to the location you would like to spoof your app to. This will only affect this app, all other location services will remain accurate.")
+                Text(localized("Drag the map to the location you would like to spoof your app to. This will only affect this app, all other location services will remain accurate."))
             }
             SwiftUI.Section {
                 HStack {
-                    Text("Latitude")
+                    Text(localized("Latitude"))
                     Spacer()
-                    TextField("Latitude", text: $latitude)
+                    TextField(localized("Latitude"), text: $latitude)
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                 }
                 HStack {
-                    Text("Longitude")
+                    Text(localized("Longitude"))
                     Spacer()
-                    TextField("Longitude", text: $longitude)
+                    TextField(localized("Longitude"), text: $longitude)
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                 }
             } header: {
-                Text("Coordinates")
+                Text(localized("Coordinates"))
             } footer: {
-                Text("Use these text fields to type the coordinates of the location you'd like to spoof.")
+                Text(localized("Use these text fields to type the coordinates of the location you'd like to spoof."))
             }
         }.onAppear {
             setupRegion()
@@ -90,19 +90,19 @@ struct LocationPickerView: View {
             setLongitude(newValue)
         }.toolbar {
             ToolbarItemGroup(placement: .confirmationAction) {
-                Button("Save") {
+                Button(localized("Save")) {
                     LocationSpoofer.instance.setCustomLocation(region.center)
                     presentationMode.wrappedValue.dismiss()
                 }
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("Done") {
+                Button(localized("Done")) {
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 }
             }
         }
-        .navigationTitle("Custom Location")
+        .navigationTitle(localized("Custom Location"))
             .navigationBarTitleDisplayMode(.inline)
     }
     

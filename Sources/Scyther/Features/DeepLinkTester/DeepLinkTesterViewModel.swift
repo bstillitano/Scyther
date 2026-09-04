@@ -133,9 +133,9 @@ class DeepLinkTesterViewModel: ViewModel {
 
         switch result {
         case .success:
-            resultMessage = "Successfully opened: \(urlText)"
+            resultMessage = localized("Successfully opened: \(urlText)")
         case .failure(let error):
-            resultMessage = "Failed to open URL: \(error.localizedDescription)"
+            resultMessage = localized("Failed to open URL: \(error.localizedDescription)")
         }
 
         showingResult = true

@@ -383,6 +383,16 @@ class AppCoordinator: ScytherDelegate {
 }
 ```
 
+#### Language
+
+The Server Configuration screen is fully localised: the navigation title, the Configuration and
+Variables section headers, the "No configurations" and "No variables" empty states, the search
+prompt, and the Copy Value and Copy Key & Value context menu actions.
+
+The configurations themselves are never translated. The IDs you pass to
+`Scyther.servers.register(id:variables:)` and every variable key and value — `API_URL`,
+`https://dev-api.example.com` and the rest — are your data and appear verbatim in every language.
+
 ---
 
 ### Network Logging
@@ -777,6 +787,20 @@ Simulate movement along a route:
 LocationSpoofer.instance.spoofedRoute = .driveCityToSuburb
 ```
 
+#### Language
+
+The Location Spoofer and the custom location picker are fully localised: the navigation titles,
+the Enable Location Spoofing toggle and its footer, the Cities, Routes and Custom segments, the
+Map and Coordinates section headers with their footers, the Latitude and Longitude labels and
+fields, and the Save and Done buttons.
+
+Scyther's own preset names are localised too, so a city reads "Tokyo, Japan" in English and
+"東京、日本" in Japanese. The English text stays the stored value: `Location.name` and `Route.name`
+keep their English wording for persistence, GPX output and your own code, and the views read the
+`displayName` computed property, which resolves that name through the String Catalog at display
+time. A `Location` or `Route` you create yourself is not a catalog key, so its name is shown
+exactly as you wrote it. Coordinates are formatted by the system for the device locale.
+
 ---
 
 ### Deep Link Testing
@@ -809,6 +833,17 @@ The Deep Link Tester also includes:
 - **Success/Failure Feedback**: Visual indication of whether the link opened
 
 > **Note**: To use the QR code scanner, your app must include `NSCameraUsageDescription` in its Info.plist with a description explaining camera usage (e.g., "Used to scan QR codes for deep link testing").
+
+#### Language
+
+The Deep Link Tester and the QR code scanner are fully localised: the navigation titles, the
+Test URL, Presets and History section headers and footers, the URL field placeholder, the Open
+URL button, the Delete and Clear History actions, the result alert with its success and failure
+messages, and the scanner's instruction, permission-denied copy and Open Settings button.
+
+The links themselves are never translated. Preset names and URLs you set through
+`Scyther.deepLinks.presets`, the URL you type, and every history entry appear verbatim, as do
+the `myapp://` and `https://` scheme examples in the on-screen hints.
 
 ---
 
@@ -1042,6 +1077,13 @@ Scyther.environmentVariables = [
 ```
 
 These are displayed under **Networking > Environment Variables** in the menu.
+
+#### Language
+
+The Environment Variables screen is fully localised: the navigation title, the Custom Key/Values
+section header, the "No variables configured" empty state, the no-results state, the search
+prompt, and the Copy Value and Copy Key & Value context menu actions. The keys and values you
+register are your data and are shown verbatim in every language.
 
 ---
 

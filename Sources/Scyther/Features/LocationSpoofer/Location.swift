@@ -91,6 +91,68 @@ extension Location {
         xmlContentString = xmlContentString.replacingOccurrences(of: "LONGITUDE_GOES_HERE", with: "\(longitude)")
         return xmlContentString
     }
+
+    /// The location's name in the language Scyther is currently displaying.
+    ///
+    /// Scyther's own presets store an English ``name`` so that persisted data, GPX output and
+    /// tests stay stable regardless of the selected language. This property resolves that English
+    /// name through the String Catalog at display time, which is why views show `displayName`
+    /// rather than ``name``. A location supplied by the host app is not a catalog key, so its
+    /// ``name`` is returned unchanged.
+    ///
+    /// - Returns: The translated preset name, or ``name`` when the location is not a Scyther preset.
+    var displayName: String {
+        switch name {
+        case "Sydney, Australia":
+            return localized("Sydney, Australia")
+        case "Helsinki, Finland":
+            return localized("Helsinki, Finland")
+        case "Santiago, Chile":
+            return localized("Santiago, Chile")
+        case "Rio de Janeiro, Brazil":
+            return localized("Rio de Janeiro, Brazil")
+        case "Denver, USA":
+            return localized("Denver, USA")
+        case "Cincinnati, USA":
+            return localized("Cincinnati, USA")
+        case "Moscow, Russia":
+            return localized("Moscow, Russia")
+        case "Tokyo, Japan":
+            return localized("Tokyo, Japan")
+        case "Palermo, Italy":
+            return localized("Palermo, Italy")
+        case "Bogotá, Colombia":
+            return localized("Bogotá, Colombia")
+        case "Berlin, Germany":
+            return localized("Berlin, Germany")
+        case "Oslo, Norway":
+            return localized("Oslo, Norway")
+        case "Nairobi, Kenya":
+            return localized("Nairobi, Kenya")
+        case "Marseille, France":
+            return localized("Marseille, France")
+        case "Manila, Phillipines":
+            return localized("Manila, Phillipines")
+        case "New York, USA":
+            return localized("New York, USA")
+        case "Mumbai, India":
+            return localized("Mumbai, India")
+        case "San Francisco, USA":
+            return localized("San Francisco, USA")
+        case "Mexico City, Mexico":
+            return localized("Mexico City, Mexico")
+        case "St. Julian, Malta":
+            return localized("St. Julian, Malta")
+        case "Valletta, Malta":
+            return localized("Valletta, Malta")
+        case "Stockholm, Sweden":
+            return localized("Stockholm, Sweden")
+        case "Lisbon, Portugal":
+            return localized("Lisbon, Portugal")
+        default:
+            return name
+        }
+    }
 }
 
 // MARK: - Presets

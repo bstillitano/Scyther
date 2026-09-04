@@ -24,9 +24,9 @@ struct ServerConfigurationView: View {
 
     var body: some View {
         List {
-            Section("Configuration") {
+            Section(localized("Configuration")) {
                 if viewModel.configurations.isEmpty {
-                    Text("No configurations")
+                    Text(localized("No configurations"))
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -49,9 +49,9 @@ struct ServerConfigurationView: View {
                 }
             }
 
-            Section("Variables") {
+            Section(localized("Variables")) {
                 if viewModel.variables.isEmpty {
-                    Text("No variables")
+                    Text(localized("No variables"))
                         .fontWeight(.bold)
                         .foregroundStyle(.gray)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -62,12 +62,12 @@ struct ServerConfigurationView: View {
                                 Button {
                                     UIPasteboard.general.string = value
                                 } label: {
-                                    Label("Copy Value", systemImage: "doc.on.doc")
+                                    Label(localized("Copy Value"), systemImage: "doc.on.doc")
                                 }
                                 Button {
                                     UIPasteboard.general.string = "\(key): \(value)"
                                 } label: {
-                                    Label("Copy Key & Value", systemImage: "doc.on.doc")
+                                    Label(localized("Copy Key & Value"), systemImage: "doc.on.doc")
                                 }
                             }
                     }
@@ -76,9 +76,9 @@ struct ServerConfigurationView: View {
         }
         .searchable(
             text: $searchText,
-            prompt: "Search via name or variable key/values"
+            prompt: localized("Search via name or variable key/values")
         )
-        .navigationTitle("Server Configuration")
+        .navigationTitle(localized("Server Configuration"))
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }
