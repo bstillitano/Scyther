@@ -60,14 +60,42 @@ for await request in NetworkLogger.shared.requests {
 
 ## Filtering Requests
 
-In the Network Logs UI, you can filter requests by:
-- HTTP method (GET, POST, PUT, DELETE, etc.)
-- Status code (success, client error, server error)
-- URL pattern
+The Network Logs screen offers two ways to narrow the list, and they combine.
+
+**Search** matches the URL, GraphQL operation name, status code, or HTTP method.
+
+**Filter chips** sit above the list. Tap a chip to open a sheet with a multi-select checklist:
+
+- **Method**: the HTTP methods present in the captured requests
+- **Status**: 2xx success, 3xx redirect, 4xx client error, 5xx server error, or pending / no response
+- **Host**: the request hosts present in the captured requests. An Include / Exclude segmented
+  control in the list header decides whether the selected hosts are the only ones shown or the
+  ones hidden
+- **Type**: JSON, XML, HTML, Image, or Other, based on the detected response content type
+- **API**: REST or GraphQL
+- **GraphQL**: Query, Mutation, Subscription, or Batch / Unknown for GraphQL requests with no
+  single operation type. REST requests never match a GraphQL selection
+- **Duration**: under 100ms, 100ms to 500ms, 500ms to 1s, 1s to 3s, or over 3s. Requests still
+  awaiting a response have no duration and never match a duration selection
+- **Code**: the exact response status codes present in the captured requests
+- **Recency**: last minute, 5 minutes, 15 minutes, or hour, measured from when the filter runs.
+  Single-select, since each window contains the shorter ones
+
+The icon-only chip at the start of the row opens a full-height Filters sheet that lists every
+dimension, grouped into Request, Response, and Timing, with a summary of its selection. Tapping a row pushes that dimension's checklist, with
+a Reset for that dimension alone; the root Filters screen offers Reset for everything.
+
+Selections apply immediately behind the sheet. Chips combine with AND, values within a chip with
+OR (Recency allows one value). Active chips are fully tinted and show the selected value when exactly one is chosen, or the
+dimension name with a count when several are. A Reset button appears in each
+sheet while it has a selection, and a red Clear chip appears in the bar whenever any filter is active.
+Filters are held in memory for the current session only.
 
 ## Exporting cURL Commands
 
-Every request can be exported as a cURL command. This is useful for:
+Every request can be exported as a cURL command from the request details page. Tap the
+share button in the top-trailing corner of the navigation bar, or the "Export cURL request"
+row in the Developer Info section; both present the same system share sheet. This is useful for:
 - Sharing with backend developers
 - Testing in terminal
 - Creating API documentation

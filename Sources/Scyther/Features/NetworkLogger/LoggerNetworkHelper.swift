@@ -23,7 +23,7 @@ import Foundation
 /// let type = HTTPModelShortType.JSON
 /// print(type.rawValue) // "JSON"
 /// ```
-public enum HTTPModelShortType: String, CaseIterable {
+public enum HTTPModelShortType: String, CaseIterable, Sendable {
     /// JSON response (application/json or variants like application/vnd.api+json).
     case JSON = "JSON"
 
