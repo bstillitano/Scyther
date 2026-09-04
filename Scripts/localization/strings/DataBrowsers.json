@@ -362,36 +362,118 @@
   "%lld elements": {
     "comment": "Row value summarising a stored array; %lld is the element count",
     "plural": true,
-    "en":      { "one": "%lld element", "other": "%lld elements" },
-    "fr":      { "one": "%lld élément", "other": "%lld éléments" },
-    "de":      { "one": "%lld Element", "other": "%lld Elemente" },
-    "es":      { "one": "%lld elemento", "other": "%lld elementos" },
-    "it":      { "one": "%lld elemento", "other": "%lld elementi" },
-    "pt-BR":   { "one": "%lld elemento", "other": "%lld elementos" },
-    "nl":      { "one": "%lld element", "other": "%lld elementen" },
-    "ja":      { "other": "%lld個の要素" },
-    "zh-Hans": { "other": "%lld 个元素" },
-    "zh-Hant": { "other": "%lld 個元素" },
-    "ko":      { "other": "요소 %lld개" },
-    "ru":      { "one": "%lld элемент", "few": "%lld элемента", "many": "%lld элементов", "other": "%lld элемента" },
-    "ar":      { "zero": "لا توجد عناصر", "one": "عنصر واحد", "two": "عنصران", "few": "%lld عناصر", "many": "%lld عنصرًا", "other": "%lld عنصر" }
+    "en": {
+      "one": "%lld element",
+      "other": "%lld elements"
+    },
+    "fr": {
+      "one": "%lld élément",
+      "other": "%lld éléments"
+    },
+    "de": {
+      "one": "%lld Element",
+      "other": "%lld Elemente"
+    },
+    "es": {
+      "one": "%lld elemento",
+      "other": "%lld elementos"
+    },
+    "it": {
+      "one": "%lld elemento",
+      "other": "%lld elementi"
+    },
+    "pt-BR": {
+      "one": "%lld elemento",
+      "other": "%lld elementos"
+    },
+    "nl": {
+      "one": "%lld element",
+      "other": "%lld elementen"
+    },
+    "ja": {
+      "other": "%lld個の要素"
+    },
+    "zh-Hans": {
+      "other": "%lld 个元素"
+    },
+    "zh-Hant": {
+      "other": "%lld 個元素"
+    },
+    "ko": {
+      "other": "요소 %lld개"
+    },
+    "ru": {
+      "one": "%lld элемент",
+      "few": "%lld элемента",
+      "many": "%lld элементов",
+      "other": "%lld элемента"
+    },
+    "ar": {
+      "zero": "لا توجد عناصر",
+      "one": "عنصر واحد",
+      "two": "عنصران",
+      "few": "%lld عناصر",
+      "many": "%lld عنصرًا",
+      "other": "%lld عنصر"
+    }
   },
   "%lld entries": {
     "comment": "Row value summarising a stored dictionary; %lld is the entry count",
     "plural": true,
-    "en":      { "one": "%lld entry", "other": "%lld entries" },
-    "fr":      { "one": "%lld entrée", "other": "%lld entrées" },
-    "de":      { "one": "%lld Eintrag", "other": "%lld Einträge" },
-    "es":      { "one": "%lld entrada", "other": "%lld entradas" },
-    "it":      { "one": "%lld voce", "other": "%lld voci" },
-    "pt-BR":   { "one": "%lld entrada", "other": "%lld entradas" },
-    "nl":      { "one": "%lld item", "other": "%lld items" },
-    "ja":      { "other": "%lld件のエントリ" },
-    "zh-Hans": { "other": "%lld 个条目" },
-    "zh-Hant": { "other": "%lld 個項目" },
-    "ko":      { "other": "항목 %lld개" },
-    "ru":      { "one": "%lld запись", "few": "%lld записи", "many": "%lld записей", "other": "%lld записи" },
-    "ar":      { "zero": "لا توجد إدخالات", "one": "إدخال واحد", "two": "إدخالان", "few": "%lld إدخالات", "many": "%lld إدخالًا", "other": "%lld إدخال" }
+    "en": {
+      "one": "%lld entry",
+      "other": "%lld entries"
+    },
+    "fr": {
+      "one": "%lld entrée",
+      "other": "%lld entrées"
+    },
+    "de": {
+      "one": "%lld Eintrag",
+      "other": "%lld Einträge"
+    },
+    "es": {
+      "one": "%lld entrada",
+      "other": "%lld entradas"
+    },
+    "it": {
+      "one": "%lld voce",
+      "other": "%lld voci"
+    },
+    "pt-BR": {
+      "one": "%lld entrada",
+      "other": "%lld entradas"
+    },
+    "nl": {
+      "one": "%lld item",
+      "other": "%lld items"
+    },
+    "ja": {
+      "other": "%lld件のエントリ"
+    },
+    "zh-Hans": {
+      "other": "%lld 个条目"
+    },
+    "zh-Hant": {
+      "other": "%lld 個項目"
+    },
+    "ko": {
+      "other": "항목 %lld개"
+    },
+    "ru": {
+      "one": "%lld запись",
+      "few": "%lld записи",
+      "many": "%lld записей",
+      "other": "%lld записи"
+    },
+    "ar": {
+      "zero": "لا توجد إدخالات",
+      "one": "إدخال واحد",
+      "two": "إدخالان",
+      "few": "%lld إدخالات",
+      "many": "%lld إدخالًا",
+      "other": "%lld إدخال"
+    }
   },
   "No items": {
     "comment": "Empty state when a keychain security class holds no items",
@@ -410,7 +492,7 @@
   },
   "Clear Keychain": {
     "comment": "Destructive button that deletes every keychain item. Keychain stays untranslated",
-    "fr": "Vider le Keychain",
+    "fr": "Effacer le Keychain",
     "de": "Keychain leeren",
     "es": "Borrar el Keychain",
     "it": "Cancella il Keychain",
@@ -455,7 +537,7 @@
   },
   "Clear the entire keychain?": {
     "comment": "Title of the confirmation asking to delete every keychain item",
-    "fr": "Vider tout le Keychain ?",
+    "fr": "Effacer tout le Keychain ?",
     "de": "Gesamten Keychain leeren?",
     "es": "¿Borrar todo el Keychain?",
     "it": "Cancellare tutto il Keychain?",
@@ -1322,5 +1404,95 @@
     "ko": "포트",
     "ru": "Порты",
     "ar": "المنافذ"
+  },
+  "Secure": {
+    "comment": "Cookie property row label for the Secure flag",
+    "fr": "Sécurisé",
+    "de": "Sicher",
+    "es": "Seguro",
+    "it": "Sicuro",
+    "pt-BR": "Seguro",
+    "nl": "Beveiligd",
+    "ja": "セキュア",
+    "zh-Hans": "安全",
+    "zh-Hant": "安全",
+    "ko": "보안",
+    "ru": "Защищённый",
+    "ar": "آمن"
+  },
+  "Discard": {
+    "comment": "Cookie property row label for the Discard flag, which drops the cookie at session end",
+    "fr": "Abandonner",
+    "de": "Verwerfen",
+    "es": "Descartar",
+    "it": "Scarta",
+    "pt-BR": "Descartar",
+    "nl": "Verwijderen bij sluiten",
+    "ja": "破棄",
+    "zh-Hans": "会话结束时丢弃",
+    "zh-Hant": "工作階段結束時丟棄",
+    "ko": "폐기",
+    "ru": "Сбрасывать",
+    "ar": "تجاهل"
+  },
+  "Maximum Age": {
+    "comment": "Cookie property row label for Max-Age, the cookie's lifetime in seconds",
+    "fr": "Durée de vie maximale",
+    "de": "Maximale Lebensdauer",
+    "es": "Edad máxima",
+    "it": "Durata massima",
+    "pt-BR": "Idade máxima",
+    "nl": "Maximale levensduur",
+    "ja": "最大有効期間",
+    "zh-Hans": "最长有效期",
+    "zh-Hant": "最長有效期",
+    "ko": "최대 수명",
+    "ru": "Максимальный срок",
+    "ar": "العمر الأقصى"
+  },
+  "Origin URL": {
+    "comment": "Cookie property row label for the URL the cookie originated from",
+    "fr": "URL d'origine",
+    "de": "Ursprungs-URL",
+    "es": "URL de origen",
+    "it": "URL di origine",
+    "pt-BR": "URL de origem",
+    "nl": "Oorsprong-URL",
+    "ja": "元のURL",
+    "zh-Hans": "来源 URL",
+    "zh-Hant": "來源 URL",
+    "ko": "출처 URL",
+    "ru": "Исходный URL",
+    "ar": "عنوان URL الأصلي"
+  },
+  "HttpOnly": {
+    "comment": "Cookie property row label. HttpOnly is the HTTP attribute name and stays untranslated in every language",
+    "fr": "HttpOnly",
+    "de": "HttpOnly",
+    "es": "HttpOnly",
+    "it": "HttpOnly",
+    "pt-BR": "HttpOnly",
+    "nl": "HttpOnly",
+    "ja": "HttpOnly",
+    "zh-Hans": "HttpOnly",
+    "zh-Hant": "HttpOnly",
+    "ko": "HttpOnly",
+    "ru": "HttpOnly",
+    "ar": "HttpOnly"
+  },
+  "SameSite": {
+    "comment": "Cookie property row label. SameSite is the HTTP attribute name and stays untranslated in every language",
+    "fr": "SameSite",
+    "de": "SameSite",
+    "es": "SameSite",
+    "it": "SameSite",
+    "pt-BR": "SameSite",
+    "nl": "SameSite",
+    "ja": "SameSite",
+    "zh-Hans": "SameSite",
+    "zh-Hant": "SameSite",
+    "ko": "SameSite",
+    "ru": "SameSite",
+    "ar": "SameSite"
   }
 }

@@ -20,6 +20,7 @@ import SwiftUI
 /// - Formats boolean properties as human-readable "Yes/No" values
 /// - Handles optional properties gracefully with "-" placeholders
 /// - Separates standard key-values from additional cookie properties
+/// - Localises the additional property row labels, falling back to the raw key
 /// - Supports deleting the cookie from storage
 /// - Publishes changes via `@Published` properties for SwiftUI binding
 ///
@@ -68,6 +69,10 @@ import SwiftUI
 /// ### Actions
 ///
 /// - ``deleteCookie()``
+///
+/// ### Formatting
+///
+/// - ``cookiePropertyDisplayName(_:)``
 @MainActor
 class CookieDetailsViewModel: ViewModel {
     /// The cookie being displayed.
@@ -130,8 +135,43 @@ class CookieDetailsViewModel: ViewModel {
         ]
 
         properties = (cookie.properties ?? [:]).map { key, value in
-            CookieDetailItem(key: key.rawValue, value: "\(value)")
+            CookieDetailItem(key: Self.cookiePropertyDisplayName(key), value: "\(value)")
         }.sorted { $0.key < $1.key }
+    }
+
+    /// Converts an `HTTPCookie` property key into a human-readable row label.
+    ///
+    /// Mirrors the keychain browser's attribute mapping: the documented `HTTPCookiePropertyKey`
+    /// values, plus the raw keys Foundation stores without a public constant (`Created`,
+    /// `HttpOnly` and `SameSitePolicy`), map to localised labels. `HttpOnly` and `SameSite` are HTTP attribute
+    /// names, so they read the same in every language while still being catalog keys a translator
+    /// can override. Anything unmapped falls back to the raw key, which is data rather than copy.
+    ///
+    /// The mapping is rebuilt on every call so the labels follow the effective language rather
+    /// than being frozen at first use.
+    ///
+    /// - Parameter key: The cookie property key, for example `.domain`.
+    /// - Returns: A localised display name, or `key.rawValue` when the key is not one Scyther names.
+    private static func cookiePropertyDisplayName(_ key: HTTPCookiePropertyKey) -> String {
+        let mapping: [HTTPCookiePropertyKey: String] = [
+            .comment: localized("Comment"),
+            .commentURL: localized("Comment URL"),
+            .discard: localized("Discard"),
+            .domain: localized("Domain"),
+            .expires: localized("Expires"),
+            .maximumAge: localized("Maximum Age"),
+            .name: localized("Name"),
+            .originURL: localized("Origin URL"),
+            .path: localized("Path"),
+            .port: localized("Port"),
+            .secure: localized("Secure"),
+            .value: localized("Value"),
+            .version: localized("Version"),
+            HTTPCookiePropertyKey("Created"): localized("Created"),
+            HTTPCookiePropertyKey("HttpOnly"): localized("HttpOnly"),
+            HTTPCookiePropertyKey("SameSitePolicy"): localized("SameSite")
+        ]
+        return mapping[key] ?? key.rawValue
     }
 
     /// Deletes this cookie from storage.
