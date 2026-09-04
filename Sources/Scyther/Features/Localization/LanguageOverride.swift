@@ -39,6 +39,8 @@ import Foundation
 /// - ``effectiveLocale``
 /// - ``effectiveBundle``
 /// - ``languageBundle(for:in:)``
+/// - ``deviceLanguageBundle(systemDefaults:moduleBundle:)``
+/// - ``devicePreferredLanguages(systemDefaults:)``
 ///
 /// ### Display
 /// - ``availableLanguages``
@@ -111,7 +113,11 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
         self.moduleBundle = moduleBundle
         let stored = scytherDefaults.string(forKey: Self.bookkeepingKey)
         self._preferredLanguage = stored
-        self.resolvedBundle = Self.languageBundle(for: stored, in: moduleBundle) ?? moduleBundle
+        if let stored, let bundle = Self.languageBundle(for: stored, in: moduleBundle) {
+            self.resolvedBundle = bundle
+        } else {
+            self.resolvedBundle = Self.deviceLanguageBundle(systemDefaults: systemDefaults, moduleBundle: moduleBundle)
+        }
     }
 
     // MARK: - Override
@@ -138,12 +144,21 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
     }
 
     /// Removes the override so the host app and Scyther follow the device language again.
+    ///
+    /// Scyther's own strings switch back immediately, in the same session. That needs an explicit
+    /// resolution rather than simply handing back ``moduleBundle``: a bundle's localisation search
+    /// list is fixed when the process launches, from the `AppleLanguages` in effect at that moment.
+    /// After a relaunch under a forced language, ``moduleBundle`` therefore still resolves to that
+    /// language, and clearing the override alone would leave the menu stuck in it until the *next*
+    /// launch. ``deviceLanguageBundle(systemDefaults:moduleBundle:)`` reads the device's own
+    /// languages from the global domain instead, which the override never writes to.
     public func reset() {
         systemDefaults.removeObject(forKey: Self.appleLanguagesKey)
         scytherDefaults.removeObject(forKey: Self.bookkeepingKey)
+        let bundle = Self.deviceLanguageBundle(systemDefaults: systemDefaults, moduleBundle: moduleBundle)
         lock.withLock {
             _preferredLanguage = nil
-            resolvedBundle = moduleBundle
+            resolvedBundle = bundle
         }
         notifyObservers()
     }
@@ -177,6 +192,42 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
         lock.withLock { resolvedBundle }
     }
 
+    /// The `.lproj` sub-bundle matching the *device's* languages, ignoring any forced language.
+    ///
+    /// `Locale.preferredLanguages` and ``moduleBundle``'s own localisation search list both reflect
+    /// the `AppleLanguages` that were in effect when the process launched, so neither can tell the
+    /// device's language apart from a language Scyther forced before a relaunch. The global domain
+    /// can: ``setPreferredLanguage(_:)`` writes `AppleLanguages` into the app's own domain, never
+    /// into `NSGlobalDomain`, so the global domain still holds what the user chose in Settings.
+    ///
+    /// - Parameters:
+    ///   - systemDefaults: The defaults object used to read the global domain.
+    ///   - moduleBundle: The bundle holding Scyther's catalog.
+    /// - Returns: The best-matching `.lproj` sub-bundle, or `moduleBundle` when none matches.
+    static func deviceLanguageBundle(systemDefaults: UserDefaults, moduleBundle: Bundle) -> Bundle {
+        let preferences = devicePreferredLanguages(systemDefaults: systemDefaults)
+        let matches = Bundle.preferredLocalizations(from: moduleBundle.localizations, forPreferences: preferences)
+        guard let best = matches.first else { return moduleBundle }
+        return languageBundle(for: best, in: moduleBundle) ?? moduleBundle
+    }
+
+    /// The device's own preferred languages, ignoring any language Scyther forced.
+    ///
+    /// `Locale.preferredLanguages` is frozen at launch, so in a session relaunched under an
+    /// override it reports the forced language even after the override is cleared. The global
+    /// domain is not: ``setPreferredLanguage(_:)`` writes `AppleLanguages` into the app's own
+    /// domain only.
+    ///
+    /// - Parameter systemDefaults: The defaults object used to read the global domain.
+    /// - Returns: The device's language identifiers, most preferred first.
+    static func devicePreferredLanguages(systemDefaults: UserDefaults) -> [String] {
+        let globalDomain = systemDefaults.persistentDomain(forName: UserDefaults.globalDomain)
+        guard let languages = globalDomain?[Self.appleLanguagesKey] as? [String], !languages.isEmpty else {
+            return Locale.preferredLanguages
+        }
+        return languages
+    }
+
     /// The `.lproj` sub-bundle for a language inside a bundle, or `nil` if it is not present.
     ///
     /// - Parameters:
@@ -190,11 +241,27 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
 
     // MARK: - Display
 
-    /// The localisations the host app declares, excluding `Base`, sorted by their name in the current locale.
+    /// The locale every name on the Language page is rendered in: the forced language when one is
+    /// set, otherwise the *device's* language.
+    ///
+    /// Without this the page's chrome would switch language while every language name and the
+    /// Current section stayed behind, which reads as a half-translated screen. The no-override
+    /// fallback deliberately reads the device language rather than `Locale.current`, which is
+    /// frozen at launch and would still say "français" in a session relaunched under a French
+    /// override that the user has since cleared.
+    private var namingLocale: Locale {
+        if let effectiveLocale { return effectiveLocale }
+        guard let device = Self.devicePreferredLanguages(systemDefaults: systemDefaults).first else { return .current }
+        return Locale(identifier: device)
+    }
+
+    /// The localisations the host app declares, excluding `Base`, sorted by their name in
+    /// ``namingLocale`` — so the list re-sorts to match whatever language is in effect.
     public var availableLanguages: [String] {
-        hostBundle.localizations
+        let locale = namingLocale
+        return hostBundle.localizations
             .filter { $0 != "Base" }
-            .sorted { displayName(for: $0) < displayName(for: $1) }
+            .sorted { displayName(for: $0, in: locale) < displayName(for: $1, in: locale) }
     }
 
     /// A language's name in `locale`, e.g. `"French"` for `"fr"` in English.
@@ -213,15 +280,19 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
         Locale(identifier: identifier).localizedString(forIdentifier: identifier) ?? identifier
     }
 
-    /// The name of the language currently in effect: the override if set, else the device's first preferred language.
+    /// The name of the language currently in effect: the override if set, else the device's first
+    /// preferred language. Rendered in ``namingLocale``, so under a French override it reads
+    /// `"français"` rather than `"French"`.
     public var currentLanguageDisplayName: String {
-        let identifier = preferredLanguage ?? Locale.preferredLanguages.first ?? Locale.current.identifier
-        return displayName(for: identifier)
+        let identifier = preferredLanguage
+            ?? Self.devicePreferredLanguages(systemDefaults: systemDefaults).first
+            ?? Locale.current.identifier
+        return displayName(for: identifier, in: namingLocale)
     }
 
-    /// The name of the device's region, e.g. `"Australia"`.
+    /// The name of the device's region, e.g. `"Australia"`, rendered in ``namingLocale``.
     public var currentRegionDisplayName: String {
         guard let region = Locale.current.region?.identifier else { return "" }
-        return Locale.current.localizedString(forRegionCode: region) ?? region
+        return namingLocale.localizedString(forRegionCode: region) ?? region
     }
 }

@@ -11,8 +11,8 @@
     "zh-Hans": "当前",
     "zh-Hant": "目前",
     "ko": "현재",
-    "ru": "Текущие",
-    "ar": "الحالي"
+    "ru": "Текущие настройки",
+    "ar": "الإعدادات الحالية"
   },
   "Region": {
     "comment": "Label of the row showing the device's region",
@@ -82,10 +82,10 @@
     "it": "Il cambio di lingua si applica all'intera app al prossimo avvio. Il menu di Scyther cambia subito.",
     "pt-BR": "A mudança de idioma se aplica ao app inteiro na próxima inicialização. O menu do Scyther muda imediatamente.",
     "nl": "De taalwijziging geldt bij de volgende start voor de hele app. Het menu van Scyther schakelt direct om.",
-    "ja": "言語の変更はApp全体には次回起動時に適用されます。Scytherのメニューはすぐに切り替わります。",
+    "ja": "言語の変更は、次回起動時にApp全体に適用されます。Scytherのメニューはすぐに切り替わります。",
     "zh-Hans": "语言更改将在下次启动时应用于整个 App。Scyther 菜单会立即切换。",
     "zh-Hant": "語言變更將在下次啟動時套用至整個 App。Scyther 選單會立即切換。",
-    "ko": "언어 변경은 다음 실행 시 앱 전체에 적용됩니다. Scyther 메뉴는 즉시 전환됩니다.",
+    "ko": "언어 변경은 다음 실행 시 App 전체에 적용됩니다. Scyther 메뉴는 즉시 전환됩니다.",
     "ru": "Смена языка применится ко всему приложению при следующем запуске. Меню Scyther переключится сразу.",
     "ar": "يسري تغيير اللغة على التطبيق بأكمله عند التشغيل التالي. تتبدّل قائمة Scyther فورًا."
   },
@@ -175,7 +175,7 @@
     "ja": "Appの言語は次回起動時に変更されます。Scytherのメニューはすでに切り替わっています。",
     "zh-Hans": "App 语言将在下次启动时更改。Scyther 菜单已经切换。",
     "zh-Hant": "App 語言將在下次啟動時變更。Scyther 選單已經切換。",
-    "ko": "앱 언어는 다음 실행 시 변경됩니다. Scyther 메뉴는 이미 전환되었습니다.",
+    "ko": "App 언어는 다음 실행 시 변경됩니다. Scyther 메뉴는 이미 전환되었습니다.",
     "ru": "Язык приложения изменится при следующем запуске. Меню Scyther уже переключено.",
     "ar": "تتغيّر لغة التطبيق عند التشغيل التالي. لقد تبدّلت قائمة Scyther بالفعل."
   }

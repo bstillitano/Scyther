@@ -371,7 +371,7 @@ public struct MenuView: View {
         case .fpsCounter: FPSCounterSettingsView()
         case .touchVisualiser: TouchVisualiserView()
         case .appearance: AppearanceOverridesView()
-        case .language: LanguageView()
+        case .language: LanguageView(viewModel: LanguageViewModel())
         default: EmptyView()
         }
     }

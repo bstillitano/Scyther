@@ -52,8 +52,11 @@ final class LanguageViewModel: ViewModel {
             nativeName: localized("System Default"),
             localizedName: localized("Follow the device language")
         )
+        // Named in the effective locale, not the device's, so a French override lists "allemand"
+        // rather than "German" beneath "Deutsch".
+        let naming = override.effectiveLocale ?? .current
         let languages = override.availableLanguages.map {
-            LanguageRow(id: $0, nativeName: override.nativeDisplayName(for: $0), localizedName: override.displayName(for: $0))
+            LanguageRow(id: $0, nativeName: override.nativeDisplayName(for: $0), localizedName: override.displayName(for: $0, in: naming))
         }
         return [system] + languages
     }
@@ -63,6 +66,12 @@ final class LanguageViewModel: ViewModel {
 
     /// Whether an override is currently set.
     var canReset: Bool { override.preferredLanguage != nil }
+
+    /// The id of the row that is currently active — the picker's selection.
+    ///
+    /// Derived from the override rather than stored, so it can never drift from what
+    /// ``LanguageOverride`` actually holds.
+    var selectedRowID: String { override.preferredLanguage ?? Self.systemDefaultID }
 
     /// The effective language name for the Current section.
     var currentLanguage: String { override.currentLanguageDisplayName }
@@ -74,17 +83,33 @@ final class LanguageViewModel: ViewModel {
     ///
     /// - Parameter row: The row to check.
     func isSelected(_ row: LanguageRow) -> Bool {
-        (override.preferredLanguage ?? Self.systemDefaultID) == row.id
+        selectedRowID == row.id
     }
 
     /// Applies a row's language and raises the relaunch alert.
     ///
     /// - Parameter row: The tapped row.
     func select(_ row: LanguageRow) {
-        if row.id == Self.systemDefaultID {
+        select(id: row.id)
+    }
+
+    /// Applies a row id's language and raises the relaunch alert.
+    ///
+    /// The picker's binding writes through here, so a selection made with the keyboard or with
+    /// VoiceOver takes exactly the same path as a tap.
+    ///
+    /// A write that does not change the selection is ignored. SwiftUI re-asserts a `Picker`'s
+    /// selection through its binding whenever the surrounding view re-renders, and dismissing the
+    /// relaunch alert is itself a re-render — without this guard the alert would immediately raise
+    /// itself again and could never be dismissed.
+    ///
+    /// - Parameter id: A row id — a language identifier, or ``systemDefaultID``.
+    func select(id: String) {
+        guard id != selectedRowID else { return }
+        if id == Self.systemDefaultID {
             override.reset()
         } else {
-            override.setPreferredLanguage(row.id)
+            override.setPreferredLanguage(id)
         }
         showingRelaunchAlert = true
     }

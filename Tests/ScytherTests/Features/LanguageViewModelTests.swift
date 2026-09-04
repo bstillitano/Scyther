@@ -73,6 +73,48 @@ final class LanguageViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.canReset)
     }
 
+    func testSelectedRowIDTracksTheOverride() {
+        let viewModel = makeViewModel()
+        XCTAssertEqual(viewModel.selectedRowID, LanguageViewModel.systemDefaultID)
+        viewModel.select(viewModel.rows.first { $0.id == "fr" }!)
+        XCTAssertEqual(viewModel.selectedRowID, "fr")
+    }
+
+    func testSelectingByIDAppliesTheOverrideAndRaisesTheAlert() {
+        let viewModel = makeViewModel()
+        viewModel.select(id: "de")
+        XCTAssertEqual(system.stringArray(forKey: LanguageOverride.appleLanguagesKey), ["de"])
+        XCTAssertEqual(viewModel.selectedRowID, "de")
+        XCTAssertTrue(viewModel.showingRelaunchAlert)
+
+        viewModel.showingRelaunchAlert = false
+        viewModel.select(id: LanguageViewModel.systemDefaultID)
+        XCTAssertNil(system.persistentDomain(forName: suites[0])?[LanguageOverride.appleLanguagesKey])
+        XCTAssertEqual(viewModel.selectedRowID, LanguageViewModel.systemDefaultID)
+        XCTAssertTrue(viewModel.showingRelaunchAlert)
+    }
+
+    /// SwiftUI re-asserts a `Picker`'s selection through its binding on every re-render, including
+    /// the one caused by dismissing the alert. A no-op write must not raise it again.
+    func testReselectingTheActiveRowDoesNotRaiseTheAlert() {
+        let viewModel = makeViewModel()
+        viewModel.select(id: "fr")
+        XCTAssertTrue(viewModel.showingRelaunchAlert)
+
+        viewModel.showingRelaunchAlert = false
+        viewModel.select(id: "fr")
+        XCTAssertFalse(viewModel.showingRelaunchAlert)
+        XCTAssertEqual(viewModel.selectedRowID, "fr")
+    }
+
+    func testRowNamesFollowTheForcedLanguage() {
+        let viewModel = makeViewModel()
+        viewModel.select(viewModel.rows.first { $0.id == "fr" }!)
+        let german = viewModel.rows.first { $0.id == "de" }!
+        XCTAssertEqual(german.nativeName, "Deutsch")
+        XCTAssertEqual(german.localizedName, "allemand", "row names must be rendered in the forced language")
+    }
+
     func testRowsCarryNativeAndLocalisedNames() {
         let viewModel = makeViewModel()
         let french = viewModel.rows.first { $0.id == "fr" }!

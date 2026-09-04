@@ -7917,13 +7917,13 @@
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "言語の変更はApp全体には次回起動時に適用されます。Scytherのメニューはすぐに切り替わります。"
+            "value": "言語の変更は、次回起動時にApp全体に適用されます。Scytherのメニューはすぐに切り替わります。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "언어 변경은 다음 실행 시 앱 전체에 적용됩니다. Scyther 메뉴는 즉시 전환됩니다."
+            "value": "언어 변경은 다음 실행 시 App 전체에 적용됩니다. Scyther 메뉴는 즉시 전환됩니다."
           }
         },
         "nl": {
@@ -11429,7 +11429,7 @@
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "الحالي"
+            "value": "الإعدادات الحالية"
           }
         },
         "de": {
@@ -11483,7 +11483,7 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Текущие"
+            "value": "Текущие настройки"
           }
         },
         "zh-Hans": {
@@ -39667,7 +39667,7 @@
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "앱 언어는 다음 실행 시 변경됩니다. Scyther 메뉴는 이미 전환되었습니다."
+            "value": "App 언어는 다음 실행 시 변경됩니다. Scyther 메뉴는 이미 전환되었습니다."
           }
         },
         "nl": {

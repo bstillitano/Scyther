@@ -25,6 +25,24 @@ final class LanguageOverrideTests: XCTestCase {
         scyther.removePersistentDomain(forName: scytherSuite)
     }
 
+    /// The `.lproj` bundle Scyther must resolve to when no override is set, computed from the same
+    /// global-domain languages the implementation reads. Keeps the assertions below deterministic
+    /// whatever language the running simulator is set to.
+    private var deviceLanguageBundle: Bundle {
+        let preferences = (UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain)?[LanguageOverride.appleLanguagesKey] as? [String])
+            ?? Locale.preferredLanguages
+        let matches = Bundle.preferredLocalizations(from: ScytherLocalization.moduleBundle.localizations, forPreferences: preferences)
+        guard let best = matches.first,
+              let bundle = LanguageOverride.languageBundle(for: best, in: ScytherLocalization.moduleBundle) else {
+            return ScytherLocalization.moduleBundle
+        }
+        return bundle
+    }
+
+    private func language(in bundle: Bundle) -> String {
+        bundle.localizedString(forKey: "Language", value: nil, table: nil)
+    }
+
     private func makeOverride(hostBundle: Bundle = .main) -> LanguageOverride {
         LanguageOverride(
             systemDefaults: system,
@@ -38,7 +56,7 @@ final class LanguageOverrideTests: XCTestCase {
         let override = makeOverride()
         XCTAssertNil(override.preferredLanguage)
         XCTAssertNil(override.effectiveLocale)
-        XCTAssertTrue(override.effectiveBundle === ScytherLocalization.moduleBundle)
+        XCTAssertEqual(override.effectiveBundle.bundlePath, deviceLanguageBundle.bundlePath)
     }
 
     func testSettingLanguageWritesAppleLanguagesAndBookkeeping() {
@@ -58,7 +76,7 @@ final class LanguageOverrideTests: XCTestCase {
         XCTAssertNil(system.persistentDomain(forName: systemSuite)?[LanguageOverride.appleLanguagesKey], "AppleLanguages must be removed from the suite's own domain")
         XCTAssertNil(scyther.object(forKey: LanguageOverride.bookkeepingKey))
         XCTAssertNil(override.preferredLanguage)
-        XCTAssertTrue(override.effectiveBundle === ScytherLocalization.moduleBundle)
+        XCTAssertEqual(override.effectiveBundle.bundlePath, deviceLanguageBundle.bundlePath)
     }
 
     func testSettingNilBehavesLikeReset() {
@@ -88,6 +106,47 @@ final class LanguageOverrideTests: XCTestCase {
         XCTAssertTrue(languages.contains("fr"))
         let names = languages.map { override.displayName(for: $0, in: Locale(identifier: "en")) }
         XCTAssertEqual(names, names.sorted())
+    }
+
+    /// A session relaunched under a forced language must switch back the moment the override is
+    /// cleared. `Bundle.module`'s search list is frozen at launch, so clearing alone is not enough.
+    func testResetResolvesTheDeviceLanguageNotTheLaunchLanguage() {
+        system.set(["fr"], forKey: LanguageOverride.appleLanguagesKey)
+        scyther.set("fr", forKey: LanguageOverride.bookkeepingKey)
+        let override = makeOverride()
+        XCTAssertEqual(language(in: override.effectiveBundle), "Langue", "the stored override should resolve French")
+
+        override.reset()
+
+        let expected = language(in: deviceLanguageBundle)
+        XCTAssertEqual(language(in: override.effectiveBundle), expected)
+        if expected != "Langue" {
+            XCTAssertNotEqual(language(in: override.effectiveBundle), "Langue", "reset left Scyther stuck in the launch language")
+        }
+    }
+
+    func testCurrentLanguageNameIsRenderedInTheForcedLanguage() {
+        let override = makeOverride()
+        override.setPreferredLanguage("fr")
+        XCTAssertEqual(override.currentLanguageDisplayName, override.displayName(for: "fr", in: Locale(identifier: "fr")))
+        XCTAssertEqual(override.currentLanguageDisplayName, "français")
+    }
+
+    /// After clearing an override in a session that launched under it, the Current section must
+    /// name the *device's* language, not the launch language `Locale.current` is stuck on.
+    func testCurrentLanguageNameFollowsTheDeviceAfterReset() {
+        system.set(["fr"], forKey: LanguageOverride.appleLanguagesKey)
+        scyther.set("fr", forKey: LanguageOverride.bookkeepingKey)
+        let override = makeOverride()
+        XCTAssertEqual(override.currentLanguageDisplayName, "français")
+
+        override.reset()
+
+        let identifier = LanguageOverride.devicePreferredLanguages(systemDefaults: system).first ?? Locale.current.identifier
+        XCTAssertEqual(
+            override.currentLanguageDisplayName,
+            override.displayName(for: identifier, in: Locale(identifier: identifier))
+        )
     }
 
     func testDisplayNames() {
