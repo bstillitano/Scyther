@@ -19,6 +19,8 @@ final class UnlocalisedLiteralLintTests: XCTestCase {
         "Features/NetworkLogger",
         "Features/Menu",
         "Features/DatabaseBrowser",
+        "Features/NotificationTester",
+        "Features/NotificationLogger",
         "Shared",
     ]
 

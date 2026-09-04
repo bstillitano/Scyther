@@ -767,6 +767,17 @@ Scyther.notifications.scheduleTest(
 )
 ```
 
+#### Language
+
+The Notification Tester and Notification Logger screens are fully localised: the permission
+status, the content and option rows, the scheduled notification list, and every payload row
+label in the logger are read from Scyther's String Catalog and follow the effective menu
+language. When you send a test notification without supplying your own copy, the sample title
+and body Scyther schedules are localised too, so the banner matches the rest of the interface.
+
+Payload identifiers stay in English because they are data, not copy: the `aps` and `alert`
+dictionary keys, the `content-available` row label, and the raw values themselves.
+
 #### Viewing Logged Notifications
 
 ```swift

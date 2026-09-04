@@ -1,0 +1,315 @@
+{
+  "Permission Status": {
+    "comment": "Row label showing the current notification authorisation status",
+    "fr": "État de l'autorisation", "de": "Berechtigungsstatus", "es": "Estado del permiso",
+    "it": "Stato dell'autorizzazione", "pt-BR": "Status da permissão", "nl": "Toestemmingsstatus",
+    "ja": "許可の状態", "zh-Hans": "权限状态", "zh-Hant": "權限狀態", "ko": "권한 상태",
+    "ru": "Статус разрешения", "ar": "حالة الإذن"
+  },
+  "Request Permission": {
+    "comment": "Button that asks the system for notification authorisation",
+    "fr": "Demander l'autorisation", "de": "Berechtigung anfordern", "es": "Solicitar permiso",
+    "it": "Richiedi autorizzazione", "pt-BR": "Solicitar permissão", "nl": "Toestemming vragen",
+    "ja": "許可をリクエスト", "zh-Hans": "请求权限", "zh-Hant": "請求權限", "ko": "권한 요청",
+    "ru": "Запросить разрешение", "ar": "طلب الإذن"
+  },
+  "Open Settings": {
+    "comment": "Button that opens the app's page in the system Settings app",
+    "fr": "Ouvrir Réglages", "de": "Einstellungen öffnen", "es": "Abrir Ajustes",
+    "it": "Apri Impostazioni", "pt-BR": "Abrir Ajustes", "nl": "Open Instellingen",
+    "ja": "設定を開く", "zh-Hans": "打开设置", "zh-Hant": "打開設定", "ko": "설정 열기",
+    "ru": "Открыть Настройки", "ar": "فتح الإعدادات"
+  },
+  "Push Notifications": {
+    "comment": "Section header above the notification permission rows",
+    "fr": "Notifications push", "de": "Push-Benachrichtigungen", "es": "Notificaciones push",
+    "it": "Notifiche push", "pt-BR": "Notificações push", "nl": "Pushberichtgeving",
+    "ja": "プッシュ通知", "zh-Hans": "推送通知", "zh-Hant": "推播通知", "ko": "푸시 알림",
+    "ru": "Push-уведомления", "ar": "الإشعارات الفورية"
+  },
+  "Permission was denied. You can enable notifications in Settings.": {
+    "comment": "Section footer shown when notification permission has been denied",
+    "fr": "L'autorisation a été refusée. Vous pouvez activer les notifications dans Réglages.",
+    "de": "Die Berechtigung wurde verweigert. Du kannst Benachrichtigungen in den Einstellungen aktivieren.",
+    "es": "Se denegó el permiso. Puedes activar las notificaciones en Ajustes.",
+    "it": "L'autorizzazione è stata negata. Puoi attivare le notifiche in Impostazioni.",
+    "pt-BR": "A permissão foi negada. Você pode ativar as notificações em Ajustes.",
+    "nl": "De toestemming is geweigerd. Je kunt berichtgeving inschakelen in Instellingen.",
+    "ja": "許可が拒否されました。設定で通知を有効にできます。",
+    "zh-Hans": "权限已被拒绝。你可以在“设置”中启用通知。",
+    "zh-Hant": "權限已被拒絕。你可以在「設定」中啟用通知。",
+    "ko": "권한이 거부되었습니다. 설정에서 알림을 활성화할 수 있습니다.",
+    "ru": "Разрешение отклонено. Включить уведомления можно в Настройках.",
+    "ar": "تم رفض الإذن. يمكنك تفعيل الإشعارات من الإعدادات."
+  },
+  "Tap to request permission to send notifications.": {
+    "comment": "Section footer shown when notification permission has not been asked for yet",
+    "fr": "Touchez pour demander l'autorisation d'envoyer des notifications.",
+    "de": "Tippe, um die Berechtigung zum Senden von Benachrichtigungen anzufordern.",
+    "es": "Toca para solicitar permiso para enviar notificaciones.",
+    "it": "Tocca per richiedere l'autorizzazione a inviare notifiche.",
+    "pt-BR": "Toque para solicitar permissão para enviar notificações.",
+    "nl": "Tik om toestemming te vragen voor het versturen van berichtgeving.",
+    "ja": "タップして通知の送信許可をリクエストします。",
+    "zh-Hans": "轻点以请求发送通知的权限。",
+    "zh-Hant": "輕點以請求傳送通知的權限。",
+    "ko": "알림을 보낼 권한을 요청하려면 탭하십시오.",
+    "ru": "Нажмите, чтобы запросить разрешение на отправку уведомлений.",
+    "ar": "اضغط لطلب الإذن بإرسال الإشعارات."
+  },
+  "Notification Content": {
+    "comment": "Section header above the test notification title, body and payload fields",
+    "fr": "Contenu de la notification", "de": "Benachrichtigungsinhalt", "es": "Contenido de la notificación",
+    "it": "Contenuto della notifica", "pt-BR": "Conteúdo da notificação", "nl": "Berichtgevingsinhoud",
+    "ja": "通知の内容", "zh-Hans": "通知内容", "zh-Hant": "通知內容", "ko": "알림 내용",
+    "ru": "Содержимое уведомления", "ar": "محتوى الإشعار"
+  },
+  "Title": {
+    "comment": "Label and placeholder for the notification title field, and the title row in the logger",
+    "fr": "Titre", "de": "Titel", "es": "Título", "it": "Titolo", "pt-BR": "Título", "nl": "Titel",
+    "ja": "タイトル", "zh-Hans": "标题", "zh-Hant": "標題", "ko": "제목",
+    "ru": "Заголовок", "ar": "العنوان"
+  },
+  "Body": {
+    "comment": "Label and placeholder for the notification body field, and the body row in the logger",
+    "fr": "Corps", "de": "Body", "es": "Cuerpo", "it": "Corpo", "pt-BR": "Corpo", "nl": "Body",
+    "ja": "ボディ", "zh-Hans": "正文", "zh-Hant": "內容", "ko": "본문",
+    "ru": "Тело", "ar": "المحتوى"
+  },
+  "Payload": {
+    "comment": "Label for the optional custom JSON payload field",
+    "fr": "Charge utile", "de": "Nutzdaten", "es": "Carga útil", "it": "Payload", "pt-BR": "Payload",
+    "nl": "Payload", "ja": "ペイロード", "zh-Hans": "有效负载", "zh-Hant": "有效負載",
+    "ko": "페이로드", "ru": "Полезные данные", "ar": "الحمولة"
+  },
+  "Optional JSON": {
+    "comment": "Placeholder in the custom payload text field",
+    "fr": "JSON facultatif", "de": "JSON (optional)", "es": "JSON opcional", "it": "JSON facoltativo",
+    "pt-BR": "JSON opcional", "nl": "Optionele JSON", "ja": "JSON（任意）",
+    "zh-Hans": "可选 JSON", "zh-Hant": "選填 JSON", "ko": "선택적 JSON",
+    "ru": "JSON (необязательно)", "ar": "JSON اختياري"
+  },
+  "Options": {
+    "comment": "Section header above the notification delivery toggles",
+    "fr": "Options", "de": "Optionen", "es": "Opciones", "it": "Opzioni", "pt-BR": "Opções",
+    "nl": "Opties", "ja": "オプション", "zh-Hans": "选项", "zh-Hant": "選項", "ko": "옵션",
+    "ru": "Параметры", "ar": "الخيارات"
+  },
+  "Play sound": {
+    "comment": "Toggle deciding whether the test notification plays a sound",
+    "fr": "Jouer un son", "de": "Ton abspielen", "es": "Reproducir sonido", "it": "Riproduci suono",
+    "pt-BR": "Reproduzir som", "nl": "Geluid afspelen", "ja": "サウンドを再生",
+    "zh-Hans": "播放声音", "zh-Hant": "播放聲音", "ko": "사운드 재생",
+    "ru": "Воспроизводить звук", "ar": "تشغيل الصوت"
+  },
+  "Repeat": {
+    "comment": "Toggle deciding whether the test notification repeats",
+    "fr": "Répéter", "de": "Wiederholen", "es": "Repetir", "it": "Ripeti", "pt-BR": "Repetir",
+    "nl": "Herhalen", "ja": "繰り返す", "zh-Hans": "重复", "zh-Hant": "重複", "ko": "반복",
+    "ru": "Повторять", "ar": "تكرار"
+  },
+  "Delay (%@)": {
+    "comment": "Toggle that delays delivery; the placeholder is the delay, such as 10s",
+    "fr": "Délai (%@)", "de": "Verzögerung (%@)", "es": "Retraso (%@)", "it": "Ritardo (%@)",
+    "pt-BR": "Atraso (%@)", "nl": "Vertraging (%@)", "ja": "遅延（%@）",
+    "zh-Hans": "延迟（%@）", "zh-Hant": "延遲（%@）", "ko": "지연 (%@)",
+    "ru": "Задержка (%@)", "ar": "تأخير (%@)"
+  },
+  "Increment app badge": {
+    "comment": "Toggle deciding whether the test notification raises the app icon badge",
+    "fr": "Incrémenter la pastille de l'app", "de": "Kurzhinweis der App erhöhen",
+    "es": "Incrementar el distintivo de la app", "it": "Incrementa il badge dell'app",
+    "pt-BR": "Incrementar o emblema do app", "nl": "App-badge verhogen",
+    "ja": "Appのバッジを増やす", "zh-Hans": "增加 App 标记数", "zh-Hant": "增加 App 標記數",
+    "ko": "앱 배지 증가", "ru": "Увеличить бейдж приложения", "ar": "زيادة شارة التطبيق"
+  },
+  "App Badge": {
+    "comment": "Section header above the app icon badge controls",
+    "fr": "Pastille de l'app", "de": "App-Kurzhinweis", "es": "Distintivo de la app",
+    "it": "Badge dell'app", "pt-BR": "Emblema do app", "nl": "App-badge",
+    "ja": "Appのバッジ", "zh-Hans": "App 标记", "zh-Hant": "App 標記", "ko": "앱 배지",
+    "ru": "Бейдж приложения", "ar": "شارة التطبيق"
+  },
+  "Badge Count: %lld": {
+    "comment": "Stepper label showing the current app icon badge number",
+    "fr": "Nombre sur la pastille : %lld", "de": "Anzahl im Kurzhinweis: %lld",
+    "es": "Número del distintivo: %lld", "it": "Numero del badge: %lld",
+    "pt-BR": "Contagem do emblema: %lld", "nl": "Aantal op badge: %lld",
+    "ja": "バッジの数：%lld", "zh-Hans": "标记数量：%lld", "zh-Hant": "標記數量：%lld",
+    "ko": "배지 개수: %lld", "ru": "Число на бейдже: %lld", "ar": "عدد الشارة: %lld"
+  },
+  "No scheduled notifications": {
+    "comment": "Placeholder shown when no notification is pending delivery",
+    "fr": "Aucune notification planifiée", "de": "Keine geplanten Benachrichtigungen",
+    "es": "No hay notificaciones programadas", "it": "Nessuna notifica pianificata",
+    "pt-BR": "Nenhuma notificação agendada", "nl": "Geen geplande berichtgeving",
+    "ja": "予定された通知はありません", "zh-Hans": "没有已排定的通知", "zh-Hant": "沒有已排定的通知",
+    "ko": "예약된 알림 없음", "ru": "Нет запланированных уведомлений", "ar": "لا توجد إشعارات مجدولة"
+  },
+  "Cancel All Scheduled": {
+    "comment": "Destructive button that removes every pending notification request",
+    "fr": "Annuler toutes les planifiées", "de": "Alle geplanten abbrechen",
+    "es": "Cancelar todas las programadas", "it": "Annulla tutte le pianificate",
+    "pt-BR": "Cancelar todas as agendadas", "nl": "Alle geplande annuleren",
+    "ja": "予定をすべてキャンセル", "zh-Hans": "取消所有已排定", "zh-Hant": "取消所有已排定",
+    "ko": "예약 전체 취소", "ru": "Отменить все запланированные", "ar": "إلغاء جميع المجدولة"
+  },
+  "Scheduled Notifications": {
+    "comment": "Section header above the list of pending notification requests",
+    "fr": "Notifications planifiées", "de": "Geplante Benachrichtigungen",
+    "es": "Notificaciones programadas", "it": "Notifiche pianificate",
+    "pt-BR": "Notificações agendadas", "nl": "Geplande berichtgeving",
+    "ja": "予定された通知", "zh-Hans": "已排定的通知", "zh-Hant": "已排定的通知",
+    "ko": "예약된 알림", "ru": "Запланированные уведомления", "ar": "الإشعارات المجدولة"
+  },
+  "Fires at %@": {
+    "comment": "Caption on a scheduled notification row; the placeholder is a formatted time",
+    "fr": "Déclenchement à %@", "de": "Auslösung um %@", "es": "Se activa a las %@",
+    "it": "Attivazione alle %@", "pt-BR": "Dispara às %@", "nl": "Wordt geactiveerd om %@",
+    "ja": "%@に配信", "zh-Hans": "于 %@ 触发", "zh-Hant": "於 %@ 觸發",
+    "ko": "%@에 실행", "ru": "Сработает в %@", "ar": "يُطلق في %@"
+  },
+  "(repeats)": {
+    "comment": "Caption suffix marking a scheduled notification that repeats",
+    "fr": "(répétée)", "de": "(wiederholt)", "es": "(se repite)", "it": "(si ripete)",
+    "pt-BR": "(repete)", "nl": "(herhaalt)", "ja": "（繰り返し）", "zh-Hans": "（重复）",
+    "zh-Hant": "（重複）", "ko": "(반복)", "ru": "(повторяется)", "ar": "(متكرر)"
+  },
+  "No notifications received": {
+    "comment": "Placeholder shown when the notification logger has captured nothing",
+    "fr": "Aucune notification reçue", "de": "Keine Benachrichtigungen empfangen",
+    "es": "No se recibieron notificaciones", "it": "Nessuna notifica ricevuta",
+    "pt-BR": "Nenhuma notificação recebida", "nl": "Geen berichtgeving ontvangen",
+    "ja": "受信した通知はありません", "zh-Hans": "未收到通知", "zh-Hant": "未收到通知",
+    "ko": "수신된 알림 없음", "ru": "Уведомления не получены", "ar": "لم يتم استلام أي إشعارات"
+  },
+  "Subtitle": {
+    "comment": "Logger row label for the notification subtitle",
+    "fr": "Sous-titre", "de": "Untertitel", "es": "Subtítulo", "it": "Sottotitolo",
+    "pt-BR": "Subtítulo", "nl": "Ondertitel", "ja": "サブタイトル", "zh-Hans": "副标题",
+    "zh-Hant": "副標題", "ko": "부제목", "ru": "Подзаголовок", "ar": "العنوان الفرعي"
+  },
+  "Badge": {
+    "comment": "Logger row label for the badge number carried by a notification",
+    "fr": "Pastille", "de": "Kurzhinweis", "es": "Distintivo", "it": "Badge", "pt-BR": "Emblema",
+    "nl": "Badge", "ja": "バッジ", "zh-Hans": "标记", "zh-Hant": "標記", "ko": "배지",
+    "ru": "Бейдж", "ar": "الشارة"
+  },
+  "Category": {
+    "comment": "Logger row label for the notification category identifier",
+    "fr": "Catégorie", "de": "Kategorie", "es": "Categoría", "it": "Categoria",
+    "pt-BR": "Categoria", "nl": "Categorie", "ja": "カテゴリ", "zh-Hans": "类别",
+    "zh-Hant": "類別", "ko": "카테고리", "ru": "Категория", "ar": "الفئة"
+  },
+  "Sound": {
+    "comment": "Logger row label for the notification sound",
+    "fr": "Son", "de": "Ton", "es": "Sonido", "it": "Suono", "pt-BR": "Som", "nl": "Geluid",
+    "ja": "サウンド", "zh-Hans": "声音", "zh-Hant": "聲音", "ko": "사운드",
+    "ru": "Звук", "ar": "الصوت"
+  },
+  "View User-Additional Data": {
+    "comment": "Link opening the custom key-value data sent alongside a notification",
+    "fr": "Afficher les données supplémentaires", "de": "Zusätzliche Daten anzeigen",
+    "es": "Ver datos adicionales", "it": "Mostra dati aggiuntivi",
+    "pt-BR": "Ver dados adicionais", "nl": "Aanvullende gegevens tonen",
+    "ja": "追加データを表示", "zh-Hans": "查看附加数据", "zh-Hant": "查看附加資料",
+    "ko": "추가 데이터 보기", "ru": "Показать дополнительные данные", "ar": "عرض البيانات الإضافية"
+  },
+  "Additional Push Data": {
+    "comment": "Navigation title of the custom notification data reader",
+    "fr": "Données push supplémentaires", "de": "Zusätzliche Push-Daten",
+    "es": "Datos push adicionales", "it": "Dati push aggiuntivi",
+    "pt-BR": "Dados push adicionais", "nl": "Aanvullende pushgegevens",
+    "ja": "追加のプッシュデータ", "zh-Hans": "附加推送数据", "zh-Hant": "附加推播資料",
+    "ko": "추가 푸시 데이터", "ru": "Дополнительные push-данные", "ar": "بيانات الإشعار الإضافية"
+  },
+  "View Raw Payload": {
+    "comment": "Link opening the complete notification payload",
+    "fr": "Afficher la charge utile brute", "de": "Rohe Nutzdaten anzeigen",
+    "es": "Ver la carga útil sin procesar", "it": "Mostra il payload grezzo",
+    "pt-BR": "Ver o payload bruto", "nl": "Ruwe payload tonen",
+    "ja": "生のペイロードを表示", "zh-Hans": "查看原始有效负载", "zh-Hant": "查看原始有效負載",
+    "ko": "원본 페이로드 보기", "ru": "Показать исходные данные", "ar": "عرض الحمولة الخام"
+  },
+  "Raw Push Payload": {
+    "comment": "Navigation title of the raw notification payload reader",
+    "fr": "Charge utile push brute", "de": "Rohe Push-Nutzdaten",
+    "es": "Carga útil push sin procesar", "it": "Payload push grezzo",
+    "pt-BR": "Payload push bruto", "nl": "Ruwe pushpayload",
+    "ja": "生のプッシュペイロード", "zh-Hans": "原始推送有效负载", "zh-Hant": "原始推播有效負載",
+    "ko": "원본 푸시 페이로드", "ru": "Исходные push-данные", "ar": "حمولة الإشعار الخام"
+  },
+  "Not Determined": {
+    "comment": "Notification authorisation status: the user has not been asked yet",
+    "fr": "Non déterminé", "de": "Nicht festgelegt", "es": "Sin determinar",
+    "it": "Non determinato", "pt-BR": "Não determinado", "nl": "Niet bepaald",
+    "ja": "未確定", "zh-Hans": "未确定", "zh-Hant": "未確定", "ko": "미결정",
+    "ru": "Не определено", "ar": "غير محدد"
+  },
+  "Denied": {
+    "comment": "Notification authorisation status: the user refused notifications",
+    "fr": "Refusé", "de": "Verweigert", "es": "Denegado", "it": "Negato", "pt-BR": "Negado",
+    "nl": "Geweigerd", "ja": "拒否", "zh-Hans": "已拒绝", "zh-Hant": "已拒絕",
+    "ko": "거부됨", "ru": "Отклонено", "ar": "مرفوض"
+  },
+  "Authorized": {
+    "comment": "Notification authorisation status: notifications are allowed",
+    "fr": "Autorisé", "de": "Autorisiert", "es": "Autorizado", "it": "Autorizzato",
+    "pt-BR": "Autorizado", "nl": "Toegestaan", "ja": "許可済み", "zh-Hans": "已授权",
+    "zh-Hant": "已授權", "ko": "허용됨", "ru": "Разрешено", "ar": "مصرّح"
+  },
+  "Provisional": {
+    "comment": "Notification authorisation status: quiet provisional delivery",
+    "fr": "Provisoire", "de": "Vorläufig", "es": "Provisional", "it": "Provvisorio",
+    "pt-BR": "Provisório", "nl": "Voorlopig", "ja": "暫定", "zh-Hans": "临时",
+    "zh-Hant": "臨時", "ko": "임시", "ru": "Временно", "ar": "مؤقت"
+  },
+  "Ephemeral": {
+    "comment": "Notification authorisation status: granted for an App Clip session only",
+    "fr": "Éphémère", "de": "Kurzzeitig", "es": "Efímero", "it": "Effimero",
+    "pt-BR": "Efêmero", "nl": "Kortstondig", "ja": "一時的", "zh-Hans": "短暂",
+    "zh-Hant": "短暫", "ko": "일시적", "ru": "Кратковременно", "ar": "مؤقت للجلسة"
+  },
+  "Unknown": {
+    "comment": "Fallback for an authorisation status or a timestamp that cannot be read",
+    "fr": "Inconnu", "de": "Unbekannt", "es": "Desconocido", "it": "Sconosciuto",
+    "pt-BR": "Desconhecido", "nl": "Onbekend", "ja": "不明", "zh-Hans": "未知",
+    "zh-Hant": "未知", "ko": "알 수 없음", "ru": "Неизвестно", "ar": "غير معروف"
+  },
+  "(No title)": {
+    "comment": "Placeholder on a scheduled notification row that carries no title",
+    "fr": "(Sans titre)", "de": "(Kein Titel)", "es": "(Sin título)", "it": "(Nessun titolo)",
+    "pt-BR": "(Sem título)", "nl": "(Geen titel)", "ja": "（タイトルなし）",
+    "zh-Hans": "（无标题）", "zh-Hant": "（無標題）", "ko": "(제목 없음)",
+    "ru": "(Без заголовка)", "ar": "(بدون عنوان)"
+  },
+  "(No body)": {
+    "comment": "Placeholder on a scheduled notification row that carries no body text",
+    "fr": "(Sans corps)", "de": "(Kein Body)", "es": "(Sin cuerpo)", "it": "(Nessun corpo)",
+    "pt-BR": "(Sem corpo)", "nl": "(Geen body)", "ja": "（ボディなし）",
+    "zh-Hans": "（无正文）", "zh-Hant": "（無內容）", "ko": "(본문 없음)",
+    "ru": "(Без тела)", "ar": "(بدون محتوى)"
+  },
+  "Scyther Notification": {
+    "comment": "Default title of the sample notification Scyther schedules, shown in the banner",
+    "fr": "Notification Scyther", "de": "Scyther-Benachrichtigung", "es": "Notificación de Scyther",
+    "it": "Notifica Scyther", "pt-BR": "Notificação do Scyther", "nl": "Scyther-bericht",
+    "ja": "Scyther通知", "zh-Hans": "Scyther 通知", "zh-Hant": "Scyther 通知",
+    "ko": "Scyther 알림", "ru": "Уведомление Scyther", "ar": "إشعار Scyther"
+  },
+  "This is a dummy notification powered by Scyther.": {
+    "comment": "Default body of the sample notification Scyther schedules, shown in the banner",
+    "fr": "Ceci est une notification factice propulsée par Scyther.",
+    "de": "Dies ist eine Testbenachrichtigung, bereitgestellt von Scyther.",
+    "es": "Esta es una notificación de prueba proporcionada por Scyther.",
+    "it": "Questa è una notifica fittizia offerta da Scyther.",
+    "pt-BR": "Esta é uma notificação fictícia fornecida pelo Scyther.",
+    "nl": "Dit is een testbericht mogelijk gemaakt door Scyther.",
+    "ja": "これはScytherによるダミー通知です。",
+    "zh-Hans": "这是一条由 Scyther 提供的示例通知。",
+    "zh-Hant": "這是一則由 Scyther 提供的示例通知。",
+    "ko": "Scyther에서 제공하는 예시 알림입니다.",
+    "ru": "Это тестовое уведомление от Scyther.",
+    "ar": "هذا إشعار تجريبي من Scyther."
+  }
+}

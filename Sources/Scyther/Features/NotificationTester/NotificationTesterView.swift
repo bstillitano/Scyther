@@ -27,47 +27,47 @@ struct NotificationTesterView: View {
         List {
             Section {
                 HStack {
-                    Text("Permission Status")
+                    Text(localized("Permission Status"))
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Text(viewModel.permissionStatusText)
                         .foregroundStyle(viewModel.permissionStatusColor)
                 }
 
                 if viewModel.authorizationStatus == .notDetermined {
-                    Button("Request Permission") {
+                    Button(localized("Request Permission")) {
                         viewModel.requestPermission()
                     }
                 } else if viewModel.authorizationStatus == .denied {
-                    Button("Open Settings") {
+                    Button(localized("Open Settings")) {
                         viewModel.openSettings()
                     }
                 }
             } header: {
-                Text("Push Notifications")
+                Text(localized("Push Notifications"))
             } footer: {
                 if viewModel.authorizationStatus == .denied {
-                    Text("Permission was denied. You can enable notifications in Settings.")
+                    Text(localized("Permission was denied. You can enable notifications in Settings."))
                 } else if viewModel.authorizationStatus == .notDetermined {
-                    Text("Tap to request permission to send notifications.")
+                    Text(localized("Tap to request permission to send notifications."))
                 }
             }
 
-            Section("Notification Content") {
+            Section(localized("Notification Content")) {
                 HStack {
-                    Text("Title")
-                    TextField("Title", text: $viewModel.pushTitle)
+                    Text(localized("Title"))
+                    TextField(localized("Title"), text: $viewModel.pushTitle)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.trailing)
                 }
                 HStack {
-                    Text("Body")
-                    TextField("Body", text: $viewModel.pushBody)
+                    Text(localized("Body"))
+                    TextField(localized("Body"), text: $viewModel.pushBody)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.trailing)
                 }
                 HStack {
-                    Text("Payload")
-                    TextField("Optional JSON", text: Binding(
+                    Text(localized("Payload"))
+                    TextField(localized("Optional JSON"), text: Binding(
                         get: { viewModel.pushPayload ?? "" },
                         set: { viewModel.pushPayload = $0.isEmpty ? nil : $0 }
                     ))
@@ -76,31 +76,31 @@ struct NotificationTesterView: View {
                 }
             }
 
-            Section("Options") {
-                Toggle("Play sound", isOn: $viewModel.playSound)
-                Toggle("Repeat", isOn: $viewModel.repeatNotification)
-                Toggle("Delay (\(viewModel.repeatNotification ? "60s" : "10s"))", isOn: $viewModel.delay)
+            Section(localized("Options")) {
+                Toggle(localized("Play sound"), isOn: $viewModel.playSound)
+                Toggle(localized("Repeat"), isOn: $viewModel.repeatNotification)
+                Toggle(localized("Delay (\(viewModel.repeatNotification ? "60s" : "10s"))"), isOn: $viewModel.delay)
                     .disabled(viewModel.repeatNotification)
-                Toggle("Increment app badge", isOn: $viewModel.increaseBadge)
+                Toggle(localized("Increment app badge"), isOn: $viewModel.increaseBadge)
             }
 
             Section {
-                Button("Send push notification") {
+                Button(localized("Send Push Notification")) {
                     viewModel.sendNotification()
                 }
             }
 
-            Section("App Badge") {
-                Stepper("Badge Count: \(viewModel.badgeCount)", value: $viewModel.badgeCount, in: 0...999)
+            Section(localized("App Badge")) {
+                Stepper(localized("Badge Count: \(viewModel.badgeCount)"), value: $viewModel.badgeCount, in: 0...999)
 
-                Button("Clear Badge & Notifications") {
+                Button(localized("Clear Badge & Notifications")) {
                     viewModel.clearBadge()
                 }
             }
 
             Section {
                 if viewModel.scheduledNotifications.isEmpty {
-                    Text("No scheduled notifications")
+                    Text(localized("No scheduled notifications"))
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(viewModel.scheduledNotifications) { notification in
@@ -108,15 +108,15 @@ struct NotificationTesterView: View {
                     }
                 }
 
-                Button("Cancel All Scheduled") {
+                Button(localized("Cancel All Scheduled")) {
                     viewModel.cancelPending()
                 }
                 .foregroundStyle(.red)
             } header: {
-                Text("Scheduled Notifications")
+                Text(localized("Scheduled Notifications"))
             }
         }
-        .navigationTitle("Notification Tester")
+        .navigationTitle(localized("Notification Tester"))
         .onFirstAppear {
             await viewModel.onAppear()
         }
@@ -142,9 +142,9 @@ struct ScheduledNotificationRow: View {
                 .foregroundStyle(.secondary)
             if let fireDate = notification.fireDate {
                 HStack(spacing: 4) {
-                    Text("Fires at \(fireDate.formatted(date: .omitted, time: .standard))")
+                    Text(localized("Fires at \(fireDate.formatted(date: .omitted, time: .standard))"))
                     if notification.repeats {
-                        Text("(repeats)")
+                        Text(localized("(repeats)"))
                     }
                 }
                 .font(.caption)
