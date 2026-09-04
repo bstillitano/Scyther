@@ -78,7 +78,7 @@ final class RecordDetailViewModel: ViewModel {
     /// Deletes the current record.
     func deleteRecord() async {
         guard let primaryKey = record.primaryKey else {
-            errorMessage = "Cannot delete record without primary key"
+            errorMessage = localized("Cannot delete record without primary key")
             showingError = true
             return
         }

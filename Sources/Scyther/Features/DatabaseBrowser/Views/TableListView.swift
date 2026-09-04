@@ -31,7 +31,7 @@ struct TableListView: View {
                     NavigationLink {
                         SQLQueryEditorView(adapter: database.adapter)
                     } label: {
-                        Label("SQL Query Editor", systemImage: "terminal")
+                        Label(localized("SQL Query Editor"), systemImage: "terminal")
                     }
                 }
             }
@@ -48,15 +48,15 @@ struct TableListView: View {
                 } else if filteredTables.isEmpty {
                     if searchText.isEmpty {
                         emptyStateView(
-                            title: "No Tables",
+                            title: localized("No Tables"),
                             systemImage: "tablecells",
-                            description: "This database contains no tables."
+                            description: localized("This database contains no tables.")
                         )
                     } else {
                         emptyStateView(
-                            title: "No Results",
+                            title: localized("No Results"),
                             systemImage: "magnifyingglass",
-                            description: "No tables matching '\(searchText)'"
+                            description: localized("No tables matching '\(searchText)'")
                         )
                     }
                 } else {
@@ -70,17 +70,17 @@ struct TableListView: View {
                             Button {
                                 viewModel.selectedTableForSchema = table
                             } label: {
-                                Label("View Schema", systemImage: "tablecells")
+                                Label(localized("View Schema"), systemImage: "tablecells")
                             }
                         }
                     }
                 }
             } header: {
-                Text("Tables (\(viewModel.tables.count))")
+                Text(localized("Tables (\(viewModel.tables.count))"))
             }
         }
         .navigationTitle(database.name)
-        .searchable(text: $searchText, prompt: "Search tables")
+        .searchable(text: $searchText, prompt: localized("Search tables"))
         .refreshable {
             await viewModel.loadTables()
         }
@@ -89,8 +89,8 @@ struct TableListView: View {
                 SchemaView(adapter: database.adapter, table: table)
             }
         }
-        .alert("Error", isPresented: $viewModel.showingError) {
-            Button("OK", role: .cancel) {}
+        .alert(localized("Error"), isPresented: $viewModel.showingError) {
+            Button(localized("OK"), role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage)
         }
@@ -131,7 +131,7 @@ struct TableListView: View {
                 Text(table.name)
                     .lineLimit(1)
 
-                Text(table.isView ? "View" : "Table")
+                Text(table.isView ? localized("View") : localized("Table"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -25,7 +25,7 @@ struct SQLQueryEditorView: View {
         VStack(spacing: 0) {
             // Query Editor
             VStack(alignment: .leading, spacing: 8) {
-                Text("SQL Query")
+                Text(localized("SQL Query"))
                     .font(.headline)
                     .padding(.horizontal)
 
@@ -46,7 +46,7 @@ struct SQLQueryEditorView: View {
                     } label: {
                         HStack {
                             Image(systemName: "play.fill")
-                            Text("Execute")
+                            Text(localized("Execute"))
                         }
                     }
                     .buttonStyle(.borderedProminent)
@@ -59,7 +59,7 @@ struct SQLQueryEditorView: View {
 
                     Spacer()
 
-                    Button("Clear") {
+                    Button(localized("Clear")) {
                         queryText = ""
                         viewModel.clearResults()
                     }
@@ -74,11 +74,11 @@ struct SQLQueryEditorView: View {
             // Results
             resultsView
         }
-        .navigationTitle("SQL Query")
+        .navigationTitle(localized("SQL Query"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .keyboard) {
-                Button("Done") {
+                Button(localized("Done")) {
                     isEditorFocused = false
                 }
             }
@@ -95,19 +95,19 @@ struct SQLQueryEditorView: View {
                 List {
                     Section {
                         if let executionTime = result.executionTime {
-                            LabeledContent("Execution Time", value: String(format: "%.3f ms", executionTime * 1000))
+                            LabeledContent(localized("Execution Time"), value: String(format: "%.3f ms", executionTime * 1000))
                         }
-                        LabeledContent("Rows", value: "\(result.rows.count)")
+                        LabeledContent(localized("Rows"), value: "\(result.rows.count)")
                     } header: {
-                        Text("Query Info")
+                        Text(localized("Query Info"))
                     }
 
                     if result.rows.isEmpty {
                         Section {
                             emptyStateView(
-                                title: "No Results",
+                                title: localized("No Results"),
                                 systemImage: "doc.text",
-                                description: "Query returned no rows."
+                                description: localized("Query returned no rows.")
                             )
                         }
                     } else {
@@ -116,7 +116,7 @@ struct SQLQueryEditorView: View {
                                 rowView(row: row, index: index, columns: result.columns)
                             }
                         } header: {
-                            Text("Results")
+                            Text(localized("Results"))
                         }
                     }
                 }
@@ -127,10 +127,10 @@ struct SQLQueryEditorView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 48))
                         .foregroundStyle(.green)
-                    Text("Query Executed Successfully")
+                    Text(localized("Query Executed Successfully"))
                         .font(.headline)
                         .padding(.top, 8)
-                    Text("\(result.rowsAffected) row(s) affected")
+                    Text(localized("\(result.rowsAffected) rows affected"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     if let executionTime = result.executionTime {
@@ -148,7 +148,7 @@ struct SQLQueryEditorView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 48))
                     .foregroundStyle(.red)
-                Text("Error")
+                Text(localized("Error"))
                     .font(.headline)
                     .padding(.top, 8)
                 Text(error)
@@ -165,7 +165,7 @@ struct SQLQueryEditorView: View {
                 Image(systemName: "terminal")
                     .font(.system(size: 48))
                     .foregroundStyle(.secondary)
-                Text("Enter a SQL query and press Execute")
+                Text(localized("Enter a SQL query and press Execute"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.top, 8)
@@ -178,7 +178,7 @@ struct SQLQueryEditorView: View {
     @ViewBuilder
     private func rowView(row: [String: DatabaseValue], index: Int, columns: [String]) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Row \(index + 1)")
+            Text(localized("Row \(index + 1)"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -201,7 +201,7 @@ struct SQLQueryEditorView: View {
                 let rowString = columns.map { "\($0): \(row[$0]?.displayString ?? "NULL")" }.joined(separator: "\n")
                 UIPasteboard.general.string = rowString
             } label: {
-                Label("Copy Row", systemImage: "doc.on.doc")
+                Label(localized("Copy Row"), systemImage: "doc.on.doc")
             }
         }
     }

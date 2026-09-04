@@ -41,7 +41,7 @@ struct SchemaView: View {
                         columnRow(column)
                     }
                 } header: {
-                    Text("Columns (\(schema.columns.count))")
+                    Text(localized("Columns (\(schema.columns.count))"))
                 }
 
                 // Foreign Keys
@@ -51,7 +51,7 @@ struct SchemaView: View {
                             foreignKeyRow(fk)
                         }
                     } header: {
-                        Text("Foreign Keys")
+                        Text(localized("Foreign Keys"))
                     }
                 }
 
@@ -62,7 +62,7 @@ struct SchemaView: View {
                             indexRow(index)
                         }
                     } header: {
-                        Text("Indexes")
+                        Text(localized("Indexes"))
                     }
                 }
             }
@@ -71,13 +71,13 @@ struct SchemaView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Done") {
+                Button(localized("Done")) {
                     dismiss()
                 }
             }
         }
-        .alert("Error", isPresented: $viewModel.showingError) {
-            Button("OK", role: .cancel) {}
+        .alert(localized("Error"), isPresented: $viewModel.showingError) {
+            Button(localized("OK"), role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage)
         }
@@ -98,7 +98,7 @@ struct SchemaView: View {
                 Spacer()
 
                 if column.isPrimaryKey {
-                    Text("PK")
+                    Text(verbatim: "PK")
                         .font(.caption2.bold())
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -113,13 +113,13 @@ struct SchemaView: View {
                     .foregroundStyle(.secondary)
 
                 if !column.isNullable {
-                    Text("NOT NULL")
+                    Text(verbatim: "NOT NULL")
                         .font(.caption2)
                         .foregroundStyle(.orange)
                 }
 
                 if let defaultValue = column.defaultValue {
-                    Text("DEFAULT: \(defaultValue)")
+                    Text(verbatim: "DEFAULT: \(defaultValue)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -134,7 +134,7 @@ struct SchemaView: View {
             Text(fk.column)
                 .font(.body.monospaced())
 
-            Text("→ \(fk.referencedTable).\(fk.referencedColumn)")
+            Text(verbatim: "→ \(fk.referencedTable).\(fk.referencedColumn)")
                 .font(.caption.monospaced())
                 .foregroundStyle(.blue)
         }
@@ -150,7 +150,7 @@ struct SchemaView: View {
                 Spacer()
 
                 if index.isUnique {
-                    Text("UNIQUE")
+                    Text(verbatim: "UNIQUE")
                         .font(.caption2.bold())
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)

@@ -48,7 +48,7 @@ final class SQLiteConnection: @unchecked Sendable {
 
         let result = sqlite3_open_v2(path, &connection, flags, nil)
         guard result == SQLITE_OK, let connection = connection else {
-            let errorMessage = connection.flatMap { String(cString: sqlite3_errmsg($0)) } ?? "Unknown error"
+            let errorMessage = connection.flatMap { String(cString: sqlite3_errmsg($0)) } ?? localized("Unknown error")
             sqlite3_close(connection)
             throw DatabaseBrowserError.connectionFailed(errorMessage)
         }
@@ -220,7 +220,7 @@ final class SQLiteConnection: @unchecked Sendable {
 
         guard result == SQLITE_OK else {
             let error = String(cString: sqlite3_errmsg(db))
-            throw DatabaseBrowserError.queryFailed("Failed to bind parameter: \(error)")
+            throw DatabaseBrowserError.queryFailed(localized("Failed to bind parameter: \(error)"))
         }
     }
 
