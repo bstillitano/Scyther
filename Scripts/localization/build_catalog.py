@@ -39,10 +39,12 @@ def unit(value, state="needs_review"):
     return {"stringUnit": {"state": state, "value": value}}
 
 
-def main():
+def main(fragments_dir=None, catalog_path=None):
+    fragments_dir = Path(fragments_dir) if fragments_dir is not None else FRAGMENTS
+    catalog_path = Path(catalog_path) if catalog_path is not None else CATALOG
     strings = {}
     owner = {}
-    for fragment in sorted(FRAGMENTS.glob("*.json")):
+    for fragment in sorted(fragments_dir.glob("*.json")):
         try:
             data = json.loads(fragment.read_text(encoding="utf-8"))
         except json.JSONDecodeError as error:
@@ -88,9 +90,13 @@ def main():
             strings[key] = record
 
     catalog = {"sourceLanguage": SOURCE, "strings": dict(sorted(strings.items())), "version": "1.0"}
-    CATALOG.parent.mkdir(parents=True, exist_ok=True)
-    CATALOG.write_text(json.dumps(catalog, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"build_catalog: wrote {len(strings)} keys × {len(LANGUAGES)} languages to {CATALOG.relative_to(ROOT)}")
+    catalog_path.parent.mkdir(parents=True, exist_ok=True)
+    catalog_path.write_text(json.dumps(catalog, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    try:
+        display_path = catalog_path.relative_to(ROOT)
+    except ValueError:
+        display_path = catalog_path
+    print(f"build_catalog: wrote {len(strings)} keys × {len(LANGUAGES)} languages to {display_path}")
 
 
 if __name__ == "__main__":

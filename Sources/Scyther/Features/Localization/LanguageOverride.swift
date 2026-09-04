@@ -57,14 +57,40 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
     static let bookkeepingKey = "Scyther.Localization.PreferredLanguage"
 
     /// The BCP 47 identifier forced via `AppleLanguages`, or `nil` for the system default.
-    @Published public private(set) var preferredLanguage: String?
+    ///
+    /// Reads ``_preferredLanguage`` under ``lock``, so it is safe to call from any thread.
+    public var preferredLanguage: String? {
+        lock.withLock { _preferredLanguage }
+    }
 
+    /// Publishes a change notification manually, since ``preferredLanguage`` is no longer `@Published`.
+    ///
+    /// Declared explicitly (rather than relying on `ObservableObject`'s synthesised publisher) so
+    /// it can be sent deterministically from ``setPreferredLanguage(_:)`` and ``reset()``, which may
+    /// run off the main actor.
+    public let objectWillChange = ObservableObjectPublisher()
+
+    /// Serialises access to ``_preferredLanguage`` and ``resolvedBundle``, the two properties that
+    /// change together whenever the override is set or cleared.
     private let lock = NSLock()
+
+    /// Where `AppleLanguages` is written.
     private let systemDefaults: UserDefaults
+
+    /// Where the bookkeeping key is written.
     private let scytherDefaults: UserDefaults
+
+    /// The bundle whose declared localisations populate ``availableLanguages``.
     private let hostBundle: Bundle
+
+    /// The bundle holding Scyther's catalog, used to resolve a forced language's `.lproj` sub-bundle.
     private let moduleBundle: Bundle
+
+    /// The bundle ``effectiveBundle`` currently returns. Guarded by ``lock``.
     private var resolvedBundle: Bundle
+
+    /// Backing storage for ``preferredLanguage``. Guarded by ``lock``.
+    private var _preferredLanguage: String?
 
     /// Creates an override backed by specific stores and bundles. Tests inject throwaway suites.
     ///
@@ -84,7 +110,7 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
         self.hostBundle = hostBundle
         self.moduleBundle = moduleBundle
         let stored = scytherDefaults.string(forKey: Self.bookkeepingKey)
-        self.preferredLanguage = stored
+        self._preferredLanguage = stored
         self.resolvedBundle = Self.languageBundle(for: stored, in: moduleBundle) ?? moduleBundle
     }
 
@@ -104,16 +130,36 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
         systemDefaults.set([identifier], forKey: Self.appleLanguagesKey)
         scytherDefaults.set(identifier, forKey: Self.bookkeepingKey)
         let bundle = Self.languageBundle(for: identifier, in: moduleBundle) ?? moduleBundle
-        lock.withLock { resolvedBundle = bundle }
-        preferredLanguage = identifier
+        lock.withLock {
+            _preferredLanguage = identifier
+            resolvedBundle = bundle
+        }
+        notifyObservers()
     }
 
     /// Removes the override so the host app and Scyther follow the device language again.
     public func reset() {
         systemDefaults.removeObject(forKey: Self.appleLanguagesKey)
         scytherDefaults.removeObject(forKey: Self.bookkeepingKey)
-        lock.withLock { resolvedBundle = moduleBundle }
-        preferredLanguage = nil
+        lock.withLock {
+            _preferredLanguage = nil
+            resolvedBundle = moduleBundle
+        }
+        notifyObservers()
+    }
+
+    /// Sends ``objectWillChange`` on the main actor, synchronously if already there.
+    ///
+    /// ``setPreferredLanguage(_:)`` and ``reset()`` may run off the main actor, but SwiftUI
+    /// observers expect change notifications on the main actor.
+    private func notifyObservers() {
+        if Thread.isMainThread {
+            objectWillChange.send()
+        } else {
+            Task { @MainActor [objectWillChange] in
+                objectWillChange.send()
+            }
+        }
     }
 
     // MARK: - Resolution
