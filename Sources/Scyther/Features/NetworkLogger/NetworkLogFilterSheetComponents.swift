@@ -37,11 +37,12 @@ struct NetworkLogFilterOptionRow: View {
 
 /// The placeholder shown when a log-derived dimension has no values yet.
 struct NetworkLogFilterEmptyRow: View {
-    /// The lowercased dimension name, e.g. "host".
+    /// The dimension name as shown in the UI, e.g. "Host". Used verbatim, so it keeps the
+    /// capitalisation the current language expects.
     let dimensionName: String
 
     var body: some View {
-        Text(localized("No \(dimensionName) values captured yet"))
+        Text(localized("No values captured yet for \(dimensionName)"))
             .fontWeight(.bold)
             .foregroundStyle(.gray)
             .frame(maxWidth: .infinity, alignment: .center)

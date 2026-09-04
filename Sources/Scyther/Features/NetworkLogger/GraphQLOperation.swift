@@ -11,11 +11,21 @@ enum GraphQLOperationType: String, Sendable {
     case mutation
     case subscription
 
-    /// A capitalised label suitable for detail rows, e.g. "Query".
-    var displayName: String { rawValue.capitalized }
+    /// A localised label suitable for detail rows, e.g. "Query" in English.
+    ///
+    /// Reuses the operation-type keys shared with ``GraphQLOperationFilter``, so the detail row
+    /// and the GraphQL filter sheet always read the same way.
+    var displayName: String {
+        switch self {
+        case .query: return localized("Query")
+        case .mutation: return localized("Mutation")
+        case .subscription: return localized("Subscription")
+        }
+    }
 
-    /// An uppercased label suitable for a list-row lozenge, e.g. "QUERY".
-    var badgeText: String { rawValue.uppercased() }
+    /// An uppercased form of ``displayName`` suitable for a list-row lozenge, e.g. "QUERY" in
+    /// English. Uppercasing is a no-op in scripts without letter case, such as Japanese and Arabic.
+    var badgeText: String { displayName.uppercased() }
 }
 
 /// A parsed representation of a GraphQL request body.

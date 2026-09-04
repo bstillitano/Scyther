@@ -275,20 +275,20 @@
     "ja": "すべてのフィルタを消去", "zh-Hans": "清除所有筛选条件", "zh-Hant": "清除所有篩選條件",
     "ko": "모든 필터 지우기", "ru": "Очистить все фильтры", "ar": "مسح كل عوامل التصفية"
   },
-  "No %@ values captured yet": {
-    "comment": "Placeholder in a filter sheet whose options come from the captured logs; %@ is the lowercased dimension name",
-    "fr": "Aucune valeur %@ capturée pour le moment",
-    "de": "Noch keine %@-Werte erfasst",
-    "es": "Aún no se han capturado valores de %@",
-    "it": "Nessun valore %@ acquisito finora",
-    "pt-BR": "Nenhum valor de %@ capturado ainda",
-    "nl": "Nog geen %@-waarden vastgelegd",
-    "ja": "%@の値はまだ取得されていません",
-    "zh-Hans": "尚未捕获 %@ 值",
-    "zh-Hant": "尚未擷取 %@ 值",
-    "ko": "아직 캡처된 %@ 값이 없습니다",
-    "ru": "Значения %@ ещё не собраны",
-    "ar": "لم يتم التقاط أي قيم %@ بعد"
+  "No values captured yet for %@": {
+    "comment": "Placeholder in a filter sheet whose options come from the captured logs; %@ is the dimension name as titled in the UI",
+    "fr": "Aucune valeur capturée pour %@ pour le moment",
+    "de": "Noch keine Werte für %@ erfasst",
+    "es": "Aún no se han capturado valores para %@",
+    "it": "Nessun valore acquisito finora per %@",
+    "pt-BR": "Nenhum valor capturado ainda para %@",
+    "nl": "Nog geen waarden vastgelegd voor %@",
+    "ja": "%@の値はまだ記録されていません",
+    "zh-Hans": "尚未捕获 %@ 的值",
+    "zh-Hant": "尚未擷取 %@ 的值",
+    "ko": "%@에 대해 아직 캡처된 값이 없습니다",
+    "ru": "Значения для %@ ещё не собраны",
+    "ar": "لم يتم التقاط أي قيم لـ %@ بعد"
   },
   "Done": {
     "comment": "Accessibility label of the confirm button that dismisses a filter sheet",

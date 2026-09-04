@@ -82,7 +82,7 @@ struct NetworkLogFilterDimensionPage: View {
         List {
             Section {
                 if section.options.isEmpty {
-                    NetworkLogFilterEmptyRow(dimensionName: section.dimension.title.lowercased())
+                    NetworkLogFilterEmptyRow(dimensionName: section.dimension.title)
                 } else {
                     ForEach(section.options) { option in
                         NetworkLogFilterOptionRow(
