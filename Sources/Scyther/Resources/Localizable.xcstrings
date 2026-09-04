@@ -2332,7 +2332,7 @@
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Número del globo"
+            "value": "Número del distintivo"
           }
         },
         "fr": {
@@ -2368,7 +2368,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Contagem do selo"
+            "value": "Contagem do emblema"
           }
         },
         "ru": {
@@ -3347,7 +3347,7 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Geplante Mitteilungen abbrechen"
+            "value": "Geplante Benachrichtigungen abbrechen"
           }
         },
         "es": {
@@ -3501,13 +3501,13 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Kurzhinweis und Mitteilungen löschen"
+            "value": "Kurzhinweis und Benachrichtigungen löschen"
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Borrar el globo y las notificaciones"
+            "value": "Borrar el distintivo y las notificaciones"
           }
         },
         "fr": {
@@ -3543,7 +3543,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Limpar selo e notificações"
+            "value": "Limpar emblema e notificações"
           }
         },
         "ru": {
@@ -9507,7 +9507,7 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Mitteilungsprotokoll"
+            "value": "Benachrichtigungsprotokoll"
           }
         },
         "es": {
@@ -9584,7 +9584,7 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Mitteilungstester"
+            "value": "Benachrichtigungstester"
           }
         },
         "es": {
@@ -9661,7 +9661,7 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Mitteilungen"
+            "value": "Benachrichtigungen"
           }
         },
         "es": {
@@ -11837,7 +11837,7 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Mitteilungsberechtigung anfordern"
+            "value": "Benachrichtigungsberechtigung anfordern"
           }
         },
         "es": {
@@ -13069,7 +13069,7 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Push-Mitteilung senden"
+            "value": "Push-Benachrichtigung senden"
           }
         },
         "es": {
@@ -14795,7 +14795,7 @@
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Détacher"
+            "value": "Désépingler"
           }
         },
         "it": {

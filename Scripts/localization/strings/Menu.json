@@ -107,7 +107,7 @@
   "Notifications": {
     "comment": "Menu section header: the notification logger and tester",
     "fr": "Notifications",
-    "de": "Mitteilungen",
+    "de": "Benachrichtigungen",
     "es": "Notificaciones",
     "it": "Notifiche",
     "pt-BR": "Notificações",
@@ -166,7 +166,7 @@
   },
   "Unpin": {
     "comment": "Swipe action that unpins a menu row",
-    "fr": "Détacher",
+    "fr": "Désépingler",
     "de": "Loslösen",
     "es": "Dejar de fijar",
     "it": "Non fissare",
@@ -557,7 +557,7 @@
   "Notification Logger": {
     "comment": "Menu row leading to the received notification log",
     "fr": "Journal des notifications",
-    "de": "Mitteilungsprotokoll",
+    "de": "Benachrichtigungsprotokoll",
     "es": "Registro de notificaciones",
     "it": "Registro delle notifiche",
     "pt-BR": "Registro de notificações",
@@ -572,7 +572,7 @@
   "Notification Tester": {
     "comment": "Menu row leading to the notification tester",
     "fr": "Testeur de notifications",
-    "de": "Mitteilungstester",
+    "de": "Benachrichtigungstester",
     "es": "Probador de notificaciones",
     "it": "Tester delle notifiche",
     "pt-BR": "Testador de notificações",
@@ -1022,7 +1022,7 @@
   "Request Notification Permission": {
     "comment": "Searchable row inside the Notification Tester page",
     "fr": "Demander l'autorisation de notification",
-    "de": "Mitteilungsberechtigung anfordern",
+    "de": "Benachrichtigungsberechtigung anfordern",
     "es": "Solicitar permiso de notificaciones",
     "it": "Richiedi l'autorizzazione alle notifiche",
     "pt-BR": "Solicitar permissão de notificações",
@@ -1037,7 +1037,7 @@
   "Send Push Notification": {
     "comment": "Searchable row inside the Notification Tester page",
     "fr": "Envoyer une notification push",
-    "de": "Push-Mitteilung senden",
+    "de": "Push-Benachrichtigung senden",
     "es": "Enviar notificación push",
     "it": "Invia notifica push",
     "pt-BR": "Enviar notificação push",
@@ -1053,9 +1053,9 @@
     "comment": "Searchable row inside the Notification Tester page: the number on the app icon badge",
     "fr": "Nombre sur la pastille",
     "de": "Anzahl im Kurzhinweis",
-    "es": "Número del globo",
+    "es": "Número del distintivo",
     "it": "Numero del badge",
-    "pt-BR": "Contagem do selo",
+    "pt-BR": "Contagem do emblema",
     "nl": "Aantal op badge",
     "ja": "バッジの数",
     "zh-Hans": "标记数量",
@@ -1067,7 +1067,7 @@
   "Cancel Scheduled Notifications": {
     "comment": "Searchable row inside the Notification Tester page",
     "fr": "Annuler les notifications programmées",
-    "de": "Geplante Mitteilungen abbrechen",
+    "de": "Geplante Benachrichtigungen abbrechen",
     "es": "Cancelar notificaciones programadas",
     "it": "Annulla le notifiche programmate",
     "pt-BR": "Cancelar notificações agendadas",
@@ -1082,10 +1082,10 @@
   "Clear Badge & Notifications": {
     "comment": "Searchable row inside the Notification Tester page",
     "fr": "Effacer la pastille et les notifications",
-    "de": "Kurzhinweis und Mitteilungen löschen",
-    "es": "Borrar el globo y las notificaciones",
+    "de": "Kurzhinweis und Benachrichtigungen löschen",
+    "es": "Borrar el distintivo y las notificaciones",
     "it": "Cancella badge e notifiche",
-    "pt-BR": "Limpar selo e notificações",
+    "pt-BR": "Limpar emblema e notificações",
     "nl": "Badge en berichtgeving wissen",
     "ja": "バッジと通知を消去",
     "zh-Hans": "清除标记与通知",
