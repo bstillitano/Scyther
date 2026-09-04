@@ -53,7 +53,7 @@ struct QuickLookButton: View {
         Button {
             isPresented = true
         } label: {
-            Label("Quick Look", systemImage: "eye")
+            Label(localized("Quick Look"), systemImage: "eye")
         }
         .sheet(isPresented: $isPresented) {
             QuickLookPreview(url: url)

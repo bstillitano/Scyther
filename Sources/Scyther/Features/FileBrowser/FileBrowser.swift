@@ -162,7 +162,7 @@ public final class FileBrowser: Sendable {
 
         // Don't try to read files larger than maxBytes
         if fileSize > maxBytes {
-            return "[File too large to display: \(ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file))]"
+            return localized("[File too large to display: \(ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file))]")
         }
 
         guard let data = fileManager.contents(atPath: url.path) else {
@@ -193,7 +193,7 @@ public final class FileBrowser: Sendable {
             let plist = try PropertyListSerialization.propertyList(from: data, format: nil)
             return formatPlistValue(plist, indent: 0)
         } catch {
-            return "Error reading plist: \(error.localizedDescription)"
+            return localized("Error reading plist: \(error.localizedDescription)")
         }
     }
 
@@ -227,7 +227,7 @@ public final class FileBrowser: Sendable {
             return "\(number)"
 
         case let data as Data:
-            return "<Data: \(data.count) bytes>"
+            return "<Data: \(localized("\(data.count) bytes"))>"
 
         case let date as Date:
             return date.formatted()
@@ -267,34 +267,34 @@ public final class FileBrowser: Sendable {
 
         var info: [(String, String)] = []
 
-        info.append(("Path", url.path))
-        info.append(("Name", url.lastPathComponent))
+        info.append((localized("Path"), url.path))
+        info.append((localized("Name"), url.lastPathComponent))
 
         if let size = attributes[.size] as? Int64 {
-            info.append(("Size", ByteCountFormatter.string(fromByteCount: size, countStyle: .file)))
+            info.append((localized("Size"), ByteCountFormatter.string(fromByteCount: size, countStyle: .file)))
         }
 
         if let type = attributes[.type] as? FileAttributeType {
             let typeString: String
             switch type {
-            case .typeDirectory: typeString = "Directory"
-            case .typeRegular: typeString = "File"
-            case .typeSymbolicLink: typeString = "Symbolic Link"
-            default: typeString = "Unknown"
+            case .typeDirectory: typeString = localized("Directory")
+            case .typeRegular: typeString = localized("File")
+            case .typeSymbolicLink: typeString = localized("Symbolic Link")
+            default: typeString = localized("Unknown")
             }
-            info.append(("Type", typeString))
+            info.append((localized("Type"), typeString))
         }
 
         if let created = attributes[.creationDate] as? Date {
-            info.append(("Created", created.formatted(date: .long, time: .standard)))
+            info.append((localized("Created"), created.formatted(date: .long, time: .standard)))
         }
 
         if let modified = attributes[.modificationDate] as? Date {
-            info.append(("Modified", modified.formatted(date: .long, time: .standard)))
+            info.append((localized("Modified"), modified.formatted(date: .long, time: .standard)))
         }
 
         if let permissions = attributes[.posixPermissions] as? Int {
-            info.append(("Permissions", String(format: "%o", permissions)))
+            info.append((localized("Permissions"), String(format: "%o", permissions)))
         }
 
         return info

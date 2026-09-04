@@ -24,6 +24,9 @@ final class UnlocalisedLiteralLintTests: XCTestCase {
         "Features/UserDefaults",
         "Features/KeychainBrowser",
         "Features/CookieBrowser",
+        "Features/CrashLogs",
+        "Features/FileBrowser",
+        "Features/DataBrowser",
         "Shared",
     ]
 

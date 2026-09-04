@@ -34,12 +34,12 @@ struct FileDetailView: View {
                         Button {
                             UIPasteboard.general.string = value
                         } label: {
-                            Label("Copy", systemImage: "doc.on.doc")
+                            Label(localized("Copy"), systemImage: "doc.on.doc")
                         }
                     }
                 }
             } header: {
-                Text("Information")
+                Text(localized("Information"))
             }
 
             // Actions
@@ -51,25 +51,25 @@ struct FileDetailView: View {
 
                 // Share
                 ShareLink(item: viewModel.item.url) {
-                    Label("Share", systemImage: "square.and.arrow.up")
+                    Label(localized("Share"), systemImage: "square.and.arrow.up")
                 }
 
                 // Copy Path
                 Button {
                     UIPasteboard.general.string = viewModel.item.url.path
                 } label: {
-                    Label("Copy Path", systemImage: "doc.on.doc")
+                    Label(localized("Copy Path"), systemImage: "doc.on.doc")
                 }
 
                 // Delete
                 Button(role: .destructive) {
                     viewModel.showingDeleteConfirmation = true
                 } label: {
-                    Label("Delete", systemImage: "trash")
+                    Label(localized("Delete"), systemImage: "trash")
                         .foregroundStyle(.red)
                 }
             } header: {
-                Text("Actions")
+                Text(localized("Actions"))
             }
 
             // File Content (for text-based files)
@@ -83,7 +83,7 @@ struct FileDetailView: View {
                     }
                 } header: {
                     HStack {
-                        Text("Content")
+                        Text(localized("Content"))
                         Spacer()
                         Button {
                             UIPasteboard.general.string = content
@@ -103,27 +103,27 @@ struct FileDetailView: View {
                         .frame(maxHeight: 300)
                         .frame(maxWidth: .infinity)
                 } header: {
-                    Text("Preview")
+                    Text(localized("Preview"))
                 }
             }
         }
         .navigationTitle(viewModel.item.name)
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog(
-            "Delete \(viewModel.item.name)?",
+            localized("Delete \(viewModel.item.name)?"),
             isPresented: $viewModel.showingDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button(localized("Delete"), role: .destructive) {
                 viewModel.delete()
                 dismiss()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localized("Cancel"), role: .cancel) {}
         } message: {
-            Text("This action cannot be undone.")
+            Text(localized("This action cannot be undone."))
         }
-        .alert("Error", isPresented: $viewModel.showingError) {
-            Button("OK", role: .cancel) {}
+        .alert(localized("Error"), isPresented: $viewModel.showingError) {
+            Button(localized("OK"), role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage)
         }

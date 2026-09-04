@@ -48,11 +48,11 @@ struct CrashDetailsView: View {
 
     var body: some View {
         List {
-            Section("Exception") {
-                LabeledContent("Name", value: viewModel.crash.name)
+            Section(localized("Exception")) {
+                LabeledContent(localized("Name"), value: viewModel.crash.name)
                 if let reason = viewModel.crash.reason {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Reason")
+                        Text(localized("Reason"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Text(reason)
@@ -62,30 +62,30 @@ struct CrashDetailsView: View {
                 }
             }
 
-            Section("Timestamp") {
-                LabeledContent("Date", value: viewModel.crash.formattedTimestamp)
+            Section(localized("Timestamp")) {
+                LabeledContent(localized("Date"), value: viewModel.crash.formattedTimestamp)
             }
 
-            Section("Environment") {
-                LabeledContent("App Version", value: viewModel.crash.appVersion)
-                LabeledContent("Build Number", value: viewModel.crash.buildNumber)
-                LabeledContent("OS Version", value: viewModel.crash.osVersion)
-                LabeledContent("Device", value: viewModel.crash.deviceModel)
+            Section(localized("Environment")) {
+                LabeledContent(localized("App Version"), value: viewModel.crash.appVersion)
+                LabeledContent(localized("Build Number"), value: viewModel.crash.buildNumber)
+                LabeledContent(localized("OS Version"), value: viewModel.crash.osVersion)
+                LabeledContent(localized("Device"), value: viewModel.crash.deviceModel)
             }
 
             Section {
                 if viewModel.crash.stackTrace.isEmpty {
-                    Text("No stack trace available")
+                    Text(localized("No stack trace available"))
                         .foregroundStyle(.secondary)
                         .italic()
                 } else if viewModel.filteredStackTrace.isEmpty {
-                    Text("No matching frames")
+                    Text(localized("No matching frames"))
                         .foregroundStyle(.secondary)
                         .italic()
                 } else {
                     ForEach(viewModel.filteredStackTrace, id: \.index) { entry in
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("\(entry.index)")
+                            Text(verbatim: "\(entry.index)")
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                             HighlightedText(
@@ -100,29 +100,29 @@ struct CrashDetailsView: View {
                 }
             } header: {
                 HStack {
-                    Text("Stack Trace")
+                    Text(localized("Stack Trace"))
                     Spacer()
                     if !viewModel.crash.stackTrace.isEmpty && !viewModel.searchText.isEmpty {
-                        Text("\(viewModel.filteredStackTrace.count) of \(viewModel.crash.stackTrace.count)")
+                        Text(localized("\(viewModel.filteredStackTrace.count) of \(viewModel.crash.stackTrace.count)"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
                 }
             }
         }
-        .navigationTitle("Crash Details")
+        .navigationTitle(localized("Crash Details"))
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $viewModel.searchText, prompt: "Search stack trace")
+        .searchable(text: $viewModel.searchText, prompt: localized("Search stack trace"))
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
                     viewModel.copyToClipboard()
                 } label: {
-                    Label(viewModel.copied ? "Copied" : "Copy", systemImage: viewModel.copied ? "checkmark" : "doc.on.doc")
+                    Label(viewModel.copied ? localized("Copied") : localized("Copy"), systemImage: viewModel.copied ? "checkmark" : "doc.on.doc")
                 }
 
                 ShareLink(item: viewModel.crash.fullReport) {
-                    Label("Share", systemImage: "square.and.arrow.up")
+                    Label(localized("Share"), systemImage: "square.and.arrow.up")
                 }
             }
         }

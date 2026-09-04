@@ -442,6 +442,15 @@ as GraphQL:
 Detection covers `POST` JSON request bodies; GraphQL-over-GET / persisted queries are not
 currently detected.
 
+#### Structured data browser
+
+The **Browse request body**, **Browse response body** and **Browse variables** links open a
+structured data browser that drills into nested arrays and dictionaries. Its chrome is
+localised — the title, the search prompt, the empty-section text, the Copy action, the
+`Array` and `Dictionary` value labels and the `Array Data` / `Dictionary Data` headers of a
+nested level — while the payload itself is shown exactly as it was sent or received: keys,
+values, array indices, `true` / `false` / `null` and JSON text are never translated.
+
 #### Log Retention
 
 Network logs are automatically cleaned up to prevent disk bloat:
@@ -567,6 +576,38 @@ Scyther.crashes.triggerTestCrash()
 - **Swift errors**: Only captures `NSException`-based crashes. Pure Swift `fatalError()` or `preconditionFailure()` may not be captured.
 - **Symbolication**: Stack traces contain memory addresses. Use Xcode's crash log tools for symbolicated traces.
 - **Storage**: Up to 50 crashes are stored (oldest are removed automatically).
+
+#### Language
+
+The Crash Logs list and the crash details screen are fully localised and follow the effective
+menu language: the search prompts, the empty state, the Clear All and Test Crash buttons, the
+Exception, Timestamp, Environment and Stack Trace section headers, the Name, Reason, Date,
+App Version, Build Number, OS Version and Device row labels, and the Copy and Share actions.
+
+The crash data itself is never translated. Exception names and reasons, stack frames, version
+strings, timestamps and the plain-text report produced by `CrashLogEntry.fullReport` — the
+text the Copy and Share actions put on the pasteboard — stay exactly as captured, so a report
+shared from a device running in any language is still readable by everyone.
+
+---
+
+### File Browser
+
+Browse the app sandbox from **System Tools → File Browser**: the `Documents`, `Library`,
+`Caches` and `tmp` roots, any subdirectory, and a detail screen per file with its attributes,
+a text, JSON, property list or image preview, Quick Look, Share, Copy Path and Delete.
+
+#### Language
+
+The browser is fully localised: the empty-folder state, the Information, Actions, Content and
+Preview section headers, the Size, Type, Path, Name, Created, Modified and Permissions
+attribute labels, the Directory, File and Symbolic Link type values, the Quick Look, Share,
+Copy, Copy Path and Delete actions, and both delete confirmations.
+
+The file system itself is never translated. The four sandbox root names (`Documents`,
+`Library`, `Caches`, `tmp`) are folder names and appear verbatim, as do every file name, path,
+extension and the file contents shown in the preview. Sizes and dates are formatted by the
+system for the device locale.
 
 ---
 
