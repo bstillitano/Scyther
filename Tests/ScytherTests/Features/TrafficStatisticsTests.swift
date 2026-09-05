@@ -177,6 +177,36 @@ final class TrafficStatisticsTests: XCTestCase {
         XCTAssertTrue(stats.hosts.isEmpty)
     }
 
+    // MARK: Failure rate
+
+    func testFailureRateDividesFailuresByTheMeasuredRequests() {
+        let stats = TrafficStatistics.compute(from: [
+            request(status: 500), request(status: 200), request(status: 200), request(status: 200),
+        ])
+        XCTAssertEqual(stats.summary.failureRate ?? -1, 0.25, accuracy: 0.0001)
+    }
+
+    func testFailureRateIsNilWhenNothingWasMeasured() {
+        XCTAssertNil(TrafficStatistics.compute(from: []).summary.failureRate)
+        XCTAssertNil(TrafficStatistics.compute(from: [request(stubbed: true)]).summary.failureRate,
+                     "a stub is not a measurement, so there is nothing to divide by")
+    }
+
+    func testFailureRateIsOneWhenEverythingFailed() {
+        let stats = TrafficStatistics.compute(from: [request(status: 500), request(status: 404)])
+        XCTAssertEqual(stats.summary.failureRate ?? -1, 1, accuracy: 0.0001)
+    }
+
+    func testHostFailureRateIsPerHost() {
+        let stats = TrafficStatistics.compute(from: [
+            request(url: "https://a.example.com/x", status: 500),
+            request(url: "https://a.example.com/y", status: 200),
+            request(url: "https://b.example.com/x", status: 200),
+        ])
+        XCTAssertEqual(stats.hosts.first { $0.id == "a.example.com" }?.failureRate ?? -1, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(stats.hosts.first { $0.id == "b.example.com" }?.failureRate ?? -1, 0, accuracy: 0.0001)
+    }
+
     // MARK: Bytes
 
     func testBytesReceivedSumsResponseSizes() {

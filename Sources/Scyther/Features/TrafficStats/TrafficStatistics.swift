@@ -83,6 +83,16 @@ struct TrafficStatistics: Equatable, Sendable {
         /// when no request carries a date.
         var wallClockSpan: TimeInterval?
 
+        /// ``failureCount`` over ``measuredCount``, or `nil` when nothing was measured.
+        ///
+        /// Computed rather than stored so the denominator can never be zero: a session made
+        /// entirely of stubs has no failure rate at all, which is a different statement from a
+        /// rate of zero.
+        var failureRate: Double? {
+            guard measuredCount > 0 else { return nil }
+            return Double(failureCount) / Double(measuredCount)
+        }
+
         /// Creates a summary. Every figure defaults to nothing captured.
         init() { }
     }
@@ -103,6 +113,12 @@ struct TrafficStatistics: Equatable, Sendable {
 
         /// The total response body length received from this host, in bytes.
         var bytesReceived: Int = 0
+
+        /// ``failureCount`` over ``requestCount``, or `nil` when this host has no requests.
+        var failureRate: Double? {
+            guard requestCount > 0 else { return nil }
+            return Double(failureCount) / Double(requestCount)
+        }
 
         /// Creates a breakdown for `id`.
         ///
