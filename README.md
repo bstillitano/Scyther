@@ -24,6 +24,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Network Logging](#network-logging)
   - [Traffic Stats](#traffic-stats)
   - [Request Overrides](#request-overrides)
+  - [Request Replay](#request-replay)
   - [Network Conditioning](#network-conditioning)
   - [Console Logging](#console-logging)
   - [Crash Logging](#crash-logging)
@@ -59,6 +60,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall of the recent requests on a shared axis
 - **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests — combined on one override — from the menu or from code
 - **Save as Mock**: Turn any captured response into a disabled mock override in one tap, and import a HAR file as a whole set of them
+- **Request Replay**: Reopen any captured request in an editor, change its method, URL, headers or body, and send it again — the resent request is logged with a `REPLAY` badge and listed on the original with its status, duration and size deltas
 - **Network Conditioning**: Degrade every intercepted request at once — latency, a bandwidth ceiling and a failure rate, with the presets Network Link Conditioner made familiar
 - **Server Configuration**: Switch between development, staging, and production environments
 - **IP Address**: Display the device's public IP address
@@ -822,6 +824,56 @@ cannot quietly break the next one.
 > `URLProtocol` bypasses overrides exactly as it bypasses logging.
 
 ---
+
+### Request Replay
+
+The request details page carries a **Replay this request** button. It opens an editor pre-filled
+from the capture — method, URL, headers and body — and sends whatever is left there when the
+confirm button is tapped.
+
+#### The Editor
+
+- **Method** — a picker of the common verbs, plus **Other** for anything the server invented.
+- **URL** — a single-line field. The confirm button is disabled, and a warning appears, while what
+  has been typed will not parse into an absolute HTTP URL.
+- **Headers** — one row per captured header, editable, swipe-deletable, with an add row. Headers
+  `URLSession` owns — `Content-Length`, `Host` and `Connection` — are shown but disabled, and are
+  dropped rather than sent, because editing them has no effect. A duplicated header name travels
+  as the one comma-joined field HTTP defines rather than one row silently winning.
+- **Body** — a row opening the same text editor the rest of the toolkit uses, showing a byte
+  count. A body that is not valid UTF-8 is shown as such and sent unchanged; the logger only ever
+  writes a UTF-8 request body to disk, so a binary body is not recoverable from the capture and
+  the replay goes out without one.
+
+#### What Happens on Send
+
+A replay goes out on an ordinary `URLSession` and is captured by the interceptor exactly as
+traffic the app makes is. That has two consequences worth stating plainly:
+
+- **A replay is its own entry in the log**, marked with a teal `REPLAY` badge — the same treatment
+  the pink `MOCKED` badge gets, in the one other colour nothing in the log competes for.
+- **Enabled overrides apply to a replay**, because nothing about it is special-cased. Replay a
+  request that a mock matches and you get the mock, with both badges on the row. The editor says
+  so in a footer, so a developer comparing a replay against an original knows whether they are
+  looking at the network or at their own override.
+
+A request whose response an override synthesised has no **Replay this request** button: the
+override would simply synthesise the same response again.
+
+Because resending a `POST`, `PATCH` or `DELETE` can repeat whatever it changed, any method
+outside `GET`, `HEAD` and `OPTIONS` warns in the editor and asks for confirmation in an alert
+naming the method before anything is sent.
+
+#### Comparing
+
+The original's details page grows a **Replays** section listing every replay of it currently in
+the log, each row naming the replay's method and status and carrying the signed duration and size
+deltas — replay minus original — and linking to that replay's own page. A replay's page carries a
+**Replayed from** row linking the other way, or says the original is no longer in the log if it
+has since been cleared.
+
+Both sections track the log as it changes, so a replay that lands seconds after the editor
+dismissed appears without leaving the page.
 
 ### Network Conditioning
 

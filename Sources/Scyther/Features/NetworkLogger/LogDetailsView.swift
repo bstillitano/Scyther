@@ -19,6 +19,9 @@ struct LogDetailsView: View {
     /// write a fresh copy of the response body to disk on every evaluation.
     @State private var mockDraft: NetworkRule?
 
+    /// Whether the replay editor is presented.
+    @State private var isReplaying: Bool = false
+
     init(httpRequest: HTTPRequest) {
         self.httpRequest = httpRequest
         _viewModel = StateObject(wrappedValue: LogDetailsViewModel(httpRequest: httpRequest))
@@ -28,11 +31,13 @@ struct LogDetailsView: View {
         List {
             mockedSection
             overviewSection
+            originalSection
             graphQLSection
             requestHeadersSection
             requestBodySection
             responseHeadersSection
             responseBodySection
+            replaysSection
             developerSection
         }
         .navigationTitle(localized("Request Details"))
@@ -47,6 +52,55 @@ struct LogDetailsView: View {
         .sheet(item: $mockDraft) { rule in
             NavigationStack {
                 NetworkRuleEditorView(prefilled: rule, store: viewModel.ruleStore)
+            }
+        }
+        .sheet(isPresented: $isReplaying) {
+            NavigationStack {
+                ReplayEditorView(capture: httpRequest)
+            }
+        }
+    }
+
+    /// The row linking a replay back to the request it was built from.
+    ///
+    /// Shown on a replay whether or not the original survives: a cleared log takes the original
+    /// away, and saying so is more use than a section that quietly disappears.
+    @ViewBuilder
+    private var originalSection: some View {
+        if viewModel.isReplay {
+            Section(localized("Replayed from")) {
+                if let original = viewModel.originalRequest {
+                    NavigationLink {
+                        LogDetailsView(httpRequest: original)
+                    } label: {
+                        LabeledContent(localized("Original request"), value: viewModel.originalSummary)
+                    }
+                } else {
+                    LabeledContent(localized("Original request"), value: viewModel.originalSummary)
+                }
+            }
+        }
+    }
+
+    /// Every replay of this request currently in the log, with how each one differed.
+    ///
+    /// The trailing figures are the replay minus the original, so a positive duration means the
+    /// replay was slower and a negative size means it came back with less.
+    @ViewBuilder
+    private var replaysSection: some View {
+        if !viewModel.replayLinks.isEmpty {
+            Section {
+                ForEach(viewModel.replayLinks) { link in
+                    NavigationLink {
+                        LogDetailsView(httpRequest: link.replay)
+                    } label: {
+                        LabeledContent(link.title, value: link.detail)
+                    }
+                }
+            } header: {
+                Text(localized("Replays"))
+            } footer: {
+                Text(localized("Times and sizes are the replay minus the original."))
             }
         }
     }
@@ -250,6 +304,12 @@ struct LogDetailsView: View {
             if viewModel.canSaveAsMock {
                 Button(localized("Save as mock")) {
                     mockDraft = viewModel.makeMockRule()
+                }
+            }
+
+            if viewModel.canReplay {
+                Button(localized("Replay this request")) {
+                    isReplaying = true
                 }
             }
         }

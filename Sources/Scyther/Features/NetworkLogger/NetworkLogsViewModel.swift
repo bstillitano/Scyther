@@ -168,6 +168,33 @@ class NetworkLogsViewModel: ViewModel {
         }
     }
 
+    /// Every replay of `request` present in `items`, newest first.
+    ///
+    /// Matching is by the original's `getRandomHash()`, which is the identity a replay records in
+    /// ``HTTPRequest/replayOfID`` when it is captured. A replay of a replay therefore lists under
+    /// the request it was actually built from, not under the first one in the chain.
+    ///
+    /// - Parameters:
+    ///   - request: The capture to find replays of.
+    ///   - items: The requests to search, in log order.
+    /// - Returns: The replays, in the order `items` gave them.
+    nonisolated static func replays(of request: HTTPRequest, in items: [HTTPRequest]) -> [HTTPRequest] {
+        let hash = request.getRandomHash() as String
+        return items.filter { $0.replayOfID == hash }
+    }
+
+    /// The request `replay` was built from, if it is still in the log.
+    ///
+    /// - Parameters:
+    ///   - replay: The capture to find the original of.
+    ///   - items: The requests to search.
+    /// - Returns: The original, or `nil` when `replay` is not a replay or the log has been
+    ///   cleared since it was sent.
+    nonisolated static func original(of replay: HTTPRequest, in items: [HTTPRequest]) -> HTTPRequest? {
+        guard let id = replay.replayOfID else { return nil }
+        return items.first { ($0.getRandomHash() as String) == id }
+    }
+
     /// The distinct HTTP methods present in `items`, uppercased and sorted.
     ///
     /// - Parameter items: The requests to inspect.

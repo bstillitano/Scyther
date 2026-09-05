@@ -281,3 +281,119 @@ final class LogDetailsViewModelTests: XCTestCase {
         XCTAssertEqual(store.rules.first?.isEnabled, false)
     }
 }
+
+// MARK: - Replays
+
+@MainActor
+final class LogDetailsViewModelReplayTests: XCTestCase {
+
+    /// A URL nothing else in the suite uses, because the network log is shared across the run.
+    private func uniqueURL() -> String {
+        "https://api.example.com/v1/replay/\(UUID().uuidString)"
+    }
+
+    private func capture(url: String, stubbed: Bool = false, replayOf: String? = nil) throws -> HTTPRequest {
+        let request = HTTPRequest()
+        request.requestURL = url
+        request.requestMethod = "GET"
+        request.requestTime = "10:00:00.000"
+        request.wasStubbed = stubbed
+        request.replayOfID = replayOf
+        let response = try XCTUnwrap(HTTPURLResponse(
+            url: try XCTUnwrap(URL(string: url)),
+            statusCode: 200,
+            httpVersion: "HTTP/1.1",
+            headerFields: ["Content-Type": "application/json"]
+        ))
+        request.saveResponse(response, data: Data(#"{"id":1}"#.utf8))
+        return request
+    }
+
+    func testReplayIsOfferedForACapturedRequest() async throws {
+        let viewModel = LogDetailsViewModel(httpRequest: try capture(url: uniqueURL()))
+        await viewModel.onFirstAppear()
+        XCTAssertTrue(viewModel.canReplay)
+    }
+
+    func testReplayIsNotOfferedForASynthesisedResponse() async throws {
+        let viewModel = LogDetailsViewModel(httpRequest: try capture(url: uniqueURL(), stubbed: true))
+        await viewModel.onFirstAppear()
+        XCTAssertFalse(viewModel.canReplay, "an override would simply synthesise the same response again")
+    }
+
+    func testReplayIsNotOfferedWithoutAURL() async {
+        let viewModel = LogDetailsViewModel(httpRequest: HTTPRequest())
+        await viewModel.onFirstAppear()
+        XCTAssertFalse(viewModel.canReplay)
+    }
+
+    func testReplayIsOfferedForARequestThatNeverAnswered() async {
+        let request = HTTPRequest()
+        request.requestURL = uniqueURL()
+        request.requestMethod = "GET"
+        let viewModel = LogDetailsViewModel(httpRequest: request)
+        await viewModel.onFirstAppear()
+        XCTAssertTrue(viewModel.canReplay, "a request that timed out is exactly the one worth resending")
+    }
+
+    func testTheOriginalListsItsReplaysAndTheReplayLinksBack() async throws {
+        let url = uniqueURL()
+        let original = try capture(url: url)
+        let replay = try capture(url: url, replayOf: original.getRandomHash() as String)
+        await NetworkLogger.instance.add(original)
+        await NetworkLogger.instance.add(replay)
+
+        let originalViewModel = LogDetailsViewModel(httpRequest: original)
+        await originalViewModel.loadRelatedRequests()
+        XCTAssertEqual(originalViewModel.replayLinks.count, 1)
+        XCTAssertTrue(originalViewModel.replayLinks.first?.replay === replay)
+        XCTAssertFalse(originalViewModel.isReplay)
+        XCTAssertNil(originalViewModel.originalRequest)
+
+        let replayViewModel = LogDetailsViewModel(httpRequest: replay)
+        await replayViewModel.loadRelatedRequests()
+        XCTAssertTrue(replayViewModel.isReplay)
+        XCTAssertTrue(replayViewModel.originalRequest === original)
+        XCTAssertEqual(replayViewModel.originalSummary, "GET 200")
+        XCTAssertTrue(replayViewModel.replayLinks.isEmpty)
+    }
+
+    func testAReplayWhoseOriginalHasGoneSaysSo() async throws {
+        let replay = try capture(url: uniqueURL(), replayOf: "hash-that-was-never-logged")
+        await NetworkLogger.instance.add(replay)
+
+        let viewModel = LogDetailsViewModel(httpRequest: replay)
+        await viewModel.loadRelatedRequests()
+
+        XCTAssertTrue(viewModel.isReplay)
+        XCTAssertNil(viewModel.originalRequest)
+        XCTAssertEqual(viewModel.originalSummary, localized("No longer in the log"))
+    }
+
+    func testAnOrdinaryRequestHasNoReplaySections() async throws {
+        let request = try capture(url: uniqueURL())
+        await NetworkLogger.instance.add(request)
+
+        let viewModel = LogDetailsViewModel(httpRequest: request)
+        await viewModel.loadRelatedRequests()
+
+        XCTAssertFalse(viewModel.isReplay)
+        XCTAssertTrue(viewModel.replayLinks.isEmpty)
+    }
+
+    func testAReplaySentAfterThePageOpenedIsPickedUp() async throws {
+        let url = uniqueURL()
+        let original = try capture(url: url)
+        await NetworkLogger.instance.add(original)
+
+        let viewModel = LogDetailsViewModel(httpRequest: original)
+        await viewModel.loadRelatedRequests()
+        XCTAssertTrue(viewModel.replayLinks.isEmpty)
+
+        let replay = try capture(url: url, replayOf: original.getRandomHash() as String)
+        await NetworkLogger.instance.add(replay)
+        await viewModel.loadRelatedRequests()
+
+        XCTAssertEqual(viewModel.replayLinks.count, 1, "the section reflects the log, not what it held when it opened")
+    }
+}

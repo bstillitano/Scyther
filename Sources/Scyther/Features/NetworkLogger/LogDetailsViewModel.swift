@@ -71,6 +71,12 @@ import SwiftUI
 /// - ``ruleStore``
 /// - ``makeMockRule()``
 ///
+/// ### Replays
+/// - ``canReplay``
+/// - ``replayLinks``
+/// - ``originalRequest``
+/// - ``originalSummary``
+///
 /// ### Lifecycle
 /// - ``onFirstAppear()``
 class LogDetailsViewModel: ViewModel {
@@ -85,6 +91,14 @@ class LogDetailsViewModel: ViewModel {
 
     /// The HTTP request being displayed.
     private let httpRequest: HTTPRequest
+
+    /// The token for the log observation, removed when this view model goes away.
+    ///
+    /// `nonisolated(unsafe)` because `deinit` is not main-actor isolated. It is written exactly
+    /// once, in ``setup()``, before anything else can reach this instance, and read exactly once,
+    /// in `deinit`, after everything else has let go of it — so there is no interleaving for
+    /// isolation to protect.
+    private nonisolated(unsafe) var logObserver: (any NSObjectProtocol)?
 
     /// The override store a mock built from this capture is written to.
     ///
@@ -183,6 +197,34 @@ class LogDetailsViewModel: ViewModel {
     /// worth turning into a mock.
     @Published var hasResponse: Bool = false
 
+    /// The replays of this request that are currently in the log, newest first.
+    ///
+    /// Empty on a request nothing has been replayed from, which is the common case.
+    @Published var replayLinks: [ReplayLink] = []
+
+    /// The request this one replays, when it is a replay and the original is still in the log.
+    @Published var originalRequest: HTTPRequest?
+
+    /// Whether this request is a replay, whether or not its original survives in the log.
+    ///
+    /// Distinct from ``originalRequest`` being non-`nil`: clearing the log removes the original
+    /// while this capture is still a replay, and the page says so rather than silently dropping
+    /// the section.
+    @Published var isReplay: Bool = false
+
+    /// A one-line description of ``originalRequest`` for the row that links back to it.
+    @Published var originalSummary: String = ""
+
+    /// Whether the "Replay this request" button is offered.
+    ///
+    /// A synthesised response has no real request behind it worth resending — the override that
+    /// made it would simply make it again — so the button is hidden there, matching the
+    /// "Save as mock" button's refusal to mock a mock. A capture with no URL cannot be sent
+    /// anywhere.
+    var canReplay: Bool {
+        !wasStubbed && !requestURL.isEmpty
+    }
+
     /// Whether the "Save as mock" button is offered.
     ///
     /// There must be a response to copy, and it must have come off the wire: offering to mock a
@@ -207,12 +249,71 @@ class LogDetailsViewModel: ViewModel {
         super.init()
     }
 
+    /// Starts watching the log so the Replays section keeps up with what arrives after the page
+    /// opened.
+    ///
+    /// A replay is only added to the log once it has finished, which is seconds after the editor
+    /// dismissed and the developer is already looking at this page. Loading the related requests
+    /// once on appearance would show an empty Replays section for the request they had just
+    /// replayed, and never correct itself.
+    ///
+    /// The log's own `AsyncStream` is deliberately not used: it holds a single continuation, so
+    /// subscribing here would silently steal it from ``NetworkLogsViewModel`` and stop the log
+    /// list updating. The notification the interceptor already posts alongside every insertion
+    /// carries the same news without that cost.
+    override func setup() {
+        super.setup()
+        logObserver = NotificationCenter.default.addObserver(
+            forName: .LoggerReloadData,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.loadRelatedRequests()
+            }
+        }
+    }
+
+    /// Stops watching the log.
+    deinit {
+        if let logObserver {
+            NotificationCenter.default.removeObserver(logObserver)
+        }
+    }
+
     /// Prepares the view model when the view first appears.
     ///
     /// This method triggers processing of the HTTP request data into all formatted properties.
     override func onFirstAppear() async {
         await super.onFirstAppear()
         await loadDetails()
+        await loadRelatedRequests()
+    }
+
+    /// Reloads the replays of this request and the request it replays, from the current log.
+    ///
+    /// Cheap enough to run on every insertion: two passes over an in-memory array and a handful
+    /// of subtractions.
+    @MainActor
+    func loadRelatedRequests() async {
+        let items = await NetworkLogger.instance.items
+        replayLinks = NetworkLogsViewModel.replays(of: httpRequest, in: items).map {
+            ReplayLink(replay: $0, original: httpRequest)
+        }
+        isReplay = httpRequest.replayOfID != nil
+        let original = NetworkLogsViewModel.original(of: httpRequest, in: items)
+        originalRequest = original
+        originalSummary = original.map(Self.summary(of:)) ?? localized("No longer in the log")
+    }
+
+    /// A one-line description of a request, for the row that links to it.
+    ///
+    /// - Parameter request: The request to describe.
+    /// - Returns: Its method and status, e.g. `POST 200`, or its method and a failure marker.
+    nonisolated static func summary(of request: HTTPRequest) -> String {
+        let method = request.requestMethod ?? "-"
+        guard let code = request.responseCode else { return "\(method) \(localized("Failed"))" }
+        return "\(method) \(code)"
     }
 
     /// Processes the HTTP request into formatted display properties.
@@ -335,5 +436,45 @@ class LogDetailsViewModel: ViewModel {
             match: match,
             actions: NetworkRuleActions(stub: .mock(mock))
         )
+    }
+}
+
+/// One row of the Replays section: a replay of the request on screen, and how it differed.
+///
+/// The formatting is done once, when the log changes, rather than in the view body, so a row is a
+/// pair of strings by the time SwiftUI draws it.
+struct ReplayLink: Identifiable {
+    /// The replay this row links to.
+    let replay: HTTPRequest
+
+    /// How the replay compares to the request it was built from.
+    let comparison: ReplayComparison
+
+    /// The row's leading text: the replay's method and status, e.g. `POST 401`.
+    let title: String
+
+    /// The row's trailing text: the signed duration and size deltas, e.g. `+24 ms · -460 B`.
+    ///
+    /// Empty when neither delta could be computed, which is the case for a replay that failed
+    /// before a response arrived — its title already says `Failed`, and an em dash beside it
+    /// would add nothing.
+    let detail: String
+
+    /// A stable identity for `ForEach`, taken from the capture itself.
+    var id: ObjectIdentifier { ObjectIdentifier(replay) }
+
+    /// Builds a row.
+    ///
+    /// - Parameters:
+    ///   - replay: The replay to describe.
+    ///   - original: The request it was built from.
+    init(replay: HTTPRequest, original: HTTPRequest) {
+        self.replay = replay
+        let comparison = ReplayComparison(original: original, replay: replay)
+        self.comparison = comparison
+        self.title = LogDetailsViewModel.summary(of: replay)
+        self.detail = [comparison.durationDeltaText, comparison.sizeDeltaText]
+            .compactMap { $0 }
+            .joined(separator: " · ")
     }
 }

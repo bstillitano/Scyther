@@ -123,6 +123,20 @@ struct ReplayableRequest: Equatable, Sendable {
         body = text.isEmpty ? nil : Data(text.utf8)
     }
 
+    /// The URL the draft would be sent to, or `nil` when what has been typed is not one.
+    ///
+    /// A request needs somewhere absolute to go, so a scheme and a host are both required: a bare
+    /// path or a scheme on its own parse as a `URL` but cannot be sent. Surrounding whitespace is
+    /// trimmed, because a URL pasted from a terminal usually arrives with some.
+    var parsedURL: URL? {
+        let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let parsed = URL(string: trimmed), parsed.scheme != nil, parsed.host != nil else { return nil }
+        return parsed
+    }
+
+    /// Whether the URL as typed can be sent. Drives the editor's inline warning.
+    var isURLValid: Bool { parsedURL != nil }
+
     /// Builds the outgoing request, stamped with the hash of the request it replays.
     ///
     /// The URL and method are trimmed, and the method uppercased, so a stray space typed into
@@ -136,8 +150,7 @@ struct ReplayableRequest: Equatable, Sendable {
     /// - Parameter originalID: The original's `getRandomHash()` value.
     /// - Returns: The request, or `nil` when `url` does not parse into an absolute HTTP URL.
     func makeURLRequest(replayOf originalID: String) -> URLRequest? {
-        let trimmedURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let parsed = URL(string: trimmedURL), parsed.scheme != nil, parsed.host != nil else { return nil }
+        guard let parsed = parsedURL else { return nil }
         let mutable = NSMutableURLRequest(url: parsed)
         mutable.httpMethod = method.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         for header in headers {

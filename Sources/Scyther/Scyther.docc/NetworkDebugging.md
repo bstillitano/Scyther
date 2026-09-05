@@ -35,6 +35,7 @@ The detail view shows:
 - **Request**: Headers and body sent to the server
 - **Response**: Headers and body received from the server
 - **cURL**: A ready-to-use cURL command to reproduce the request
+- **Replays**: Every replay of this request currently in the log, and the deltas between them
 
 ## Accessing Network Data Programmatically
 
@@ -338,6 +339,53 @@ cannot quietly break the next one.
 - Note: Overrides only apply to traffic Scyther intercepts, which is `URLSession` traffic through
   a standard configuration. A custom `URLSessionConfiguration` that does not carry Scyther's
   `URLProtocol` bypasses overrides exactly as it bypasses logging.
+
+## Request Replay
+
+The request details page carries a **Replay this request** button. It opens an editor pre-filled
+from the capture and sends whatever is left there when the confirm button is tapped.
+
+### The editor
+
+- **Method** — a picker of the common verbs, plus **Other** for anything else.
+- **URL** — validated live; the confirm button stays disabled while it will not parse into an
+  absolute HTTP URL.
+- **Headers** — one editable row per captured header, swipe-deletable, with an add row. Headers
+  `URLSession` owns (`Content-Length`, `Host`, `Connection`) are shown but disabled and are
+  dropped rather than sent. A duplicated header name travels as the comma-joined field HTTP
+  defines rather than one row winning.
+- **Body** — opens the same text editor the rest of the toolkit uses. A body that is not valid
+  UTF-8 is marked as such and sent unchanged; the logger only writes UTF-8 request bodies to
+  disk, so a binary body cannot be recovered from the capture at all.
+
+### What sending does
+
+Nothing about a replay is special-cased. It goes out on an ordinary `URLSession` and comes back
+through the same interceptor as traffic the app makes, which means:
+
+- **it is logged as its own entry**, marked with a teal `REPLAY` badge, so a resent request can
+  never be mistaken for one the app made; and
+- **enabled overrides apply to it**, so replaying a request a mock matches serves the mock, with
+  both badges on the row. The editor states this in a footer.
+
+A response an override synthesised offers no replay button — the override would only synthesise
+it again.
+
+Any method outside `GET`, `HEAD` and `OPTIONS` warns in the editor and asks for confirmation in
+an alert naming the method, because resending it can repeat whatever it changed.
+
+### Comparing a replay to its original
+
+Each replay records which capture it was built from. The original's page
+lists its replays with each one's method, status and the signed duration and size deltas — replay
+minus original — and each row links to that replay. The replay's own page links back through a
+**Replayed from** row, or says the original is no longer in the log once it has been cleared.
+
+Both sections follow the log as it changes, so a replay landing after the editor dismissed
+appears without leaving the page.
+
+- Note: Provenance is stamped per request and stripped from redirects, so the entry a redirect
+  produces is a request in its own right rather than a second replay of the same original.
 
 ## Exporting cURL Commands
 

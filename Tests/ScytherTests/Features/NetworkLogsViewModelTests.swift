@@ -156,3 +156,126 @@ final class NetworkLogsViewModelExtendedOptionsTests: XCTestCase {
         XCTAssertEqual(viewModel.options(for: .statusCode), [])
     }
 }
+
+// MARK: - Replay lookups
+
+@MainActor
+final class NetworkLogsViewModelReplayLookupTests: XCTestCase {
+
+    private func request(replayOf id: String? = nil) -> HTTPRequest {
+        let request = HTTPRequest()
+        request.requestURL = "https://api.example.com/v1/users"
+        request.requestMethod = "GET"
+        request.replayOfID = id
+        return request
+    }
+
+    func testReplaysAreThoseCarryingTheOriginalsHash() {
+        let original = request()
+        let hash = original.getRandomHash() as String
+        let mine = request(replayOf: hash)
+        let somebodyElses = request(replayOf: "other-hash")
+        let ordinary = request()
+
+        let found = NetworkLogsViewModel.replays(of: original, in: [mine, somebodyElses, ordinary])
+        XCTAssertEqual(found.count, 1)
+        XCTAssertTrue(found.first === mine)
+    }
+
+    func testReplaysKeepTheOrderTheLogGaveThem() {
+        let original = request()
+        let hash = original.getRandomHash() as String
+        let newest = request(replayOf: hash)
+        let oldest = request(replayOf: hash)
+
+        let found = NetworkLogsViewModel.replays(of: original, in: [newest, request(), oldest])
+        XCTAssertEqual(found.count, 2)
+        XCTAssertTrue(found[0] === newest)
+        XCTAssertTrue(found[1] === oldest)
+    }
+
+    func testARequestWithNoReplaysFindsNone() {
+        let original = request()
+        XCTAssertTrue(NetworkLogsViewModel.replays(of: original, in: [request(), request()]).isEmpty)
+    }
+
+    func testTheOriginalIsFoundByHash() {
+        let original = request()
+        let replay = request(replayOf: original.getRandomHash() as String)
+        let found = NetworkLogsViewModel.original(of: replay, in: [request(), original])
+        XCTAssertTrue(found === original)
+    }
+
+    func testAnOrdinaryRequestHasNoOriginal() {
+        XCTAssertNil(NetworkLogsViewModel.original(of: request(), in: [request()]))
+    }
+
+    func testAReplayWhoseOriginalHasBeenClearedFindsNothing() {
+        let replay = request(replayOf: "vanished-hash")
+        XCTAssertNil(NetworkLogsViewModel.original(of: replay, in: [request(), request()]))
+    }
+
+    func testAReplayOfAReplayListsUnderTheRequestItWasBuiltFrom() {
+        let first = request()
+        let second = request(replayOf: first.getRandomHash() as String)
+        let third = request(replayOf: second.getRandomHash() as String)
+        let items = [third, second, first]
+
+        XCTAssertEqual(NetworkLogsViewModel.replays(of: first, in: items).count, 1)
+        XCTAssertTrue(NetworkLogsViewModel.replays(of: first, in: items).first === second)
+        XCTAssertTrue(NetworkLogsViewModel.replays(of: second, in: items).first === third)
+    }
+}
+
+// MARK: - Replay rows
+
+@MainActor
+final class ReplayLinkTests: XCTestCase {
+
+    private func request(method: String = "GET", status: Int?, duration: Float?, size: Int?) -> HTTPRequest {
+        let request = HTTPRequest()
+        request.requestMethod = method
+        request.responseCode = status
+        request.requestDuration = duration
+        request.responseBodyLength = size
+        return request
+    }
+
+    func testARowNamesTheMethodAndStatusAndSignsBothDeltas() {
+        let original = request(status: 200, duration: 100, size: 500)
+        let replay = request(method: "POST", status: 401, duration: 124, size: 40)
+        let link = ReplayLink(replay: replay, original: original)
+
+        XCTAssertEqual(link.title, "POST 401")
+        XCTAssertEqual(link.detail, "+24 ms · -460 B")
+        XCTAssertTrue(link.comparison.statusChanged)
+    }
+
+    func testAnIdenticalReplayStillSignsItsZeroes() {
+        let original = request(status: 200, duration: 100, size: 500)
+        let link = ReplayLink(replay: request(status: 200, duration: 100, size: 500), original: original)
+        XCTAssertEqual(link.title, "GET 200")
+        XCTAssertEqual(link.detail, "+0 ms · +0 B")
+    }
+
+    func testAFailedReplayIsNamedAndCarriesNoDeltas() {
+        let original = request(status: 200, duration: 100, size: 500)
+        let link = ReplayLink(replay: request(status: nil, duration: nil, size: nil), original: original)
+        XCTAssertEqual(link.title, "GET \(localized("Failed"))")
+        XCTAssertEqual(link.detail, "")
+    }
+
+    func testEachRowHasItsOwnIdentity() {
+        let original = request(status: 200, duration: 100, size: 500)
+        let first = ReplayLink(replay: request(status: 200, duration: 100, size: 500), original: original)
+        let second = ReplayLink(replay: request(status: 200, duration: 100, size: 500), original: original)
+        XCTAssertNotEqual(first.id, second.id)
+    }
+
+    func testSummaryDescribesARequest() {
+        XCTAssertEqual(LogDetailsViewModel.summary(of: request(method: "PATCH", status: 204, duration: 1, size: 0)),
+                       "PATCH 204")
+        let unknown = HTTPRequest()
+        XCTAssertEqual(LogDetailsViewModel.summary(of: unknown), "- \(localized("Failed"))")
+    }
+}

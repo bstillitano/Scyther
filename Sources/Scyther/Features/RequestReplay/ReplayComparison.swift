@@ -49,4 +49,22 @@ struct ReplayComparison: Equatable, Sendable {
             sizeDeltaBytes = nil
         }
     }
+
+    /// The duration delta as a signed figure, e.g. `+24 ms`, or `nil` when there is none.
+    ///
+    /// Always signed, including the zero case, because an unsigned `0 ms` beside a signed
+    /// `-460 B` reads as two different kinds of number rather than the same comparison.
+    ///
+    /// The unit is a symbol rather than a translated word, matching the `%.0fms` the request
+    /// details page has always shown its durations in.
+    var durationDeltaText: String? {
+        guard let durationDeltaMilliseconds else { return nil }
+        return String(format: "%+.0f ms", durationDeltaMilliseconds) // scyther:unlocalised unit symbol
+    }
+
+    /// The size delta as a signed figure, e.g. `-460 B`, or `nil` when there is none.
+    var sizeDeltaText: String? {
+        guard let sizeDeltaBytes else { return nil }
+        return String(format: "%+lld B", Int64(sizeDeltaBytes)) // scyther:unlocalised unit symbol
+    }
 }
