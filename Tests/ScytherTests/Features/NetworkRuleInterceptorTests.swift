@@ -524,4 +524,77 @@ final class NetworkRuleDelayTests: XCTestCase {
 
         XCTAssertTrue(client.received.isEmpty, "a cancelled request must deliver nothing at all")
     }
+
+    /// Publishes one condition rule with the given latency and returns an interceptor wired to
+    /// `client`.
+    ///
+    /// The host does not resolve, so a request that really starts fails instead of hanging — which
+    /// is what makes "a task was started" observable without a server to talk to.
+    private func interceptor(latency: TimeInterval, client: RecordingClient) -> HTTPInterceptorURLProtocol {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [
+            NetworkRule(
+                id: UUID(),
+                name: "slow",
+                isEnabled: true,
+                match: .host("unreachable.invalid"),
+                action: .condition(NetworkCondition(latency: latency, bandwidthKBps: nil, failureRate: 0))
+            )
+        ])
+        let request = URLRequest(url: URL(string: "https://unreachable.invalid/latency")!)
+        return HTTPInterceptorURLProtocol(request: request, cachedResponse: nil, client: client)
+    }
+
+    /// A mock's delay is answered from the interceptor; a condition's latency starts a real task.
+    /// Cancelling while that latency is still counting down must leave no task started at all —
+    /// otherwise the request the app abandoned goes out anyway, and by then nothing can cancel it.
+    func testCancellingDuringALatencyDelayStartsNoTask() {
+        let client = RecordingClient()
+        let interceptor = interceptor(latency: 0.4, client: client)
+
+        interceptor.startLoading()
+        interceptor.stopLoading()
+
+        let waited = expectation(description: "the latency elapses")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { waited.fulfill() }
+        wait(for: [waited], timeout: 5)
+
+        XCTAssertFalse(interceptor.hasStartedTask, "a cancelled request must never reach the network")
+        XCTAssertTrue(client.received.isEmpty, "and must deliver nothing to a client that has gone away")
+    }
+
+    /// The other half of the contract: a delayed request nobody cancelled still starts, and starts
+    /// exactly one task. Two would mean two sessions — the failure an unsynchronised `lazy var`
+    /// allows — and would show up here as a second terminal callback.
+    func testADelayedRequestThatIsNotCancelledStartsExactlyOneTask() {
+        let client = RecordingClient()
+        let finished = expectation(description: "the request completes")
+        client.onFinish = { finished.fulfill() }
+        let interceptor = interceptor(latency: 0.5, client: client)
+
+        interceptor.startLoading()
+        XCTAssertFalse(interceptor.hasStartedTask, "the task waits out the latency rather than starting now")
+
+        wait(for: [finished], timeout: 30)
+        XCTAssertTrue(interceptor.hasStartedTask, "and starts once the latency has elapsed")
+        XCTAssertEqual(client.received, ["failed"], "one task, so exactly one terminal callback")
+    }
+
+    /// The guard itself, with no timing in it. Cancellation and task creation are decided together
+    /// inside the interceptor, so a request already cancelled starts nothing even on the inline
+    /// path a zero delay takes.
+    ///
+    /// The URL loading system does not call `stopLoading()` before `startLoading()`. This is the
+    /// interleaving the lock exists to make impossible, written as the one ordering a test can
+    /// actually pin down: the real race between the delay queue and the cancelling thread cannot
+    /// be forced deterministically, and a test that tried would pass on luck.
+    func testAnAlreadyCancelledRequestStartsNothingOnTheInlinePath() {
+        let client = RecordingClient()
+        let interceptor = interceptor(latency: 0, client: client)
+
+        interceptor.stopLoading()
+        interceptor.startLoading()
+
+        XCTAssertFalse(interceptor.hasStartedTask, "the cancellation is seen before anything is started")
+        XCTAssertTrue(client.received.isEmpty)
+    }
 }

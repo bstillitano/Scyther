@@ -31,11 +31,22 @@ internal let internalNetworkRequestKey = "Scyther_Internal_Network_Request"
 ///
 /// - Note: This protocol is automatically registered by `NetworkHelper.start()`.
 open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
-    private lazy var session: URLSession = { [unowned self] in
-        return URLSession(configuration: .default,
-                          delegate: self,
-                          delegateQueue: nil)
-    }()
+    /// Guards ``isCancelled``, ``didStartTask`` and ``session``.
+    ///
+    /// Three threads reach that state: `stopLoading()`, on a thread the URL loading system owns;
+    /// the block scheduled on ``delayQueue``; and the private session's delegate queue. The
+    /// grouping matters more than any single field does — `stopLoading()` has to decide whether a
+    /// task exists *and* claim the session to cancel it as one indivisible act, because a check
+    /// that raced the delay block would see `didStartTask == false`, cancel nothing, and let a
+    /// request the app had already abandoned go out with nothing left able to stop it.
+    private let stateLock = NSLock()
+
+    /// The private session the real data task runs on, or `nil` while no task has been started.
+    ///
+    /// Built in ``beginTask()`` under ``stateLock`` rather than by a `lazy var`: an unsynchronised
+    /// `lazy` initialised from two threads can produce two sessions, and `stopLoading()` would
+    /// then ask the wrong one for the tasks to cancel.
+    private var session: URLSession?
 
     private let model: HTTPRequest = .init()
     private var response: URLResponse?
@@ -49,12 +60,34 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     internal var condition: NetworkCondition?
 
     /// Whether a real data task was started. A stubbed or rule-failed request never creates one,
-    /// so `stopLoading()` must not spin up the lazy session just to cancel nothing.
+    /// so `stopLoading()` must not spin up a session just to cancel nothing.
+    ///
+    /// - Note: Only ever read or written under ``stateLock``.
     private var didStartTask: Bool = false
 
     /// Set by `stopLoading()` so that neither a pending delayed delivery nor a bandwidth throttle
     /// mid-sleep keeps pushing bytes at a client that has gone away.
+    ///
+    /// - Note: Only ever read or written under ``stateLock``.
     private var isCancelled: Bool = false
+
+    /// Whether `stopLoading()` has been called yet.
+    ///
+    /// Every caller runs on a thread that does not own this instance — the delay queue, or the
+    /// private session's delegate queue — so the read is synchronised with the write in
+    /// `stopLoading()`.
+    private var hasBeenCancelled: Bool {
+        stateLock.withLock { isCancelled }
+    }
+
+    /// Whether a real data task has been started.
+    ///
+    /// - Note: Internal rather than private so a test can assert that a request cancelled while
+    ///   its latency was still counting down never reached the network. Nothing in production
+    ///   reads it.
+    internal var hasStartedTask: Bool {
+        stateLock.withLock { didStartTask }
+    }
 
     /// Paces the current response to the ceiling ``condition`` asked for, or `nil` when there is
     /// no ceiling. Rebuilt when a response begins, because the budget is per response.
@@ -176,8 +209,8 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         let outgoing = mutableRequest as URLRequest
         let latency = min(outcome.condition?.latency ?? 0, Self.maximumDelay)
         perform(after: latency) { interceptor in
-            interceptor.didStartTask = true
-            interceptor.session.dataTask(with: outgoing).resume()
+            guard let session = interceptor.beginTask() else { return }
+            session.dataTask(with: outgoing).resume()
         }
     }
 
@@ -198,9 +231,31 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
             return
         }
         Self.delayQueue.asyncAfter(deadline: .now() + delay) { [weak self] in
-            guard let self, !self.isCancelled else { return }
+            guard let self, !self.hasBeenCancelled else { return }
             work(self)
         }
+    }
+
+    /// Claims the right to start the real data task, and hands back the session to start it on.
+    ///
+    /// Takes ``stateLock`` once and performs, indivisibly, the three things `stopLoading()` must
+    /// never catch half-done: it refuses a request that has already been cancelled, records that a
+    /// task now exists, and creates the session that task will belong to. Resuming the task is the
+    /// caller's job, outside the lock, because that call reaches into `URLSession`.
+    ///
+    /// - Returns: The session to resume the data task on, or `nil` when `stopLoading()` got there
+    ///   first — in which case nothing is started and nothing is delivered.
+    private func beginTask() -> URLSession? {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard !isCancelled else { return nil }
+        didStartTask = true
+        if let session {
+            return session
+        }
+        let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+        self.session = session
+        return session
     }
 
     /// Hands a rule's synthesised response to the client as though it had come from the network.
@@ -250,10 +305,19 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         }
     }
 
+    /// Marks the request cancelled and cancels the data task, if one ever started.
+    ///
+    /// The flag and the decision are taken together under ``stateLock`` so that a delay block
+    /// running concurrently either starts its task before this reads the state — in which case the
+    /// session is here to cancel — or finds the request already cancelled and starts nothing. The
+    /// cancellation itself happens after the lock is released, because it calls into `URLSession`.
     override open func stopLoading() {
+        stateLock.lock()
         isCancelled = true
-        guard didStartTask else { return }
-        session.getTasksWithCompletionHandler { dataTasks, _, _ in
+        let session = didStartTask ? self.session : nil
+        stateLock.unlock()
+
+        session?.getTasksWithCompletionHandler { dataTasks, _, _ in
             dataTasks.forEach { $0.cancel() }
         }
     }
@@ -287,10 +351,10 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
         }
 
         if wait > 0 {
-            if isCancelled { return }
+            if hasBeenCancelled { return }
             Thread.sleep(forTimeInterval: wait)
         }
-        if isCancelled { return }
+        if hasBeenCancelled { return }
         client?.urlProtocol(self, didLoad: data)
     }
 
