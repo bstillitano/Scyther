@@ -62,15 +62,38 @@ struct NetworkRuleActionFields: View {
                     .multilineTextAlignment(.trailing)
                     .keyboardType(.decimalPad)
             }
+            bodyRow
+        }
+
+        Section(localized("Response Headers")) {
+            NetworkRuleHeaderFields(fields: $viewModel.responseHeaders, showsValue: true)
+        }
+    }
+
+    /// The body row: a link into the text editor, or a plain row saying why there is no link.
+    ///
+    /// A body that is not UTF-8 — a captured image saved as a mock, most often — is shown as a
+    /// size and left alone. Opening it as text and touching the field wrote every byte back as a
+    /// replacement character, which destroyed the response the override existed to serve.
+    @ViewBuilder
+    private var bodyRow: some View {
+        switch viewModel.bodyEditability {
+        case .editable:
             NavigationLink {
                 TextEntryView(text: $viewModel.bodyText, title: localized("Body"))
             } label: {
                 LabeledContent(localized("Body"), value: viewModel.bodySummary)
             }
-        }
-
-        Section(localized("Response Headers")) {
-            NetworkRuleHeaderFields(fields: $viewModel.responseHeaders, showsValue: true)
+        case .notText:
+            LabeledContent(localized("Body"), value: viewModel.bodySummary)
+            Text(localized("This body is not text, so it is served as captured and cannot be edited here."))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        case .tooLarge:
+            LabeledContent(localized("Body"), value: viewModel.bodySummary)
+            Text(localized("This body is too large to edit here. It is served as captured."))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -79,14 +102,18 @@ struct NetworkRuleActionFields: View {
     /// The file is chosen with the system file importer and copied into the rules directory, so
     /// there is nothing to type: a container path is not something anyone can enter on a device,
     /// and a path to a document outside the app cannot be read again after a relaunch.
+    ///
+    /// The content type is picked rather than typed, because MIME types are a registered set and
+    /// one spelled wrong fails silently at request time. Picking the file fills it in.
     @ViewBuilder
     private var mapLocalFields: some View {
         Section(localized("Map Local File")) {
-            LabeledContent(localized("File"), value: viewModel.mapLocalSummary)
+            // One row chooses the file and reports which one is chosen. Two rows saying the same
+            // thing — a `File` row and a `Choose File` button beneath it — read as two facts.
             Button {
                 isImportingFile = true
             } label: {
-                Label(localized("Choose File"), systemImage: "folder")
+                LabeledContent(localized("File"), value: viewModel.mapLocalSummary)
             }
             .fileImporter(isPresented: $isImportingFile, allowedContentTypes: [.data]) { result in
                 switch result {
@@ -104,9 +131,18 @@ struct NetworkRuleActionFields: View {
                     .multilineTextAlignment(.trailing)
                     .keyboardType(.numberPad)
             }
-            TextField(localized("Content type"), text: $viewModel.contentType)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+            Picker(localized("Content type"), selection: $viewModel.contentTypeSelection) {
+                ForEach(NetworkRuleEditorViewModel.contentTypes, id: \.self) { type in
+                    // A registered MIME token, shown as it goes out on the wire.
+                    Text(type).tag(String?.some(type))
+                }
+                Text(localized("Custom")).tag(String?.none)
+            }
+            if viewModel.isCustomContentType {
+                TextField(localized("Content type"), text: $viewModel.contentType)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+            }
             LabeledContent(localized("Delay (seconds)")) {
                 TextField(localized("Delay (seconds)"), value: $viewModel.delay, format: .number)
                     .multilineTextAlignment(.trailing)

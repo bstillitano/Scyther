@@ -64,6 +64,7 @@ import Foundation
 /// - ``storeFile(at:)``
 /// - ``bodyURL(for:)``
 /// - ``bodyData(for:)``
+/// - ``bodyByteCount(for:)``
 /// - ``bodyDataOffMainActor(for:)``
 /// - ``sweepOrphanedBodies()``
 @MainActor
@@ -566,11 +567,24 @@ internal final class NetworkRuleStore: ObservableObject {
         try? Data(contentsOf: bodyURL(for: id))
     }
 
+    /// How large a stored body is, without reading it.
+    ///
+    /// The editor decides whether a body is small enough to load into a text field, and it makes
+    /// that decision on the main actor while the view is first rendering. Asking the file system
+    /// for the size costs a `stat`; reading the bytes to count them costs the whole file.
+    ///
+    /// - Parameter id: The body identifier held by a ``MockResponse``.
+    /// - Returns: The size in bytes, or `nil` when nothing has been written for that identifier.
+    func bodyByteCount(for id: UUID) -> Int? {
+        let values = try? bodyURL(for: id).resourceValues(forKeys: [.fileSizeKey])
+        return values?.fileSize
+    }
+
     /// The bytes of a stored body, read without touching the main actor.
     ///
     /// `HTTPInterceptorURLProtocol` synthesises a mock response on a thread owned by the URL
     /// loading system, where awaiting the main actor risks a deadlock. This reads the same file
-    /// ``bodyData(for:)`` reads, from ``defaultBodyDirectory``.
+    /// ``bodyData(for:)`` reads, out of the body directory named by the current snapshot.
     ///
     /// - Parameter id: The body identifier held by a ``MockResponse``.
     /// - Returns: The body, or `nil` when nothing has been written for that identifier.

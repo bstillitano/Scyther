@@ -923,6 +923,21 @@
     "ru": "Не удалось записать тело фиктивного ответа на диск, поэтому переопределение не сохранено.",
     "ar": "تعذّرت كتابة نص الاستجابة الوهمية على القرص، لذا لم يتم حفظ التجاوز."
   },
+  "The path is matched exactly as it appears on the wire, including percent-encoding.": {
+    "comment": "Footer under the match fields explaining that the path is compared percent-encoded",
+    "fr": "Le chemin est comparé exactement tel qu’il circule sur le réseau, encodage pour cent compris.",
+    "de": "Der Pfad wird genau so verglichen, wie er über die Leitung geht – einschließlich Prozentkodierung.",
+    "es": "La ruta se compara exactamente como viaja por la red, incluida la codificación porcentual.",
+    "it": "Il percorso viene confrontato esattamente come viaggia in rete, inclusa la codifica percentuale.",
+    "pt-BR": "O caminho é comparado exatamente como trafega na rede, incluindo a codificação percentual.",
+    "nl": "Het pad wordt vergeleken precies zoals het over de lijn gaat, inclusief procentcodering.",
+    "ja": "パスはパーセントエンコードを含め、通信上の表記のまま照合されます。",
+    "zh-Hans": "路径按其在网络上的原始形式匹配，包括百分号编码。",
+    "zh-Hant": "路徑依其在網路上的原始形式比對，包含百分號編碼。",
+    "ko": "경로는 퍼센트 인코딩을 포함하여 네트워크상에 나타난 그대로 일치합니다.",
+    "ru": "Путь сравнивается ровно в том виде, в каком он идёт по сети, включая процентное кодирование.",
+    "ar": "يتم مطابقة المسار تمامًا كما يظهر على الشبكة، بما في ذلك الترميز المئوي."
+  },
   "The saved overrides could not be read, so the list started empty. They have been set aside rather than deleted.": {
     "comment": "Alert message explaining that the persisted overrides were unreadable and have been preserved",
     "fr": "Les remplacements enregistrés n'ont pas pu être lus, la liste a donc démarré vide. Ils ont été mis de côté plutôt que supprimés.",
@@ -967,6 +982,36 @@
     "ru": "Не удалось прочитать выбранный файл как документ HAR.",
     "zh-Hans": "无法将所选文件作为 HAR 文档读取。",
     "zh-Hant": "無法將所選檔案作為 HAR 文件讀取。"
+  },
+  "This body is not text, so it is served as captured and cannot be edited here.": {
+    "comment": "Footnote under a mock body that holds bytes which are not valid UTF-8",
+    "fr": "Ce corps n’est pas du texte : il est servi tel quel et ne peut pas être modifié ici.",
+    "de": "Dieser Body ist kein Text. Er wird unverändert ausgeliefert und kann hier nicht bearbeitet werden.",
+    "es": "Este cuerpo no es texto, por lo que se sirve tal cual y no se puede editar aquí.",
+    "it": "Questo corpo non è testo: viene servito così com’è e non può essere modificato qui.",
+    "pt-BR": "Este corpo não é texto, por isso é servido como capturado e não pode ser editado aqui.",
+    "nl": "Deze body is geen tekst en wordt ongewijzigd geleverd; hij kan hier niet worden bewerkt.",
+    "ja": "このボディはテキストではないため、取得したまま提供され、ここでは編集できません。",
+    "zh-Hans": "此主体不是文本，将按原样提供，无法在此处编辑。",
+    "zh-Hant": "此主體不是文字，將依原樣提供，無法在此編輯。",
+    "ko": "이 본문은 텍스트가 아니므로 캡처한 그대로 제공되며 여기서 편집할 수 없습니다.",
+    "ru": "Это тело не является текстом: оно отдаётся как есть и его нельзя здесь изменить.",
+    "ar": "هذا المحتوى ليس نصًا، لذا يُقدّم كما هو ولا يمكن تحريره هنا."
+  },
+  "This body is too large to edit here. It is served as captured.": {
+    "comment": "Footnote under a mock body larger than the editor loads",
+    "fr": "Ce corps est trop volumineux pour être modifié ici. Il est servi tel quel.",
+    "de": "Dieser Body ist zu groß, um ihn hier zu bearbeiten. Er wird unverändert ausgeliefert.",
+    "es": "Este cuerpo es demasiado grande para editarlo aquí. Se sirve tal cual.",
+    "it": "Questo corpo è troppo grande per essere modificato qui. Viene servito così com’è.",
+    "pt-BR": "Este corpo é grande demais para editar aqui. Ele é servido como capturado.",
+    "nl": "Deze body is te groot om hier te bewerken. Hij wordt ongewijzigd geleverd.",
+    "ja": "このボディは大きすぎてここでは編集できません。取得したまま提供されます。",
+    "zh-Hans": "此主体过大，无法在此处编辑。将按原样提供。",
+    "zh-Hant": "此主體過大，無法在此編輯。將依原樣提供。",
+    "ko": "이 본문은 너무 커서 여기서 편집할 수 없습니다. 캡처한 그대로 제공됩니다.",
+    "ru": "Это тело слишком велико для редактирования здесь. Оно отдаётся как есть.",
+    "ar": "هذا المحتوى أكبر من أن يُحرّر هنا. يُقدّم كما هو."
   },
   "Wildcard": {
     "ar": "حرف بدل",

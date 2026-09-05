@@ -67,7 +67,7 @@ struct NetworkRuleEditorView: View {
                 Toggle(localized("Enabled"), isOn: $viewModel.draft.isEnabled)
             }
 
-            Section(localized("Match")) {
+            Section {
                 NavigationLink {
                     NetworkRuleMethodsView(viewModel: viewModel)
                 } label: {
@@ -93,6 +93,10 @@ struct NetworkRuleEditorView: View {
                         Text(kind.title).tag(kind)
                     }
                 }
+            } header: {
+                Text(localized("Match"))
+            } footer: {
+                Text(localized("The path is matched exactly as it appears on the wire, including percent-encoding."))
             }
 
             NetworkRuleActionFields(viewModel: viewModel)

@@ -68,12 +68,18 @@ import UniformTypeIdentifiers
 /// - ``delay``
 /// - ``bodyText``
 /// - ``bodySummary``
+/// - ``bodyEditability``
+/// - ``BodyEditability``
+/// - ``maximumEditableBodyBytes``
 /// - ``responseHeaders``
 /// - ``mapLocalSummary``
 /// - ``importMapLocalFile(from:)``
 /// - ``didFailToImportFile``
 /// - ``didFailToSave``
 /// - ``contentType``
+/// - ``contentTypes``
+/// - ``contentTypeSelection``
+/// - ``isCustomContentType``
 ///
 /// ### Rewrite Fields
 /// - ``isRewritingHeaders``
@@ -86,6 +92,49 @@ import UniformTypeIdentifiers
 /// - ``bandwidthKBps``
 /// - ``failureRate``
 final class NetworkRuleEditorViewModel: ViewModel {
+    /// Whether the stored mock body can be edited as text, and why not when it cannot.
+    ///
+    /// The body used to be loaded with a lossy UTF-8 decode, so opening a captured image as a
+    /// mock and touching the field wrote every byte that is not UTF-8 back as a replacement
+    /// character — one tap from **Save as mock** on a PNG. A body Scyther cannot represent as text
+    /// is shown as a size and left alone instead.
+    enum BodyEditability: Equatable {
+        /// UTF-8 text small enough to load into the editor.
+        case editable
+        /// Bytes that are not valid UTF-8, so editing them as text would destroy them.
+        case notText
+        /// Valid text, but larger than ``NetworkRuleEditorViewModel/maximumEditableBodyBytes``.
+        case tooLarge
+    }
+
+    /// The largest body loaded into the text editor, in bytes.
+    ///
+    /// The body is read and decoded on the main actor, by the view's first render. A megabyte of
+    /// JSON is already more than anyone edits by hand in a `TextEditor`, and a mock body has no
+    /// upper bound at all — a HAR import can carry one the size of a video.
+    static let maximumEditableBodyBytes: Int = 1_048_576
+
+    /// The `Content-Type` values the map-local picker offers, in the order it lists them.
+    ///
+    /// Registered MIME types, deliberately not localised and deliberately shown verbatim: the
+    /// string in the list is the string that goes out on the wire, and a developer choosing
+    /// between them is choosing a protocol token, not reading prose. Anything not here is typed
+    /// into the Custom field — see ``isCustomContentType``.
+    static let contentTypes: [String] = [
+        "application/json",
+        "text/plain",
+        "text/html",
+        "application/xml",
+        "text/csv",
+        "text/javascript",
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+        "image/svg+xml",
+        "application/pdf",
+        "application/octet-stream",
+    ]
+
     /// The HTTP methods offered as match facets.
     ///
     /// Protocol tokens, deliberately not localised — `GET` reads as `GET` in every language.
@@ -101,7 +150,33 @@ final class NetworkRuleEditorViewModel: ViewModel {
     @Published var draft: NetworkRule
 
     /// The mock response body, as text. Written to disk by ``save()`` only when it has changed.
-    @Published var bodyText: String
+    ///
+    /// Always `""` while ``bodyEditability`` is anything but ``BodyEditability/editable``: the
+    /// bytes are not text, or are too large to load, and the editor does not offer them.
+    @Published var bodyText: String {
+        didSet {
+            guard bodyEditability == .editable else { return }
+            bodyByteCount = bodyText.utf8.count
+        }
+    }
+
+    /// Whether the body can be edited as text, and why not when it cannot.
+    private(set) var bodyEditability: BodyEditability
+
+    /// The size ``bodySummary`` reports.
+    ///
+    /// Held rather than derived, because `bodySummary` is read on every evaluation of the row that
+    /// shows it and counting the UTF-8 bytes of the whole body each time is work the view does not
+    /// need. For a body that is not editable this is the size of the file on disk, which is the
+    /// only honest answer: there is no decoded string whose length would mean anything.
+    private var bodyByteCount: Int
+
+    /// Whether the map-local content type is being typed by hand rather than picked.
+    ///
+    /// Drives the Custom entry in the picker and the text field it reveals. Seeded from the
+    /// stored value, so reopening an override typed as `application/vnd.example+json` comes back
+    /// on Custom with that string in the field rather than silently snapping to something else.
+    @Published var isCustomContentType: Bool
 
     /// The mock response's headers, as ordered editable rows.
     @Published var responseHeaders: [NetworkRuleHeaderField] {
@@ -124,7 +199,9 @@ final class NetworkRuleEditorViewModel: ViewModel {
     /// so the unchanged-body guard in ``save()`` would skip the rewrite and leave the override
     /// broken however many times it was re-saved. This makes the next save write the body
     /// regardless.
-    private let isOriginalBodyMissing: Bool
+    ///
+    /// Cleared by a successful ``save()``, which has just repaired it.
+    private var isOriginalBodyMissing: Bool
 
     /// Whether the last save could not be written. Drives an alert; the sheet stays open.
     @Published var didFailToSave: Bool = false
@@ -139,18 +216,18 @@ final class NetworkRuleEditorViewModel: ViewModel {
     private let store: NetworkRuleStore
 
     /// Whether this editor is creating a rule rather than editing one that already exists.
-    private let isNewRule: Bool
-
-    /// The body text as it was when the editor opened, so ``save()`` can tell whether the
-    /// developer actually changed it and avoid writing a second copy of identical bytes.
-    private let originalBodyText: String
-
-    /// The body file the rule pointed at when the editor opened, if it pointed at one.
     ///
-    /// Kept so ``save()`` can delete the file it supersedes. A body is written under a fresh
-    /// identifier every time, and switching the stub away from a mock orphans it entirely, so
-    /// without this the directory accumulates bodies no rule can ever reach.
-    private let originalBodyID: UUID?
+    /// Cleared by the first successful ``save()``: the rule is in the store from then on, so a
+    /// second confirm updates it in place rather than upserting it again.
+    private var isNewRule: Bool
+
+    /// The body text as it was when the editor was last in step with the store, so ``save()`` can
+    /// tell whether the developer actually changed it and avoid writing a second copy of
+    /// identical bytes.
+    ///
+    /// Advanced by a successful ``save()``. The confirm button stays tappable until the sheet has
+    /// dismissed, and without this a second tap wrote the same bytes to a second file.
+    private var originalBodyText: String
 
     /// The last stub seen of each kind.
     ///
@@ -215,25 +292,21 @@ final class NetworkRuleEditorViewModel: ViewModel {
         self.rememberedRewrite = draft.actions.rewriteHeaders
         self.rememberedCondition = draft.actions.condition
 
-        if case .mock(let mock) = draft.actions.stub {
-            self.originalBodyID = mock.bodyID
-        } else {
-            self.originalBodyID = nil
-        }
+        self.rememberedHostKind = draft.match.host?.kind ?? .exact
+        self.rememberedPathKind = draft.match.path?.kind ?? .exact
 
-        let body: String
-        if case .mock(let mock) = draft.actions.stub, let pending = mock.pendingBody {
-            body = String(decoding: pending, as: UTF8.self)
-            self.isOriginalBodyMissing = false
-        } else if let originalBodyID, let data = store.bodyData(for: originalBodyID) {
-            body = String(decoding: data, as: UTF8.self)
-            self.isOriginalBodyMissing = false
+        let loaded = Self.loadBody(of: draft.actions.stub, from: store)
+        self.bodyText = loaded.text
+        self.originalBodyText = loaded.text
+        self.bodyEditability = loaded.editability
+        self.bodyByteCount = loaded.byteCount
+        self.isOriginalBodyMissing = loaded.isMissing
+
+        if case .mapLocal(let file) = draft.actions.stub, let type = file.contentType, !type.isEmpty {
+            self.isCustomContentType = !Self.contentTypes.contains(type)
         } else {
-            body = ""
-            self.isOriginalBodyMissing = originalBodyID != nil
+            self.isCustomContentType = true
         }
-        self.bodyText = body
-        self.originalBodyText = body
 
         if case .mock(let mock) = draft.actions.stub {
             self.responseHeaders = .fields(from: mock.headers)
@@ -260,10 +333,13 @@ final class NetworkRuleEditorViewModel: ViewModel {
     /// request means something. A method on its own does not count as a match: an override
     /// matching every `GET` the app makes is the same hazard as one matching everything, and just
     /// as hard to diagnose once it is enabled.
+    /// A facet that matches everything does not count, however it is spelled: a path of `*` set to
+    /// Wildcard, or `/` set to Contains, is two taps and one character away from an enabled
+    /// override applied to every request in the app.
     var isValid: Bool {
         guard !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         guard !draft.actions.isEmpty else { return false }
-        return draft.match.hasHostPathOrQuery
+        return draft.match.narrowsTraffic
     }
 
     // MARK: - Match
@@ -411,19 +487,62 @@ final class NetworkRuleEditorViewModel: ViewModel {
     }
 
     /// A one-line description of the mock body, shown on the row that opens the body editor.
+    ///
+    /// Reports the size of what is stored rather than the length of a decoded string, so a body
+    /// the editor refuses to open as text still says how big it is.
     var bodySummary: String {
-        bodyText.isEmpty ? localized("Not set") : localized("\(bodyText.utf8.count) bytes")
+        bodyByteCount == 0 ? localized("Not set") : localized("\(bodyByteCount) bytes")
     }
 
-    /// The name of the file a map-local stub serves, or a placeholder while none is chosen.
+    /// What the editor may do with the body a stub already holds.
+    ///
+    /// Reading and decoding happens once, here, rather than on every evaluation of the row that
+    /// shows it — and only for a body small enough to be worth loading onto the main actor at
+    /// all, which the file's size settles without reading a byte of it.
+    ///
+    /// - Parameters:
+    ///   - stub: The stub the editor opened on.
+    ///   - store: Where a stored body is read from.
+    /// - Returns: The text to edit, how editable it is, its size, and whether the identifier the
+    ///   stub carries points at bytes that are not there.
+    private static func loadBody(
+        of stub: NetworkRuleStub?,
+        from store: NetworkRuleStore
+    ) -> (text: String, editability: BodyEditability, byteCount: Int, isMissing: Bool) {
+        guard case .mock(let mock) = stub else { return ("", .editable, 0, false) }
+
+        if let pending = mock.pendingBody {
+            guard pending.count <= maximumEditableBodyBytes else {
+                return ("", .tooLarge, pending.count, false)
+            }
+            guard let text = String(data: pending, encoding: .utf8) else {
+                return ("", .notText, pending.count, false)
+            }
+            return (text, .editable, pending.count, false)
+        }
+
+        guard let bodyID = mock.bodyID else { return ("", .editable, 0, false) }
+        guard let size = store.bodyByteCount(for: bodyID) else { return ("", .editable, 0, true) }
+        guard size <= maximumEditableBodyBytes else { return ("", .tooLarge, size, false) }
+        guard let data = store.bodyData(for: bodyID) else { return ("", .editable, 0, true) }
+        guard let text = String(data: data, encoding: .utf8) else {
+            return ("", .notText, data.count, false)
+        }
+        return (text, .editable, data.count, false)
+    }
+
+    /// The name of the file a map-local stub serves, or the invitation to choose one.
     ///
     /// The copy on disk is named after an identifier so it can be swept like a mock body, so the
     /// name of the document it was made from is what the row shows. A path supplied from code
     /// carries no such name, and falls back to the file name on the end of that path.
+    ///
+    /// One row does the choosing and the reporting — tapping it opens the picker either way — so
+    /// while nothing is chosen this reads as the invitation rather than as an absence.
     var mapLocalSummary: String {
-        guard case .mapLocal(let file) = draft.actions.stub else { return localized("Not set") }
+        guard case .mapLocal(let file) = draft.actions.stub else { return localized("Choose File") }
         if let fileName = file.fileName, !fileName.isEmpty { return fileName }
-        guard !file.relativePath.isEmpty else { return localized("Not set") }
+        guard !file.relativePath.isEmpty else { return localized("Choose File") }
         return URL(fileURLWithPath: file.relativePath).lastPathComponent
     }
 
@@ -453,7 +572,9 @@ final class NetworkRuleEditorViewModel: ViewModel {
         file.relativePath = path
         file.fileName = url.lastPathComponent
         if file.contentType?.isEmpty ?? true {
-            file.contentType = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType
+            let derived = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType
+            file.contentType = derived
+            isCustomContentType = derived.map { !Self.contentTypes.contains($0) } ?? true
         }
         draft.actions.stub = .mapLocal(file)
     }
@@ -464,6 +585,10 @@ final class NetworkRuleEditorViewModel: ViewModel {
     }
 
     /// The `Content-Type` a map-local stub returns. Emptying it omits the header.
+    ///
+    /// Bound to the Custom text field, and written by ``contentTypeSelection`` when a listed type
+    /// is picked. Trimmed by ``save()``, like the host and path: a MIME type with a stray space on
+    /// the end is a header the server would never have sent, and it fails silently at request time.
     var contentType: String {
         get {
             guard case .mapLocal(let file) = draft.actions.stub else { return "" }
@@ -473,6 +598,25 @@ final class NetworkRuleEditorViewModel: ViewModel {
             guard case .mapLocal(var file) = draft.actions.stub else { return }
             file.contentType = newValue.isEmpty ? nil : newValue
             draft.actions.stub = .mapLocal(file)
+        }
+    }
+
+    /// Which entry of the content type picker is selected, or `nil` for Custom.
+    ///
+    /// MIME types are a registered set, and one typed wrong fails silently at request time — the
+    /// stub serves the file under a header nothing can parse — so the ordinary path is to pick one
+    /// rather than spell it. Custom stays available for the rest, and keeps whatever the entry
+    /// already held rather than clearing it, so switching to Custom to adjust a type is not a
+    /// retype.
+    var contentTypeSelection: String? {
+        get { isCustomContentType ? nil : contentType }
+        set {
+            guard let newValue else {
+                isCustomContentType = true
+                return
+            }
+            isCustomContentType = false
+            contentType = newValue
         }
     }
 
@@ -548,6 +692,9 @@ final class NetworkRuleEditorViewModel: ViewModel {
     /// Does nothing for a draft that fails ``isValid``. The view already disables its confirm
     /// button, but the guard belongs here too: the check is the rule, not the button's appearance.
     ///
+    /// Every number the form holds is brought into range first — see ``inRange(_:)`` — and the
+    /// `Content-Type` is trimmed, like the host and the path.
+    ///
     /// New body bytes are handed to the store rather than written here, and only when they differ
     /// from what the editor opened with — so re-saving an unchanged rule neither rewrites its body
     /// nor orphans a copy of it. The store writes the bytes, points the rule at them, and reclaims
@@ -560,10 +707,12 @@ final class NetworkRuleEditorViewModel: ViewModel {
     func save() -> Bool {
         guard isValid else { return false }
 
+        draft.actions = Self.inRange(draft.actions)
         var rule = draft
         rule.name = rule.name.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if case .mock(var mock) = rule.actions.stub, bodyText != originalBodyText || isOriginalBodyMissing {
+        let bodyChanged = bodyEditability == .editable && (bodyText != originalBodyText || isOriginalBodyMissing)
+        if case .mock(var mock) = rule.actions.stub, bodyChanged {
             if bodyText.isEmpty {
                 mock.bodyID = nil
                 mock.pendingBody = nil
@@ -575,7 +724,72 @@ final class NetworkRuleEditorViewModel: ViewModel {
 
         let stored = isNewRule ? store.add(rule) : store.update(rule)
         didFailToSave = !stored
-        return stored
+        guard stored else { return false }
+
+        // The confirm button stays tappable until the sheet has dismissed. Bringing the editor
+        // level with the store means a second tap updates the rule in place and writes no second
+        // copy of a body that has not changed since the first. The draft is re-read rather than
+        // assumed, because the store is what fills in the identifier of the body it just wrote —
+        // without that the second save would look like an override whose body had been emptied.
+        isNewRule = false
+        originalBodyText = bodyText
+        isOriginalBodyMissing = false
+        if let stored = (store.rules + store.transientRules).first(where: { $0.id == rule.id }) {
+            draft = stored
+        }
+        return true
+    }
+
+    /// The same actions with every number brought into the range it is allowed to hold.
+    ///
+    /// A status code of `-1` or `700`, a negative delay and a delay of `NaN` all used to reach the
+    /// store. Nothing crashed — the responder guards the response it builds — but a negative delay
+    /// was silently accepted and quietly meant zero, and a status outside `100...599` is not a
+    /// status any client will read as one. Clamping here rather than in the field's setter leaves
+    /// typing alone: a partly typed `20` must not rewrite itself to `100` between keystrokes.
+    ///
+    /// - Parameter actions: What the form currently holds.
+    /// - Returns: The same actions, storable.
+    private static func inRange(_ actions: NetworkRuleActions) -> NetworkRuleActions {
+        var actions = actions
+        switch actions.stub {
+        case .mock(var mock):
+            mock.statusCode = statusCodeInRange(mock.statusCode)
+            mock.delay = secondsInRange(mock.delay)
+            actions.stub = .mock(mock)
+        case .mapLocal(var file):
+            file.statusCode = statusCodeInRange(file.statusCode)
+            file.delay = secondsInRange(file.delay)
+            file.contentType = file.contentType?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if file.contentType?.isEmpty ?? false { file.contentType = nil }
+            actions.stub = .mapLocal(file)
+        case nil:
+            break
+        }
+        if var condition = actions.condition {
+            condition.latency = secondsInRange(condition.latency)
+            condition.failureRate = min(max(condition.failureRate.isNaN ? 0 : condition.failureRate, 0), 1)
+            if let bandwidth = condition.bandwidthKBps, bandwidth <= 0 { condition.bandwidthKBps = nil }
+            actions.condition = condition
+        }
+        return actions
+    }
+
+    /// A status code brought inside the range HTTP defines.
+    ///
+    /// - Parameter code: What the field holds.
+    /// - Returns: The code, clamped to `100...599`.
+    private static func statusCodeInRange(_ code: Int) -> Int {
+        min(max(code, 100), 599)
+    }
+
+    /// A number of seconds brought inside the range a wait can be.
+    ///
+    /// - Parameter seconds: What the field holds.
+    /// - Returns: The value, or `0` when it is negative or not a number.
+    private static func secondsInRange(_ seconds: TimeInterval) -> TimeInterval {
+        guard seconds.isFinite, seconds > 0 else { return 0 }
+        return seconds
     }
 
     // MARK: - Header plumbing
@@ -615,20 +829,47 @@ internal extension NetworkRulePattern.Kind {
     }
 }
 
+internal extension NetworkRulePattern {
+    /// Whether this pattern rules any candidate out.
+    ///
+    /// A wildcard of nothing but `*` matches every string there is, so it constrains exactly as
+    /// much as leaving the field empty — and reads, in the editor, as though it constrains
+    /// something. So does a blank value, which the editor collapses to no facet at all anyway.
+    var matchesEverything: Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return true }
+        switch kind {
+        case .exact, .contains: return false
+        case .wildcard: return trimmed.allSatisfy { $0 == "*" }
+        }
+    }
+
+    /// Whether this pattern rules any request out when it is used as the **path** facet.
+    ///
+    /// One case on top of ``matchesEverything``: every URL path a request can carry begins with
+    /// `/`, so `Contains /` is `Wildcard *` spelled differently. Deliberately not applied to the
+    /// host facet, where a slash can never appear and `Contains /` matches nothing rather than
+    /// everything — a different mistake, and not one this guard is about.
+    var matchesEveryPath: Bool {
+        if matchesEverything { return true }
+        return kind == .contains && value.trimmingCharacters(in: .whitespacesAndNewlines) == "/"
+    }
+}
+
 internal extension NetworkRuleMatch {
     /// Whether this match names an endpoint rather than a swathe of the app's traffic.
     ///
     /// A match with no host, path or query applies to every request the app makes — every `GET`
-    /// of them, if a method is selected, which is not meaningfully narrower. Those are legal
-    /// values, because the engine treats an empty facet as "any", but they are almost never what
-    /// a developer typing into the editor intended, so ``NetworkRuleEditorViewModel/isValid``
-    /// refuses them.
+    /// of them, if a method is selected, which is not meaningfully narrower. So does one whose
+    /// only facet matches everything anyway. Those are legal values, because the engine treats an
+    /// empty facet as "any", but they are almost never what a developer typing into the editor
+    /// intended, so ``NetworkRuleEditorViewModel/isValid`` refuses them.
     ///
     /// Methods deliberately do not count: they narrow *how* a request is made, never *what* it
     /// is made to.
-    var hasHostPathOrQuery: Bool {
-        if let host, !host.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return true }
-        if let path, !path.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return true }
+    var narrowsTraffic: Bool {
+        if let host, !host.matchesEverything { return true }
+        if let path, !path.matchesEveryPath { return true }
         return !query.isEmpty
     }
 }

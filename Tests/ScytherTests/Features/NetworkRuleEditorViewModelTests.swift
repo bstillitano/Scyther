@@ -322,7 +322,8 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
             .appendingPathComponent("\(UUID().uuidString)/nothing.json"))
 
         XCTAssertTrue(viewModel.didFailToImportFile)
-        XCTAssertEqual(viewModel.mapLocalSummary, localized("Not set"))
+        XCTAssertEqual(viewModel.mapLocalSummary, localized("Choose File"),
+                       "nothing was chosen, so the row still reads as the invitation")
     }
 
     // MARK: - Composing actions
@@ -394,6 +395,342 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
         viewModel.stubKind = .none
         viewModel.save()
         XCTAssertTrue(store.rules.isEmpty)
+    }
+
+    // MARK: - Matching kinds
+
+    /// A rule whose host is a wildcard, so reopening it must show Wildcard rather than Exact.
+    private func wildcardHostRule() -> NetworkRule {
+        NetworkRule(
+            name: "Staging",
+            isEnabled: true,
+            match: NetworkRuleMatch(host: NetworkRulePattern(kind: .wildcard, value: "*.example.com")),
+            actions: NetworkRuleActions(stub: .mock(MockResponse()))
+        )
+    }
+
+    func testTheHostComparisonIsSeededFromTheOverrideBeingEdited() {
+        let viewModel = NetworkRuleEditorViewModel(rule: wildcardHostRule(), store: store)
+        XCTAssertEqual(viewModel.hostKind, .wildcard)
+    }
+
+    /// Clearing the field to retype it used to flip the picker back to Exact, and typing the same
+    /// wildcard back saved it as an exact match on the literal `*.example.com` — which matches
+    /// nothing, with no error and nothing on screen to explain why.
+    func testClearingTheHostFieldKeepsTheComparisonItWasSavedWith() {
+        let viewModel = NetworkRuleEditorViewModel(rule: wildcardHostRule(), store: store)
+        viewModel.hostText = ""
+        XCTAssertEqual(viewModel.hostKind, .wildcard, "clearing the text must not downgrade the comparison")
+
+        viewModel.hostText = "*.example.com"
+        XCTAssertEqual(viewModel.draft.match.host, NetworkRulePattern(kind: .wildcard, value: "*.example.com"))
+    }
+
+    func testClearingThePathFieldKeepsTheComparisonItWasSavedWith() {
+        let rule = NetworkRule(
+            name: "Cart",
+            isEnabled: true,
+            match: NetworkRuleMatch(path: NetworkRulePattern(kind: .contains, value: "/cart")),
+            actions: NetworkRuleActions(stub: .mock(MockResponse()))
+        )
+        let viewModel = NetworkRuleEditorViewModel(rule: rule, store: store)
+        XCTAssertEqual(viewModel.pathKind, .contains)
+
+        viewModel.pathText = ""
+        XCTAssertEqual(viewModel.pathKind, .contains)
+
+        viewModel.pathText = "/cart"
+        XCTAssertEqual(viewModel.draft.match.path, NetworkRulePattern(kind: .contains, value: "/cart"))
+    }
+
+    // MARK: - Match everything
+
+    func testAWildcardOfNothingButStarsIsRejected() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Everything"
+        viewModel.pathKind = .wildcard
+        viewModel.pathText = "*"
+        XCTAssertFalse(viewModel.isValid, "two taps and one character must not produce an app-wide override")
+
+        viewModel.pathText = "/v1/*"
+        XCTAssertTrue(viewModel.isValid)
+    }
+
+    func testAContainsPathOfASlashIsRejected() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Everything"
+        viewModel.pathKind = .contains
+        viewModel.pathText = "/"
+        XCTAssertFalse(viewModel.isValid, "every URL path begins with a slash")
+    }
+
+    func testAWildcardHostOfNothingButStarsIsRejected() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Everything"
+        viewModel.hostKind = .wildcard
+        viewModel.hostText = "**"
+        XCTAssertFalse(viewModel.isValid)
+    }
+
+    /// A host is never spelled with a slash in it, so `Contains /` on the *host* matches nothing
+    /// rather than everything — a different mistake, and not one this guard is about.
+    func testAContainsHostOfASlashIsStillAFacet() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Odd but narrow"
+        viewModel.hostKind = .contains
+        viewModel.hostText = "/"
+        XCTAssertTrue(viewModel.isValid)
+    }
+
+    // MARK: - Bodies that are not text
+
+    /// Bytes that are not valid UTF-8 — the first six of a JPEG.
+    private static let binaryBody = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10])
+
+    func testABodyThatIsNotTextIsNotOfferedForTextEditing() throws {
+        let bodyID = try store.storeBody(Self.binaryBody)
+        let rule = NetworkRule(
+            name: "Avatar", isEnabled: true, match: .path("/v1/avatar"),
+            actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: bodyID, delay: 0)))
+        )
+        store.add(rule)
+
+        let viewModel = NetworkRuleEditorViewModel(rule: rule, store: store)
+        XCTAssertEqual(viewModel.bodyEditability, .notText)
+        XCTAssertEqual(viewModel.bodySummary, localized("\(Self.binaryBody.count) bytes"),
+                       "the summary reports the stored file, not a lossy decode of it")
+    }
+
+    /// One tap from **Save as mock** on a captured image: the field was loaded with a lossy decode,
+    /// so touching it at all wrote every non-UTF-8 byte back as a replacement character.
+    func testEditingIsRefusedRatherThanCorruptingABodyThatIsNotText() throws {
+        let bodyID = try store.storeBody(Self.binaryBody)
+        let rule = NetworkRule(
+            name: "Avatar", isEnabled: true, match: .path("/v1/avatar"),
+            actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: bodyID, delay: 0)))
+        )
+        store.add(rule)
+
+        let viewModel = NetworkRuleEditorViewModel(rule: rule, store: store)
+        viewModel.bodyText = "clobbered"
+        XCTAssertTrue(viewModel.save())
+
+        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).actions.stub else {
+            return XCTFail("expected a mock action")
+        }
+        XCTAssertEqual(mock.bodyID, bodyID, "the override still points at the bytes it was built from")
+        XCTAssertEqual(store.bodyData(for: bodyID), Self.binaryBody)
+    }
+
+    /// **Save as mock** carries the captured bytes rather than writing them, so the same check has
+    /// to reach a body that has never been on disk.
+    func testPendingBytesThatAreNotTextAreNotOfferedForTextEditing() {
+        var mock = MockResponse()
+        mock.pendingBody = Self.binaryBody
+        let rule = NetworkRule(name: "Avatar", isEnabled: false, match: .path("/v1/avatar"),
+                               actions: NetworkRuleActions(stub: .mock(mock)))
+
+        let viewModel = NetworkRuleEditorViewModel(prefilled: rule, store: store)
+        XCTAssertEqual(viewModel.bodyEditability, .notText)
+        XCTAssertEqual(viewModel.bodyText, "")
+
+        viewModel.bodyText = "clobbered"
+        XCTAssertTrue(viewModel.save())
+
+        guard case .mock(let saved) = try? XCTUnwrap(store.rules.first).actions.stub,
+              let bodyID = saved.bodyID else {
+            return XCTFail("expected a stored mock body")
+        }
+        XCTAssertEqual(store.bodyData(for: bodyID), Self.binaryBody)
+    }
+
+    /// The editor is opened by the view's first render, on the main actor, so a body too big to
+    /// edit comfortably must not be read and decoded there.
+    func testABodyTooLargeToEditIsNotReadIntoTheEditor() throws {
+        let bytes = Data(repeating: UInt8(ascii: "x"),
+                         count: NetworkRuleEditorViewModel.maximumEditableBodyBytes + 1)
+        let bodyID = try store.storeBody(bytes)
+        let rule = NetworkRule(
+            name: "Big", isEnabled: true, match: .path("/v1/big"),
+            actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: bodyID, delay: 0)))
+        )
+        store.add(rule)
+
+        let viewModel = NetworkRuleEditorViewModel(rule: rule, store: store)
+        XCTAssertEqual(viewModel.bodyEditability, .tooLarge)
+        XCTAssertEqual(viewModel.bodyText, "")
+        XCTAssertEqual(viewModel.bodySummary, localized("\(bytes.count) bytes"))
+
+        XCTAssertTrue(viewModel.save())
+        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).actions.stub else {
+            return XCTFail("expected a mock action")
+        }
+        XCTAssertEqual(mock.bodyID, bodyID, "an oversized body survives a save that never loaded it")
+    }
+
+    func testAnOrdinaryTextBodyStaysEditable() throws {
+        let saved = try savedMockRule(body: "old")
+        let viewModel = NetworkRuleEditorViewModel(rule: saved.rule, store: store)
+        XCTAssertEqual(viewModel.bodyEditability, .editable)
+        XCTAssertEqual(viewModel.bodySummary, localized("\(3) bytes"))
+    }
+
+    // MARK: - Confirming twice
+
+    /// The confirm button is tappable until the sheet dismisses, so the second tap has to be a
+    /// no-op rather than a second write of the same bytes.
+    func testConfirmingTwiceStoresOneOverrideAndOneBody() throws {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Cart"
+        viewModel.draft.match = .path("/api/cart")
+        viewModel.bodyText = "{}"
+
+        XCTAssertTrue(viewModel.save())
+        guard case .mock(let first) = try XCTUnwrap(store.rules.first).actions.stub else {
+            return XCTFail("expected a mock action")
+        }
+        let firstBodyID = try XCTUnwrap(first.bodyID)
+
+        XCTAssertTrue(viewModel.save())
+        XCTAssertEqual(store.rules.count, 1)
+        guard case .mock(let second) = try XCTUnwrap(store.rules.first).actions.stub else {
+            return XCTFail("expected a mock action")
+        }
+        XCTAssertEqual(second.bodyID, firstBodyID, "the second tap must not write a second copy")
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: bodyDirectory.path).count, 1)
+    }
+
+    // MARK: - Ranges
+
+    func testAStatusCodeOutsideTheHTTPRangeIsClampedBeforeItIsStored() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Cart"
+        viewModel.draft.match = .path("/api/cart")
+
+        viewModel.statusCode = 700
+        XCTAssertTrue(viewModel.save())
+        XCTAssertEqual(viewModel.statusCode, 599)
+
+        viewModel.statusCode = -1
+        XCTAssertTrue(viewModel.save())
+        XCTAssertEqual(viewModel.statusCode, 100)
+    }
+
+    func testANegativeOrNotANumberDelayIsStoredAsZero() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Cart"
+        viewModel.draft.match = .path("/api/cart")
+
+        viewModel.delay = -5
+        XCTAssertTrue(viewModel.save())
+        XCTAssertEqual(viewModel.delay, 0, "a negative delay meant zero anyway, so say so")
+
+        viewModel.delay = .nan
+        XCTAssertTrue(viewModel.save())
+        XCTAssertEqual(viewModel.delay, 0)
+    }
+
+    func testAConditionsLatencyAndFailureRateAreBroughtIntoRange() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Cart"
+        viewModel.draft.match = .path("/api/cart")
+        viewModel.isConditioning = true
+        viewModel.latency = -1
+        viewModel.failureRate = 4
+
+        XCTAssertTrue(viewModel.save())
+        XCTAssertEqual(store.rules.first?.actions.condition?.latency, 0)
+        XCTAssertEqual(store.rules.first?.actions.condition?.failureRate, 1)
+    }
+
+    func testTheContentTypeIsTrimmedLikeTheHostAndPath() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Users"
+        viewModel.draft.match = .path("/v1/users")
+        viewModel.stubKind = .mapLocal
+        viewModel.contentType = "  application/json  "
+
+        XCTAssertTrue(viewModel.save())
+        guard case .mapLocal(let file) = try? XCTUnwrap(store.rules.first).actions.stub else {
+            return XCTFail("expected a map local stub")
+        }
+        XCTAssertEqual(file.contentType, "application/json")
+    }
+
+    // MARK: - Content type picker
+
+    /// A file picked in the editor, written where the file importer would have handed it back.
+    private func pickedFile(named name: String, contents: String = "[]") throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Picked.\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent(name)
+        try Data(contents.utf8).write(to: url)
+        return url
+    }
+
+    func testEveryOfferedContentTypeIsDistinct() {
+        let types = NetworkRuleEditorViewModel.contentTypes
+        XCTAssertEqual(Set(types).count, types.count)
+        XCTAssertTrue(types.contains("application/json"))
+    }
+
+    /// A developer picking `users.json` should not have to tell us it is JSON.
+    func testPickingAJSONFileSelectsTheJSONEntryRatherThanCustom() throws {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.stubKind = .mapLocal
+        viewModel.importMapLocalFile(from: try pickedFile(named: "users.json"))
+
+        XCTAssertEqual(viewModel.contentType, "application/json")
+        XCTAssertEqual(viewModel.contentTypeSelection, "application/json")
+        XCTAssertFalse(viewModel.isCustomContentType)
+    }
+
+    func testAContentTypeOutsideTheOfferedSetReadsAsCustom() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.stubKind = .mapLocal
+        viewModel.contentType = "application/vnd.example+json"
+
+        XCTAssertTrue(viewModel.isCustomContentType)
+        XCTAssertNil(viewModel.contentTypeSelection)
+    }
+
+    func testChoosingCustomKeepsWhatTheEntryAlreadyHeld() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.stubKind = .mapLocal
+        viewModel.contentTypeSelection = "text/csv"
+        XCTAssertEqual(viewModel.contentType, "text/csv")
+
+        viewModel.contentTypeSelection = nil
+        XCTAssertTrue(viewModel.isCustomContentType, "Custom reveals the field rather than clearing it")
+        XCTAssertEqual(viewModel.contentType, "text/csv")
+
+        viewModel.contentTypeSelection = "application/json"
+        XCTAssertFalse(viewModel.isCustomContentType)
+        XCTAssertEqual(viewModel.contentType, "application/json")
+    }
+
+    func testReopeningAMapLocalOverrideSeedsThePickerFromWhatWasStored() {
+        let rule = NetworkRule(
+            name: "Users", isEnabled: true, match: .path("/v1/users"),
+            actions: NetworkRuleActions(stub: .mapLocal(MapLocalFile(relativePath: "/tmp/users.json",
+                                                                     fileName: "users.json",
+                                                                     contentType: "application/json")))
+        )
+        let viewModel = NetworkRuleEditorViewModel(rule: rule, store: store)
+        XCTAssertEqual(viewModel.contentTypeSelection, "application/json")
+        XCTAssertFalse(viewModel.isCustomContentType)
+    }
+
+    // MARK: - Choosing a file
+
+    /// The section used to carry a `File` row and a `Choose File` button saying the same thing
+    /// twice. One row now does both, so it has to read as the invitation while nothing is chosen.
+    func testTheFileRowInvitesAChoiceWhileNothingIsChosen() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.stubKind = .mapLocal
+        XCTAssertEqual(viewModel.mapLocalSummary, localized("Choose File"))
     }
 
     func testSavingAnExistingRuleUpdatesItInPlace() {
