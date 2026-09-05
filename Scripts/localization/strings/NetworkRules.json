@@ -582,6 +582,36 @@
     "zh-Hans": "路径匹配方式",
     "zh-Hant": "路徑比對方式"
   },
+  "Registered by the app for this launch only. These overrides cannot be edited or reordered and do not persist.": {
+    "ar": "سجّلها التطبيق لهذا التشغيل فقط. لا يمكن تحرير هذه التجاوزات أو إعادة ترتيبها ولا يتم حفظها.",
+    "comment": "Footer under the section listing overrides the host app registered from code",
+    "de": "Von der App nur für diesen Start registriert. Diese Overrides lassen sich nicht bearbeiten oder umsortieren und bleiben nicht erhalten.",
+    "es": "Registradas por la app solo para este arranque. Estas anulaciones no se pueden editar ni reordenar y no se conservan.",
+    "fr": "Enregistrés par l'app pour ce lancement uniquement. Ces remplacements ne peuvent être ni modifiés ni réordonnés et ne sont pas conservés.",
+    "it": "Registrati dall'app solo per questo avvio. Questi override non possono essere modificati o riordinati e non vengono conservati.",
+    "ja": "アプリが今回の起動のためだけに登録した上書きです。編集や並べ替えはできず、保存もされません。",
+    "ko": "앱이 이번 실행에만 등록했습니다. 이 재정의는 편집하거나 순서를 바꿀 수 없으며 저장되지 않습니다.",
+    "nl": "Alleen voor deze sessie door de app geregistreerd. Deze overschrijvingen kunnen niet worden bewerkt of gesorteerd en blijven niet bewaard.",
+    "pt-BR": "Registradas pelo app apenas para esta execução. Estas substituições não podem ser editadas nem reordenadas e não são preservadas.",
+    "ru": "Зарегистрированы приложением только для этого запуска. Эти переопределения нельзя изменить или переупорядочить, и они не сохраняются.",
+    "zh-Hans": "由 App 仅为本次启动注册。这些覆盖无法编辑或重新排序，也不会被保存。",
+    "zh-Hant": "由 App 僅為本次啟動註冊。這些覆寫無法編輯或重新排序，也不會被保存。"
+  },
+  "Registered in Code": {
+    "ar": "مُسجَّلة في الكود",
+    "comment": "Header of the section listing overrides the host app registered from code",
+    "de": "Im Code registriert",
+    "es": "Registradas en el código",
+    "fr": "Enregistrés dans le code",
+    "it": "Registrati nel codice",
+    "ja": "コードで登録",
+    "ko": "코드에서 등록됨",
+    "nl": "In code geregistreerd",
+    "pt-BR": "Registradas no código",
+    "ru": "Зарегистрированы в коде",
+    "zh-Hans": "代码中注册",
+    "zh-Hant": "程式碼中註冊"
+  },
   "Remove headers": {
     "ar": "الترويسات المراد إزالتها",
     "comment": "Section header for the header names a rewrite rule removes",

@@ -18,6 +18,8 @@ import UniformTypeIdentifiers
 /// ## Features
 /// - A master switch that suspends every override without deleting any of them
 /// - Tap to edit; swipe to enable, disable, or delete behind a confirmation alert
+/// - A read-only section for overrides the host app registered in code, which the engine applies
+///   just as it does the saved ones
 /// - Drag-to-reorder, because the first matching mock or map-local override wins
 /// - HAR import through the system file importer, reporting how many overrides were added
 ///
@@ -60,13 +62,27 @@ struct NetworkRulesView: View {
                 Section {
                     emptyState
                 }
-            } else {
+            }
+
+            if !viewModel.rules.isEmpty {
                 Section {
                     ForEach(viewModel.rules) { rule in
                         ruleRow(for: rule)
                     }
                     .onDelete { viewModel.requestDeletion(at: $0) }
                     .onMove { viewModel.move(from: $0, to: $1) }
+                }
+            }
+
+            if !viewModel.transientRules.isEmpty {
+                Section {
+                    ForEach(viewModel.transientRules) { rule in
+                        LabeledContent(rule.name, value: viewModel.subtitle(for: rule))
+                    }
+                } header: {
+                    Text(localized("Registered in Code"))
+                } footer: {
+                    Text(localized("Registered by the app for this launch only. These overrides cannot be edited or reordered and do not persist."))
                 }
             }
         }
@@ -90,7 +106,7 @@ struct NetworkRulesView: View {
             allowedContentTypes: harContentTypes
         ) { result in
             switch result {
-            case .success(let url): viewModel.importHAR(from: url)
+            case .success(let url): Task { await viewModel.importHAR(from: url) }
             case .failure: viewModel.reportImportFailure()
             }
         }

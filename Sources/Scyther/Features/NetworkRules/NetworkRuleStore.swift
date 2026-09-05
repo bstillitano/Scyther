@@ -44,6 +44,7 @@ import Foundation
 ///
 /// ### Mutating Rules
 /// - ``add(_:)``
+/// - ``add(contentsOf:)``
 /// - ``addTransient(_:)``
 /// - ``update(_:)``
 /// - ``remove(id:)``
@@ -115,6 +116,21 @@ internal final class NetworkRuleStore: ObservableObject {
     /// - Parameter rule: The rule to add.
     func add(_ rule: NetworkRule) {
         rules.append(rule)
+        persistRules()
+        publish()
+    }
+
+    /// Appends several rules that survive relaunch, persisting and publishing once for the lot.
+    ///
+    /// Every mutation JSON-encodes the whole rules array into `UserDefaults` and republishes the
+    /// interceptor's snapshot, so adding a HAR import's worth of rules one at a time costs one
+    /// full encode and one snapshot per entry. HAR files routinely hold hundreds of entries.
+    ///
+    /// - Parameter newRules: The rules to add, in the order they should be evaluated. Adding
+    ///   none is a no-op, so an import that produced nothing does not churn the snapshot.
+    func add(contentsOf newRules: [NetworkRule]) {
+        guard !newRules.isEmpty else { return }
+        rules.append(contentsOf: newRules)
         persistRules()
         publish()
     }

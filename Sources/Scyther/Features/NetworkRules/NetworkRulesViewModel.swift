@@ -27,6 +27,7 @@ import Foundation
 ///
 /// ### Reading Rules
 /// - ``rules``
+/// - ``transientRules``
 /// - ``isEnabled``
 /// - ``subtitle(for:)``
 ///
@@ -49,6 +50,13 @@ import Foundation
 final class NetworkRulesViewModel: ViewModel {
     /// The persisted rules, in precedence order, mirrored from the store.
     @Published private(set) var rules: [NetworkRule] = []
+
+    /// The rules the host app registered from code for this launch, mirrored from the store.
+    ///
+    /// The engine evaluates these against live traffic exactly as it does the persisted ones, so
+    /// leaving them off the screen would let a developer stare at an empty list while their
+    /// requests were being mocked. They are shown read-only: the app owns them, not the menu.
+    @Published private(set) var transientRules: [NetworkRule] = []
 
     /// The rule a swipe has proposed deleting, awaiting confirmation. `nil` hides the alert.
     @Published var pendingDeletion: NetworkRule?
@@ -78,6 +86,9 @@ final class NetworkRulesViewModel: ViewModel {
         store.$rules
             .sink { [weak self] rules in self?.rules = rules }
             .store(in: &cancellables)
+        store.$transientRules
+            .sink { [weak self] rules in self?.transientRules = rules }
+            .store(in: &cancellables)
         store.$isEnabled
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
@@ -94,7 +105,10 @@ final class NetworkRulesViewModel: ViewModel {
     }
 
     /// Whether the list has nothing to show.
-    var isEmpty: Bool { rules.isEmpty }
+    ///
+    /// Both lists have to be empty: an override registered in code is being applied to live
+    /// traffic, so an empty state in front of one would be a lie.
+    var isEmpty: Bool { rules.isEmpty && transientRules.isEmpty }
 
     /// The separator between the two halves of a row's subtitle.
     ///
@@ -176,22 +190,40 @@ final class NetworkRulesViewModel: ViewModel {
 
     /// Imports every entry of a HAR document as a disabled mock rule.
     ///
-    /// The file is opened inside a security-scoped access pair, because the URL the system file
-    /// importer hands back points outside the app's own container.
+    /// HAR files are routinely multi-megabyte, so the bytes are read off the main actor and the
+    /// rules are handed to the store in one batch. Reading on the main actor would freeze the
+    /// menu for the length of the read, and adding the rules one at a time would JSON-encode the
+    /// whole rules array into `UserDefaults` once per entry.
     ///
     /// - Parameter url: The file the developer picked.
-    func importHAR(from url: URL) {
-        let isAccessing = url.startAccessingSecurityScopedResource()
-        defer { if isAccessing { url.stopAccessingSecurityScopedResource() } }
+    func importHAR(from url: URL) async {
+        guard let data = await Self.contents(of: url) else {
+            importOutcome = .failed
+            return
+        }
 
         do {
-            let data = try Data(contentsOf: url)
             let imported = try HARRuleImporter.rules(from: data) { store.storeBody($0) }
-            imported.forEach { store.add($0) }
+            store.add(contentsOf: imported)
             importOutcome = .imported(count: imported.count)
         } catch {
             importOutcome = .failed
         }
+    }
+
+    /// Reads a picked file's bytes without blocking the main actor.
+    ///
+    /// The read happens inside a security-scoped access pair, because the URL the system file
+    /// importer hands back points outside the app's own container.
+    ///
+    /// - Parameter url: The file the developer picked.
+    /// - Returns: The bytes, or `nil` when the file could not be opened or read.
+    private static func contents(of url: URL) async -> Data? {
+        await Task.detached(priority: .userInitiated) {
+            let isAccessing = url.startAccessingSecurityScopedResource()
+            defer { if isAccessing { url.stopAccessingSecurityScopedResource() } }
+            return try? Data(contentsOf: url)
+        }.value
     }
 
     /// Reports a failure the file importer itself raised, before any bytes were read.
