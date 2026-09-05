@@ -569,6 +569,15 @@ public final class Network: Sendable {
     public var ipAddress: String {
         get async { await NetworkHelper.instance.ipAddress }
     }
+
+    /// Rules that mock, condition or rewrite matching requests.
+    ///
+    /// ```swift
+    /// Scyther.network.rules.add(
+    ///     .mock(name: "Empty cart", matching: .path("/api/cart"), returning: .json("{}"))
+    /// )
+    /// ```
+    public var rules: NetworkRules { .shared }
 }
 
 /// Provides push notification testing capabilities.
