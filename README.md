@@ -1285,10 +1285,14 @@ Named after the [Pokemon Scyther](https://pokemondb.net/pokedex/scyther), a bug-
 
 ## Contributing
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the build and test commands, the architecture and
+testing conventions a change is expected to follow, and how to add or correct a localised
+string.
+
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+3. Make the change, with tests and documentation
+4. Run the test suite and build the example app
 5. Open a Pull Request
 
 ### Reporting Issues
