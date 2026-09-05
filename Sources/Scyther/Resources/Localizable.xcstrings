@@ -3915,7 +3915,7 @@
       }
     },
     "Action": {
-      "comment": "Section header and picker label for the behaviour a rule performs",
+      "comment": "Section header and picker label for the behaviour an override performs",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -4223,7 +4223,7 @@
       }
     },
     "Add header": {
-      "comment": "Button appending an empty row to a header list in the rule editor",
+      "comment": "Button appending an empty row to a header list in the override editor",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -10500,7 +10500,7 @@
       }
     },
     "Content type": {
-      "comment": "Field holding the Content-Type header a map local rule returns",
+      "comment": "Field holding the Content-Type header a map local override returns",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -13579,6 +13579,257 @@
         }
       }
     },
+    "Delete %lld overrides?": {
+      "comment": "Title of the confirmation alert when several overrides are deleted at once",
+      "localizations": {
+        "ar": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "حذف %lld تجاوزات؟"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "حذف %lld تجاوزًا؟"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "حذف تجاوز واحد؟"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "حذف %lld تجاوز؟"
+                }
+              },
+              "two": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "حذف تجاوزين؟"
+                }
+              },
+              "zero": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "حذف التجاوزات؟"
+                }
+              }
+            }
+          }
+        },
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld Override löschen?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld Overrides löschen?"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Delete %lld override?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Delete %lld overrides?"
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "¿Eliminar %lld anulación?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "¿Eliminar %lld anulaciones?"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "Supprimer %lld remplacement ?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "Supprimer %lld remplacements ?"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "Eliminare %lld override?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "Eliminare %lld override?"
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld件の上書きを削除しますか？"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "재정의 %lld개를 삭제할까요?"
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld overschrijving verwijderen?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld overschrijvingen verwijderen?"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "Excluir %lld substituição?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "Excluir %lld substituições?"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "Удалить %lld переопределения?"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "Удалить %lld переопределений?"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "Удалить %lld переопределение?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "Удалить %lld переопределений?"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "删除 %lld 条覆盖？"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "刪除 %lld 條覆寫？"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Delete Item": {
       "comment": "Destructive button that deletes the keychain item being viewed",
       "localizations": {
@@ -16429,7 +16680,7 @@
       }
     },
     "Enabled": {
-      "comment": "Toggle in the rule editor controlling whether the rule is evaluated",
+      "comment": "Toggle in the override editor controlling whether the override is evaluated",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -19124,7 +19375,7 @@
       }
     },
     "File path": {
-      "comment": "Field holding the absolute path a map local rule serves",
+      "comment": "Field holding the absolute path a map local override serves",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -25073,7 +25324,7 @@
       }
     },
     "Match": {
-      "comment": "Section header for the host and path fields in the rule editor",
+      "comment": "Section header for the host and path fields in the override editor",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -25381,7 +25632,7 @@
       }
     },
     "Methods": {
-      "comment": "Section header for the HTTP method toggles in the rule editor",
+      "comment": "Section header for the HTTP method toggles in the override editor",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -35488,7 +35739,7 @@
       }
     },
     "Remove headers": {
-      "comment": "Section header for the header names a rewrite rule removes",
+      "comment": "Section header for the header names a rewrite override removes",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -40493,7 +40744,7 @@
       }
     },
     "Set headers": {
-      "comment": "Section header for the headers a rewrite rule sets",
+      "comment": "Section header for the headers a rewrite override sets",
       "localizations": {
         "ar": {
           "stringUnit": {

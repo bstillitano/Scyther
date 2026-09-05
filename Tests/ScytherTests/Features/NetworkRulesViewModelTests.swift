@@ -164,7 +164,7 @@ final class NetworkRulesViewModelTests: XCTestCase {
         let viewModel = NetworkRulesViewModel(store: store)
         store.add(rule(named: "cart"))
         viewModel.requestDeletion(at: IndexSet(integer: 0))
-        XCTAssertEqual(viewModel.pendingDeletion?.name, "cart")
+        XCTAssertEqual(viewModel.pendingDeletions.map(\.name), ["cart"])
         XCTAssertEqual(store.rules.count, 1, "nothing is deleted until the alert is confirmed")
     }
 
@@ -173,7 +173,7 @@ final class NetworkRulesViewModelTests: XCTestCase {
         let saved = rule(named: "cart")
         store.add(saved)
         viewModel.requestDeletion(of: saved)
-        XCTAssertEqual(viewModel.pendingDeletion, saved)
+        XCTAssertEqual(viewModel.pendingDeletions, [saved])
     }
 
     func testConfirmingRemovesTheOverrideAndDismissesTheAlert() {
@@ -182,7 +182,7 @@ final class NetworkRulesViewModelTests: XCTestCase {
         viewModel.requestDeletion(at: IndexSet(integer: 0))
         viewModel.confirmDeletion()
         XCTAssertTrue(store.rules.isEmpty)
-        XCTAssertNil(viewModel.pendingDeletion)
+        XCTAssertTrue(viewModel.pendingDeletions.isEmpty)
     }
 
     func testCancellingLeavesTheOverrideAlone() {
@@ -190,14 +190,45 @@ final class NetworkRulesViewModelTests: XCTestCase {
         store.add(rule(named: "cart"))
         viewModel.requestDeletion(at: IndexSet(integer: 0))
         viewModel.cancelDeletion()
-        XCTAssertNil(viewModel.pendingDeletion)
+        XCTAssertTrue(viewModel.pendingDeletions.isEmpty)
         XCTAssertEqual(store.rules.count, 1)
     }
 
     func testRequestingDeletionOfAnOffsetThatIsGoneRecordsNothing() {
         let viewModel = NetworkRulesViewModel(store: store)
         viewModel.requestDeletion(at: IndexSet(integer: 4))
-        XCTAssertNil(viewModel.pendingDeletion)
+        XCTAssertTrue(viewModel.pendingDeletions.isEmpty)
+    }
+
+    func testDeletingTwoRowsAtOnceDeletesBothOfThem() {
+        let viewModel = NetworkRulesViewModel(store: store)
+        ["first", "second", "third"].forEach { store.add(rule(named: $0)) }
+        viewModel.requestDeletion(at: IndexSet([0, 2]))
+        XCTAssertEqual(viewModel.pendingDeletions.map(\.name), ["first", "third"])
+        viewModel.confirmDeletion()
+        XCTAssertEqual(
+            store.rules.map(\.name),
+            ["second"],
+            "an offset set can hold several rows and none of them may be silently dropped"
+        )
+    }
+
+    func testDeletingTwoRowsSkipsAnOffsetThatIsNoLongerThere() {
+        let viewModel = NetworkRulesViewModel(store: store)
+        store.add(rule(named: "only"))
+        viewModel.requestDeletion(at: IndexSet([0, 9]))
+        XCTAssertEqual(viewModel.pendingDeletions.map(\.name), ["only"])
+    }
+
+    func testTheAlertNamesASingleOverrideAndCountsSeveral() {
+        let viewModel = NetworkRulesViewModel(store: store)
+        ["first", "second"].forEach { store.add(rule(named: $0)) }
+
+        viewModel.requestDeletion(at: IndexSet(integer: 0))
+        XCTAssertEqual(viewModel.deletionTitle, localized("Delete first?"))
+
+        viewModel.requestDeletion(at: IndexSet([0, 1]))
+        XCTAssertEqual(viewModel.deletionTitle, localized("Delete \(2) overrides?"))
     }
 
     // MARK: - Importing

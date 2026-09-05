@@ -26,9 +26,15 @@ struct NetworkRuleEditorView: View {
 
     /// Creates the editor.
     ///
-    /// - Parameter viewModel: The view model owning the draft rule.
-    init(viewModel: NetworkRuleEditorViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)
+    /// The view model is built inside `StateObject`'s autoclosure rather than by the caller, so
+    /// the construction — which reads the mock body off disk — happens once, when SwiftUI first
+    /// needs the object, and not on every evaluation of the row or sheet that presents it.
+    ///
+    /// - Parameters:
+    ///   - rule: The override to edit, or `nil` to create one.
+    ///   - store: Where the override is written on save. Defaults to the shared store.
+    init(rule: NetworkRule?, store: NetworkRuleStore = .shared) {
+        _viewModel = StateObject(wrappedValue: NetworkRuleEditorViewModel(rule: rule, store: store))
     }
 
     var body: some View {

@@ -109,6 +109,13 @@ final class NetworkRuleEditorViewModel: ViewModel {
     /// developer actually changed it and avoid writing a second copy of identical bytes.
     private let originalBodyText: String
 
+    /// The body file the rule pointed at when the editor opened, if it pointed at one.
+    ///
+    /// Kept so ``save()`` can delete the file it supersedes. A body is written under a fresh
+    /// identifier every time, and switching the action away from a mock orphans it entirely, so
+    /// without this the directory accumulates bodies no rule can ever reach.
+    private let originalBodyID: UUID?
+
     /// The last configuration seen for each action kind.
     ///
     /// Switching the action picker away from a kind and back again would otherwise discard
@@ -138,8 +145,14 @@ final class NetworkRuleEditorViewModel: ViewModel {
         self.draft = draft
         self.rememberedActions = [draft.action.kind: draft.action]
 
+        if case .mock(let mock) = draft.action {
+            self.originalBodyID = mock.bodyID
+        } else {
+            self.originalBodyID = nil
+        }
+
         let body: String
-        if case .mock(let mock) = draft.action, let bodyID = mock.bodyID, let data = store.bodyData(for: bodyID) {
+        if let originalBodyID, let data = store.bodyData(for: originalBodyID) {
             body = String(decoding: data, as: UTF8.self)
         } else {
             body = ""
@@ -387,15 +400,28 @@ final class NetworkRuleEditorViewModel: ViewModel {
 
     /// Writes the draft to the store, adding it when new and replacing it in place when not.
     ///
+    /// Does nothing for a draft that fails ``isValid``. The view already disables its Save button,
+    /// but the guard belongs here too: the check is the rule, not the button's appearance.
+    ///
     /// The body is written to disk only when it differs from what the editor opened with, so
-    /// re-saving an unchanged rule does not leave an orphaned copy of its body behind.
+    /// re-saving an unchanged rule does not leave an orphaned copy of its body behind. Whatever
+    /// body the rule no longer points at is deleted, whether it was superseded by new bytes or
+    /// stranded by the action changing to something that is not a mock.
     func save() {
+        guard isValid else { return }
+
         var rule = draft
         rule.name = rule.name.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if case .mock(var mock) = rule.action, bodyText != originalBodyText {
-            mock.bodyID = bodyText.isEmpty ? nil : store.storeBody(Data(bodyText.utf8))
-            rule.action = .mock(mock)
+        if case .mock(var mock) = rule.action {
+            if bodyText != originalBodyText {
+                let replacement = bodyText.isEmpty ? nil : store.storeBody(Data(bodyText.utf8))
+                mock.bodyID = replacement
+                rule.action = .mock(mock)
+                discardOriginalBody(unless: replacement)
+            }
+        } else {
+            discardOriginalBody(unless: nil)
         }
 
         if isNewRule {
@@ -403,6 +429,14 @@ final class NetworkRuleEditorViewModel: ViewModel {
         } else {
             store.update(rule)
         }
+    }
+
+    /// Deletes the body file the editor opened with, unless the saved rule still points at it.
+    ///
+    /// - Parameter retained: The body identifier the saved rule keeps, if any.
+    private func discardOriginalBody(unless retained: UUID?) {
+        guard let originalBodyID, originalBodyID != retained else { return }
+        try? FileManager.default.removeItem(at: store.bodyURL(for: originalBodyID))
     }
 
     // MARK: - Header plumbing

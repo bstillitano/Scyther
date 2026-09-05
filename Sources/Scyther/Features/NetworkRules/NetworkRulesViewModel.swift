@@ -16,9 +16,9 @@ import Foundation
 ///
 /// ## Deletion
 ///
-/// A swipe records the rule in ``pendingDeletion`` rather than deleting it, so the view can put an
-/// alert in front of it. Deleting a rule also deletes the mock body it owns, which is not
-/// recoverable — worth one tap of confirmation.
+/// A swipe records the rules in ``pendingDeletions`` rather than deleting them, so the view can
+/// put an alert in front of them. Deleting a rule also deletes the mock body it owns, which is
+/// not recoverable — worth one tap of confirmation.
 ///
 /// ## Topics
 ///
@@ -34,10 +34,10 @@ import Foundation
 /// ### Mutating Rules
 /// - ``setEnabled(_:to:)``
 /// - ``move(from:to:)``
-/// - ``delete(at:)``
 ///
 /// ### Confirming a Deletion
-/// - ``pendingDeletion``
+/// - ``pendingDeletions``
+/// - ``deletionTitle``
 /// - ``requestDeletion(at:)``
 /// - ``requestDeletion(of:)``
 /// - ``confirmDeletion()``
@@ -58,8 +58,12 @@ final class NetworkRulesViewModel: ViewModel {
     /// requests were being mocked. They are shown read-only: the app owns them, not the menu.
     @Published private(set) var transientRules: [NetworkRule] = []
 
-    /// The rule a swipe has proposed deleting, awaiting confirmation. `nil` hides the alert.
-    @Published var pendingDeletion: NetworkRule?
+    /// The rules a swipe has proposed deleting, awaiting confirmation. Empty hides the alert.
+    ///
+    /// A list rather than one rule because `onDelete` reports an `IndexSet`: in edit mode a
+    /// developer can select several rows and delete them in one gesture, and taking only the
+    /// first offset would silently keep the rest.
+    @Published var pendingDeletions: [NetworkRule] = []
 
     /// The result of the most recent HAR import, awaiting acknowledgement. `nil` hides the alert.
     @Published var importOutcome: NetworkRuleImportOutcome?
@@ -148,20 +152,14 @@ final class NetworkRulesViewModel: ViewModel {
         store.move(from: source, to: destination)
     }
 
-    /// Deletes the rules at these offsets, along with any mock bodies they own.
+    /// Records the swiped rules so the view can confirm before anything is deleted.
     ///
-    /// - Parameter offsets: The offsets to delete, as supplied by SwiftUI's `onDelete`.
-    func delete(at offsets: IndexSet) {
-        for id in offsets.compactMap({ rules.indices.contains($0) ? rules[$0].id : nil }) {
-            store.remove(id: id)
-        }
-    }
-
-    /// Records a swiped rule so the view can confirm before anything is deleted.
+    /// Every offset is kept, not just the first: `onDelete` reports a set, and in edit mode that
+    /// set can hold several rows.
     ///
     /// - Parameter offsets: The offsets SwiftUI's `onDelete` reported.
     func requestDeletion(at offsets: IndexSet) {
-        pendingDeletion = offsets.first.flatMap { rules.indices.contains($0) ? rules[$0] : nil }
+        pendingDeletions = offsets.sorted().compactMap { rules.indices.contains($0) ? rules[$0] : nil }
     }
 
     /// Records a rule the row's own delete button named, so the view can confirm first.
@@ -172,20 +170,28 @@ final class NetworkRulesViewModel: ViewModel {
     ///
     /// - Parameter rule: The override the row offered to delete.
     func requestDeletion(of rule: NetworkRule) {
-        pendingDeletion = rule
+        pendingDeletions = [rule]
     }
 
-    /// Deletes the rule recorded by ``requestDeletion(at:)`` and dismisses the alert.
-    func confirmDeletion() {
-        if let pendingDeletion {
-            store.remove(id: pendingDeletion.id)
+    /// The deletion alert's title, naming the single override or counting the several.
+    var deletionTitle: String {
+        guard pendingDeletions.count != 1 else {
+            return localized("Delete \(pendingDeletions[0].name)?")
         }
-        pendingDeletion = nil
+        return localized("Delete \(pendingDeletions.count) overrides?")
     }
 
-    /// Dismisses the deletion alert, leaving the rule alone.
+    /// Deletes every rule recorded by ``requestDeletion(at:)`` and dismisses the alert.
+    func confirmDeletion() {
+        for rule in pendingDeletions {
+            store.remove(id: rule.id)
+        }
+        pendingDeletions = []
+    }
+
+    /// Dismisses the deletion alert, leaving the rules alone.
     func cancelDeletion() {
-        pendingDeletion = nil
+        pendingDeletions = []
     }
 
     /// Imports every entry of a HAR document as a disabled mock rule.

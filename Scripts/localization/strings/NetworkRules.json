@@ -16,7 +16,7 @@
   },
   "Action": {
     "ar": "الإجراء",
-    "comment": "Section header and picker label for the behaviour a rule performs",
+    "comment": "Section header and picker label for the behaviour an override performs",
     "de": "Aktion",
     "es": "Acción",
     "fr": "Action",
@@ -46,7 +46,7 @@
   },
   "Add header": {
     "ar": "إضافة ترويسة",
-    "comment": "Button appending an empty row to a header list in the rule editor",
+    "comment": "Button appending an empty row to a header list in the override editor",
     "de": "Header hinzufügen",
     "es": "Añadir encabezado",
     "fr": "Ajouter un en-tête",
@@ -106,7 +106,7 @@
   },
   "Content type": {
     "ar": "نوع المحتوى",
-    "comment": "Field holding the Content-Type header a map local rule returns",
+    "comment": "Field holding the Content-Type header a map local override returns",
     "de": "Inhaltstyp",
     "es": "Tipo de contenido",
     "fr": "Type de contenu",
@@ -133,6 +133,64 @@
     "ru": "Задержка (секунды)",
     "zh-Hans": "延迟（秒）",
     "zh-Hant": "延遲（秒）"
+  },
+  "Delete %lld overrides?": {
+    "ar": {
+      "few": "حذف %lld تجاوزات؟",
+      "many": "حذف %lld تجاوزًا؟",
+      "one": "حذف تجاوز واحد؟",
+      "other": "حذف %lld تجاوز؟",
+      "two": "حذف تجاوزين؟",
+      "zero": "حذف التجاوزات؟"
+    },
+    "comment": "Title of the confirmation alert when several overrides are deleted at once",
+    "de": {
+      "one": "%lld Override löschen?",
+      "other": "%lld Overrides löschen?"
+    },
+    "en": {
+      "one": "Delete %lld override?",
+      "other": "Delete %lld overrides?"
+    },
+    "es": {
+      "one": "¿Eliminar %lld anulación?",
+      "other": "¿Eliminar %lld anulaciones?"
+    },
+    "fr": {
+      "one": "Supprimer %lld remplacement ?",
+      "other": "Supprimer %lld remplacements ?"
+    },
+    "it": {
+      "one": "Eliminare %lld override?",
+      "other": "Eliminare %lld override?"
+    },
+    "ja": {
+      "other": "%lld件の上書きを削除しますか？"
+    },
+    "ko": {
+      "other": "재정의 %lld개를 삭제할까요?"
+    },
+    "nl": {
+      "one": "%lld overschrijving verwijderen?",
+      "other": "%lld overschrijvingen verwijderen?"
+    },
+    "plural": true,
+    "pt-BR": {
+      "one": "Excluir %lld substituição?",
+      "other": "Excluir %lld substituições?"
+    },
+    "ru": {
+      "few": "Удалить %lld переопределения?",
+      "many": "Удалить %lld переопределений?",
+      "one": "Удалить %lld переопределение?",
+      "other": "Удалить %lld переопределений?"
+    },
+    "zh-Hans": {
+      "other": "删除 %lld 条覆盖？"
+    },
+    "zh-Hant": {
+      "other": "刪除 %lld 條覆寫？"
+    }
   },
   "Disable": {
     "ar": "تعطيل",
@@ -196,7 +254,7 @@
   },
   "Enabled": {
     "ar": "مفعّلة",
-    "comment": "Toggle in the rule editor controlling whether the rule is evaluated",
+    "comment": "Toggle in the override editor controlling whether the override is evaluated",
     "de": "Aktiviert",
     "es": "Activada",
     "fr": "Activée",
@@ -241,7 +299,7 @@
   },
   "File path": {
     "ar": "مسار الملف",
-    "comment": "Field holding the absolute path a map local rule serves",
+    "comment": "Field holding the absolute path a map local override serves",
     "de": "Dateipfad",
     "es": "Ruta del archivo",
     "fr": "Chemin du fichier",
@@ -419,7 +477,7 @@
   },
   "Match": {
     "ar": "المطابقة",
-    "comment": "Section header for the host and path fields in the rule editor",
+    "comment": "Section header for the host and path fields in the override editor",
     "de": "Übereinstimmung",
     "es": "Coincidencia",
     "fr": "Correspondance",
@@ -434,7 +492,7 @@
   },
   "Methods": {
     "ar": "الأساليب",
-    "comment": "Section header for the HTTP method toggles in the rule editor",
+    "comment": "Section header for the HTTP method toggles in the override editor",
     "de": "Methoden",
     "es": "Métodos",
     "fr": "Méthodes",
@@ -614,7 +672,7 @@
   },
   "Remove headers": {
     "ar": "الترويسات المراد إزالتها",
-    "comment": "Section header for the header names a rewrite rule removes",
+    "comment": "Section header for the header names a rewrite override removes",
     "de": "Header entfernen",
     "es": "Encabezados a eliminar",
     "fr": "En-têtes à supprimer",
@@ -674,7 +732,7 @@
   },
   "Set headers": {
     "ar": "الترويسات المراد تعيينها",
-    "comment": "Section header for the headers a rewrite rule sets",
+    "comment": "Section header for the headers a rewrite override sets",
     "de": "Header setzen",
     "es": "Encabezados a establecer",
     "fr": "En-têtes à définir",

@@ -105,6 +105,110 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
 
     // MARK: - Saving
 
+    func testAnInvalidDraftIsNotWrittenEvenIfSaveIsCalled() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "   "
+        viewModel.save()
+        XCTAssertTrue(
+            store.rules.isEmpty,
+            "the view disables Save, but the validity rule belongs to the view model, not the button"
+        )
+    }
+
+    func testADraftMatchingNothingIsNotWrittenEvenIfSaveIsCalled() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Everything"
+        viewModel.draft.match = NetworkRuleMatch(methods: [], host: nil, path: nil, query: [:])
+        viewModel.save()
+        XCTAssertTrue(store.rules.isEmpty)
+    }
+
+    // MARK: - Mock bodies
+
+    /// A saved mock rule whose body is already on disk, and the identifier it points at.
+    private func savedMockRule(body: String) throws -> (rule: NetworkRule, bodyID: UUID) {
+        let bodyID = store.storeBody(Data(body.utf8))
+        let rule = NetworkRule(
+            name: "Cart", isEnabled: true, match: .path("/api/cart"),
+            action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: bodyID, delay: 0))
+        )
+        store.add(rule)
+        return (rule, bodyID)
+    }
+
+    func testEditingTheBodyDeletesTheOneItSupersedes() throws {
+        let saved = try savedMockRule(body: "old")
+        let viewModel = NetworkRuleEditorViewModel(rule: saved.rule, store: store)
+        XCTAssertEqual(viewModel.bodyText, "old")
+
+        viewModel.bodyText = "new"
+        viewModel.save()
+
+        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).action else {
+            return XCTFail("expected a mock action")
+        }
+        let newBodyID = try XCTUnwrap(mock.bodyID)
+        XCTAssertNotEqual(newBodyID, saved.bodyID)
+        XCTAssertEqual(store.bodyData(for: newBodyID), Data("new".utf8))
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: store.bodyURL(for: saved.bodyID).path),
+            "the superseded body is unreachable, so leaving it behind just grows the directory"
+        )
+    }
+
+    func testEmptyingTheBodyDeletesTheFileAndClearsTheIdentifier() throws {
+        let saved = try savedMockRule(body: "old")
+        let viewModel = NetworkRuleEditorViewModel(rule: saved.rule, store: store)
+        viewModel.bodyText = ""
+        viewModel.save()
+
+        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).action else {
+            return XCTFail("expected a mock action")
+        }
+        XCTAssertNil(mock.bodyID)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: store.bodyURL(for: saved.bodyID).path))
+    }
+
+    func testSwitchingTheActionAwayFromAMockDeletesTheStrandedBody() throws {
+        let saved = try savedMockRule(body: "old")
+        let viewModel = NetworkRuleEditorViewModel(rule: saved.rule, store: store)
+        viewModel.actionKind = .condition
+        viewModel.save()
+
+        XCTAssertEqual(store.rules.first?.action.kind, .condition)
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: store.bodyURL(for: saved.bodyID).path),
+            "no rule can reach that body any more"
+        )
+    }
+
+    func testResavingAnUnchangedBodyKeepsTheFileItAlreadyHad() throws {
+        let saved = try savedMockRule(body: "old")
+        let viewModel = NetworkRuleEditorViewModel(rule: saved.rule, store: store)
+        viewModel.draft.name = "Cart (renamed)"
+        viewModel.save()
+
+        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).action else {
+            return XCTFail("expected a mock action")
+        }
+        XCTAssertEqual(mock.bodyID, saved.bodyID)
+        XCTAssertEqual(store.bodyData(for: saved.bodyID), Data("old".utf8))
+    }
+
+    func testSwitchingAwayFromAMockAndBackKeepsTheBody() throws {
+        let saved = try savedMockRule(body: "old")
+        let viewModel = NetworkRuleEditorViewModel(rule: saved.rule, store: store)
+        viewModel.actionKind = .condition
+        viewModel.actionKind = .mock
+        viewModel.save()
+
+        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).action else {
+            return XCTFail("expected a mock action")
+        }
+        XCTAssertEqual(mock.bodyID, saved.bodyID)
+        XCTAssertEqual(store.bodyData(for: saved.bodyID), Data("old".utf8))
+    }
+
     func testSavingAnExistingRuleUpdatesItInPlace() {
         var rule = NetworkRule(
             id: UUID(), name: "Old", isEnabled: true, match: .path("/api/cart"),

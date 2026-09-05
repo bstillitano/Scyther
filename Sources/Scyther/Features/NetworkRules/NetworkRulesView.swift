@@ -31,7 +31,19 @@ import UniformTypeIdentifiers
 /// ```
 struct NetworkRulesView: View {
     /// The list's view model, mirroring ``NetworkRuleStore``.
-    @StateObject private var viewModel = NetworkRulesViewModel()
+    @StateObject private var viewModel: NetworkRulesViewModel
+
+    /// The store this screen and every editor it opens read and write.
+    private let store: NetworkRuleStore
+
+    /// Creates the list.
+    ///
+    /// - Parameter store: The store to show. Defaults to the shared store; a preview or a test
+    ///   harness passes a throwaway one.
+    init(store: NetworkRuleStore = .shared) {
+        self.store = store
+        _viewModel = StateObject(wrappedValue: NetworkRulesViewModel(store: store))
+    }
 
     /// Whether the sheet that creates a new override is presented.
     ///
@@ -98,7 +110,7 @@ struct NetworkRulesView: View {
         }
         .sheet(isPresented: $isCreatingOverride) {
             NavigationStack {
-                NetworkRuleEditorView(viewModel: NetworkRuleEditorViewModel(rule: nil))
+                NetworkRuleEditorView(rule: nil, store: store)
             }
         }
         .fileImporter(
@@ -111,9 +123,9 @@ struct NetworkRulesView: View {
             }
         }
         .alert(
-            localized("Delete \(viewModel.pendingDeletion?.name ?? "")?"),
+            viewModel.deletionTitle,
             isPresented: Binding(
-                get: { viewModel.pendingDeletion != nil },
+                get: { !viewModel.pendingDeletions.isEmpty },
                 set: { if !$0 { viewModel.cancelDeletion() } }
             )
         ) {
@@ -162,7 +174,7 @@ struct NetworkRulesView: View {
     /// subtitle naming its behaviour and whether it is on.
     private func ruleRow(for rule: NetworkRule) -> some View {
         NavigationLink {
-            NetworkRuleEditorView(viewModel: NetworkRuleEditorViewModel(rule: rule))
+            NetworkRuleEditorView(rule: rule, store: store)
         } label: {
             // A two-`Text` label is the stock way to give a row a title and a subtitle; SwiftUI
             // styles the second line itself, so a disabled override reads as disabled without
