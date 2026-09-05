@@ -85,4 +85,25 @@ final class NetworkRuleMatchTests: XCTestCase {
         )
         XCTAssertTrue(match.matches(request("http://localhost:8080/health")))
     }
+
+    func testAMethodOnlyMatchStillMatchesWhenTheURLIsMissing() {
+        var request = URLRequest(url: URL(string: "https://a.com")!)
+        request.httpMethod = "POST"
+        request.url = nil
+        let match = NetworkRuleMatch(methods: ["POST"], host: nil, path: nil, query: [:])
+        XCTAssertTrue(match.matches(request), "every non-empty facet is satisfied, so the match holds")
+    }
+
+    func testAHostMatchCannotMatchWhenTheURLIsMissing() {
+        var request = URLRequest(url: URL(string: "https://a.com")!)
+        request.httpMethod = "GET"
+        request.url = nil
+        let match = NetworkRuleMatch(
+            methods: [],
+            host: NetworkRulePattern(kind: .exact, value: "a.com"),
+            path: nil,
+            query: [:]
+        )
+        XCTAssertFalse(match.matches(request), "a host constraint cannot be satisfied without a URL")
+    }
 }

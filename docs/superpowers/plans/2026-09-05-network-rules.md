@@ -233,7 +233,7 @@ public extension NetworkRuleMatch {
         }
         guard let url = request.url,
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-            return methods.isEmpty && host == nil && path == nil && query.isEmpty
+            return host == nil && path == nil && query.isEmpty
         }
         if let host {
             guard let candidate = components.host, host.matches(candidate) else { return false }
