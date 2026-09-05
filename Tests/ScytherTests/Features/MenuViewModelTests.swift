@@ -416,6 +416,65 @@ final class MenuViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.assistedResults.isEmpty, "A response for a superseded query must be discarded")
     }
 
+    // MARK: - Request overrides badge
+
+    /// A throwaway override store, so counting the badge cannot depend on — or disturb — whatever
+    /// the developer running the suite has configured.
+    private func makeOverrideStore() -> NetworkRuleStore {
+        NetworkRuleStore(
+            defaults: UserDefaults(suiteName: "MenuViewModelTests.\(UUID().uuidString)")!,
+            bodyDirectory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        )
+    }
+
+    private func makeOverride(named name: String, isEnabled: Bool) -> NetworkRule {
+        NetworkRule(
+            id: UUID(),
+            name: name,
+            isEnabled: isEnabled,
+            match: .path("/v1/*"),
+            action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0))
+        )
+    }
+
+    func testTheOverrideCountIsZeroWhenNothingIsEnabled() {
+        defer { wipeDefaults() }
+        let store = makeOverrideStore()
+        store.add(makeOverride(named: "off", isEnabled: false))
+        let viewModel = MenuViewModel(defaults: makeDefaults(), networkRuleStore: store)
+
+        XCTAssertEqual(viewModel.enabledOverrideCount, 0, "the badge is hidden when nothing is on")
+    }
+
+    /// The spec's safety affordance: the row's badge is what stops overrides being silently on.
+    func testTheOverrideCountCountsEnabledPersistedAndTransientOverrides() {
+        defer { wipeDefaults() }
+        let store = makeOverrideStore()
+        store.add(makeOverride(named: "on", isEnabled: true))
+        store.add(makeOverride(named: "off", isEnabled: false))
+        store.addTransient(makeOverride(named: "registered in code", isEnabled: true))
+
+        let viewModel = MenuViewModel(defaults: makeDefaults(), networkRuleStore: store)
+
+        XCTAssertEqual(viewModel.enabledOverrideCount, 2,
+                       "an override registered from code is applied to live traffic too")
+    }
+
+    func testTheOverrideCountFollowsTheStoreWhileTheMenuIsOnScreen() {
+        defer { wipeDefaults() }
+        let store = makeOverrideStore()
+        let viewModel = MenuViewModel(defaults: makeDefaults(), networkRuleStore: store)
+        XCTAssertEqual(viewModel.enabledOverrideCount, 0)
+
+        var rule = makeOverride(named: "on", isEnabled: true)
+        store.add(rule)
+        XCTAssertEqual(viewModel.enabledOverrideCount, 1)
+
+        rule.isEnabled = false
+        store.update(rule)
+        XCTAssertEqual(viewModel.enabledOverrideCount, 0)
+    }
+
     func testSearchResultsUseTheDeveloperOptionsSnapshot() {
         defer {
             wipeDefaults()

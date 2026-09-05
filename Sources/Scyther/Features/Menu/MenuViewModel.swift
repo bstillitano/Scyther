@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 16/6/2025.
 //
 
+import Combine
 import Foundation
 import SwiftUI
 
@@ -74,6 +75,10 @@ import SwiftUI
 /// - ``ipAddress``
 /// - ``isLoadingIPAddress``
 ///
+/// ### Request Overrides
+///
+/// - ``enabledOverrideCount``
+///
 /// ### UI Debugging Controls
 ///
 /// - ``slowAnimationsEnabled``
@@ -93,6 +98,22 @@ class MenuViewModel: ViewModel {
 
     /// The store pinned item identifiers are read from and written to.
     private let defaults: UserDefaults
+
+    /// The override store the Request Overrides row's badge counts.
+    private let networkRuleStore: NetworkRuleStore
+
+    /// Keeps the override store's publishers alive for the lifetime of the menu.
+    private var cancellables: Set<AnyCancellable> = []
+
+    /// How many request overrides are currently enabled, persisted and transient together.
+    ///
+    /// Shown as a badge on the Request Overrides row so overrides are never silently on. A
+    /// developer chasing a response that will not change has to be able to see, from the menu's
+    /// first screen, that something is rewriting their traffic — the MOCKED badge is only visible
+    /// inside the network log, and the master switch only on the overrides screen itself.
+    ///
+    /// Zero when nothing is enabled, which is what hides the badge.
+    @Published private(set) var enabledOverrideCount: Int = 0
 
     /// The identifiers of pinned rows, in the order they were pinned.
     ///
@@ -157,14 +178,33 @@ class MenuViewModel: ViewModel {
     init(
         defaults: UserDefaults = .scyther,
         assistants: [any MenuSearchAssistant] = MenuSearchAssistants.available(),
-        assistedSearchDelay: Duration = .milliseconds(300)
+        assistedSearchDelay: Duration = .milliseconds(300),
+        networkRuleStore: NetworkRuleStore = .shared
     ) {
         self.defaults = defaults
         self.developerOptions = Scyther.developerOptions
         self.pinnedItemIDs = defaults.stringArray(forKey: Self.pinnedItemsKey) ?? []
         self.assistants = assistants
         self.assistedSearchDelay = assistedSearchDelay
+        self.networkRuleStore = networkRuleStore
         super.init()
+    }
+
+    /// Mirrors the override store so ``enabledOverrideCount`` is live.
+    ///
+    /// Subscribing rather than reading once on appearance: an override can be enabled from the
+    /// overrides screen, from a swipe on its row, or from `Scyther.network.rules` while the menu
+    /// is on screen, and the badge has to follow all three. No `receive(on:)` — the store and
+    /// this view model are both main-actor isolated, so the values already arrive on the main
+    /// thread.
+    override func setup() {
+        super.setup()
+        networkRuleStore.$rules
+            .combineLatest(networkRuleStore.$transientRules)
+            .sink { [weak self] rules, transient in
+                self?.enabledOverrideCount = (rules + transient).filter(\.isEnabled).count
+            }
+            .store(in: &cancellables)
     }
 
     /// Whether the given row is pinned.

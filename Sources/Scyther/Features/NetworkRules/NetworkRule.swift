@@ -138,12 +138,19 @@ public struct MockResponse: Codable, Sendable, Equatable {
     public var statusCode: Int
 
     /// Response headers to return.
+    ///
+    /// - Important: A dictionary, so a mocked response cannot carry two headers of the same name.
+    ///   Where a real response may repeat one — `Set-Cookie` above all — only one value survives,
+    ///   and a HAR import silently keeps the last of the repeats. Mock a response that depends on
+    ///   repeated headers and the app will see fewer of them than the server sent.
     public var headers: [String: String]
 
     /// Body id; the bytes live on disk under the rules directory. Nil means an empty body.
     public var bodyID: UUID?
 
     /// Seconds to wait before responding, simulating network latency.
+    ///
+    /// - Note: Capped at 30 seconds when the response is served.
     public var delay: TimeInterval
 
     /// Creates a canned response.
@@ -175,7 +182,10 @@ public struct MapLocalFile: Codable, Sendable, Equatable {
     /// The absolute path of the file to serve, as chosen with the file browser.
     ///
     /// - Important: Absolute, despite the name — it is read with `URL(fileURLWithPath:)` and is
-    ///   not resolved against the Documents directory or any other root.
+    ///   not resolved against the Documents directory or any other root. A container path is not
+    ///   something anyone can type on a device, so the value has to come from code or be copied
+    ///   from Scyther's file browser. A path that cannot be read fails safely: the responder
+    ///   returns nothing and the request goes to the real network.
     public var relativePath: String
 
     /// The HTTP status code to return alongside the file's contents.
@@ -227,6 +237,8 @@ public struct NetworkHeaderRewrite: Codable, Sendable, Equatable {
 /// Latency, bandwidth and failure conditioning applied to a matching request.
 public struct NetworkCondition: Codable, Sendable, Equatable {
     /// Seconds added before the request is sent.
+    ///
+    /// - Note: Capped at 30 seconds when the condition is applied.
     public var latency: TimeInterval
 
     /// A bandwidth ceiling in kilobytes per second, or `nil` for unthrottled.

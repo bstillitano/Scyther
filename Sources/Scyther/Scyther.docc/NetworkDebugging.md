@@ -138,6 +138,14 @@ Reordering the list is what changes precedence.
 | --- | --- | --- |
 | Mock Response | ``MockResponse`` | Answers with a status code, headers and a body typed into the editor, after an optional delay. |
 | Map Local | ``MapLocalFile`` | Answers with the contents of a file on the device, with a status code and `Content-Type`. |
+
+- Note: ``MockResponse/headers`` is a dictionary, so a mocked response cannot repeat a header
+  name. Where a real response may send `Set-Cookie` more than once, only one value survives, and a
+  HAR import keeps the last of the repeats.
+- Note: ``MapLocalFile/relativePath`` holds an **absolute** path despite its name. A container
+  path is not something anyone can type on a device, so it has to come from code or be copied from
+  Scyther's file browser. A path that cannot be read fails safely — the request goes to the real
+  network.
 | Rewrite Headers | ``NetworkHeaderRewrite`` | Sets and removes headers on the outgoing request, then lets it go to the network. |
 | Condition | ``NetworkCondition`` | Adds latency, caps bandwidth, and fails a fraction of matching requests with a `URLError`. |
 
