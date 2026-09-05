@@ -41,6 +41,20 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     private var response: URLResponse?
     private var responseData: NSMutableData?
 
+    /// The conditioning a matching rule asked for, stored at `startLoading()` so that
+    /// `urlSession(_:dataTask:didReceive:)` can throttle the bytes it forwards.
+    private var condition: NetworkCondition?
+
+    /// Whether a real data task was started. A stubbed or rule-failed request never creates one,
+    /// so `stopLoading()` must not spin up the lazy session just to cancel nothing.
+    private var didStartTask: Bool = false
+
+    /// The longest a rule is allowed to block the URL loading system's thread in one go.
+    ///
+    /// A developer typing an unreasonable latency into the menu should see a slow request, not a
+    /// request that appears to have hung forever.
+    private static let maximumSleep: TimeInterval = 30
+
     override open class func canInit(with request: URLRequest) -> Bool {
         return canServeRequest(request)
     }
@@ -79,15 +93,105 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         /// Save request to local model
         model.saveRequest(request)
 
+        /// Resolve any rules that apply to this request. The snapshot is lock-guarded because
+        /// this method runs on a thread owned by the URL loading system.
+        let snapshot = NetworkRuleSnapshot.current
+        let outcome = snapshot.isEnabled
+            ? NetworkRuleEngine.outcome(for: request, rules: snapshot.rules)
+            : .empty
+        model.appliedRuleNames = outcome.appliedRuleNames
+        condition = outcome.condition
+
+        if let stub = outcome.stub, let url = request.url {
+            let bodies = { NetworkRuleStore.bodyDataOffMainActor(for: $0) }
+            if let (response, body) = NetworkRuleStubResponder.response(for: stub, url: url, bodyProvider: bodies) {
+                serve(response, body: body, after: NetworkRuleStubResponder.delay(for: stub))
+                return
+            }
+        }
+
         /// Continue executing request
         guard let mutableRequest = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest else {
             return
         }
+
+        /// Apply any header rewrite. Sets run first and removals second, so a header named in both
+        /// ends up removed rather than quietly kept.
+        if let rewrite = outcome.headerRewrite {
+            rewrite.set.forEach { mutableRequest.setValue($0.value, forHTTPHeaderField: $0.key) }
+            rewrite.remove.forEach { mutableRequest.setValue(nil, forHTTPHeaderField: $0) }
+        }
+
         URLProtocol.setProperty(true, forKey: internalNetworkRequestKey, in: mutableRequest)
+
+        if let condition = outcome.condition {
+            if condition.failureRate > 0, Double.random(in: 0...1) < condition.failureRate {
+                let error = URLError(URLError.Code(rawValue: condition.failureCode))
+                model.saveErrorResponse()
+                finishWithFailure(error)
+                return
+            }
+            if condition.latency > 0 {
+                Thread.sleep(forTimeInterval: min(condition.latency, Self.maximumSleep))
+            }
+        }
+
+        didStartTask = true
         session.dataTask(with: mutableRequest as URLRequest).resume()
     }
 
+    /// Hands a rule's synthesised response to the client as though it had come from the network.
+    ///
+    /// No data task is created, so a mocked request never leaves the device. The response is
+    /// logged exactly as a real one is, with ``HTTPRequest/wasStubbed`` set so the log can say
+    /// where it came from.
+    ///
+    /// - Parameters:
+    ///   - response: The response to serve.
+    ///   - body: The response body.
+    ///   - delay: Seconds to wait before serving, capped at ``maximumSleep``. Slept on the URL
+    ///     loading system's thread, never the main one.
+    private func serve(_ response: HTTPURLResponse, body: Data, after delay: TimeInterval) {
+        if delay > 0 {
+            Thread.sleep(forTimeInterval: min(delay, Self.maximumSleep))
+        }
+
+        client?.urlProtocol(self,
+                            didReceive: response,
+                            cacheStoragePolicy: NetworkHelper.instance.cacheStoragePolicy)
+        client?.urlProtocol(self, didLoad: body)
+        client?.urlProtocolDidFinishLoading(self)
+
+        model.saveRequestBody(request)
+        model.logRequest(request)
+        model.wasStubbed = true
+        model.saveResponse(response, data: body)
+
+        let capturedModel = model
+        Task { @MainActor in
+            await NetworkLogger.instance.add(capturedModel)
+            NotificationCenter.default.post(name: .LoggerReloadData, object: nil)
+        }
+    }
+
+    /// Fails the request with the error a condition rule asked for, and logs the attempt.
+    ///
+    /// - Parameter error: The error to surface to the caller.
+    private func finishWithFailure(_ error: URLError) {
+        client?.urlProtocol(self, didFailWithError: error)
+
+        model.saveRequestBody(request)
+        model.logRequest(request)
+
+        let capturedModel = model
+        Task { @MainActor in
+            await NetworkLogger.instance.add(capturedModel)
+            NotificationCenter.default.post(name: .LoggerReloadData, object: nil)
+        }
+    }
+
     override open func stopLoading() {
+        guard didStartTask else { return }
         session.getTasksWithCompletionHandler { dataTasks, _, _ in
             dataTasks.forEach { $0.cancel() }
         }
@@ -102,7 +206,20 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         responseData?.append(data)
 
-        client?.urlProtocol(self, didLoad: data)
+        /// A bandwidth ceiling is honoured by forwarding one second's worth of bytes at a time and
+        /// sleeping in between. This runs on the URL loading system's thread, never the main one.
+        if let bandwidth = condition?.bandwidthKBps, bandwidth > 0 {
+            let chunkSize = max(1, bandwidth * 1024)
+            var offset = 0
+            while offset < data.count {
+                let end = min(offset + chunkSize, data.count)
+                client?.urlProtocol(self, didLoad: data.subdata(in: offset..<end))
+                offset = end
+                if offset < data.count { Thread.sleep(forTimeInterval: 1) }
+            }
+        } else {
+            client?.urlProtocol(self, didLoad: data)
+        }
     }
 
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {

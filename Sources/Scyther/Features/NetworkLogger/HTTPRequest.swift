@@ -129,6 +129,12 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
     /// The GraphQL operation type, if known. `nil` for non-GraphQL or batched requests.
     var graphQLOperationType: GraphQLOperationType?
 
+    /// Names of the rules that shaped this request, if any.
+    var appliedRuleNames: [String] = []
+
+    /// Whether the response was synthesised by a rule rather than received from the network.
+    var wasStubbed: Bool = false
+
     // MARK: - Methods
 
     /// Saves the details of the given URL request to the model.

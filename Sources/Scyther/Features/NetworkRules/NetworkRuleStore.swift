@@ -55,6 +55,7 @@ import Foundation
 /// - ``bodyURL(for:)``
 /// - ``bodyData(for:)``
 /// - ``bodyDataOffMainActor(for:)``
+/// - ``activeBodyDirectory``
 @MainActor
 internal final class NetworkRuleStore: ObservableObject {
     /// The `UserDefaults` keys the store writes.
@@ -103,6 +104,7 @@ internal final class NetworkRuleStore: ObservableObject {
     init(defaults: UserDefaults = .scyther, bodyDirectory: URL = NetworkRuleStore.defaultBodyDirectory) {
         self.defaults = defaults
         self.bodyDirectory = bodyDirectory
+        Self.setActiveBodyDirectory(bodyDirectory)
         self.rules = Self.decodeRules(from: defaults.data(forKey: Key.rules))
         self.isEnabled = defaults.object(forKey: Key.isEnabled) as? Bool ?? true
         publish()
@@ -233,11 +235,39 @@ internal final class NetworkRuleStore: ObservableObject {
     /// - Parameter id: The body identifier held by a ``MockResponse``.
     /// - Returns: The body, or `nil` when nothing has been written for that identifier.
     ///
-    /// - Note: Only the default directory is consulted. A store constructed with a custom
-    ///   `bodyDirectory` is a test seam, and tests read bodies through ``bodyData(for:)``.
+    /// - Note: Reads ``activeBodyDirectory``, which every store points at itself on creation. In
+    ///   an app that is ``defaultBodyDirectory``; a test constructing a store over a throwaway
+    ///   directory redirects this too, so a stub served by the interceptor finds the same bytes
+    ///   ``bodyData(for:)`` would return.
     nonisolated static func bodyDataOffMainActor(for id: UUID) -> Data? {
-        let url = defaultBodyDirectory.appendingPathComponent(id.uuidString, isDirectory: false)
+        let url = activeBodyDirectory.appendingPathComponent(id.uuidString, isDirectory: false)
         return try? Data(contentsOf: url)
+    }
+
+    /// Guards ``storedActiveBodyDirectory`` so the interceptor's threads never observe a
+    /// half-written value.
+    nonisolated private static let activeBodyDirectoryLock = NSLock()
+
+    /// Backing storage for ``activeBodyDirectory``.
+    ///
+    /// - Note: Declared `nonisolated(unsafe)` because every access goes through
+    ///   ``activeBodyDirectoryLock``, which provides the synchronisation the compiler cannot prove.
+    nonisolated(unsafe) private static var storedActiveBodyDirectory: URL = NetworkRuleStore.defaultBodyDirectory
+
+    /// The directory ``bodyDataOffMainActor(for:)`` reads mock bodies from.
+    ///
+    /// The most recently created store wins. An app creates exactly one — ``shared`` — so this is
+    /// ``defaultBodyDirectory`` in practice; the indirection exists so that the `bodyDirectory`
+    /// injection point is honoured off the main actor as well as on it.
+    nonisolated static var activeBodyDirectory: URL {
+        activeBodyDirectoryLock.withLock { storedActiveBodyDirectory }
+    }
+
+    /// Points ``bodyDataOffMainActor(for:)`` at a store's body directory.
+    ///
+    /// - Parameter directory: The directory the newly created store writes bodies to.
+    nonisolated private static func setActiveBodyDirectory(_ directory: URL) {
+        activeBodyDirectoryLock.withLock { storedActiveBodyDirectory = directory }
     }
 
     /// Deletes the body file a rule owns, if it owns one.
