@@ -33,6 +33,9 @@ final class TrafficStatsViewModelTests: XCTestCase {
         model.responseCode = status
         model.responseBodyLength = 10
         model.noResponse = false
+        // A finished load carries a response date; without one the statistics correctly read the
+        // request as still in flight rather than as a result.
+        model.responseDate = Date()
         model.wasStubbed = stubbed
         return model
     }

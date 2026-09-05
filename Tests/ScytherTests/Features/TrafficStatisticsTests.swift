@@ -28,7 +28,8 @@ final class TrafficStatisticsTests: XCTestCase {
         status: Int? = 200,
         duration: Float? = 100,
         size: Int? = 500,
-        stubbed: Bool = false
+        stubbed: Bool = false,
+        finished: Bool = true
     ) -> HTTPRequest {
         var urlRequest = URLRequest(url: URL(string: url)!)
         urlRequest.httpMethod = method
@@ -38,6 +39,9 @@ final class TrafficStatisticsTests: XCTestCase {
         model.requestDuration = duration
         model.responseBodyLength = size
         model.noResponse = status == nil
+        // A load that ended carries a response date whether or not a response arrived; a request
+        // still in flight has none. That is what separates a failure from a pending request.
+        model.responseDate = finished ? Date() : nil
         model.wasStubbed = stubbed
         return model
     }
@@ -91,7 +95,9 @@ final class TrafficStatisticsTests: XCTestCase {
     }
 
     func testNoCompletedRequestsHasNoPercentiles() {
-        let stats = TrafficStatistics.compute(from: [request(status: nil, duration: nil, size: nil)])
+        let stats = TrafficStatistics.compute(from: [
+            request(status: nil, duration: nil, size: nil, finished: false),
+        ])
         XCTAssertNil(stats.summary.medianDuration)
         XCTAssertNil(stats.summary.p95Duration)
         XCTAssertNil(stats.summary.fastestDuration)
@@ -103,12 +109,31 @@ final class TrafficStatisticsTests: XCTestCase {
     func testPendingRequestsAreExcludedFromPercentiles() {
         let stats = TrafficStatistics.compute(from: [
             request(duration: 100), request(duration: 200),
-            request(status: nil, duration: nil, size: nil),
+            request(status: nil, duration: nil, size: nil, finished: false),
         ])
         XCTAssertEqual(stats.summary.medianDuration, 100)
         XCTAssertEqual(stats.summary.requestCount, 3)
         XCTAssertEqual(stats.summary.pendingCount, 1)
         XCTAssertEqual(stats.summary.completedCount, 2)
+    }
+
+    /// A load that ended without a response is a failure, not something still in flight. Counting
+    /// it as both let seven requests report seven failures and seven pending at the same time.
+    func testAFailedRequestIsNotAlsoCountedAsPending() {
+        let stats = TrafficStatistics.compute(from: [
+            request(status: nil, duration: nil, size: nil),
+        ])
+        XCTAssertEqual(stats.summary.failureCount, 1, "a load that ended with no response failed")
+        XCTAssertEqual(stats.summary.pendingCount, 0, "and it is not still in flight")
+    }
+
+    /// The mirror of the above: a request still in flight has not failed yet.
+    func testAPendingRequestIsNotCountedAsAFailure() {
+        let stats = TrafficStatistics.compute(from: [
+            request(status: nil, duration: nil, size: nil, finished: false),
+        ])
+        XCTAssertEqual(stats.summary.pendingCount, 1)
+        XCTAssertEqual(stats.summary.failureCount, 0, "nothing has gone wrong yet")
     }
 
     func testANegativeDurationIsNotTreatedAsASample() {

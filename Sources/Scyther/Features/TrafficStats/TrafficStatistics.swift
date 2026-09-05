@@ -208,8 +208,14 @@ struct TrafficStatistics: Equatable, Sendable {
             }
             summary.measuredCount += 1
 
-            let isPending = request.noResponse
-            let isFailure = isPending || (request.responseCode ?? 0) >= failureStatusFloor
+            // A load that ended carries a response date whether or not a response arrived, so it
+            // is the only signal that separates "failed" from "still in flight". Without it a
+            // failed request counted as both, and seven requests could report seven failures and
+            // seven pending at the same time.
+            let didFinish = request.responseDate != nil
+            let isPending = !didFinish
+            let isFailure = didFinish
+                && (request.noResponse || (request.responseCode ?? 0) >= failureStatusFloor)
             let duration = measuredDuration(of: request)
             let bytes = request.responseBodyLength ?? 0
 
