@@ -476,14 +476,15 @@ public struct MenuView: View {
         case .networkLogs:
             navigationRow(for: item)
         case .networkRules:
-            // The count of enabled overrides, so overrides are never silently on. Hidden at zero
-            // rather than shown as a nought, which would read as a badge that means nothing.
-            if viewModel.enabledOverrideCount > 0 {
-                navigationRow(for: item)
-                    .badge(viewModel.enabledOverrideCount)
-            } else {
-                navigationRow(for: item)
-            }
+            // The count of enabled overrides, so overrides are never silently on. A nil badge
+            // hides it at zero; shown as a nought it would read as a badge that means nothing.
+            // Applied unconditionally rather than through an if/else, which would give the row two
+            // structural identities and risk popping the user back here the moment they toggled
+            // the last override off on the screen this link pushed.
+            navigationRow(for: item)
+                .badge(viewModel.enabledOverrideCount > 0
+                       ? Text(verbatim: "\(viewModel.enabledOverrideCount)")
+                       : nil)
         case .serverConfiguration:
             navigationRow(for: item)
         case .environmentVariables:

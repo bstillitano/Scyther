@@ -264,8 +264,37 @@ final class NetworkRuleStoreTests: XCTestCase {
 @MainActor
 final class NetworkRuleStartupTests: XCTestCase {
 
+    /// Whether the process was already started when this test began.
+    ///
+    /// `Scyther.start()` is the seam under test — asserting against the narrower
+    /// `NetworkRuleStore.shared.activate()` instead would prove nothing, because that method was
+    /// added by the very fix this test guards and would still pass if the call were deleted from
+    /// `start()` again. So the real thing is called, and what it changed is put back.
+    private var wasStarted = false
+
+    /// Whether the console was already capturing when this test began.
+    private var wasCapturing = false
+
+    override func setUp() async throws {
+        wasStarted = Scyther.isStarted
+        wasCapturing = ConsoleLogger.instance.isCapturing
+    }
+
+    /// Puts back the two pieces of process state `start()` changes that later tests can observe.
+    ///
+    /// `Scyther._started` is the important one: while it is `false`,
+    /// `HTTPInterceptorURLProtocol.canInit(with:)` refuses every request, so restoring it also
+    /// undoes the URL interception `start()` registered. The remaining hooks — the crash handler,
+    /// the interface toolkit's swizzling and the appearance observers — install once per process
+    /// and have no uninstall; they are additive and inert unless something asks for them, so they
+    /// are left alone rather than faked away. Location spoofing puts itself back a second later,
+    /// which `start()` already arranges.
     override func tearDown() async throws {
         NetworkRuleSnapshot.update(isEnabled: true, rules: [])
+        if !wasCapturing {
+            ConsoleLogger.instance.stop()
+        }
+        Scyther._started = wasStarted
     }
 
     func testStartPublishesPersistedOverridesWithoutTheMenuBeingOpened() {

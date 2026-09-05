@@ -105,7 +105,14 @@ public enum Scyther {
 
     // MARK: - State
 
-    private nonisolated(unsafe) static var _started = false
+    /// Backing storage for ``isStarted``.
+    ///
+    /// - Note: Internal rather than private so a test that has to call ``start(allowProductionBuilds:)``
+    ///   can put the flag back afterwards. `start()` has no counterpart, and leaving the process
+    ///   started changes what every later test in the run sees — `HTTPInterceptorURLProtocol`
+    ///   refuses every request while this is `false`. Nothing in production writes it but
+    ///   ``start(allowProductionBuilds:)``.
+    internal nonisolated(unsafe) static var _started = false
     private static var _presented = false
 
     /// Whether Scyther has been started.

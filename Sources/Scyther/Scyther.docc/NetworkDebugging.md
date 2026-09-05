@@ -138,6 +138,8 @@ Reordering the list is what changes precedence.
 | --- | --- | --- |
 | Mock Response | ``MockResponse`` | Answers with a status code, headers and a body typed into the editor, after an optional delay. |
 | Map Local | ``MapLocalFile`` | Answers with the contents of a file on the device, with a status code and `Content-Type`. |
+| Rewrite Headers | ``NetworkHeaderRewrite`` | Sets and removes headers on the outgoing request, then lets it go to the network. |
+| Condition | ``NetworkCondition`` | Adds latency, caps bandwidth, and fails a fraction of matching requests with a `URLError`. |
 
 - Note: A condition's latency and a mock's delay are each capped at 30 seconds. Neither is waited
   out on the thread the request started on, so a delayed override cannot hold up traffic it does
@@ -149,8 +151,6 @@ Reordering the list is what changes precedence.
   path is not something anyone can type on a device, so it has to come from code or be copied from
   Scyther's file browser. A path that cannot be read fails safely — the request goes to the real
   network.
-| Rewrite Headers | ``NetworkHeaderRewrite`` | Sets and removes headers on the outgoing request, then lets it go to the network. |
-| Condition | ``NetworkCondition`` | Adds latency, caps bandwidth, and fails a fraction of matching requests with a `URLError`. |
 
 ### Saving a captured request as a mock
 
