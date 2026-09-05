@@ -10,6 +10,14 @@ import Foundation
 /// Property key used to mark requests as internal to prevent infinite logging loops.
 internal let internalNetworkRequestKey = "Scyther_Internal_Network_Request"
 
+/// Property key carrying the hash of the request a replay was built from.
+///
+/// Set by ``ReplayableRequest/makeURLRequest(replayOf:)`` and read back in
+/// ``HTTPRequest/saveRequest(_:)``, which is how a replay is told apart from traffic the app
+/// actually made. It is stripped on redirect, alongside ``internalNetworkRequestKey``: the entry
+/// a redirect produces is a request in its own right, not a second replay of the original.
+internal let replayOfRequestKey = "Scyther_Replay_Of_Request"
+
 /// A custom `URLProtocol` subclass that intercepts HTTP/HTTPS requests for logging.
 ///
 /// `HTTPInterceptorURLProtocol` acts as a man-in-the-middle for network requests,
