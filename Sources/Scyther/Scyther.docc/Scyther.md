@@ -83,6 +83,15 @@ Scyther is fully compatible with Swift 6 strict concurrency. Key components use 
 - ``NetworkLogger``
 - ``Network``
 - ``NetworkLoggerRequest``
+- ``NetworkRules``
+- ``NetworkRule``
+- ``NetworkRuleMatch``
+- ``NetworkRulePattern``
+- ``NetworkRuleAction``
+- ``MockResponse``
+- ``MapLocalFile``
+- ``NetworkHeaderRewrite``
+- ``NetworkCondition``
 
 ### Location Spoofing
 

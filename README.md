@@ -22,6 +22,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Feature Flags](#feature-flags)
   - [Server Configuration](#server-configuration)
   - [Network Logging](#network-logging)
+  - [Request Overrides](#request-overrides)
   - [Console Logging](#console-logging)
   - [Crash Logging](#crash-logging)
   - [Database Browser](#database-browser)
@@ -53,6 +54,8 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **cURL Export**: Generate cURL commands for any captured request
 - **Log Export**: Share the captured requests as a zip containing a HAR 1.2 file, raw bodies, and a cURL command per request, with best-effort redaction and a sensitivity warning
 - **Filter Chips**: Narrow the network log by method, status class, host, content type, API kind, GraphQL operation, duration, exact status code, or recency from glass chips pinned above the list, or edit every filter at once from the all-filters sheet
+- **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests, from the menu or from code
+- **Save as Mock**: Turn any captured response into a disabled mock override in one tap, and import a HAR file as a whole set of them
 - **Server Configuration**: Switch between development, staging, and production environments
 - **IP Address**: Display the device's public IP address
 
@@ -515,6 +518,129 @@ Network logs are automatically cleaned up to prevent disk bloat:
 - **7-day retention**: Log files older than 7 days are automatically deleted on app startup
 - **Manual cleanup**: Clearing logs via the UI also deletes all associated files from disk
 - **Files managed**: `SessionLog.log`, request body files, and response body files
+
+---
+
+### Request Overrides
+
+Network logging shows what the app asked for and what came back. **Request Overrides**, under
+**Networking → Request Overrides**, changes it — mocking endpoints, serving local files, rewriting
+headers and degrading the connection without touching the app's networking code. The API type is
+called `NetworkRule`, so an override in the menu is a rule in code.
+
+Each override matches on HTTP method, host, path and query. An omitted facet places no
+constraint, and host and path accept `*` as a wildcard. Overrides are evaluated top to bottom, and
+dragging a row is what changes precedence:
+
+- The **first** matching mock or map local wins and short-circuits the network.
+- The **first** matching condition supplies the latency, bandwidth ceiling and failure rate;
+  conditions are not stacked.
+- **Every** matching header rewrite applies, a later one winning a collision. Within one rewrite,
+  headers are set before any are removed, so a header named in both ends up removed.
+
+#### The Four Actions
+
+| Action | What it does |
+| --- | --- |
+| **Mock Response** | Answers with a status code, headers and a body typed into the editor, after an optional delay. |
+| **Map Local** | Answers with the contents of a file on the device, with a status code and `Content-Type`. |
+| **Rewrite Headers** | Sets and removes headers on the outgoing request, then lets it go to the network. |
+| **Condition** | Adds latency, caps bandwidth in KB/s, and fails a fraction of matching requests with a `URLError`. |
+
+#### Saving a Captured Request as a Mock
+
+The request details page carries a **Save as mock** button whenever the response came off the
+wire. It opens the override editor pre-filled from the capture: matching that request's method,
+host and path exactly, answering with its status code, headers and body. The query string is left
+unconstrained, and headers describing the wire encoding (`Content-Encoding`, `Content-Length`,
+`Transfer-Encoding`) are dropped, because the stored body is the one `URLSession` already decoded.
+
+The override arrives **disabled** — nothing changes until it is switched on, from the editor or
+with a swipe on the list.
+
+A response an override already synthesised cannot be saved as a mock. Those rows are marked
+instead: an orange **MOCKED** badge in the log list, and an **Overrides** row in the details
+page's Developer Info section naming every override that shaped the request.
+
+#### Importing a HAR File
+
+**Import from HAR**, in the add menu of the overrides list, reads a HAR 1.2 document — one
+exported by Scyther, or captured in Charles, Proxyman or Chrome DevTools — and turns each entry
+into a mock override named `<METHOD> <path>` matching that method, host and path. Entries whose
+URL cannot be parsed are skipped rather than failing the import, and an alert reports how many
+overrides were added. Every imported override arrives disabled.
+
+#### The Master Switch
+
+**Enable Request Overrides**, at the top of the list, suspends every override at once without
+deleting any of them — the quickest way to tell whether a behaviour belongs to the app or to an
+override. It is persisted across launches.
+
+#### Registering Overrides in Code
+
+`Scyther.network.rules` is the programmatic entry point. Like every other Scyther singleton it is
+`@MainActor`-isolated.
+
+```swift
+// Persisted: written to UserDefaults, listed in the menu, survives relaunch.
+Scyther.network.rules.add(
+    .mock(name: "Empty cart",
+          matching: .path("/api/cart"),
+          returning: .json(#"{"items": []}"#))
+)
+
+// This launch only: never written to disk, listed read-only under "Registered in Code".
+Scyther.network.rules.addTransient(
+    .headers(name: "Staging auth",
+             matching: .host("*.staging.example.com"),
+             set: ["Authorization": "Bearer test-token"])
+)
+
+// Read, edit and clear.
+let overrides = Scyther.network.rules.all
+Scyther.network.rules.remove(id: overrides[0].id)
+Scyther.network.rules.isEnabled = false   // suspend everything, delete nothing
+```
+
+`add(_:)` **persists** the override and shows it in the menu, where it can be edited, reordered or
+deleted. `addTransient(_:)` does **not**: transient overrides live only for the launch that
+registered them, appear read-only under "Registered in Code", and are evaluated after every
+persisted override. Use the transient form for anything the app registers for itself.
+
+#### Stubbing a UI Test
+
+Transient overrides make a UI test hermetic without running a stub server:
+
+```swift
+// In the app, behind a launch argument the test sets.
+if ProcessInfo.processInfo.arguments.contains("-UITestStubs") {
+    Scyther.network.rules.isEnabled = true
+    Scyther.network.rules.addTransient(
+        .mock(name: "Profile",
+              matching: .host("api.example.com", path: "/v1/profile", methods: ["GET"]),
+              returning: .json(#"{"name": "Ada"}"#))
+    )
+    Scyther.network.rules.addTransient(
+        .condition(name: "Slow uploads",
+                   matching: .path("/v1/upload", methods: ["POST"]),
+                   NetworkCondition(latency: 2, failureRate: 0.5))
+    )
+}
+```
+
+```swift
+// In the test.
+let app = XCUIApplication()
+app.launchArguments += ["-UITestStubs"]
+app.launch()
+```
+
+Because they are transient, the next launch starts clean: a stub left enabled by a failing run
+cannot quietly break the next one.
+
+> **Note**: Overrides apply only to traffic Scyther intercepts — `URLSession` traffic through a
+> standard configuration. A custom `URLSessionConfiguration` that does not carry Scyther's
+> `URLProtocol` bypasses overrides exactly as it bypasses logging.
 
 ---
 
@@ -1145,6 +1271,7 @@ in one, use **UI/UX → Language**. See [Localisation](#localisation).
 | `Scyther.featureFlags` | `FeatureFlags` | Feature flag management |
 | `Scyther.servers` | `Servers` | Server configuration |
 | `Scyther.network` | `Network` | Network logging |
+| `Scyther.network.rules` | `NetworkRules` | Request overrides — mocks, map local, header rewrites, conditioning |
 | `Scyther.console` | `Console` | Console output capture |
 | `Scyther.crashes` | `Crashes` | Crash logging and viewing |
 | `Scyther.database` | `DatabaseBrowsing` | Database browser and adapter registration |
