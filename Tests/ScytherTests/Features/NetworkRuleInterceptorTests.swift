@@ -320,46 +320,107 @@ final class NetworkRuleInterceptorTests: XCTestCase {
 /// needs a server.
 final class NetworkRuleBandwidthTests: XCTestCase {
 
-    /// Stands in for the URL loading system, recording the bytes the interceptor forwards.
+    /// Stands in for the URL loading system, recording what the interceptor forwards and when.
     private final class RecordingClient: NSObject, URLProtocolClient, @unchecked Sendable {
-        private(set) var forwardedByteCount: Int = 0
+        private let lock = NSLock()
+        private var bytes: Int = 0
+        private var marks: [UInt8] = []
+        private var events: [String] = []
+
+        /// Bytes handed to the client so far.
+        var forwardedByteCount: Int { lock.withLock { bytes } }
+
+        /// The first byte of each chunk forwarded, in the order the client saw them.
+        var chunkMarks: [UInt8] { lock.withLock { marks } }
+
+        /// The callbacks received so far, in order.
+        var received: [String] { lock.withLock { events } }
 
         func urlProtocol(_ protocol: URLProtocol, didLoad data: Data) {
-            forwardedByteCount += data.count
+            lock.withLock {
+                bytes += data.count
+                events.append("data")
+                if let first = data.first { marks.append(first) }
+            }
+        }
+
+        func urlProtocol(_ protocol: URLProtocol, didReceive response: URLResponse, cacheStoragePolicy policy: URLCache.StoragePolicy) {
+            lock.withLock { events.append("response") }
+        }
+
+        func urlProtocolDidFinishLoading(_ protocol: URLProtocol) {
+            lock.withLock { events.append("finished") }
+        }
+
+        func urlProtocol(_ protocol: URLProtocol, didFailWithError error: Error) {
+            lock.withLock { events.append("failed") }
         }
 
         func urlProtocol(_ protocol: URLProtocol, wasRedirectedTo request: URLRequest, redirectResponse: URLResponse) { }
         func urlProtocol(_ protocol: URLProtocol, cachedResponseIsValid cachedResponse: CachedURLResponse) { }
-        func urlProtocol(_ protocol: URLProtocol, didReceive response: URLResponse, cacheStoragePolicy policy: URLCache.StoragePolicy) { }
-        func urlProtocol(_ protocol: URLProtocol, didFailWithError error: Error) { }
-        func urlProtocolDidFinishLoading(_ protocol: URLProtocol) { }
         func urlProtocol(_ protocol: URLProtocol, didReceive challenge: URLAuthenticationChallenge) { }
         func urlProtocol(_ protocol: URLProtocol, didCancel challenge: URLAuthenticationChallenge) { }
     }
 
     private let url = URL(string: "https://api.example.com/v1/large")!
 
-    /// The number of bytes forwarded and the wall-clock time it took to forward them, delivering
-    /// `chunks` chunks of `chunkSize` bytes through the data delegate under `condition`.
-    private func deliver(chunks: Int,
-                         chunkSize: Int,
-                         condition: NetworkCondition?) -> (bytes: Int, elapsed: TimeInterval) {
+    /// Everything one driven response needs: the interceptor under test, the client recording what
+    /// it forwarded, and the session and task the delegate callbacks are addressed from.
+    private struct Harness {
+        let interceptor: HTTPInterceptorURLProtocol
+        let client: RecordingClient
+        let session: URLSession
+        let task: URLSessionDataTask
+        let response: HTTPURLResponse
+    }
+
+    private func harness(condition: NetworkCondition?) -> Harness {
         let client = RecordingClient()
         let request = URLRequest(url: url)
         let interceptor = HTTPInterceptorURLProtocol(request: request, cachedResponse: nil, client: client)
         interceptor.condition = condition
-
         let session = URLSession(configuration: .ephemeral)
-        let task = session.dataTask(with: request)
-        let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        return Harness(
+            interceptor: interceptor,
+            client: client,
+            session: session,
+            task: session.dataTask(with: request),
+            response: HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        )
+    }
+
+    /// Spins the run loop until `condition` holds, rather than sleeping a fixed amount and hoping.
+    ///
+    /// - Returns: Whether it held before `timeout` elapsed.
+    @discardableResult
+    private func waitUntil(_ timeout: TimeInterval = 30, _ condition: () -> Bool) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if condition() { return true }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+        }
+        return condition()
+    }
+
+    /// The bytes forwarded and the wall-clock time taken to forward all of them, delivering
+    /// `chunks` chunks of `chunkSize` bytes through the data delegate under `condition`.
+    ///
+    /// A paced response is now delivered asynchronously, so this waits for the last byte to reach
+    /// the client rather than assuming it has by the time the callbacks return.
+    private func deliver(chunks: Int,
+                         chunkSize: Int,
+                         condition: NetworkCondition?) -> (bytes: Int, elapsed: TimeInterval) {
+        let harness = harness(condition: condition)
+        let expected = chunks * chunkSize
 
         let start = Date()
-        interceptor.urlSession(session, dataTask: task, didReceive: response) { _ in }
+        harness.interceptor.urlSession(harness.session, dataTask: harness.task, didReceive: harness.response) { _ in }
         let chunk = Data(count: chunkSize)
         for _ in 0..<chunks {
-            interceptor.urlSession(session, dataTask: task, didReceive: chunk)
+            harness.interceptor.urlSession(harness.session, dataTask: harness.task, didReceive: chunk)
         }
-        return (client.forwardedByteCount, Date().timeIntervalSince(start))
+        waitUntil { harness.client.forwardedByteCount >= expected }
+        return (harness.client.forwardedByteCount, Date().timeIntervalSince(start))
     }
 
     /// The regression: CFNetwork delivers a body in chunks smaller than a second's worth of any
@@ -391,6 +452,80 @@ final class NetworkRuleBandwidthTests: XCTestCase {
                              condition: NetworkCondition(latency: 2, bandwidthKBps: nil, failureRate: 0))
         XCTAssertEqual(result.bytes, 8 * 64 * 1024)
         XCTAssertLessThan(result.elapsed, 0.3)
+    }
+
+    /// The pacing used to be a `Thread.sleep` taken on the session's own delegate queue — the same
+    /// queue the answer to `getTasksWithCompletionHandler` is delivered on, so a cancellation sat
+    /// behind up to 30 seconds of it while the socket kept transferring. The callback returns at
+    /// once now, and the wait is scheduled.
+    func testAPacedDeliveryDoesNotHoldTheDeliveringThread() {
+        // 64 KB at 1 KB/s is over a minute of pacing, clamped to the 30-second budget.
+        let harness = harness(condition: NetworkCondition(latency: 0, bandwidthKBps: 1, failureRate: 0))
+
+        let start = Date()
+        harness.interceptor.urlSession(harness.session, dataTask: harness.task, didReceive: harness.response) { _ in }
+        harness.interceptor.urlSession(harness.session, dataTask: harness.task, didReceive: Data(count: 64 * 1024))
+        let returned = Date().timeIntervalSince(start)
+
+        harness.interceptor.stopLoading()
+
+        XCTAssertLessThan(returned, 1, "the wait must not be taken on the thread the bytes arrived on")
+        XCTAssertEqual(harness.client.forwardedByteCount, 0, "and the bytes must not be forwarded early either")
+    }
+
+    /// Scheduling instead of sleeping is only correct if the order survives it. Each chunk carries
+    /// a distinct first byte, so a reordering or a duplicate would show.
+    func testEveryPacedChunkIsForwardedOnceAndInOrder() {
+        let harness = harness(condition: NetworkCondition(latency: 0, bandwidthKBps: 32, failureRate: 0))
+
+        harness.interceptor.urlSession(harness.session, dataTask: harness.task, didReceive: harness.response) { _ in }
+        let marks: [UInt8] = Array(0..<8)
+        for mark in marks {
+            var chunk = Data(repeating: mark, count: 8 * 1024)
+            chunk[0] = mark
+            harness.interceptor.urlSession(harness.session, dataTask: harness.task, didReceive: chunk)
+        }
+
+        XCTAssertTrue(waitUntil { harness.client.chunkMarks.count == marks.count },
+                      "every chunk is forwarded eventually")
+        XCTAssertEqual(harness.client.chunkMarks, marks, "in the order the session delivered them, once each")
+    }
+
+    /// The task finishes as soon as the last bytes are off the socket, which is well before the
+    /// ceiling has finished handing them to the client. Reporting the load finished at that point
+    /// would have the client believe a body it had not yet received was complete.
+    func testTheLoadFinishesOnlyAfterThePacedBytesAreForwarded() {
+        let harness = harness(condition: NetworkCondition(latency: 0, bandwidthKBps: 32, failureRate: 0))
+
+        harness.interceptor.urlSession(harness.session, dataTask: harness.task, didReceive: harness.response) { _ in }
+        for _ in 0..<4 {
+            harness.interceptor.urlSession(harness.session, dataTask: harness.task, didReceive: Data(count: 8 * 1024))
+        }
+        harness.interceptor.urlSession(harness.session, task: harness.task, didCompleteWithError: nil)
+
+        XCTAssertTrue(waitUntil { harness.client.received.last == "finished" })
+        XCTAssertEqual(harness.client.received, ["response", "data", "data", "data", "data", "finished"])
+    }
+
+    /// The budget used to be rebuilt on every `didReceive response:`, so a
+    /// `multipart/x-mixed-replace` response restarted it once per part and the per-request bound
+    /// was no bound at all. The clock restarts with each part; the budget does not.
+    func testThePacingBudgetIsSpentAcrossTheRequestNotResetPerPart() {
+        let harness = harness(condition: NetworkCondition(latency: 0, bandwidthKBps: 1, failureRate: 0))
+        harness.interceptor.maximumBandwidthSleep = 0.4
+
+        // Part one: 64 KB at 1 KB/s wants far more pacing than the budget allows, so it spends it.
+        harness.interceptor.urlSession(harness.session, dataTask: harness.task, didReceive: harness.response) { _ in }
+        harness.interceptor.urlSession(harness.session, dataTask: harness.task, didReceive: Data(count: 64 * 1024))
+        XCTAssertTrue(waitUntil { harness.client.forwardedByteCount >= 64 * 1024 })
+
+        // Part two, down the same request, wanting just as much.
+        harness.interceptor.urlSession(harness.session, dataTask: harness.task, didReceive: harness.response) { _ in }
+        harness.interceptor.urlSession(harness.session, dataTask: harness.task, didReceive: Data(count: 64 * 1024))
+        XCTAssertTrue(waitUntil { harness.client.forwardedByteCount >= 128 * 1024 })
+
+        XCTAssertEqual(harness.interceptor.pacingAsked, 0.4, accuracy: 0.001,
+                       "one budget for the request, not one per part of the response")
     }
 }
 

@@ -87,8 +87,8 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// - Note: Only ever read or written under ``stateLock``.
     private var didStartTask: Bool = false
 
-    /// Set by `stopLoading()` so that neither a pending delayed delivery nor a bandwidth throttle
-    /// mid-sleep keeps pushing bytes at a client that has gone away.
+    /// Set by `stopLoading()` so that neither a pending delayed delivery nor a paced response
+    /// part-way through keeps pushing bytes at a client that has gone away.
     ///
     /// - Note: Only ever read or written under ``stateLock``.
     private var isCancelled: Bool = false
@@ -111,12 +111,64 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         stateLock.withLock { didStartTask }
     }
 
-    /// Paces the current response to the ceiling ``condition`` asked for, or `nil` when there is
-    /// no ceiling. Rebuilt when a response begins, because the budget is per response.
+    /// Whether this response is paced to a bandwidth ceiling.
+    ///
+    /// A request with no ceiling keeps exactly the threading it had before rules existed: its
+    /// bytes are forwarded inline, on the delegate queue, as they arrive.
+    private var isPaced: Bool {
+        (condition?.bandwidthKBps ?? 0) > 0
+    }
+
+    /// The queue a paced response is delivered on, private to this request.
+    ///
+    /// Serial, and the sole owner of every piece of pacing state below — nothing here is touched
+    /// from two threads. The wait used to be a `Thread.sleep` on the session's own delegate queue,
+    /// which is also where the answer to `getTasksWithCompletionHandler` lands, so a cancellation
+    /// could sit behind up to 30 seconds of pacing while the socket kept transferring. Nothing
+    /// sleeps now: each chunk is scheduled for the moment the ceiling says its bytes are due, and
+    /// no thread is held in the meantime.
+    private let deliveryQueue = DispatchQueue(label: "com.scyther.networkRules.delivery",
+                                              qos: .userInitiated)
+
+    /// Steps of a paced response waiting to reach the client, oldest first.
+    ///
+    /// - Note: Only ever touched on ``deliveryQueue``.
+    private var pendingSteps: [PacedStep] = []
+
+    /// Whether ``drain()`` is working through ``pendingSteps``, including while it waits for the
+    /// next chunk's bytes to fall due. Stops a newly arrived chunk from starting a second pass and
+    /// overtaking one that is still pending.
+    ///
+    /// - Note: Only ever touched on ``deliveryQueue``.
+    private var isDraining: Bool = false
+
+    /// Paces the current response part to the ceiling ``condition`` asked for, or `nil` when there
+    /// is no ceiling. Rebuilt when a part begins, because the clock is per part.
+    ///
+    /// - Note: Only ever touched on ``deliveryQueue``.
     private var throttle: BandwidthThrottle?
 
-    /// When the current response began arriving, which is what the throttle measures against.
-    private var responseStart: Date = .distantPast
+    /// When the current response part began, which is what the throttle measures against.
+    ///
+    /// A `DispatchTime` rather than a `Date`: the wall clock can step. Backwards, and the first
+    /// chunk appears to owe the entire budget at once; forwards, or across a device wake, and the
+    /// ceiling silently stops applying for the rest of the response.
+    ///
+    /// - Note: Only ever touched on ``deliveryQueue``.
+    private var responseStart: DispatchTime = .now()
+
+    /// Seconds of pacing this request has already asked for, across every part of its response.
+    ///
+    /// - Note: Only ever touched on ``deliveryQueue``.
+    private var bandwidthSleepUsed: TimeInterval = 0
+
+    /// Seconds of pacing this request has asked for so far.
+    ///
+    /// - Note: Internal so a test can assert the budget is spent across the whole request rather
+    ///   than reset for each part of it. Nothing in production reads it.
+    internal var pacingAsked: TimeInterval {
+        deliveryQueue.sync { bandwidthSleepUsed }
+    }
 
     /// The longest a rule may hold a request back before it is sent or answered.
     ///
@@ -124,8 +176,32 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// request that appears to have hung forever.
     private static let maximumDelay: TimeInterval = 30
 
-    /// The longest the bandwidth throttle may spend asleep across one whole response.
-    private static let maximumBandwidthSleep: TimeInterval = 30
+    /// The longest the bandwidth ceiling may hold this request back, across **every part** of its
+    /// response.
+    ///
+    /// Per request rather than per part, because `multipart/x-mixed-replace` delivers many parts
+    /// down one request and a budget that started again with each of them would bound nothing at
+    /// all.
+    ///
+    /// - Note: Internal and settable so a test can shrink it and observe the bound without
+    ///   waiting half a minute for it. Nothing in production changes it.
+    internal var maximumBandwidthSleep: TimeInterval = 30
+
+    /// One step of a paced response, in the order it has to reach the client.
+    ///
+    /// Headers, bytes and the terminal callback all travel this queue together, so a response part
+    /// can never be announced to the client before the previous part's bytes have been forwarded,
+    /// and the load can never be reported finished before its body has been delivered.
+    private enum PacedStep {
+        /// A response part begins. Restarts the pacing clock, but not the budget.
+        case begin(URLResponse)
+
+        /// Bytes to forward once the ceiling says they are due.
+        case data(Data)
+
+        /// The load ended; `nil` on success.
+        case finish(Error?)
+    }
 
     /// The queue a rule's latency or mock delay is scheduled on.
     ///
@@ -421,45 +497,129 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
 extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
     /// Forwards received bytes to the client, honouring any bandwidth ceiling a condition rule set.
     ///
-    /// The ceiling is a budget for the **whole response**, held by ``BandwidthThrottle`` and reset
-    /// when a response begins. Weighing only the bytes in hand would never sleep for a realistic
-    /// ceiling, because `URLSession` delivers a body in chunks far smaller than a second's worth
-    /// of it. The wait happens on the private session's own serial delegate queue, which belongs
-    /// to this request alone, and never on the main thread. Two bounds keep it from becoming a
-    /// hang:
-    ///
-    /// - The throttle asks for at most `maximumBandwidthSleep` seconds across the whole response,
-    ///   after which the remaining bytes are forwarded as fast as they arrive.
-    /// - Nothing is forwarded once `stopLoading()` has been called, so a cancelled request does
-    ///   not keep pushing bytes at a client that has gone away.
+    /// Without a ceiling the bytes go straight to the client on this thread, exactly as they did
+    /// before rules existed. With one, they are handed to ``deliveryQueue`` and this returns at
+    /// once: the wait is scheduled, not slept for, so the session's delegate queue stays free and
+    /// a `stopLoading()` can never queue behind the pacing.
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         responseData?.append(data)
 
-        guard let wait = throttle?.delay(forwarding: data.count,
-                                         elapsed: Date().timeIntervalSince(responseStart)) else {
+        guard isPaced else {
             client?.urlProtocol(self, didLoad: data)
             return
         }
-
-        if wait > 0 {
-            if hasBeenCancelled { return }
-            Thread.sleep(forTimeInterval: wait)
-        }
-        if hasBeenCancelled { return }
-        client?.urlProtocol(self, didLoad: data)
+        enqueue(.data(data))
     }
 
+    /// Announces a response — or the next part of one — to the client.
+    ///
+    /// A paced response announces its parts through ``deliveryQueue`` alongside its bytes, so that
+    /// a second part of a `multipart/x-mixed-replace` response cannot be announced while the first
+    /// part's body is still being forwarded. The disposition is answered here regardless, because
+    /// the session waits on it before delivering anything more.
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         self.response = response
         responseData = NSMutableData()
-        responseStart = Date()
-        throttle = BandwidthThrottle(bandwidthKBps: condition?.bandwidthKBps,
-                                     maximumTotalSleep: Self.maximumBandwidthSleep)
 
-        client?.urlProtocol(self,
-                            didReceive: response,
-                            cacheStoragePolicy: NetworkHelper.instance.cacheStoragePolicy)
+        if isPaced {
+            enqueue(.begin(response))
+        } else {
+            client?.urlProtocol(self,
+                                didReceive: response,
+                                cacheStoragePolicy: NetworkHelper.instance.cacheStoragePolicy)
+        }
         completionHandler(.allow)
+    }
+
+    /// Hands one step of a paced response to the delivery pump.
+    ///
+    /// - Parameter step: The step to append. Steps are delivered in the order they are enqueued.
+    private func enqueue(_ step: PacedStep) {
+        deliveryQueue.async { [weak self] in
+            guard let self else { return }
+            self.pendingSteps.append(step)
+            guard !self.isDraining else { return }
+            self.isDraining = true
+            self.drain()
+        }
+    }
+
+    /// Delivers every step the ceiling allows right now, then schedules itself to resume when the
+    /// next chunk's bytes fall due.
+    ///
+    /// Always runs on ``deliveryQueue``. It loops rather than recursing, because a response
+    /// comfortably under its ceiling never waits at all and would otherwise recurse once per
+    /// chunk. Cancellation is re-checked on every pass and drops whatever is left, so a client
+    /// that has gone away is never handed more bytes.
+    private func drain() {
+        while true {
+            if hasBeenCancelled {
+                pendingSteps.removeAll()
+                isDraining = false
+                return
+            }
+            guard !pendingSteps.isEmpty else {
+                isDraining = false
+                return
+            }
+
+            switch pendingSteps.removeFirst() {
+            case .begin(let response):
+                /// A new part restarts the clock but not the budget — see
+                /// ``maximumBandwidthSleep``.
+                responseStart = .now()
+                throttle = BandwidthThrottle(
+                    bandwidthKBps: condition?.bandwidthKBps,
+                    maximumTotalSleep: max(0, maximumBandwidthSleep - bandwidthSleepUsed)
+                )
+                client?.urlProtocol(self,
+                                    didReceive: response,
+                                    cacheStoragePolicy: NetworkHelper.instance.cacheStoragePolicy)
+
+            case .data(let data):
+                let wait = throttle?.delay(forwarding: data.count, elapsed: elapsedInPart) ?? 0
+                guard wait > 0 else {
+                    client?.urlProtocol(self, didLoad: data)
+                    continue
+                }
+                bandwidthSleepUsed += wait
+                deliveryQueue.asyncAfter(deadline: .now() + wait) { [weak self] in
+                    guard let self else { return }
+                    if !self.hasBeenCancelled {
+                        self.client?.urlProtocol(self, didLoad: data)
+                    }
+                    self.drain()
+                }
+                return
+
+            case .finish(let error):
+                deliverTerminal(error)
+                stateLock.withLock { session }?.finishTasksAndInvalidate()
+                isDraining = false
+                return
+            }
+        }
+    }
+
+    /// Seconds since the current response part began, on a clock that cannot step.
+    ///
+    /// - Note: Only ever read on ``deliveryQueue``.
+    private var elapsedInPart: TimeInterval {
+        let now = DispatchTime.now().uptimeNanoseconds
+        let start = responseStart.uptimeNanoseconds
+        guard now > start else { return 0 }
+        return Double(now - start) / 1_000_000_000
+    }
+
+    /// Tells the client how the load ended.
+    ///
+    /// - Parameter error: The failure, or `nil` when the load succeeded.
+    private func deliverTerminal(_ error: Error?) {
+        if let error {
+            client?.urlProtocol(self, didFailWithError: error)
+        } else {
+            client?.urlProtocolDidFinishLoading(self)
+        }
     }
 
     /// Finishes the load, logs it, and invalidates the private session.
@@ -471,14 +631,19 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
     /// told how the load ended, and `finishTasksAndInvalidate()` rather than
     /// `invalidateAndCancel()` so that a callback still in flight on the delegate queue is allowed
     /// to finish.
+    ///
+    /// A paced response reports both through ``deliveryQueue`` instead. The task finishes as soon
+    /// as the last bytes are off the socket, which is well before the ceiling has finished handing
+    /// them to the client, and telling the client the load had finished at that point would have
+    /// it believe a body it had not yet received was complete.
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         defer {
-            if let error = error {
-                client?.urlProtocol(self, didFailWithError: error)
+            if isPaced {
+                enqueue(.finish(error))
             } else {
-                client?.urlProtocolDidFinishLoading(self)
+                deliverTerminal(error)
+                session.finishTasksAndInvalidate()
             }
-            session.finishTasksAndInvalidate()
         }
 
         guard let request = task.originalRequest else {
