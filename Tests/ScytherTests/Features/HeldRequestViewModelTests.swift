@@ -57,6 +57,25 @@ final class HeldRequestEditorViewModelTests: XCTestCase {
         return try XCTUnwrap(coordinator.pending.first)
     }
 
+    /// The picker offers the standard methods, and the captured one is always among them — a
+    /// picker that could not represent an unusual method would quietly rewrite the request.
+    func testThePickerAlwaysOffersTheMethodTheRequestActuallyCarried() throws {
+        let recorder = Recorder()
+        let pending = try heldRequest(recorder)
+        let viewModel = HeldRequestEditorViewModel(pending: pending, coordinator: coordinator)
+
+        XCTAssertTrue(viewModel.selectableMethods.contains("GET"))
+        XCTAssertTrue(viewModel.selectableMethods.contains("DELETE"))
+        XCTAssertTrue(viewModel.selectableMethods.contains(viewModel.method),
+                      "the held request's own method has to be selectable")
+
+        viewModel.method = "PROPFIND"
+        XCTAssertEqual(viewModel.selectableMethods.first, "PROPFIND",
+                       "an unusual method is offered first rather than dropped")
+        XCTAssertEqual(viewModel.selectableMethods.count,
+                       NetworkRuleEditorViewModel.availableMethods.count + 1)
+    }
+
     func testContinuingCarriesTheEdits() throws {
         let recorder = Recorder()
         let pending = try heldRequest(recorder)

@@ -68,9 +68,14 @@ struct HeldRequestEditorView: View {
             }
 
             if viewModel.isRequest {
-                TextField(localized("Method"), text: $viewModel.method)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.characters)
+                // A method is one of a known set, so it is a picker rather than a field to mistype.
+                // The captured value is offered even when it is not one of the standard seven, so
+                // holding an unusual method cannot silently rewrite it into a different request.
+                Picker(localized("Method"), selection: $viewModel.method) {
+                    ForEach(viewModel.selectableMethods, id: \.self) { method in
+                        Text(method).tag(method)
+                    }
+                }
                 TextField(localized("URL"), text: $viewModel.url)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)

@@ -100,6 +100,18 @@ final class HeldRequestEditorViewModel: ViewModel {
         set { draft.method = newValue }
     }
 
+    /// The methods the picker offers.
+    ///
+    /// The standard seven, plus whatever the held request actually carried when that is something
+    /// else — a captured `PROPFIND` stays `PROPFIND` rather than being quietly turned into a `GET`
+    /// by a picker that could not represent it.
+    var selectableMethods: [String] {
+        let standard = NetworkRuleEditorViewModel.availableMethods
+        let current = method
+        guard !current.isEmpty, !standard.contains(current) else { return standard }
+        return [current] + standard
+    }
+
     /// The URL, as typed.
     var url: String {
         get { draft.url ?? "" }
