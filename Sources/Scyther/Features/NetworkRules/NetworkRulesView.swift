@@ -8,18 +8,18 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The list of network rules, reached from **Networking → Network Rules**.
+/// The list of request overrides, reached from **Networking → Request Overrides**.
 ///
-/// Each row is a `Toggle` whose label names the rule and the behaviour it performs, so tapping
-/// anywhere on the row turns the rule on or off. Editing is a leading swipe action, deletion a
-/// trailing one, and reordering — which is what changes a rule's precedence — is done through the
-/// `EditButton`.
+/// Each row is a `NavigationLink` that pushes the editor, matching the way every other row in the
+/// Scyther menu behaves. The row's subtitle names both the behaviour the override performs and
+/// whether it is currently on, so a disabled override reads as disabled without any row being
+/// recoloured by hand.
 ///
 /// ## Features
-/// - A master switch that suspends every rule without deleting any of them
-/// - Per-rule enable toggles, editing and swipe-to-delete behind a confirmation alert
-/// - Drag-to-reorder, because the first matching mock or map-local rule wins
-/// - HAR import through the system file importer, reporting how many rules were added
+/// - A master switch that suspends every override without deleting any of them
+/// - Tap to edit; swipe to enable, disable, or delete behind a confirmation alert
+/// - Drag-to-reorder, because the first matching mock or map-local override wins
+/// - HAR import through the system file importer, reporting how many overrides were added
 ///
 /// ## Usage
 /// ```swift
@@ -31,8 +31,11 @@ struct NetworkRulesView: View {
     /// The list's view model, mirroring ``NetworkRuleStore``.
     @StateObject private var viewModel = NetworkRulesViewModel()
 
-    /// The rule being edited, or a new one, presented as a sheet. `nil` while none is open.
-    @State private var editorTarget: NetworkRuleEditorTarget?
+    /// Whether the sheet that creates a new override is presented.
+    ///
+    /// Creation is a sheet rather than a push because it is reached from a toolbar `Menu`, and a
+    /// menu item cannot drive a navigation destination.
+    @State private var isCreatingOverride: Bool = false
 
     /// Whether the system file importer is presented.
     @State private var isImportingHAR: Bool = false
@@ -48,9 +51,9 @@ struct NetworkRulesView: View {
     var body: some View {
         List {
             Section {
-                Toggle(localized("Enable Rules"), isOn: $viewModel.isEnabled)
+                Toggle(localized("Enable Request Overrides"), isOn: $viewModel.isEnabled)
             } footer: {
-                Text(localized("Rules are applied in order. The first matching mock or map local wins."))
+                Text(localized("Overrides are applied in order. The first matching mock or map local wins."))
             }
 
             if viewModel.isEmpty {
@@ -69,7 +72,7 @@ struct NetworkRulesView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if !viewModel.isEmpty {
+                if !viewModel.rules.isEmpty {
                     EditButton()
                 }
             }
@@ -77,8 +80,10 @@ struct NetworkRulesView: View {
                 addMenu
             }
         }
-        .sheet(item: $editorTarget) { target in
-            NetworkRuleEditorView(viewModel: NetworkRuleEditorViewModel(rule: target.rule))
+        .sheet(isPresented: $isCreatingOverride) {
+            NavigationStack {
+                NetworkRuleEditorView(viewModel: NetworkRuleEditorViewModel(rule: nil))
+            }
         }
         .fileImporter(
             isPresented: $isImportingHAR,
@@ -113,16 +118,16 @@ struct NetworkRulesView: View {
         } message: { outcome in
             Text(outcome.message)
         }
-        .navigationTitle(localized("Network Rules"))
+        .navigationTitle(localized("Request Overrides"))
     }
 
-    /// The toolbar menu offering the two ways to add rules.
+    /// The toolbar menu offering the two ways to add overrides.
     private var addMenu: some View {
         Menu {
             Button {
-                editorTarget = NetworkRuleEditorTarget(rule: nil)
+                isCreatingOverride = true
             } label: {
-                Label(localized("New rule"), systemImage: "plus")
+                Label(localized("New Override"), systemImage: "plus")
             }
             Button {
                 isImportingHAR = true
@@ -137,36 +142,47 @@ struct NetworkRulesView: View {
         }
     }
 
-    /// One rule's row: a toggle labelled with the rule's name and the behaviour it performs.
+    /// One override's row: a link into the editor, labelled with the override's name and a
+    /// subtitle naming its behaviour and whether it is on.
     private func ruleRow(for rule: NetworkRule) -> some View {
-        Toggle(isOn: Binding(
-            get: { rule.isEnabled },
-            set: { viewModel.setEnabled(rule, to: $0) }
-        )) {
+        NavigationLink {
+            NetworkRuleEditorView(viewModel: NetworkRuleEditorViewModel(rule: rule))
+        } label: {
             // A two-`Text` label is the stock way to give a row a title and a subtitle; SwiftUI
-            // styles the second line itself, so nothing here restyles the control by hand.
+            // styles the second line itself, so a disabled override reads as disabled without
+            // anything here restyling the row by hand.
             Text(rule.name)
-            Text(rule.action.kind.title)
+            Text(viewModel.subtitle(for: rule))
         }
-        .swipeActions(edge: .leading) {
-            Button {
-                editorTarget = NetworkRuleEditorTarget(rule: rule)
+        .swipeActions(edge: .trailing) {
+            // Spelled out rather than left to `onDelete`, because declaring any trailing swipe
+            // action replaces the default one `onDelete` would have drawn. `onDelete` stays on
+            // the `ForEach` so the `EditButton`'s delete circles still work.
+            Button(role: .destructive) {
+                viewModel.requestDeletion(of: rule)
             } label: {
-                Label(localized("Edit"), systemImage: "pencil")
+                Label(localized("Delete"), systemImage: "trash")
             }
-            .tint(.blue)
+            Button {
+                viewModel.setEnabled(rule, to: !rule.isEnabled)
+            } label: {
+                Label(
+                    rule.isEnabled ? localized("Disable") : localized("Enable"),
+                    systemImage: rule.isEnabled ? "pause.circle" : "play.circle"
+                )
+            }
         }
     }
 
-    /// The placeholder shown while no rules are configured.
+    /// The placeholder shown while no overrides are configured.
     @ViewBuilder
     private var emptyState: some View {
         if #available(iOS 17.0, *) {
             ContentUnavailableView(
-                localized("No Rules"),
+                localized("No Overrides"),
                 systemImage: "arrow.triangle.branch",
                 description: Text(
-                    localized("Mock, redirect, rewrite or slow down matching requests. Add a rule to get started.")
+                    localized("Mock, redirect, rewrite or slow down matching requests. Add an override to get started.")
                 )
             )
         } else {
@@ -174,9 +190,9 @@ struct NetworkRulesView: View {
                 Image(systemName: "arrow.triangle.branch")
                     .font(.system(size: 48))
                     .foregroundStyle(.secondary)
-                Text(localized("No Rules"))
+                Text(localized("No Overrides"))
                     .font(.headline)
-                Text(localized("Mock, redirect, rewrite or slow down matching requests. Add a rule to get started."))
+                Text(localized("Mock, redirect, rewrite or slow down matching requests. Add an override to get started."))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -185,16 +201,4 @@ struct NetworkRulesView: View {
             .padding(.vertical, 32)
         }
     }
-}
-
-/// Identifies the rule an editor sheet is open on.
-///
-/// `sheet(item:)` needs an `Identifiable` value, and a `nil` rule — the "create a new one" case —
-/// has no identity of its own. Wrapping the optional gives both cases one.
-struct NetworkRuleEditorTarget: Identifiable {
-    /// A fresh identity per presentation.
-    let id = UUID()
-
-    /// The rule being edited, or `nil` when the sheet is creating one.
-    let rule: NetworkRule?
 }

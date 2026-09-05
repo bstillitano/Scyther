@@ -1,353 +1,690 @@
 {
-  "Network Rules": {
-    "comment": "Navigation title of the rules list, and its row in the Networking menu section",
-    "fr": "Règles réseau", "de": "Netzwerkregeln", "es": "Reglas de red", "it": "Regole di rete",
-    "pt-BR": "Regras de rede", "nl": "Netwerkregels", "ja": "ネットワークルール",
-    "zh-Hans": "网络规则", "zh-Hant": "網路規則", "ko": "네트워크 규칙", "ru": "Сетевые правила",
-    "ar": "قواعد الشبكة"
-  },
-  "Enable Rules": {
-    "comment": "Master switch at the top of the rules list",
-    "fr": "Activer les règles", "de": "Regeln aktivieren", "es": "Activar reglas",
-    "it": "Attiva regole", "pt-BR": "Ativar regras", "nl": "Regels inschakelen",
-    "ja": "ルールを有効にする", "zh-Hans": "启用规则", "zh-Hant": "啟用規則",
-    "ko": "규칙 사용", "ru": "Включить правила", "ar": "تفعيل القواعد"
-  },
-  "Rules are applied in order. The first matching mock or map local wins.": {
-    "comment": "Footer under the master switch explaining rule precedence",
-    "fr": "Les règles sont appliquées dans l'ordre. La première simulation ou redirection locale correspondante l'emporte.",
-    "de": "Regeln werden der Reihe nach angewendet. Das erste passende Mock oder Map Local gewinnt.",
-    "es": "Las reglas se aplican en orden. Gana la primera simulación o archivo local que coincida.",
-    "it": "Le regole vengono applicate in ordine. Vince il primo mock o file locale corrispondente.",
-    "pt-BR": "As regras são aplicadas em ordem. Vence a primeira simulação ou arquivo local correspondente.",
-    "nl": "Regels worden op volgorde toegepast. De eerste passende mock of lokaal bestand wint.",
-    "ja": "ルールは順番に適用されます。最初に一致したモックまたはローカルファイルが優先されます。",
-    "zh-Hans": "规则按顺序应用。第一个匹配的模拟响应或本地文件生效。",
-    "zh-Hant": "規則依序套用。第一個符合的模擬回應或本機檔案生效。",
-    "ko": "규칙은 순서대로 적용됩니다. 처음 일치하는 목 응답 또는 로컬 파일이 적용됩니다.",
-    "ru": "Правила применяются по порядку. Побеждает первый подходящий мок или локальный файл.",
-    "ar": "تُطبَّق القواعد بالترتيب. تفوز أول محاكاة أو ملف محلي مطابق."
-  },
-  "No Rules": {
-    "comment": "Empty state title on the rules list",
-    "fr": "Aucune règle", "de": "Keine Regeln", "es": "Sin reglas", "it": "Nessuna regola",
-    "pt-BR": "Nenhuma regra", "nl": "Geen regels", "ja": "ルールなし", "zh-Hans": "无规则",
-    "zh-Hant": "沒有規則", "ko": "규칙 없음", "ru": "Нет правил", "ar": "لا توجد قواعد"
-  },
-  "Mock, redirect, rewrite or slow down matching requests. Add a rule to get started.": {
-    "comment": "Empty state description on the rules list",
-    "fr": "Simulez, redirigez, réécrivez ou ralentissez les requêtes correspondantes. Ajoutez une règle pour commencer.",
-    "de": "Passende Anfragen simulieren, umleiten, umschreiben oder verlangsamen. Fügen Sie eine Regel hinzu, um zu beginnen.",
-    "es": "Simula, redirige, reescribe o ralentiza las solicitudes coincidentes. Añade una regla para empezar.",
-    "it": "Simula, reindirizza, riscrivi o rallenta le richieste corrispondenti. Aggiungi una regola per iniziare.",
-    "pt-BR": "Simule, redirecione, reescreva ou desacelere as solicitações correspondentes. Adicione uma regra para começar.",
-    "nl": "Simuleer, verwijs door, herschrijf of vertraag passende verzoeken. Voeg een regel toe om te beginnen.",
-    "ja": "一致するリクエストをモック、リダイレクト、書き換え、または遅延させます。ルールを追加して始めましょう。",
-    "zh-Hans": "对匹配的请求进行模拟、重定向、重写或限速。添加一条规则即可开始。",
-    "zh-Hant": "對符合的請求進行模擬、重新導向、重寫或限速。新增一條規則即可開始。",
-    "ko": "일치하는 요청을 모의 응답, 리디렉션, 재작성하거나 지연시킵니다. 규칙을 추가해 시작하세요.",
-    "ru": "Подменяйте, перенаправляйте, изменяйте или замедляйте подходящие запросы. Добавьте правило, чтобы начать.",
-    "ar": "قم بمحاكاة الطلبات المطابقة أو إعادة توجيهها أو إعادة كتابتها أو إبطائها. أضف قاعدة للبدء."
-  },
-  "New rule": {
-    "comment": "Toolbar menu item that opens an empty rule editor, and the editor's title when creating",
-    "fr": "Nouvelle règle", "de": "Neue Regel", "es": "Nueva regla", "it": "Nuova regola",
-    "pt-BR": "Nova regra", "nl": "Nieuwe regel", "ja": "新規ルール", "zh-Hans": "新建规则",
-    "zh-Hant": "新增規則", "ko": "새 규칙", "ru": "Новое правило", "ar": "قاعدة جديدة"
-  },
-  "Edit rule": {
-    "comment": "Title of the rule editor when changing an existing rule",
-    "fr": "Modifier la règle", "de": "Regel bearbeiten", "es": "Editar regla",
-    "it": "Modifica regola", "pt-BR": "Editar regra", "nl": "Regel bewerken",
-    "ja": "ルールを編集", "zh-Hans": "编辑规则", "zh-Hant": "編輯規則", "ko": "규칙 편집",
-    "ru": "Изменить правило", "ar": "تحرير القاعدة"
-  },
-  "Import from HAR": {
-    "comment": "Toolbar menu item that opens the file importer for a HAR document",
-    "fr": "Importer depuis un HAR", "de": "Aus HAR importieren", "es": "Importar desde HAR",
-    "it": "Importa da HAR", "pt-BR": "Importar de HAR", "nl": "Importeren uit HAR",
-    "ja": "HARからインポート", "zh-Hans": "从 HAR 导入", "zh-Hant": "從 HAR 匯入",
-    "ko": "HAR에서 가져오기", "ru": "Импортировать из HAR", "ar": "استيراد من HAR"
-  },
-  "Add": {
-    "comment": "Accessibility label of the toolbar button holding the New rule and Import menu items",
-    "fr": "Ajouter", "de": "Hinzufügen", "es": "Añadir", "it": "Aggiungi", "pt-BR": "Adicionar",
-    "nl": "Toevoegen", "ja": "追加", "zh-Hans": "添加", "zh-Hant": "新增", "ko": "추가",
-    "ru": "Добавить", "ar": "إضافة"
-  },
-  "Edit": {
-    "comment": "Leading swipe action on a rule row that opens the editor",
-    "fr": "Modifier", "de": "Bearbeiten", "es": "Editar", "it": "Modifica", "pt-BR": "Editar",
-    "nl": "Bewerken", "ja": "編集", "zh-Hans": "编辑", "zh-Hant": "編輯", "ko": "편집",
-    "ru": "Изменить", "ar": "تحرير"
-  },
-  "Import Complete": {
-    "comment": "Title of the alert shown after a successful HAR import",
-    "fr": "Importation terminée", "de": "Import abgeschlossen", "es": "Importación completada",
-    "it": "Importazione completata", "pt-BR": "Importação concluída", "nl": "Import voltooid",
-    "ja": "インポート完了", "zh-Hans": "导入完成", "zh-Hant": "匯入完成", "ko": "가져오기 완료",
-    "ru": "Импорт завершён", "ar": "اكتمل الاستيراد"
-  },
-  "Imported %lld rules. Every imported rule starts disabled.": {
-    "comment": "Body of the alert shown after a successful HAR import",
-    "plural": true,
-    "en": {
-      "one": "Imported %lld rule. Every imported rule starts disabled.",
-      "other": "Imported %lld rules. Every imported rule starts disabled."
-    },
-    "fr": {
-      "one": "%lld règle importée. Chaque règle importée est désactivée au départ.",
-      "other": "%lld règles importées. Chaque règle importée est désactivée au départ."
-    },
-    "de": {
-      "one": "%lld Regel importiert. Jede importierte Regel ist zunächst deaktiviert.",
-      "other": "%lld Regeln importiert. Jede importierte Regel ist zunächst deaktiviert."
-    },
-    "es": {
-      "one": "Se importó %lld regla. Cada regla importada empieza desactivada.",
-      "other": "Se importaron %lld reglas. Cada regla importada empieza desactivada."
-    },
-    "it": {
-      "one": "Importata %lld regola. Ogni regola importata parte disattivata.",
-      "other": "Importate %lld regole. Ogni regola importata parte disattivata."
-    },
-    "pt-BR": {
-      "one": "%lld regra importada. Toda regra importada começa desativada.",
-      "other": "%lld regras importadas. Toda regra importada começa desativada."
-    },
-    "nl": {
-      "one": "%lld regel geïmporteerd. Elke geïmporteerde regel begint uitgeschakeld.",
-      "other": "%lld regels geïmporteerd. Elke geïmporteerde regel begint uitgeschakeld."
-    },
-    "ja": {
-      "other": "%lld件のルールをインポートしました。インポートしたルールはすべて無効の状態です。"
-    },
-    "zh-Hans": {
-      "other": "已导入 %lld 条规则。每条导入的规则初始均为停用状态。"
-    },
-    "zh-Hant": {
-      "other": "已匯入 %lld 條規則。每條匯入的規則初始均為停用狀態。"
-    },
-    "ko": {
-      "other": "규칙 %lld개를 가져왔습니다. 가져온 규칙은 모두 사용 안 함 상태로 시작합니다."
-    },
-    "ru": {
-      "one": "Импортировано %lld правило. Каждое импортированное правило изначально отключено.",
-      "few": "Импортировано %lld правила. Каждое импортированное правило изначально отключено.",
-      "many": "Импортировано %lld правил. Каждое импортированное правило изначально отключено.",
-      "other": "Импортировано %lld правил. Каждое импортированное правило изначально отключено."
-    },
-    "ar": {
-      "zero": "لم يتم استيراد أي قاعدة. كل قاعدة مستوردة تبدأ معطّلة.",
-      "one": "تم استيراد قاعدة واحدة. كل قاعدة مستوردة تبدأ معطّلة.",
-      "two": "تم استيراد قاعدتين. كل قاعدة مستوردة تبدأ معطّلة.",
-      "few": "تم استيراد %lld قواعد. كل قاعدة مستوردة تبدأ معطّلة.",
-      "many": "تم استيراد %lld قاعدة. كل قاعدة مستوردة تبدأ معطّلة.",
-      "other": "تم استيراد %lld قاعدة. كل قاعدة مستوردة تبدأ معطّلة."
-    }
-  },
-  "Import Failed": {
-    "comment": "Title of the alert shown when a HAR document cannot be read",
-    "fr": "Échec de l'importation", "de": "Import fehlgeschlagen", "es": "Error de importación",
-    "it": "Importazione non riuscita", "pt-BR": "Falha na importação", "nl": "Import mislukt",
-    "ja": "インポートに失敗しました", "zh-Hans": "导入失败", "zh-Hant": "匯入失敗",
-    "ko": "가져오기 실패", "ru": "Не удалось импортировать", "ar": "فشل الاستيراد"
-  },
-  "The selected file could not be read as a HAR document.": {
-    "comment": "Body of the alert shown when a HAR document cannot be read",
-    "fr": "Le fichier sélectionné n'a pas pu être lu comme un document HAR.",
-    "de": "Die ausgewählte Datei konnte nicht als HAR-Dokument gelesen werden.",
-    "es": "No se pudo leer el archivo seleccionado como un documento HAR.",
-    "it": "Impossibile leggere il file selezionato come documento HAR.",
-    "pt-BR": "Não foi possível ler o arquivo selecionado como um documento HAR.",
-    "nl": "Het geselecteerde bestand kon niet als HAR-document worden gelezen.",
-    "ja": "選択したファイルをHARドキュメントとして読み込めませんでした。",
-    "zh-Hans": "无法将所选文件作为 HAR 文档读取。",
-    "zh-Hant": "無法將所選檔案作為 HAR 文件讀取。",
-    "ko": "선택한 파일을 HAR 문서로 읽을 수 없습니다.",
-    "ru": "Не удалось прочитать выбранный файл как документ HAR.",
-    "ar": "تعذّرت قراءة الملف المحدد كمستند HAR."
-  },
-  "Mock Response": {
-    "comment": "Name of the action that answers a request with a canned response",
-    "fr": "Réponse simulée", "de": "Mock-Antwort", "es": "Respuesta simulada",
-    "it": "Risposta simulata", "pt-BR": "Resposta simulada", "nl": "Gesimuleerd antwoord",
-    "ja": "モックレスポンス", "zh-Hans": "模拟响应", "zh-Hant": "模擬回應", "ko": "모의 응답",
-    "ru": "Подменённый ответ", "ar": "استجابة محاكاة"
-  },
-  "Map Local File": {
-    "comment": "Name of the action that answers a request with a local file",
-    "fr": "Fichier local", "de": "Lokale Datei zuordnen", "es": "Asignar archivo local",
-    "it": "Mappa file locale", "pt-BR": "Mapear arquivo local", "nl": "Lokaal bestand koppelen",
-    "ja": "ローカルファイルを割り当て", "zh-Hans": "映射本地文件", "zh-Hant": "對應本機檔案",
-    "ko": "로컬 파일 매핑", "ru": "Локальный файл", "ar": "ربط ملف محلي"
-  },
-  "Rewrite Headers": {
-    "comment": "Name of the action that sets or removes request headers",
-    "fr": "Réécrire les en-têtes", "de": "Header umschreiben", "es": "Reescribir encabezados",
-    "it": "Riscrivi intestazioni", "pt-BR": "Reescrever cabeçalhos", "nl": "Headers herschrijven",
-    "ja": "ヘッダーを書き換え", "zh-Hans": "重写标头", "zh-Hant": "重寫標頭",
-    "ko": "헤더 재작성", "ru": "Переписать заголовки", "ar": "إعادة كتابة الترويسات"
-  },
-  "Network Condition": {
-    "comment": "Name of the action that adds latency, throttles bandwidth or fails a request",
-    "fr": "Condition réseau", "de": "Netzwerkbedingung", "es": "Condición de red",
-    "it": "Condizione di rete", "pt-BR": "Condição de rede", "nl": "Netwerkconditie",
-    "ja": "ネットワーク条件", "zh-Hans": "网络状况", "zh-Hant": "網路狀況",
-    "ko": "네트워크 조건", "ru": "Условия сети", "ar": "حالة الشبكة"
-  },
-  "Match": {
-    "comment": "Section header for the host and path fields in the rule editor",
-    "fr": "Correspondance", "de": "Übereinstimmung", "es": "Coincidencia",
-    "it": "Corrispondenza", "pt-BR": "Correspondência", "nl": "Overeenkomst",
-    "ja": "一致条件", "zh-Hans": "匹配", "zh-Hant": "比對", "ko": "일치 조건",
-    "ru": "Совпадение", "ar": "المطابقة"
+  "0 means unthrottled.": {
+    "ar": "القيمة 0 تعني بدون تقييد.",
+    "comment": "Footer explaining that a zero bandwidth ceiling applies no throttle",
+    "de": "0 bedeutet keine Drosselung.",
+    "es": "0 significa sin límite.",
+    "fr": "0 signifie sans limitation.",
+    "it": "0 significa nessuna limitazione.",
+    "ja": "0 は制限なしを意味します。",
+    "ko": "0은 제한 없음을 의미합니다.",
+    "nl": "0 betekent geen beperking.",
+    "pt-BR": "0 significa sem limite.",
+    "ru": "0 означает без ограничения.",
+    "zh-Hans": "0 表示不限速。",
+    "zh-Hant": "0 表示不限速。"
   },
   "Action": {
+    "ar": "الإجراء",
     "comment": "Section header and picker label for the behaviour a rule performs",
-    "fr": "Action", "de": "Aktion", "es": "Acción", "it": "Azione", "pt-BR": "Ação",
-    "nl": "Actie", "ja": "アクション", "zh-Hans": "操作", "zh-Hant": "動作", "ko": "동작",
-    "ru": "Действие", "ar": "الإجراء"
+    "de": "Aktion",
+    "es": "Acción",
+    "fr": "Action",
+    "it": "Azione",
+    "ja": "アクション",
+    "ko": "동작",
+    "nl": "Actie",
+    "pt-BR": "Ação",
+    "ru": "Действие",
+    "zh-Hans": "操作",
+    "zh-Hant": "動作"
   },
-  "Methods": {
-    "comment": "Section header for the HTTP method toggles in the rule editor",
-    "fr": "Méthodes", "de": "Methoden", "es": "Métodos", "it": "Metodi", "pt-BR": "Métodos",
-    "nl": "Methoden", "ja": "メソッド", "zh-Hans": "方法", "zh-Hant": "方法", "ko": "메서드",
-    "ru": "Методы", "ar": "الأساليب"
-  },
-  "Leave every method off to match any method.": {
-    "comment": "Footer under the HTTP method toggles in the rule editor",
-    "fr": "Laissez toutes les méthodes désactivées pour correspondre à n'importe quelle méthode.",
-    "de": "Lassen Sie alle Methoden aus, um jede Methode zu treffen.",
-    "es": "Deja todos los métodos desactivados para que coincida cualquier método.",
-    "it": "Lascia tutti i metodi disattivati per corrispondere a qualsiasi metodo.",
-    "pt-BR": "Deixe todos os métodos desativados para corresponder a qualquer método.",
-    "nl": "Laat alle methoden uit om elke methode te matchen.",
-    "ja": "すべてのメソッドをオフのままにすると、どのメソッドにも一致します。",
-    "zh-Hans": "全部方法保持关闭即可匹配任意方法。",
-    "zh-Hant": "全部方法保持關閉即可比對任意方法。",
-    "ko": "모든 메서드를 끈 채로 두면 어떤 메서드에도 일치합니다.",
-    "ru": "Оставьте все методы выключенными, чтобы совпадал любой метод.",
-    "ar": "اترك جميع الأساليب مُعطّلة لمطابقة أي أسلوب."
-  },
-  "Host matching": {
-    "comment": "Picker choosing how the host pattern is compared",
-    "fr": "Comparaison de l'hôte", "de": "Host-Vergleich", "es": "Comparación de host",
-    "it": "Confronto host", "pt-BR": "Comparação de host", "nl": "Hostvergelijking",
-    "ja": "ホストの照合方法", "zh-Hans": "主机匹配方式", "zh-Hant": "主機比對方式",
-    "ko": "호스트 일치 방식", "ru": "Сравнение хоста", "ar": "مطابقة المضيف"
-  },
-  "Path matching": {
-    "comment": "Picker choosing how the path pattern is compared",
-    "fr": "Comparaison du chemin", "de": "Pfad-Vergleich", "es": "Comparación de ruta",
-    "it": "Confronto percorso", "pt-BR": "Comparação de caminho", "nl": "Padvergelijking",
-    "ja": "パスの照合方法", "zh-Hans": "路径匹配方式", "zh-Hant": "路徑比對方式",
-    "ko": "경로 일치 방식", "ru": "Сравнение пути", "ar": "مطابقة المسار"
-  },
-  "Exact": {
-    "comment": "Pattern comparison that requires the whole value to be equal",
-    "fr": "Exact", "de": "Exakt", "es": "Exacta", "it": "Esatta", "pt-BR": "Exata",
-    "nl": "Exact", "ja": "完全一致", "zh-Hans": "完全匹配", "zh-Hant": "完全相符",
-    "ko": "정확히 일치", "ru": "Точное", "ar": "مطابق تمامًا"
-  },
-  "Contains": {
-    "comment": "Pattern comparison that requires the value to appear anywhere",
-    "fr": "Contient", "de": "Enthält", "es": "Contiene", "it": "Contiene", "pt-BR": "Contém",
-    "nl": "Bevat", "ja": "部分一致", "zh-Hans": "包含", "zh-Hant": "包含", "ko": "포함",
-    "ru": "Содержит", "ar": "يحتوي على"
-  },
-  "Wildcard": {
-    "comment": "Pattern comparison where * means any run of characters",
-    "fr": "Joker", "de": "Platzhalter", "es": "Comodín", "it": "Carattere jolly",
-    "pt-BR": "Curinga", "nl": "Jokerteken", "ja": "ワイルドカード", "zh-Hans": "通配符",
-    "zh-Hant": "萬用字元", "ko": "와일드카드", "ru": "Шаблон", "ar": "حرف بدل"
-  },
-  "Delay (seconds)": {
-    "comment": "Field holding the seconds a mock or map local response waits before answering",
-    "fr": "Délai (secondes)", "de": "Verzögerung (Sekunden)", "es": "Retardo (segundos)",
-    "it": "Ritardo (secondi)", "pt-BR": "Atraso (segundos)", "nl": "Vertraging (seconden)",
-    "ja": "遅延（秒）", "zh-Hans": "延迟（秒）", "zh-Hant": "延遲（秒）", "ko": "지연 (초)",
-    "ru": "Задержка (секунды)", "ar": "التأخير (بالثواني)"
-  },
-  "File path": {
-    "comment": "Field holding the absolute path a map local rule serves",
-    "fr": "Chemin du fichier", "de": "Dateipfad", "es": "Ruta del archivo",
-    "it": "Percorso del file", "pt-BR": "Caminho do arquivo", "nl": "Bestandspad",
-    "ja": "ファイルパス", "zh-Hans": "文件路径", "zh-Hant": "檔案路徑", "ko": "파일 경로",
-    "ru": "Путь к файлу", "ar": "مسار الملف"
-  },
-  "Content type": {
-    "comment": "Field holding the Content-Type header a map local rule returns",
-    "fr": "Type de contenu", "de": "Inhaltstyp", "es": "Tipo de contenido",
-    "it": "Tipo di contenuto", "pt-BR": "Tipo de conteúdo", "nl": "Inhoudstype",
-    "ja": "コンテンツタイプ", "zh-Hans": "内容类型", "zh-Hant": "內容類型",
-    "ko": "콘텐츠 유형", "ru": "Тип содержимого", "ar": "نوع المحتوى"
-  },
-  "Latency (seconds)": {
-    "comment": "Field holding the seconds a condition adds before a request is sent",
-    "fr": "Latence (secondes)", "de": "Latenz (Sekunden)", "es": "Latencia (segundos)",
-    "it": "Latenza (secondi)", "pt-BR": "Latência (segundos)", "nl": "Latentie (seconden)",
-    "ja": "レイテンシ（秒）", "zh-Hans": "延迟时间（秒）", "zh-Hant": "延遲時間（秒）",
-    "ko": "지연 시간 (초)", "ru": "Задержка сети (секунды)", "ar": "زمن الاستجابة (بالثواني)"
-  },
-  "Bandwidth (KB/s)": {
-    "comment": "Field holding a condition's bandwidth ceiling in kilobytes per second",
-    "fr": "Bande passante (Ko/s)", "de": "Bandbreite (KB/s)", "es": "Ancho de banda (KB/s)",
-    "it": "Larghezza di banda (KB/s)", "pt-BR": "Largura de banda (KB/s)",
-    "nl": "Bandbreedte (KB/s)", "ja": "帯域幅（KB/秒）", "zh-Hans": "带宽（KB/秒）",
-    "zh-Hant": "頻寬（KB/秒）", "ko": "대역폭 (KB/s)", "ru": "Пропускная способность (КБ/с)",
-    "ar": "عرض النطاق (كيلوبايت/ث)"
-  },
-  "0 means unthrottled.": {
-    "comment": "Footer explaining that a zero bandwidth ceiling applies no throttle",
-    "fr": "0 signifie sans limitation.", "de": "0 bedeutet keine Drosselung.",
-    "es": "0 significa sin límite.", "it": "0 significa nessuna limitazione.",
-    "pt-BR": "0 significa sem limite.", "nl": "0 betekent geen beperking.",
-    "ja": "0 は制限なしを意味します。", "zh-Hans": "0 表示不限速。", "zh-Hant": "0 表示不限速。",
-    "ko": "0은 제한 없음을 의미합니다.", "ru": "0 означает без ограничения.",
-    "ar": "القيمة 0 تعني بدون تقييد."
-  },
-  "Failure rate": {
-    "comment": "Slider setting the fraction of matching requests a condition fails",
-    "fr": "Taux d'échec", "de": "Fehlerrate", "es": "Tasa de fallos",
-    "it": "Tasso di errore", "pt-BR": "Taxa de falha", "nl": "Foutpercentage",
-    "ja": "失敗率", "zh-Hans": "失败率", "zh-Hant": "失敗率", "ko": "실패율",
-    "ru": "Доля сбоев", "ar": "معدل الفشل"
-  },
-  "Set headers": {
-    "comment": "Section header for the headers a rewrite rule sets",
-    "fr": "En-têtes à définir", "de": "Header setzen", "es": "Encabezados a establecer",
-    "it": "Intestazioni da impostare", "pt-BR": "Cabeçalhos a definir",
-    "nl": "Headers instellen", "ja": "設定するヘッダー", "zh-Hans": "设置的标头",
-    "zh-Hant": "設定的標頭", "ko": "설정할 헤더", "ru": "Задаваемые заголовки",
-    "ar": "الترويسات المراد تعيينها"
-  },
-  "Remove headers": {
-    "comment": "Section header for the header names a rewrite rule removes",
-    "fr": "En-têtes à supprimer", "de": "Header entfernen", "es": "Encabezados a eliminar",
-    "it": "Intestazioni da rimuovere", "pt-BR": "Cabeçalhos a remover",
-    "nl": "Headers verwijderen", "ja": "削除するヘッダー", "zh-Hans": "移除的标头",
-    "zh-Hant": "移除的標頭", "ko": "제거할 헤더", "ru": "Удаляемые заголовки",
-    "ar": "الترويسات المراد إزالتها"
+  "Add": {
+    "ar": "إضافة",
+    "comment": "Accessibility label of the toolbar button holding the New Override and Import menu items",
+    "de": "Hinzufügen",
+    "es": "Añadir",
+    "fr": "Ajouter",
+    "it": "Aggiungi",
+    "ja": "追加",
+    "ko": "추가",
+    "nl": "Toevoegen",
+    "pt-BR": "Adicionar",
+    "ru": "Добавить",
+    "zh-Hans": "添加",
+    "zh-Hant": "新增"
   },
   "Add header": {
+    "ar": "إضافة ترويسة",
     "comment": "Button appending an empty row to a header list in the rule editor",
-    "fr": "Ajouter un en-tête", "de": "Header hinzufügen", "es": "Añadir encabezado",
-    "it": "Aggiungi intestazione", "pt-BR": "Adicionar cabeçalho", "nl": "Header toevoegen",
-    "ja": "ヘッダーを追加", "zh-Hans": "添加标头", "zh-Hant": "新增標頭", "ko": "헤더 추가",
-    "ru": "Добавить заголовок", "ar": "إضافة ترويسة"
+    "de": "Header hinzufügen",
+    "es": "Añadir encabezado",
+    "fr": "Ajouter un en-tête",
+    "it": "Aggiungi intestazione",
+    "ja": "ヘッダーを追加",
+    "ko": "헤더 추가",
+    "nl": "Header toevoegen",
+    "pt-BR": "Adicionar cabeçalho",
+    "ru": "Добавить заголовок",
+    "zh-Hans": "添加标头",
+    "zh-Hant": "新增標頭"
   },
-  "Header name": {
-    "comment": "Placeholder for the name field of an editable header row",
-    "fr": "Nom de l'en-tête", "de": "Header-Name", "es": "Nombre del encabezado",
-    "it": "Nome intestazione", "pt-BR": "Nome do cabeçalho", "nl": "Headernaam",
-    "ja": "ヘッダー名", "zh-Hans": "标头名称", "zh-Hant": "標頭名稱", "ko": "헤더 이름",
-    "ru": "Имя заголовка", "ar": "اسم الترويسة"
+  "Any method": {
+    "ar": "أي أسلوب",
+    "comment": "Value on the Methods row when no HTTP method has been selected",
+    "de": "Beliebige Methode",
+    "es": "Cualquier método",
+    "fr": "Toute méthode",
+    "it": "Qualsiasi metodo",
+    "ja": "すべてのメソッド",
+    "ko": "모든 메서드",
+    "nl": "Elke methode",
+    "pt-BR": "Qualquer método",
+    "ru": "Любой метод",
+    "zh-Hans": "任意方法",
+    "zh-Hant": "任意方法"
+  },
+  "Bandwidth (KB/s)": {
+    "ar": "عرض النطاق (كيلوبايت/ث)",
+    "comment": "Field holding a condition's bandwidth ceiling in kilobytes per second",
+    "de": "Bandbreite (KB/s)",
+    "es": "Ancho de banda (KB/s)",
+    "fr": "Bande passante (Ko/s)",
+    "it": "Larghezza di banda (KB/s)",
+    "ja": "帯域幅（KB/秒）",
+    "ko": "대역폭 (KB/s)",
+    "nl": "Bandbreedte (KB/s)",
+    "pt-BR": "Largura de banda (KB/s)",
+    "ru": "Пропускная способность (КБ/с)",
+    "zh-Hans": "带宽（KB/秒）",
+    "zh-Hant": "頻寬（KB/秒）"
+  },
+  "Contains": {
+    "ar": "يحتوي على",
+    "comment": "Pattern comparison that requires the value to appear anywhere",
+    "de": "Enthält",
+    "es": "Contiene",
+    "fr": "Contient",
+    "it": "Contiene",
+    "ja": "部分一致",
+    "ko": "포함",
+    "nl": "Bevat",
+    "pt-BR": "Contém",
+    "ru": "Содержит",
+    "zh-Hans": "包含",
+    "zh-Hant": "包含"
+  },
+  "Content type": {
+    "ar": "نوع المحتوى",
+    "comment": "Field holding the Content-Type header a map local rule returns",
+    "de": "Inhaltstyp",
+    "es": "Tipo de contenido",
+    "fr": "Type de contenu",
+    "it": "Tipo di contenuto",
+    "ja": "コンテンツタイプ",
+    "ko": "콘텐츠 유형",
+    "nl": "Inhoudstype",
+    "pt-BR": "Tipo de conteúdo",
+    "ru": "Тип содержимого",
+    "zh-Hans": "内容类型",
+    "zh-Hant": "內容類型"
+  },
+  "Delay (seconds)": {
+    "ar": "التأخير (بالثواني)",
+    "comment": "Field holding the seconds a mock or map local response waits before answering",
+    "de": "Verzögerung (Sekunden)",
+    "es": "Retardo (segundos)",
+    "fr": "Délai (secondes)",
+    "it": "Ritardo (secondi)",
+    "ja": "遅延（秒）",
+    "ko": "지연 (초)",
+    "nl": "Vertraging (seconden)",
+    "pt-BR": "Atraso (segundos)",
+    "ru": "Задержка (секунды)",
+    "zh-Hans": "延迟（秒）",
+    "zh-Hant": "延遲（秒）"
+  },
+  "Disable": {
+    "ar": "تعطيل",
+    "comment": "Swipe action that turns an enabled override off",
+    "de": "Deaktivieren",
+    "es": "Desactivar",
+    "fr": "Désactiver",
+    "it": "Disattiva",
+    "ja": "無効にする",
+    "ko": "사용 안 함",
+    "nl": "Uitschakelen",
+    "pt-BR": "Desativar",
+    "ru": "Отключить",
+    "zh-Hans": "停用",
+    "zh-Hant": "停用"
+  },
+  "Edit Override": {
+    "ar": "تحرير التجاوز",
+    "comment": "Title of the override editor when changing an existing override",
+    "de": "Override bearbeiten",
+    "es": "Editar anulación",
+    "fr": "Modifier le remplacement",
+    "it": "Modifica override",
+    "ja": "上書きを編集",
+    "ko": "재정의 편집",
+    "nl": "Overschrijving bewerken",
+    "pt-BR": "Editar substituição",
+    "ru": "Изменить переопределение",
+    "zh-Hans": "编辑覆盖",
+    "zh-Hant": "編輯覆寫"
+  },
+  "Enable": {
+    "ar": "تفعيل",
+    "comment": "Swipe action that turns a disabled override back on",
+    "de": "Aktivieren",
+    "es": "Activar",
+    "fr": "Activer",
+    "it": "Attiva",
+    "ja": "有効にする",
+    "ko": "사용",
+    "nl": "Inschakelen",
+    "pt-BR": "Ativar",
+    "ru": "Включить",
+    "zh-Hans": "启用",
+    "zh-Hant": "啟用"
+  },
+  "Enable Request Overrides": {
+    "ar": "تفعيل تجاوزات الطلبات",
+    "comment": "Master switch at the top of the request overrides list. Says 'Request' because the Feature Flags screen already owns the key 'Enable overrides'",
+    "de": "Anfrage-Overrides aktivieren",
+    "es": "Activar anulaciones de solicitudes",
+    "fr": "Activer les remplacements de requêtes",
+    "it": "Attiva override delle richieste",
+    "ja": "リクエストの上書きを有効にする",
+    "ko": "요청 재정의 사용",
+    "nl": "Verzoekoverschrijvingen inschakelen",
+    "pt-BR": "Ativar substituições de requisições",
+    "ru": "Включить переопределения запросов",
+    "zh-Hans": "启用请求覆盖",
+    "zh-Hant": "啟用請求覆寫"
   },
   "Enabled": {
+    "ar": "مفعّلة",
     "comment": "Toggle in the rule editor controlling whether the rule is evaluated",
-    "fr": "Activée", "de": "Aktiviert", "es": "Activada", "it": "Attiva", "pt-BR": "Ativada",
-    "nl": "Ingeschakeld", "ja": "有効", "zh-Hans": "已启用", "zh-Hant": "已啟用",
-    "ko": "사용", "ru": "Включено", "ar": "مفعّلة"
+    "de": "Aktiviert",
+    "es": "Activada",
+    "fr": "Activée",
+    "it": "Attiva",
+    "ja": "有効",
+    "ko": "사용",
+    "nl": "Ingeschakeld",
+    "pt-BR": "Ativada",
+    "ru": "Включено",
+    "zh-Hans": "已启用",
+    "zh-Hant": "已啟用"
+  },
+  "Exact": {
+    "ar": "مطابق تمامًا",
+    "comment": "Pattern comparison that requires the whole value to be equal",
+    "de": "Exakt",
+    "es": "Exacta",
+    "fr": "Exact",
+    "it": "Esatta",
+    "ja": "完全一致",
+    "ko": "정확히 일치",
+    "nl": "Exact",
+    "pt-BR": "Exata",
+    "ru": "Точное",
+    "zh-Hans": "完全匹配",
+    "zh-Hant": "完全相符"
+  },
+  "Failure rate": {
+    "ar": "معدل الفشل",
+    "comment": "Slider setting the fraction of matching requests a condition fails",
+    "de": "Fehlerrate",
+    "es": "Tasa de fallos",
+    "fr": "Taux d'échec",
+    "it": "Tasso di errore",
+    "ja": "失敗率",
+    "ko": "실패율",
+    "nl": "Foutpercentage",
+    "pt-BR": "Taxa de falha",
+    "ru": "Доля сбоев",
+    "zh-Hans": "失败率",
+    "zh-Hant": "失敗率"
+  },
+  "File path": {
+    "ar": "مسار الملف",
+    "comment": "Field holding the absolute path a map local rule serves",
+    "de": "Dateipfad",
+    "es": "Ruta del archivo",
+    "fr": "Chemin du fichier",
+    "it": "Percorso del file",
+    "ja": "ファイルパス",
+    "ko": "파일 경로",
+    "nl": "Bestandspad",
+    "pt-BR": "Caminho do arquivo",
+    "ru": "Путь к файлу",
+    "zh-Hans": "文件路径",
+    "zh-Hant": "檔案路徑"
+  },
+  "Header name": {
+    "ar": "اسم الترويسة",
+    "comment": "Placeholder for the name field of an editable header row",
+    "de": "Header-Name",
+    "es": "Nombre del encabezado",
+    "fr": "Nom de l'en-tête",
+    "it": "Nome intestazione",
+    "ja": "ヘッダー名",
+    "ko": "헤더 이름",
+    "nl": "Headernaam",
+    "pt-BR": "Nome do cabeçalho",
+    "ru": "Имя заголовка",
+    "zh-Hans": "标头名称",
+    "zh-Hant": "標頭名稱"
+  },
+  "Host matching": {
+    "ar": "مطابقة المضيف",
+    "comment": "Picker choosing how the host pattern is compared",
+    "de": "Host-Vergleich",
+    "es": "Comparación de host",
+    "fr": "Comparaison de l'hôte",
+    "it": "Confronto host",
+    "ja": "ホストの照合方法",
+    "ko": "호스트 일치 방식",
+    "nl": "Hostvergelijking",
+    "pt-BR": "Comparação de host",
+    "ru": "Сравнение хоста",
+    "zh-Hans": "主机匹配方式",
+    "zh-Hant": "主機比對方式"
+  },
+  "Import Complete": {
+    "ar": "اكتمل الاستيراد",
+    "comment": "Title of the alert shown after a successful HAR import",
+    "de": "Import abgeschlossen",
+    "es": "Importación completada",
+    "fr": "Importation terminée",
+    "it": "Importazione completata",
+    "ja": "インポート完了",
+    "ko": "가져오기 완료",
+    "nl": "Import voltooid",
+    "pt-BR": "Importação concluída",
+    "ru": "Импорт завершён",
+    "zh-Hans": "导入完成",
+    "zh-Hant": "匯入完成"
+  },
+  "Import Failed": {
+    "ar": "فشل الاستيراد",
+    "comment": "Title of the alert shown when a HAR document cannot be read",
+    "de": "Import fehlgeschlagen",
+    "es": "Error de importación",
+    "fr": "Échec de l'importation",
+    "it": "Importazione non riuscita",
+    "ja": "インポートに失敗しました",
+    "ko": "가져오기 실패",
+    "nl": "Import mislukt",
+    "pt-BR": "Falha na importação",
+    "ru": "Не удалось импортировать",
+    "zh-Hans": "导入失败",
+    "zh-Hant": "匯入失敗"
+  },
+  "Import from HAR": {
+    "ar": "استيراد من HAR",
+    "comment": "Toolbar menu item that opens the file importer for a HAR document",
+    "de": "Aus HAR importieren",
+    "es": "Importar desde HAR",
+    "fr": "Importer depuis un HAR",
+    "it": "Importa da HAR",
+    "ja": "HARからインポート",
+    "ko": "HAR에서 가져오기",
+    "nl": "Importeren uit HAR",
+    "pt-BR": "Importar de HAR",
+    "ru": "Импортировать из HAR",
+    "zh-Hans": "从 HAR 导入",
+    "zh-Hant": "從 HAR 匯入"
+  },
+  "Imported %lld overrides. Every imported override starts disabled.": {
+    "ar": {
+      "few": "تم استيراد %lld تجاوزات. كل تجاوز مستورد يبدأ معطّلاً.",
+      "many": "تم استيراد %lld تجاوزًا. كل تجاوز مستورد يبدأ معطّلاً.",
+      "one": "تم استيراد تجاوز واحد. كل تجاوز مستورد يبدأ معطّلاً.",
+      "other": "تم استيراد %lld تجاوز. كل تجاوز مستورد يبدأ معطّلاً.",
+      "two": "تم استيراد تجاوزين. كل تجاوز مستورد يبدأ معطّلاً.",
+      "zero": "لم يتم استيراد أي تجاوز. كل تجاوز مستورد يبدأ معطّلاً."
+    },
+    "comment": "Body of the alert shown after a successful HAR import",
+    "de": {
+      "one": "%lld Override importiert. Jedes importierte Override ist zunächst deaktiviert.",
+      "other": "%lld Overrides importiert. Jedes importierte Override ist zunächst deaktiviert."
+    },
+    "en": {
+      "one": "Imported %lld override. Every imported override starts disabled.",
+      "other": "Imported %lld overrides. Every imported override starts disabled."
+    },
+    "es": {
+      "one": "Se importó %lld anulación. Cada anulación importada empieza desactivada.",
+      "other": "Se importaron %lld anulaciones. Cada anulación importada empieza desactivada."
+    },
+    "fr": {
+      "one": "%lld remplacement importé. Chaque remplacement importé est désactivé au départ.",
+      "other": "%lld remplacements importés. Chaque remplacement importé est désactivé au départ."
+    },
+    "it": {
+      "one": "Importato %lld override. Ogni override importato parte disattivato.",
+      "other": "Importati %lld override. Ogni override importato parte disattivato."
+    },
+    "ja": {
+      "other": "%lld件の上書きをインポートしました。インポートした上書きはすべて無効の状態です。"
+    },
+    "ko": {
+      "other": "재정의 %lld개를 가져왔습니다. 가져온 재정의는 모두 사용 안 함 상태로 시작합니다."
+    },
+    "nl": {
+      "one": "%lld overschrijving geïmporteerd. Elke geïmporteerde overschrijving begint uitgeschakeld.",
+      "other": "%lld overschrijvingen geïmporteerd. Elke geïmporteerde overschrijving begint uitgeschakeld."
+    },
+    "plural": true,
+    "pt-BR": {
+      "one": "%lld substituição importada. Toda substituição importada começa desativada.",
+      "other": "%lld substituições importadas. Toda substituição importada começa desativada."
+    },
+    "ru": {
+      "few": "Импортировано %lld переопределения. Каждое импортированное переопределение изначально отключено.",
+      "many": "Импортировано %lld переопределений. Каждое импортированное переопределение изначально отключено.",
+      "one": "Импортировано %lld переопределение. Каждое импортированное переопределение изначально отключено.",
+      "other": "Импортировано %lld переопределений. Каждое импортированное переопределение изначально отключено."
+    },
+    "zh-Hans": {
+      "other": "已导入 %lld 条覆盖。每条导入的覆盖初始均为停用状态。"
+    },
+    "zh-Hant": {
+      "other": "已匯入 %lld 條覆寫。每條匯入的覆寫初始均為停用狀態。"
+    }
+  },
+  "Latency (seconds)": {
+    "ar": "زمن الاستجابة (بالثواني)",
+    "comment": "Field holding the seconds a condition adds before a request is sent",
+    "de": "Latenz (Sekunden)",
+    "es": "Latencia (segundos)",
+    "fr": "Latence (secondes)",
+    "it": "Latenza (secondi)",
+    "ja": "レイテンシ（秒）",
+    "ko": "지연 시간 (초)",
+    "nl": "Latentie (seconden)",
+    "pt-BR": "Latência (segundos)",
+    "ru": "Задержка сети (секунды)",
+    "zh-Hans": "延迟时间（秒）",
+    "zh-Hant": "延遲時間（秒）"
+  },
+  "Map Local File": {
+    "ar": "ربط ملف محلي",
+    "comment": "Name of the action that answers a request with a local file",
+    "de": "Lokale Datei zuordnen",
+    "es": "Asignar archivo local",
+    "fr": "Fichier local",
+    "it": "Mappa file locale",
+    "ja": "ローカルファイルを割り当て",
+    "ko": "로컬 파일 매핑",
+    "nl": "Lokaal bestand koppelen",
+    "pt-BR": "Mapear arquivo local",
+    "ru": "Локальный файл",
+    "zh-Hans": "映射本地文件",
+    "zh-Hant": "對應本機檔案"
+  },
+  "Match": {
+    "ar": "المطابقة",
+    "comment": "Section header for the host and path fields in the rule editor",
+    "de": "Übereinstimmung",
+    "es": "Coincidencia",
+    "fr": "Correspondance",
+    "it": "Corrispondenza",
+    "ja": "一致条件",
+    "ko": "일치 조건",
+    "nl": "Overeenkomst",
+    "pt-BR": "Correspondência",
+    "ru": "Совпадение",
+    "zh-Hans": "匹配",
+    "zh-Hant": "比對"
+  },
+  "Methods": {
+    "ar": "الأساليب",
+    "comment": "Section header for the HTTP method toggles in the rule editor",
+    "de": "Methoden",
+    "es": "Métodos",
+    "fr": "Méthodes",
+    "it": "Metodi",
+    "ja": "メソッド",
+    "ko": "메서드",
+    "nl": "Methoden",
+    "pt-BR": "Métodos",
+    "ru": "Методы",
+    "zh-Hans": "方法",
+    "zh-Hant": "方法"
+  },
+  "Mock Response": {
+    "ar": "استجابة محاكاة",
+    "comment": "Name of the action that answers a request with a canned response",
+    "de": "Mock-Antwort",
+    "es": "Respuesta simulada",
+    "fr": "Réponse simulée",
+    "it": "Risposta simulata",
+    "ja": "モックレスポンス",
+    "ko": "모의 응답",
+    "nl": "Gesimuleerd antwoord",
+    "pt-BR": "Resposta simulada",
+    "ru": "Подменённый ответ",
+    "zh-Hans": "模拟响应",
+    "zh-Hant": "模擬回應"
+  },
+  "Mock, redirect, rewrite or slow down matching requests. Add an override to get started.": {
+    "ar": "قم بمحاكاة الطلبات المطابقة أو إعادة توجيهها أو إعادة كتابتها أو إبطائها. أضف تجاوزًا للبدء.",
+    "comment": "Empty state description on the request overrides list",
+    "de": "Passende Anfragen simulieren, umleiten, umschreiben oder verlangsamen. Fügen Sie ein Override hinzu, um zu beginnen.",
+    "es": "Simula, redirige, reescribe o ralentiza las solicitudes coincidentes. Añade una anulación para empezar.",
+    "fr": "Simulez, redirigez, réécrivez ou ralentissez les requêtes correspondantes. Ajoutez un remplacement pour commencer.",
+    "it": "Simula, reindirizza, riscrivi o rallenta le richieste corrispondenti. Aggiungi un override per iniziare.",
+    "ja": "一致するリクエストをモック、リダイレクト、書き換え、または遅延させます。上書きを追加して始めましょう。",
+    "ko": "일치하는 요청을 모의 응답, 리디렉션, 재작성하거나 지연시킵니다. 재정의를 추가해 시작하세요.",
+    "nl": "Simuleer, verwijs door, herschrijf of vertraag passende verzoeken. Voeg een overschrijving toe om te beginnen.",
+    "pt-BR": "Simule, redirecione, reescreva ou desacelere as solicitações correspondentes. Adicione uma substituição para começar.",
+    "ru": "Подменяйте, перенаправляйте, изменяйте или замедляйте подходящие запросы. Добавьте переопределение, чтобы начать.",
+    "zh-Hans": "对匹配的请求进行模拟、重定向、重写或限速。添加一条覆盖即可开始。",
+    "zh-Hant": "對符合的請求進行模擬、重新導向、重寫或限速。新增一條覆寫即可開始。"
+  },
+  "Network Condition": {
+    "ar": "حالة الشبكة",
+    "comment": "Name of the action that adds latency, throttles bandwidth or fails a request",
+    "de": "Netzwerkbedingung",
+    "es": "Condición de red",
+    "fr": "Condition réseau",
+    "it": "Condizione di rete",
+    "ja": "ネットワーク条件",
+    "ko": "네트워크 조건",
+    "nl": "Netwerkconditie",
+    "pt-BR": "Condição de rede",
+    "ru": "Условия сети",
+    "zh-Hans": "网络状况",
+    "zh-Hant": "網路狀況"
+  },
+  "New Override": {
+    "ar": "تجاوز جديد",
+    "comment": "Toolbar menu item that opens an empty override editor, and the editor's title when creating",
+    "de": "Neues Override",
+    "es": "Nueva anulación",
+    "fr": "Nouveau remplacement",
+    "it": "Nuovo override",
+    "ja": "新規の上書き",
+    "ko": "새 재정의",
+    "nl": "Nieuwe overschrijving",
+    "pt-BR": "Nova substituição",
+    "ru": "Новое переопределение",
+    "zh-Hans": "新建覆盖",
+    "zh-Hant": "新增覆寫"
+  },
+  "No Overrides": {
+    "ar": "لا توجد تجاوزات",
+    "comment": "Empty state title on the request overrides list",
+    "de": "Keine Overrides",
+    "es": "Sin anulaciones",
+    "fr": "Aucun remplacement",
+    "it": "Nessun override",
+    "ja": "上書きなし",
+    "ko": "재정의 없음",
+    "nl": "Geen overschrijvingen",
+    "pt-BR": "Sem substituições",
+    "ru": "Нет переопределений",
+    "zh-Hans": "无覆盖",
+    "zh-Hant": "無覆寫"
+  },
+  "Off": {
+    "ar": "إيقاف",
+    "comment": "Second half of an override row's subtitle, meaning the override is disabled",
+    "de": "Aus",
+    "es": "Desactivado",
+    "fr": "Désactivé",
+    "it": "Non attivo",
+    "ja": "オフ",
+    "ko": "끔",
+    "nl": "Uit",
+    "pt-BR": "Desativado",
+    "ru": "Выкл.",
+    "zh-Hans": "关",
+    "zh-Hant": "關"
+  },
+  "On": {
+    "ar": "تشغيل",
+    "comment": "Second half of an override row's subtitle, meaning the override is enabled",
+    "de": "Ein",
+    "es": "Activado",
+    "fr": "Activé",
+    "it": "Attivo",
+    "ja": "オン",
+    "ko": "켬",
+    "nl": "Aan",
+    "pt-BR": "Ativado",
+    "ru": "Вкл.",
+    "zh-Hans": "开",
+    "zh-Hant": "開"
+  },
+  "Overrides are applied in order. The first matching mock or map local wins.": {
+    "ar": "تُطبَّق التجاوزات بالترتيب. يفوز أول محاكاة أو ملف محلي مطابق.",
+    "comment": "Footer under the master switch explaining override precedence",
+    "de": "Overrides werden der Reihe nach angewendet. Das erste passende Mock oder Map Local gewinnt.",
+    "es": "Las anulaciones se aplican en orden. Gana la primera simulación o archivo local que coincida.",
+    "fr": "Les remplacements sont appliqués dans l'ordre. La première simulation ou redirection locale correspondante l'emporte.",
+    "it": "Gli override vengono applicati in ordine. Vince il primo mock o file locale corrispondente.",
+    "ja": "上書きは順番に適用されます。最初に一致したモックまたはローカルファイルが優先されます。",
+    "ko": "재정의는 순서대로 적용됩니다. 처음 일치하는 목 응답 또는 로컬 파일이 우선합니다.",
+    "nl": "Overschrijvingen worden op volgorde toegepast. De eerste passende mock of lokaal bestand wint.",
+    "pt-BR": "As substituições são aplicadas em ordem. Vence a primeira simulação ou arquivo local correspondente.",
+    "ru": "Переопределения применяются по порядку. Побеждает первая подходящая подмена или локальный файл.",
+    "zh-Hans": "覆盖按顺序应用。第一个匹配的模拟响应或本地文件生效。",
+    "zh-Hant": "覆寫依序套用。第一個符合的模擬回應或本機檔案生效。"
+  },
+  "Path matching": {
+    "ar": "مطابقة المسار",
+    "comment": "Picker choosing how the path pattern is compared",
+    "de": "Pfad-Vergleich",
+    "es": "Comparación de ruta",
+    "fr": "Comparaison du chemin",
+    "it": "Confronto percorso",
+    "ja": "パスの照合方法",
+    "ko": "경로 일치 방식",
+    "nl": "Padvergelijking",
+    "pt-BR": "Comparação de caminho",
+    "ru": "Сравнение пути",
+    "zh-Hans": "路径匹配方式",
+    "zh-Hant": "路徑比對方式"
+  },
+  "Remove headers": {
+    "ar": "الترويسات المراد إزالتها",
+    "comment": "Section header for the header names a rewrite rule removes",
+    "de": "Header entfernen",
+    "es": "Encabezados a eliminar",
+    "fr": "En-têtes à supprimer",
+    "it": "Intestazioni da rimuovere",
+    "ja": "削除するヘッダー",
+    "ko": "제거할 헤더",
+    "nl": "Headers verwijderen",
+    "pt-BR": "Cabeçalhos a remover",
+    "ru": "Удаляемые заголовки",
+    "zh-Hans": "移除的标头",
+    "zh-Hant": "移除的標頭"
+  },
+  "Request Overrides": {
+    "ar": "تجاوزات الطلبات",
+    "comment": "Navigation title of the request overrides list, and its row in the Networking menu section",
+    "de": "Anfrage-Overrides",
+    "es": "Anulaciones de solicitudes",
+    "fr": "Remplacements de requêtes",
+    "it": "Override delle richieste",
+    "ja": "リクエストの上書き",
+    "ko": "요청 재정의",
+    "nl": "Verzoekoverschrijvingen",
+    "pt-BR": "Substituições de requisições",
+    "ru": "Переопределения запросов",
+    "zh-Hans": "请求覆盖",
+    "zh-Hant": "請求覆寫"
+  },
+  "Rewrite Headers": {
+    "ar": "إعادة كتابة الترويسات",
+    "comment": "Name of the action that sets or removes request headers",
+    "de": "Header umschreiben",
+    "es": "Reescribir encabezados",
+    "fr": "Réécrire les en-têtes",
+    "it": "Riscrivi intestazioni",
+    "ja": "ヘッダーを書き換え",
+    "ko": "헤더 재작성",
+    "nl": "Headers herschrijven",
+    "pt-BR": "Reescrever cabeçalhos",
+    "ru": "Переписать заголовки",
+    "zh-Hans": "重写标头",
+    "zh-Hant": "重寫標頭"
+  },
+  "Select no methods to match any method.": {
+    "ar": "لا تحدد أي أسلوب لمطابقة أي أسلوب.",
+    "comment": "Footer under the HTTP method checklist in the override editor",
+    "de": "Wählen Sie keine Methode aus, um jede Methode zu treffen.",
+    "es": "No selecciones ningún método para que coincida cualquier método.",
+    "fr": "Ne sélectionnez aucune méthode pour correspondre à n'importe quelle méthode.",
+    "it": "Non selezionare alcun metodo per corrispondere a qualsiasi metodo.",
+    "ja": "メソッドを選択しないと、どのメソッドにも一致します。",
+    "ko": "메서드를 선택하지 않으면 어떤 메서드에도 일치합니다.",
+    "nl": "Selecteer geen enkele methode om elke methode te matchen.",
+    "pt-BR": "Não selecione nenhum método para corresponder a qualquer método.",
+    "ru": "Не выбирайте ни одного метода, чтобы совпадал любой метод.",
+    "zh-Hans": "不选择任何方法即可匹配任意方法。",
+    "zh-Hant": "不選擇任何方法即可比對任意方法。"
+  },
+  "Set headers": {
+    "ar": "الترويسات المراد تعيينها",
+    "comment": "Section header for the headers a rewrite rule sets",
+    "de": "Header setzen",
+    "es": "Encabezados a establecer",
+    "fr": "En-têtes à définir",
+    "it": "Intestazioni da impostare",
+    "ja": "設定するヘッダー",
+    "ko": "설정할 헤더",
+    "nl": "Headers instellen",
+    "pt-BR": "Cabeçalhos a definir",
+    "ru": "Задаваемые заголовки",
+    "zh-Hans": "设置的标头",
+    "zh-Hant": "設定的標頭"
+  },
+  "The selected file could not be read as a HAR document.": {
+    "ar": "تعذّرت قراءة الملف المحدد كمستند HAR.",
+    "comment": "Body of the alert shown when a HAR document cannot be read",
+    "de": "Die ausgewählte Datei konnte nicht als HAR-Dokument gelesen werden.",
+    "es": "No se pudo leer el archivo seleccionado como un documento HAR.",
+    "fr": "Le fichier sélectionné n'a pas pu être lu comme un document HAR.",
+    "it": "Impossibile leggere il file selezionato come documento HAR.",
+    "ja": "選択したファイルをHARドキュメントとして読み込めませんでした。",
+    "ko": "선택한 파일을 HAR 문서로 읽을 수 없습니다.",
+    "nl": "Het geselecteerde bestand kon niet als HAR-document worden gelezen.",
+    "pt-BR": "Não foi possível ler o arquivo selecionado como um documento HAR.",
+    "ru": "Не удалось прочитать выбранный файл как документ HAR.",
+    "zh-Hans": "无法将所选文件作为 HAR 文档读取。",
+    "zh-Hant": "無法將所選檔案作為 HAR 文件讀取。"
+  },
+  "Wildcard": {
+    "ar": "حرف بدل",
+    "comment": "Pattern comparison where * means any run of characters",
+    "de": "Platzhalter",
+    "es": "Comodín",
+    "fr": "Joker",
+    "it": "Carattere jolly",
+    "ja": "ワイルドカード",
+    "ko": "와일드카드",
+    "nl": "Jokerteken",
+    "pt-BR": "Curinga",
+    "ru": "Шаблон",
+    "zh-Hans": "通配符",
+    "zh-Hant": "萬用字元"
   }
 }

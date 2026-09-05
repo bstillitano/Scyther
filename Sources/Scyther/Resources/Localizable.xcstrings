@@ -4069,7 +4069,7 @@
       }
     },
     "Add": {
-      "comment": "Accessibility label of the toolbar button holding the New rule and Import menu items",
+      "comment": "Accessibility label of the toolbar button holding the New Override and Import menu items",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -4777,6 +4777,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "任意"
+          }
+        }
+      }
+    },
+    "Any method": {
+      "comment": "Value on the Methods row when no HTTP method has been selected",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "أي أسلوب"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Beliebige Methode"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Cualquier método"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Toute méthode"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Qualsiasi metodo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "すべてのメソッド"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "모든 메서드"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Elke methode"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Qualquer método"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Любой метод"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "任意方法"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "任意方法"
           }
         }
       }
@@ -14503,6 +14580,83 @@
         }
       }
     },
+    "Disable": {
+      "comment": "Swipe action that turns an enabled override off",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تعطيل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Deaktivieren"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Desactivar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Désactiver"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Disattiva"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "無効にする"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "사용 안 함"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Uitschakelen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Desativar"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Отключить"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "停用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "停用"
+          }
+        }
+      }
+    },
     "Discard": {
       "comment": "Cookie property row label for the Discard flag, which drops the cookie at session end",
       "localizations": {
@@ -15196,83 +15350,6 @@
         }
       }
     },
-    "Edit": {
-      "comment": "Leading swipe action on a rule row that opens the editor",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "تحرير"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Bearbeiten"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Editar"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Modifier"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Modifica"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "編集"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "편집"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Bewerken"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Editar"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Изменить"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "编辑"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "編輯"
-          }
-        }
-      }
-    },
     "Edit JSON": {
       "comment": "Navigation title of the text editor when it holds a JSON document",
       "localizations": {
@@ -15346,6 +15423,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "編輯 JSON"
+          }
+        }
+      }
+    },
+    "Edit Override": {
+      "comment": "Title of the override editor when changing an existing override",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تحرير التجاوز"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Override bearbeiten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Editar anulación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Modifier le remplacement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Modifica override"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "上書きを編集"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "재정의 편집"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Overschrijving bewerken"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Editar substituição"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Изменить переопределение"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "编辑覆盖"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "編輯覆寫"
           }
         }
       }
@@ -15500,83 +15654,6 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "編輯文字"
-          }
-        }
-      }
-    },
-    "Edit rule": {
-      "comment": "Title of the rule editor when changing an existing rule",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "تحرير القاعدة"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Regel bearbeiten"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Editar regla"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Modifier la règle"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Modifica regola"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "ルールを編集"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "규칙 편집"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Regel bewerken"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Editar regra"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Изменить правило"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "编辑规则"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "編輯規則"
           }
         }
       }
@@ -15812,6 +15889,83 @@
         }
       }
     },
+    "Enable": {
+      "comment": "Swipe action that turns a disabled override back on",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تفعيل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aktivieren"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Activar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Activer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Attiva"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "有効にする"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "사용"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Inschakelen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ativar"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Включить"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "启用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "啟用"
+          }
+        }
+      }
+    },
     "Enable FPS Counter": {
       "comment": "Searchable row inside the FPS Counter page",
       "localizations": {
@@ -16043,79 +16197,79 @@
         }
       }
     },
-    "Enable Rules": {
-      "comment": "Master switch at the top of the rules list",
+    "Enable Request Overrides": {
+      "comment": "Master switch at the top of the request overrides list. Says 'Request' because the Feature Flags screen already owns the key 'Enable overrides'",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "تفعيل القواعد"
+            "value": "تفعيل تجاوزات الطلبات"
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Regeln aktivieren"
+            "value": "Anfrage-Overrides aktivieren"
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Activar reglas"
+            "value": "Activar anulaciones de solicitudes"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Activer les règles"
+            "value": "Activer les remplacements de requêtes"
           }
         },
         "it": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Attiva regole"
+            "value": "Attiva override delle richieste"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "ルールを有効にする"
+            "value": "リクエストの上書きを有効にする"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "규칙 사용"
+            "value": "요청 재정의 사용"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Regels inschakelen"
+            "value": "Verzoekoverschrijvingen inschakelen"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Ativar regras"
+            "value": "Ativar substituições de requisições"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Включить правила"
+            "value": "Включить переопределения запросов"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "启用规则"
+            "value": "启用请求覆盖"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "啟用規則"
+            "value": "啟用請求覆寫"
           }
         }
       }
@@ -21664,7 +21818,7 @@
         }
       }
     },
-    "Imported %lld rules. Every imported rule starts disabled.": {
+    "Imported %lld overrides. Every imported override starts disabled.": {
       "comment": "Body of the alert shown after a successful HAR import",
       "localizations": {
         "ar": {
@@ -21673,37 +21827,37 @@
               "few": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "تم استيراد %lld قواعد. كل قاعدة مستوردة تبدأ معطّلة."
+                  "value": "تم استيراد %lld تجاوزات. كل تجاوز مستورد يبدأ معطّلاً."
                 }
               },
               "many": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "تم استيراد %lld قاعدة. كل قاعدة مستوردة تبدأ معطّلة."
+                  "value": "تم استيراد %lld تجاوزًا. كل تجاوز مستورد يبدأ معطّلاً."
                 }
               },
               "one": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "تم استيراد قاعدة واحدة. كل قاعدة مستوردة تبدأ معطّلة."
+                  "value": "تم استيراد تجاوز واحد. كل تجاوز مستورد يبدأ معطّلاً."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "تم استيراد %lld قاعدة. كل قاعدة مستوردة تبدأ معطّلة."
+                  "value": "تم استيراد %lld تجاوز. كل تجاوز مستورد يبدأ معطّلاً."
                 }
               },
               "two": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "تم استيراد قاعدتين. كل قاعدة مستوردة تبدأ معطّلة."
+                  "value": "تم استيراد تجاوزين. كل تجاوز مستورد يبدأ معطّلاً."
                 }
               },
               "zero": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "لم يتم استيراد أي قاعدة. كل قاعدة مستوردة تبدأ معطّلة."
+                  "value": "لم يتم استيراد أي تجاوز. كل تجاوز مستورد يبدأ معطّلاً."
                 }
               }
             }
@@ -21715,13 +21869,13 @@
               "one": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "%lld Regel importiert. Jede importierte Regel ist zunächst deaktiviert."
+                  "value": "%lld Override importiert. Jedes importierte Override ist zunächst deaktiviert."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "%lld Regeln importiert. Jede importierte Regel ist zunächst deaktiviert."
+                  "value": "%lld Overrides importiert. Jedes importierte Override ist zunächst deaktiviert."
                 }
               }
             }
@@ -21733,13 +21887,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Imported %lld rule. Every imported rule starts disabled."
+                  "value": "Imported %lld override. Every imported override starts disabled."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Imported %lld rules. Every imported rule starts disabled."
+                  "value": "Imported %lld overrides. Every imported override starts disabled."
                 }
               }
             }
@@ -21751,13 +21905,13 @@
               "one": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "Se importó %lld regla. Cada regla importada empieza desactivada."
+                  "value": "Se importó %lld anulación. Cada anulación importada empieza desactivada."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "Se importaron %lld reglas. Cada regla importada empieza desactivada."
+                  "value": "Se importaron %lld anulaciones. Cada anulación importada empieza desactivada."
                 }
               }
             }
@@ -21769,13 +21923,13 @@
               "one": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "%lld règle importée. Chaque règle importée est désactivée au départ."
+                  "value": "%lld remplacement importé. Chaque remplacement importé est désactivé au départ."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "%lld règles importées. Chaque règle importée est désactivée au départ."
+                  "value": "%lld remplacements importés. Chaque remplacement importé est désactivé au départ."
                 }
               }
             }
@@ -21787,13 +21941,13 @@
               "one": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "Importata %lld regola. Ogni regola importata parte disattivata."
+                  "value": "Importato %lld override. Ogni override importato parte disattivato."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "Importate %lld regole. Ogni regola importata parte disattivata."
+                  "value": "Importati %lld override. Ogni override importato parte disattivato."
                 }
               }
             }
@@ -21805,7 +21959,7 @@
               "other": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "%lld件のルールをインポートしました。インポートしたルールはすべて無効の状態です。"
+                  "value": "%lld件の上書きをインポートしました。インポートした上書きはすべて無効の状態です。"
                 }
               }
             }
@@ -21817,7 +21971,7 @@
               "other": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "규칙 %lld개를 가져왔습니다. 가져온 규칙은 모두 사용 안 함 상태로 시작합니다."
+                  "value": "재정의 %lld개를 가져왔습니다. 가져온 재정의는 모두 사용 안 함 상태로 시작합니다."
                 }
               }
             }
@@ -21829,13 +21983,13 @@
               "one": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "%lld regel geïmporteerd. Elke geïmporteerde regel begint uitgeschakeld."
+                  "value": "%lld overschrijving geïmporteerd. Elke geïmporteerde overschrijving begint uitgeschakeld."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "%lld regels geïmporteerd. Elke geïmporteerde regel begint uitgeschakeld."
+                  "value": "%lld overschrijvingen geïmporteerd. Elke geïmporteerde overschrijving begint uitgeschakeld."
                 }
               }
             }
@@ -21847,13 +22001,13 @@
               "one": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "%lld regra importada. Toda regra importada começa desativada."
+                  "value": "%lld substituição importada. Toda substituição importada começa desativada."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "%lld regras importadas. Toda regra importada começa desativada."
+                  "value": "%lld substituições importadas. Toda substituição importada começa desativada."
                 }
               }
             }
@@ -21865,25 +22019,25 @@
               "few": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "Импортировано %lld правила. Каждое импортированное правило изначально отключено."
+                  "value": "Импортировано %lld переопределения. Каждое импортированное переопределение изначально отключено."
                 }
               },
               "many": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "Импортировано %lld правил. Каждое импортированное правило изначально отключено."
+                  "value": "Импортировано %lld переопределений. Каждое импортированное переопределение изначально отключено."
                 }
               },
               "one": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "Импортировано %lld правило. Каждое импортированное правило изначально отключено."
+                  "value": "Импортировано %lld переопределение. Каждое импортированное переопределение изначально отключено."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "Импортировано %lld правил. Каждое импортированное правило изначально отключено."
+                  "value": "Импортировано %lld переопределений. Каждое импортированное переопределение изначально отключено."
                 }
               }
             }
@@ -21895,7 +22049,7 @@
               "other": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "已导入 %lld 条规则。每条导入的规则初始均为停用状态。"
+                  "value": "已导入 %lld 条覆盖。每条导入的覆盖初始均为停用状态。"
                 }
               }
             }
@@ -21907,7 +22061,7 @@
               "other": {
                 "stringUnit": {
                   "state": "needs_review",
-                  "value": "已匯入 %lld 條規則。每條匯入的規則初始均為停用狀態。"
+                  "value": "已匯入 %lld 條覆寫。每條匯入的覆寫初始均為停用狀態。"
                 }
               }
             }
@@ -24071,83 +24225,6 @@
         }
       }
     },
-    "Leave every method off to match any method.": {
-      "comment": "Footer under the HTTP method toggles in the rule editor",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "اترك جميع الأساليب مُعطّلة لمطابقة أي أسلوب."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Lassen Sie alle Methoden aus, um jede Methode zu treffen."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Deja todos los métodos desactivados para que coincida cualquier método."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Laissez toutes les méthodes désactivées pour correspondre à n'importe quelle méthode."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Lascia tutti i metodi disattivati per corrispondere a qualsiasi metodo."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "すべてのメソッドをオフのままにすると、どのメソッドにも一致します。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "모든 메서드를 끈 채로 두면 어떤 메서드에도 일치합니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Laat alle methoden uit om elke methode te matchen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Deixe todos os métodos desativados para corresponder a qualquer método."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Оставьте все методы выключенными, чтобы совпадал любой метод."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "全部方法保持关闭即可匹配任意方法。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "全部方法保持關閉即可比對任意方法。"
-          }
-        }
-      }
-    },
     "Light": {
       "comment": "Colour scheme option forcing light appearance",
       "localizations": {
@@ -25534,79 +25611,79 @@
         }
       }
     },
-    "Mock, redirect, rewrite or slow down matching requests. Add a rule to get started.": {
-      "comment": "Empty state description on the rules list",
+    "Mock, redirect, rewrite or slow down matching requests. Add an override to get started.": {
+      "comment": "Empty state description on the request overrides list",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "قم بمحاكاة الطلبات المطابقة أو إعادة توجيهها أو إعادة كتابتها أو إبطائها. أضف قاعدة للبدء."
+            "value": "قم بمحاكاة الطلبات المطابقة أو إعادة توجيهها أو إعادة كتابتها أو إبطائها. أضف تجاوزًا للبدء."
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Passende Anfragen simulieren, umleiten, umschreiben oder verlangsamen. Fügen Sie eine Regel hinzu, um zu beginnen."
+            "value": "Passende Anfragen simulieren, umleiten, umschreiben oder verlangsamen. Fügen Sie ein Override hinzu, um zu beginnen."
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Simula, redirige, reescribe o ralentiza las solicitudes coincidentes. Añade una regla para empezar."
+            "value": "Simula, redirige, reescribe o ralentiza las solicitudes coincidentes. Añade una anulación para empezar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Simulez, redirigez, réécrivez ou ralentissez les requêtes correspondantes. Ajoutez une règle pour commencer."
+            "value": "Simulez, redirigez, réécrivez ou ralentissez les requêtes correspondantes. Ajoutez un remplacement pour commencer."
           }
         },
         "it": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Simula, reindirizza, riscrivi o rallenta le richieste corrispondenti. Aggiungi una regola per iniziare."
+            "value": "Simula, reindirizza, riscrivi o rallenta le richieste corrispondenti. Aggiungi un override per iniziare."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "一致するリクエストをモック、リダイレクト、書き換え、または遅延させます。ルールを追加して始めましょう。"
+            "value": "一致するリクエストをモック、リダイレクト、書き換え、または遅延させます。上書きを追加して始めましょう。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "일치하는 요청을 모의 응답, 리디렉션, 재작성하거나 지연시킵니다. 규칙을 추가해 시작하세요."
+            "value": "일치하는 요청을 모의 응답, 리디렉션, 재작성하거나 지연시킵니다. 재정의를 추가해 시작하세요."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Simuleer, verwijs door, herschrijf of vertraag passende verzoeken. Voeg een regel toe om te beginnen."
+            "value": "Simuleer, verwijs door, herschrijf of vertraag passende verzoeken. Voeg een overschrijving toe om te beginnen."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Simule, redirecione, reescreva ou desacelere as solicitações correspondentes. Adicione uma regra para começar."
+            "value": "Simule, redirecione, reescreva ou desacelere as solicitações correspondentes. Adicione uma substituição para começar."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Подменяйте, перенаправляйте, изменяйте или замедляйте подходящие запросы. Добавьте правило, чтобы начать."
+            "value": "Подменяйте, перенаправляйте, изменяйте или замедляйте подходящие запросы. Добавьте переопределение, чтобы начать."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "对匹配的请求进行模拟、重定向、重写或限速。添加一条规则即可开始。"
+            "value": "对匹配的请求进行模拟、重定向、重写或限速。添加一条覆盖即可开始。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "對符合的請求進行模擬、重新導向、重寫或限速。新增一條規則即可開始。"
+            "value": "對符合的請求進行模擬、重新導向、重寫或限速。新增一條覆寫即可開始。"
           }
         }
       }
@@ -26381,83 +26458,6 @@
         }
       }
     },
-    "Network Rules": {
-      "comment": "Navigation title of the rules list, and its row in the Networking menu section",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "قواعد الشبكة"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Netzwerkregeln"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Reglas de red"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Règles réseau"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Regole di rete"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "ネットワークルール"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "네트워크 규칙"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Netwerkregels"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Regras de rede"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Сетевые правила"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "网络规则"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "網路規則"
-          }
-        }
-      }
-    },
     "Networking": {
       "comment": "Menu section header: network tools, logs, and configuration",
       "localizations": {
@@ -26535,6 +26535,83 @@
         }
       }
     },
+    "New Override": {
+      "comment": "Toolbar menu item that opens an empty override editor, and the editor's title when creating",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تجاوز جديد"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Neues Override"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nueva anulación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nouveau remplacement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nuovo override"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "新規の上書き"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "새 재정의"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nieuwe overschrijving"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nova substituição"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Новое переопределение"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "新建覆盖"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "新增覆寫"
+          }
+        }
+      }
+    },
     "New York, USA": {
       "comment": "Location preset name",
       "localizations": {
@@ -26608,83 +26685,6 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "紐約，美國"
-          }
-        }
-      }
-    },
-    "New rule": {
-      "comment": "Toolbar menu item that opens an empty rule editor, and the editor's title when creating",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "قاعدة جديدة"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Neue Regel"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Nueva regla"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Nouvelle règle"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Nuova regola"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "新規ルール"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "새 규칙"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Nieuwe regel"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Nova regra"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Новое правило"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "新建规则"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "新增規則"
           }
         }
       }
@@ -27151,6 +27151,83 @@
         }
       }
     },
+    "No Overrides": {
+      "comment": "Empty state title on the request overrides list",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لا توجد تجاوزات"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Keine Overrides"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Sin anulaciones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aucun remplacement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nessun override"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "上書きなし"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "재정의 없음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Geen overschrijvingen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Sem substituições"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Нет переопределений"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "无覆盖"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "無覆寫"
+          }
+        }
+      }
+    },
     "No Records": {
       "comment": "Empty state title on the record browser",
       "localizations": {
@@ -27301,83 +27378,6 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "無結果"
-          }
-        }
-      }
-    },
-    "No Rules": {
-      "comment": "Empty state title on the rules list",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "لا توجد قواعد"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Keine Regeln"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Sin reglas"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Aucune règle"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Nessuna regola"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "ルールなし"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "규칙 없음"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Geen regels"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Nenhuma regra"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Нет правил"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "无规则"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "沒有規則"
           }
         }
       }
@@ -29923,6 +29923,160 @@
         }
       }
     },
+    "Off": {
+      "comment": "Second half of an override row's subtitle, meaning the override is disabled",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "إيقاف"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aus"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Desactivado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Désactivé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Non attivo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "オフ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "끔"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Uit"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Desativado"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Выкл."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "关"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "關"
+          }
+        }
+      }
+    },
+    "On": {
+      "comment": "Second half of an override row's subtitle, meaning the override is enabled",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تشغيل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ein"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Activado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Activé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Attivo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "オン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "켬"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aan"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ativado"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Вкл."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "开"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "開"
+          }
+        }
+      }
+    },
     "Opacity: %lld%%": {
       "comment": "Label above the grid opacity slider, showing a percentage",
       "localizations": {
@@ -30843,6 +30997,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "覆蓋此App的系統外觀。"
+          }
+        }
+      }
+    },
+    "Overrides are applied in order. The first matching mock or map local wins.": {
+      "comment": "Footer under the master switch explaining override precedence",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تُطبَّق التجاوزات بالترتيب. يفوز أول محاكاة أو ملف محلي مطابق."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Overrides werden der Reihe nach angewendet. Das erste passende Mock oder Map Local gewinnt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Las anulaciones se aplican en orden. Gana la primera simulación o archivo local que coincida."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Les remplacements sont appliqués dans l'ordre. La première simulation ou redirection locale correspondante l'emporte."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Gli override vengono applicati in ordine. Vince il primo mock o file locale corrispondente."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "上書きは順番に適用されます。最初に一致したモックまたはローカルファイルが優先されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "재정의는 순서대로 적용됩니다. 처음 일치하는 목 응답 또는 로컬 파일이 우선합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Overschrijvingen worden op volgorde toegepast. De eerste passende mock of lokaal bestand wint."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "As substituições são aplicadas em ordem. Vence a primeira simulação ou arquivo local correspondente."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Переопределения применяются по порядку. Побеждает первая подходящая подмена или локальный файл."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "覆盖按顺序应用。第一个匹配的模拟响应或本地文件生效。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "覆寫依序套用。第一個符合的模擬回應或本機檔案生效。"
           }
         }
       }
@@ -35718,6 +35949,83 @@
         }
       }
     },
+    "Request Overrides": {
+      "comment": "Navigation title of the request overrides list, and its row in the Networking menu section",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تجاوزات الطلبات"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Anfrage-Overrides"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Anulaciones de solicitudes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Remplacements de requêtes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Override delle richieste"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "リクエストの上書き"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "요청 재정의"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Verzoekoverschrijvingen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Substituições de requisições"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Переопределения запросов"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "请求覆盖"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "請求覆寫"
+          }
+        }
+      }
+    },
     "Request Permission": {
       "comment": "Button that asks the system for notification authorisation",
       "localizations": {
@@ -37720,83 +38028,6 @@
         }
       }
     },
-    "Rules are applied in order. The first matching mock or map local wins.": {
-      "comment": "Footer under the master switch explaining rule precedence",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "تُطبَّق القواعد بالترتيب. تفوز أول محاكاة أو ملف محلي مطابق."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Regeln werden der Reihe nach angewendet. Das erste passende Mock oder Map Local gewinnt."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Las reglas se aplican en orden. Gana la primera simulación o archivo local que coincida."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Les règles sont appliquées dans l'ordre. La première simulation ou redirection locale correspondante l'emporte."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Le regole vengono applicate in ordine. Vince il primo mock o file locale corrispondente."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "ルールは順番に適用されます。最初に一致したモックまたはローカルファイルが優先されます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "규칙은 순서대로 적용됩니다. 처음 일치하는 목 응답 또는 로컬 파일이 적용됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Regels worden op volgorde toegepast. De eerste passende mock of lokaal bestand wint."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "As regras são aplicadas em ordem. Vence a primeira simulação ou arquivo local correspondente."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Правила применяются по порядку. Побеждает первый подходящий мок или локальный файл."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "规则按顺序应用。第一个匹配的模拟响应或本地文件生效。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "規則依序套用。第一個符合的模擬回應或本機檔案生效。"
-          }
-        }
-      }
-    },
     "SQL Query": {
       "comment": "Title of the raw SQL editor and of its input field",
       "localizations": {
@@ -39641,6 +39872,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "安全網域"
+          }
+        }
+      }
+    },
+    "Select no methods to match any method.": {
+      "comment": "Footer under the HTTP method checklist in the override editor",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لا تحدد أي أسلوب لمطابقة أي أسلوب."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Wählen Sie keine Methode aus, um jede Methode zu treffen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No selecciones ningún método para que coincida cualquier método."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ne sélectionnez aucune méthode pour correspondre à n'importe quelle méthode."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Non selezionare alcun metodo per corrispondere a qualsiasi metodo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "メソッドを選択しないと、どのメソッドにも一致します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "메서드를 선택하지 않으면 어떤 메서드에도 일치합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Selecteer geen enkele methode om elke methode te matchen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Não selecione nenhum método para corresponder a qualquer método."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Не выбирайте ни одного метода, чтобы совпадал любой метод."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "不选择任何方法即可匹配任意方法。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "不選擇任何方法即可比對任意方法。"
           }
         }
       }

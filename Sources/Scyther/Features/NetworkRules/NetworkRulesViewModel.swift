@@ -8,7 +8,7 @@
 import Combine
 import Foundation
 
-/// Backs ``NetworkRulesView``, the list of configured rules.
+/// Backs ``NetworkRulesView``, the list of configured request overrides.
 ///
 /// The view model is a thin front for ``NetworkRuleStore``: the store stays the single writer of
 /// rule state, and this republishes its rules so the list redraws when a rule is added from the
@@ -28,6 +28,7 @@ import Foundation
 /// ### Reading Rules
 /// - ``rules``
 /// - ``isEnabled``
+/// - ``subtitle(for:)``
 ///
 /// ### Mutating Rules
 /// - ``setEnabled(_:to:)``
@@ -37,6 +38,7 @@ import Foundation
 /// ### Confirming a Deletion
 /// - ``pendingDeletion``
 /// - ``requestDeletion(at:)``
+/// - ``requestDeletion(of:)``
 /// - ``confirmDeletion()``
 /// - ``cancelDeletion()``
 ///
@@ -94,6 +96,24 @@ final class NetworkRulesViewModel: ViewModel {
     /// Whether the list has nothing to show.
     var isEmpty: Bool { rules.isEmpty }
 
+    /// The separator between the two halves of a row's subtitle.
+    ///
+    /// A middle dot rather than a hyphen, matching the way iOS itself joins two facts on one
+    /// line. Not localised: it is punctuation, not words.
+    private static let subtitleSeparator = " \u{00B7} "
+
+    /// The subtitle for one override's row, naming what it does and whether it is on.
+    ///
+    /// Carrying the enabled state in the text is what lets a disabled override read as disabled
+    /// without the row being recoloured by hand, which would fight the list's own styling.
+    ///
+    /// - Parameter rule: The override the row shows.
+    /// - Returns: For example `Mock Response · Off`.
+    func subtitle(for rule: NetworkRule) -> String {
+        let state = rule.isEnabled ? localized("On") : localized("Off")
+        return rule.action.kind.title + Self.subtitleSeparator + state
+    }
+
     /// Enables or disables a single rule.
     ///
     /// - Parameters:
@@ -128,6 +148,17 @@ final class NetworkRulesViewModel: ViewModel {
     /// - Parameter offsets: The offsets SwiftUI's `onDelete` reported.
     func requestDeletion(at offsets: IndexSet) {
         pendingDeletion = offsets.first.flatMap { rules.indices.contains($0) ? rules[$0] : nil }
+    }
+
+    /// Records a rule the row's own delete button named, so the view can confirm first.
+    ///
+    /// The trailing swipe declares its delete button explicitly — declaring any trailing swipe
+    /// action replaces the one `onDelete` would have drawn — so it hands over the rule rather
+    /// than an offset.
+    ///
+    /// - Parameter rule: The override the row offered to delete.
+    func requestDeletion(of rule: NetworkRule) {
+        pendingDeletion = rule
     }
 
     /// Deletes the rule recorded by ``requestDeletion(at:)`` and dismisses the alert.
@@ -171,7 +202,7 @@ final class NetworkRulesViewModel: ViewModel {
 
 /// The outcome of a HAR import, as the list's alert presents it.
 enum NetworkRuleImportOutcome: Identifiable, Equatable {
-    /// The document was read and produced this many rules, every one of them disabled.
+    /// The document was read and produced this many overrides, every one of them disabled.
     case imported(count: Int)
 
     /// The file could not be read, or was not a HAR document.
@@ -197,7 +228,7 @@ enum NetworkRuleImportOutcome: Identifiable, Equatable {
     var message: String {
         switch self {
         case .imported(let count):
-            return localized("Imported \(count) rules. Every imported rule starts disabled.")
+            return localized("Imported \(count) overrides. Every imported override starts disabled.")
         case .failed:
             return localized("The selected file could not be read as a HAR document.")
         }

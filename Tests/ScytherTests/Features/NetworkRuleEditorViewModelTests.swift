@@ -65,6 +65,46 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
         XCTAssertEqual(store.rules.map(\.name), ["Empty cart"])
     }
 
+    // MARK: - Methods
+
+    func testMethodsSummaryReadsAsAnyMethodWhenNothingIsSelected() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.match.methods = []
+        XCTAssertEqual(viewModel.methodsSummary, localized("Any method"))
+    }
+
+    func testMethodsSummaryListsSelectionInTheOrderTheChecklistShowsIt() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.match.methods = ["DELETE", "GET", "POST"]
+        XCTAssertEqual(
+            viewModel.methodsSummary,
+            "GET, POST, DELETE",
+            "the summary should follow availableMethods, not the set's own hashing order"
+        )
+    }
+
+    func testMethodsSummaryKeepsAMethodTheChecklistDoesNotOffer() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.match.methods = ["GET", "TRACE"]
+        XCTAssertEqual(
+            viewModel.methodsSummary,
+            "GET, TRACE",
+            "a method a HAR import produced must not disappear from the summary"
+        )
+    }
+
+    func testTogglingAMethodAddsAndRemovesIt() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.match.methods = []
+        viewModel.toggle(method: "POST")
+        XCTAssertTrue(viewModel.isSelected(method: "POST"))
+        viewModel.toggle(method: "POST")
+        XCTAssertFalse(viewModel.isSelected(method: "POST"))
+        XCTAssertEqual(viewModel.methodsSummary, localized("Any method"))
+    }
+
+    // MARK: - Saving
+
     func testSavingAnExistingRuleUpdatesItInPlace() {
         var rule = NetworkRule(
             id: UUID(), name: "Old", isEnabled: true, match: .path("/api/cart"),

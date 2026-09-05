@@ -7,7 +7,8 @@
 
 import Foundation
 
-/// Backs ``NetworkRuleEditorView``, the form used to create a rule or edit an existing one.
+/// Backs ``NetworkRuleEditorView``, the form used to create a request override or edit an
+/// existing one.
 ///
 /// The view model owns a ``draft`` copy of the rule and writes nothing until ``save()`` is called,
 /// so abandoning the sheet leaves the store untouched. Everything the form binds to is exposed
@@ -44,6 +45,7 @@ import Foundation
 /// - ``availableMethods``
 /// - ``isSelected(method:)``
 /// - ``toggle(method:)``
+/// - ``methodsSummary``
 /// - ``hostText``
 /// - ``hostKind``
 /// - ``pathText``
@@ -165,7 +167,7 @@ final class NetworkRuleEditorViewModel: ViewModel {
 
     /// The editor's navigation title.
     var title: String {
-        isNewRule ? localized("New rule") : localized("Edit rule")
+        isNewRule ? localized("New Override") : localized("Edit Override")
     }
 
     /// Whether ``save()`` should be offered.
@@ -187,6 +189,19 @@ final class NetworkRuleEditorViewModel: ViewModel {
     /// - Returns: `true` when the rule is narrowed to that method.
     func isSelected(method: String) -> Bool {
         draft.match.methods.contains(method)
+    }
+
+    /// The value shown on the row that opens the method checklist.
+    ///
+    /// Selected methods are listed in ``availableMethods`` order rather than the set's own
+    /// order, so the summary reads the same way twice running. A method the checklist does not
+    /// offer — one a HAR import produced, say — is still listed, after the known ones, so the
+    /// summary never hides a facet the rule is actually matching on.
+    var methodsSummary: String {
+        let known = Self.availableMethods.filter { draft.match.methods.contains($0) }
+        let unknown = draft.match.methods.subtracting(Self.availableMethods).sorted()
+        let selected = known + unknown
+        return selected.isEmpty ? localized("Any method") : selected.joined(separator: ", ")
     }
 
     /// Adds or removes a method from the match.

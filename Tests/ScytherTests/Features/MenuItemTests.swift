@@ -70,6 +70,14 @@ final class MenuItemTests: XCTestCase {
         }
     }
 
+    func testRequestOverridesIsNamedForWhatItDoes() {
+        XCTAssertEqual(
+            MenuItem.networkRules.title,
+            "Request Overrides",
+            "the row is named for what a developer does on the screen, not for the model behind it"
+        )
+    }
+
     func testDeveloperOptionTitleIsItsName() {
         XCTAssertEqual(MenuItem.developerOption(name: "Reset Onboarding").title, "Reset Onboarding")
     }

@@ -207,7 +207,7 @@ enum MenuItem: Hashable, Identifiable {
         case .developerOption(let name): return name
         case .ipAddress: return localized("IP Address")
         case .networkLogs: return localized("Network Logs")
-        case .networkRules: return localized("Network Rules")
+        case .networkRules: return localized("Request Overrides")
         case .serverConfiguration: return localized("Server Configuration")
         case .environmentVariables: return localized("Environment Variables")
         case .featureFlags: return localized("Feature Flags")
