@@ -98,21 +98,39 @@ The interceptor thread and the UI meet through a `BreakpointCoordinator`:
 ```swift
 final class BreakpointCoordinator: Sendable {
     static let shared: BreakpointCoordinator
-    /// Called from the protocol's thread. Blocks until resolved or the timeout elapses.
-    func pause(_ draft: BreakpointDraft, name: String, stage: NetworkBreakpoint.Stage) -> BreakpointResolution
+    /// Called from the protocol's thread. Returns immediately, having taken ownership of the
+    /// draft. `resume` runs later, on the coordinator's own queue, once a decision arrives.
+    func pause(_ draft: BreakpointDraft,
+               name: String,
+               stage: NetworkBreakpoint.Stage,
+               resume: @escaping @Sendable (BreakpointResolution) -> Void)
     /// Called from the UI.
     @MainActor func resolve(id: UUID, with resolution: BreakpointResolution)
+    /// Called by `stopLoading()`. Drops a pending pause without resuming it.
+    func cancel(id: UUID)
     @MainActor var pending: [PendingBreakpoint] { get }
 }
 ```
 
-`pause` enqueues the draft, notifies the UI on the main actor, then waits on a
-`DispatchSemaphore` with `timeout(.now() + interval)`. The default interval is 60 seconds,
+**`pause` does not block.** It records the draft with its continuation, notifies the UI on the
+main actor, arms a timeout with `asyncAfter`, and returns. The continuation runs on the
+coordinator's private serial queue when the developer resolves the pause, when the timeout
+fires, or never — if `stopLoading()` cancelled it first. The default interval is 60 seconds,
 configurable per breakpoint between 5 and 300 seconds. A timeout resolves as `.timedOut` and the
-request proceeds unmodified — **the app is never left blocked indefinitely**.
+request proceeds unmodified.
 
-Concurrent pauses are supported: each has its own semaphore and its own row in the UI, resolved
-in any order.
+This is the whole point of the primitive, and it is a correction to an earlier draft of this
+spec. That draft blocked the calling thread on a `DispatchSemaphore` until the pause resolved.
+The Network Rules work shipped a smaller version of that idea — a `Thread.sleep` for a mock's
+delay — and it was wrong for two reasons that apply here with far more force. `startLoading()`
+runs on a thread the URL loading system owns, and whether that thread is per-request or drawn
+from a shared pool is not contracted; and a blocked delegate queue also blocks the very
+cancellation that would end the wait, so the app cannot get its thread back by cancelling. A
+breakpoint holding a thread for up to five minutes is that hazard multiplied by ten. Nothing in
+this feature may block a thread it does not own.
+
+Concurrent pauses are supported: each has its own continuation and its own row in the UI,
+resolved in any order.
 
 ### Component 3: Interceptor integration
 
@@ -120,11 +138,14 @@ in any order.
 created:
 
 1. If a request-stage breakpoint matches, build a `BreakpointDraft` from the (already
-   rule-rewritten) request and call `pause`.
-2. On `.continue(draft)`, rebuild the `URLRequest` from the draft and proceed.
+   rule-rewritten) request, call `pause`, and **return from `startLoading()`**. The request is
+   in flight from the loading system's point of view; nothing is holding its thread.
+2. On `.continue(draft)`, rebuild the `URLRequest` from the draft and start the data task, on
+   the coordinator's queue, through the same lock-guarded `beginTask()` the interceptor already
+   uses so a cancellation that arrives first still wins.
 3. On `.abort(code)`, call `client?.urlProtocol(self, didFailWithError: URLError(code))` and log
    the model as failed.
-4. On `.timedOut`, proceed unmodified.
+4. On `.timedOut`, start the task unmodified.
 
 **Response stage** changes how data is forwarded. When a response-stage breakpoint matches the
 request:
@@ -132,8 +153,9 @@ request:
 - `urlSession(_:dataTask:didReceive response:)` **withholds** the call to
   `client?.urlProtocol(_:didReceive:cacheStoragePolicy:)`.
 - `urlSession(_:dataTask:didReceive data:)` **withholds** `didLoad:` and buffers instead.
-- `urlSession(_:task:didCompleteWithError:)` calls `pause` with the buffered response, then emits
-  the resolved response and body through the normal trio before finishing.
+- `urlSession(_:task:didCompleteWithError:)` calls `pause` with the buffered response and
+  returns, leaving the delegate queue free. The resolved response and body are emitted through
+  the normal trio from the coordinator's queue when the decision arrives.
 
 A response breakpoint therefore delays the app's first byte until the whole body has arrived,
 which is stated in the UI when the stage is selected.
@@ -179,9 +201,10 @@ A countdown shows the remaining time before the automatic continue.
 
 - **A forgotten breakpoint makes the app look broken.** The timeout continues automatically, the
   master switch defaults to off, the menu row shows a count, and the log marks held requests.
-- **Blocking a thread is inherently uncomfortable.** It is one per-request thread, never the main
-  thread or a shared queue; a main-thread assertion in the coordinator makes a regression fail a
-  test rather than ship.
+- **No thread is blocked at all.** The pause is a stored continuation, not a wait, so a
+  breakpoint left open costs a suspended request and nothing else. A test asserts that
+  `startLoading()` returns promptly while a breakpoint is pending, and that cancelling a pending
+  pause delivers no client callbacks.
 - **Buffering a large response.** The UI warns when a response breakpoint's match could apply to
   a download, and the buffered body is capped at 10 MB, above which the pause is skipped and
   logged.
