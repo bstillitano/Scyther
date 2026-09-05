@@ -19,6 +19,7 @@ import Foundation
 /// ### Cases
 /// - ``rulesNotSaved``
 /// - ``rulesNotLoaded``
+/// - ``bodyNotWritten``
 ///
 /// ### Presentation
 /// - ``title``
@@ -32,6 +33,9 @@ enum NetworkRuleStoreFailure: String, Identifiable, Equatable, Sendable {
     /// The blob itself is kept rather than overwritten — see ``NetworkRuleStore``.
     case rulesNotLoaded
 
+    /// A mock response body could not be written to disk, so the override was not stored.
+    case bodyNotWritten
+
     /// A stable identity, so the alert redraws when one failure replaces another.
     var id: String { rawValue }
 
@@ -40,6 +44,7 @@ enum NetworkRuleStoreFailure: String, Identifiable, Equatable, Sendable {
         switch self {
         case .rulesNotSaved: return localized("Overrides Not Saved")
         case .rulesNotLoaded: return localized("Overrides Not Loaded")
+        case .bodyNotWritten: return localized("Override Not Saved")
         }
     }
 
@@ -50,6 +55,8 @@ enum NetworkRuleStoreFailure: String, Identifiable, Equatable, Sendable {
             return localized("Your overrides could not be written to preferences, so this change will not survive a relaunch.")
         case .rulesNotLoaded:
             return localized("The saved overrides could not be read, so the list started empty. They have been set aside rather than deleted.")
+        case .bodyNotWritten:
+            return localized("The mock response body could not be written to disk, so the override was not saved.")
         }
     }
 }

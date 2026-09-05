@@ -110,11 +110,17 @@ struct NetworkRuleEditorView: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 ConfirmButton {
-                    viewModel.save()
-                    dismiss()
+                    // Dismissing regardless would close the sheet over an override that was never
+                    // stored, and the developer would find out from the empty list behind it.
+                    if viewModel.save() { dismiss() }
                 }
                 .disabled(!viewModel.isValid)
             }
+        }
+        .alert(localized("Override Not Saved"), isPresented: $viewModel.didFailToSave) {
+            Button(localized("OK"), role: .cancel) { viewModel.didFailToSave = false }
+        } message: {
+            Text(localized("The mock response body could not be written to disk, so the override was not saved."))
         }
     }
 }

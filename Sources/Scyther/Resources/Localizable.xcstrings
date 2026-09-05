@@ -31637,6 +31637,83 @@
         }
       }
     },
+    "Override Not Saved": {
+      "comment": "Alert title shown when an override could not be saved because its body could not be written",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لم يتم حفظ التجاوز"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Override nicht gespeichert"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Anulación no guardada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Remplacement non enregistré"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Override non salvato"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "オーバーライドを保存できません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "재정의를 저장하지 못함"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Overschrijving niet bewaard"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Substituição não salva"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Переопределение не сохранено"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "覆盖规则未保存"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "覆寫規則未儲存"
+          }
+        }
+      }
+    },
     "Override Text Size": {
       "comment": "Searchable row inside the Appearance page",
       "localizations": {
@@ -44763,6 +44840,83 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "The mock response body could not be written to disk, so the override was not saved.": {
+      "comment": "Alert message explaining that a mock response body could not be written",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تعذّرت كتابة نص الاستجابة الوهمية على القرص، لذا لم يتم حفظ التجاوز."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Der Body der Mock-Antwort konnte nicht auf die Festplatte geschrieben werden, daher wurde der Override nicht gespeichert."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No se pudo escribir en el disco el cuerpo de la respuesta simulada, por lo que la anulación no se guardó."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Le corps de la réponse simulée n'a pas pu être écrit sur le disque ; le remplacement n'a donc pas été enregistré."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Non è stato possibile scrivere su disco il corpo della risposta simulata, quindi l'override non è stato salvato."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "モック応答のボディをディスクに書き込めなかったため、オーバーライドは保存されませんでした。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "모의 응답 본문을 디스크에 기록하지 못해 재정의가 저장되지 않았습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "De body van het mock-antwoord kon niet naar schijf worden geschreven, dus de overschrijving is niet bewaard."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Não foi possível gravar o corpo da resposta simulada no disco, então a substituição não foi salva."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Не удалось записать тело фиктивного ответа на диск, поэтому переопределение не сохранено."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "无法将模拟响应正文写入磁盘，因此未保存该覆盖规则。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "無法將模擬回應主體寫入磁碟，因此未儲存該覆寫規則。"
           }
         }
       }

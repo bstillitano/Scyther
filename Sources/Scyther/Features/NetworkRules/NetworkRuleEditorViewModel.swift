@@ -72,6 +72,7 @@ import UniformTypeIdentifiers
 /// - ``mapLocalSummary``
 /// - ``importMapLocalFile(from:)``
 /// - ``didFailToImportFile``
+/// - ``didFailToSave``
 /// - ``contentType``
 ///
 /// ### Rewrite Fields
@@ -116,6 +117,17 @@ final class NetworkRuleEditorViewModel: ViewModel {
     @Published var removedHeaders: [NetworkRuleHeaderField] {
         didSet { commitRewrite() }
     }
+
+    /// Whether the override's stored body identifier points at bytes that are not on disk.
+    ///
+    /// A body whose file went missing loads as `""`, which is also what ``originalBodyText`` holds,
+    /// so the unchanged-body guard in ``save()`` would skip the rewrite and leave the override
+    /// broken however many times it was re-saved. This makes the next save write the body
+    /// regardless.
+    private let isOriginalBodyMissing: Bool
+
+    /// Whether the last save could not be written. Drives an alert; the sheet stays open.
+    @Published var didFailToSave: Bool = false
 
     /// Whether the last picked map-local file could not be copied into the rules directory.
     ///
@@ -210,10 +222,15 @@ final class NetworkRuleEditorViewModel: ViewModel {
         }
 
         let body: String
-        if let originalBodyID, let data = store.bodyData(for: originalBodyID) {
+        if case .mock(let mock) = draft.actions.stub, let pending = mock.pendingBody {
+            body = String(decoding: pending, as: UTF8.self)
+            self.isOriginalBodyMissing = false
+        } else if let originalBodyID, let data = store.bodyData(for: originalBodyID) {
             body = String(decoding: data, as: UTF8.self)
+            self.isOriginalBodyMissing = false
         } else {
             body = ""
+            self.isOriginalBodyMissing = originalBodyID != nil
         }
         self.bodyText = body
         self.originalBodyText = body
@@ -531,40 +548,34 @@ final class NetworkRuleEditorViewModel: ViewModel {
     /// Does nothing for a draft that fails ``isValid``. The view already disables its confirm
     /// button, but the guard belongs here too: the check is the rule, not the button's appearance.
     ///
-    /// The body is written to disk only when it differs from what the editor opened with, so
-    /// re-saving an unchanged rule does not leave an orphaned copy of its body behind. Whatever
-    /// body the rule no longer points at is deleted, whether it was superseded by new bytes or
-    /// stranded by the stub changing to something that is not a mock.
-    func save() {
-        guard isValid else { return }
+    /// New body bytes are handed to the store rather than written here, and only when they differ
+    /// from what the editor opened with — so re-saving an unchanged rule neither rewrites its body
+    /// nor orphans a copy of it. The store writes the bytes, points the rule at them, and reclaims
+    /// whatever file the replaced rule owned, unless another override still points at it.
+    ///
+    /// - Returns: `false` when the rule was not stored, which today means its body could not be
+    ///   written. The sheet stays open and ``didFailToSave`` raises an alert, rather than
+    ///   dismissing over an override that does not exist.
+    @discardableResult
+    func save() -> Bool {
+        guard isValid else { return false }
 
         var rule = draft
         rule.name = rule.name.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if case .mock(var mock) = rule.actions.stub {
-            if bodyText != originalBodyText {
-                let replacement = bodyText.isEmpty ? nil : store.storeBody(Data(bodyText.utf8))
-                mock.bodyID = replacement
-                rule.actions.stub = .mock(mock)
-                discardOriginalBody(unless: replacement)
+        if case .mock(var mock) = rule.actions.stub, bodyText != originalBodyText || isOriginalBodyMissing {
+            if bodyText.isEmpty {
+                mock.bodyID = nil
+                mock.pendingBody = nil
+            } else {
+                mock.pendingBody = Data(bodyText.utf8)
             }
-        } else {
-            discardOriginalBody(unless: nil)
+            rule.actions.stub = .mock(mock)
         }
 
-        if isNewRule {
-            store.add(rule)
-        } else {
-            store.update(rule)
-        }
-    }
-
-    /// Deletes the body file the editor opened with, unless the saved rule still points at it.
-    ///
-    /// - Parameter retained: The body identifier the saved rule keeps, if any.
-    private func discardOriginalBody(unless retained: UUID?) {
-        guard let originalBodyID, originalBodyID != retained else { return }
-        try? FileManager.default.removeItem(at: store.bodyURL(for: originalBodyID))
+        let stored = isNewRule ? store.add(rule) : store.update(rule)
+        didFailToSave = !stored
+        return stored
     }
 
     // MARK: - Header plumbing

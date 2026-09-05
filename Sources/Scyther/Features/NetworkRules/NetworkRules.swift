@@ -296,20 +296,19 @@ public extension MockResponse {
     ///   - delay: Seconds to wait before responding. Defaults to none.
     /// - Returns: A response carrying `Content-Type: application/json`.
     ///
-    /// - Note: Isolated to the main actor because it writes the body through the rule store.
-    /// - Note: The body is written when this value is *constructed*, before any rule holds it. A
-    ///   body whose rule is never stored — a transient rule, or a value that is simply discarded —
-    ///   is therefore left on disk until the next launch's sweep reclaims it. See
-    ///   ``NetworkRules/addTransient(_:)``.
-    @MainActor
+    /// - Note: Building the value touches no disk at all. The bytes travel with it and are written
+    ///   when the rule holding it is added or updated, so a response that is never stored leaves
+    ///   nothing behind, and one stored through a store of your own is written where *that* store
+    ///   keeps its bodies.
     static func json(_ body: String,
                      status: Int = 200,
                      delay: TimeInterval = 0) -> MockResponse {
-        let bodyID = NetworkRuleStore.shared.storeBody(Data(body.utf8))
-        return MockResponse(statusCode: status,
-                            headers: ["Content-Type": "application/json"],
-                            bodyID: bodyID,
-                            delay: delay)
+        var response = MockResponse(statusCode: status,
+                                    headers: ["Content-Type": "application/json"],
+                                    bodyID: nil,
+                                    delay: delay)
+        response.pendingBody = Data(body.utf8)
+        return response
     }
 
     /// A response with no body, for endpoints whose status code is the whole answer.

@@ -58,6 +58,7 @@ import Foundation
 ///
 /// ### Stored Files
 /// - ``storeBody(_:)``
+/// - ``stagingURL(for:in:)``
 /// - ``storeFile(at:)``
 /// - ``bodyURL(for:)``
 /// - ``bodyData(for:)``
@@ -167,41 +168,98 @@ internal final class NetworkRuleStore: ObservableObject {
 
     /// Adds a rule that survives relaunch, at the lowest precedence of the persisted rules.
     ///
-    /// Adding is an upsert: a rule whose identifier is already stored **replaces** that rule in
-    /// place rather than appending a second copy. A host app that registers an override from
+    /// Adding is an upsert: a rule whose identifier is already registered **replaces** that rule
+    /// rather than appending a second copy. A host app that registers an override from
     /// `didFinishLaunching` would otherwise grow both the persisted blob and the menu list by one
     /// row on every launch, and two rows sharing an identifier make ``update(_:)`` and
     /// ``remove(id:)`` reach only the first of them.
     ///
-    /// Callers who want one stable override across launches should therefore build it with a
-    /// stable identifier — see ``NetworkRules/add(_:)``.
+    /// The upsert reaches across both lists: an identifier lives in exactly one of them, so adding
+    /// a rule whose identifier is currently registered as transient *moves* it to the persisted
+    /// list. See ``addTransient(_:)`` for the other direction and the reasoning.
     ///
-    /// - Parameter rule: The rule to add, or the replacement for a rule already stored under the
-    ///   same identifier.
-    func add(_ rule: NetworkRule) {
-        let rule = rule.sanitised
-        if let index = rules.firstIndex(where: { $0.id == rule.id }) {
-            rules[index] = rule
+    /// Whatever file the replaced rule owned is reclaimed, unless another surviving rule points at
+    /// it too.
+    ///
+    /// Callers who want one stable override across launches should build it with a stable
+    /// identifier — see ``NetworkRules/add(_:)``.
+    ///
+    /// - Parameter rule: The rule to add, or the replacement for a rule already registered under
+    ///   the same identifier.
+    /// - Returns: `false` when the rule carried mock body bytes that could not be written, in
+    ///   which case **nothing** is stored — a stub pointing at bytes that are not on disk answers
+    ///   with the right status and an empty body, which surfaces inside the host app as a decode
+    ///   error with nothing pointing back at Scyther. `true` otherwise.
+    @discardableResult
+    func add(_ rule: NetworkRule) -> Bool {
+        guard let rule = prepared(rule) else { return false }
+        var updated = rules
+        var displaced: [UUID?] = []
+        if let index = updated.firstIndex(where: { $0.id == rule.id }) {
+            displaced.append(updated[index].storedFileID)
+            updated[index] = rule
         } else {
-            rules.append(rule)
+            updated.append(rule)
+            if let index = transientRules.firstIndex(where: { $0.id == rule.id }) {
+                var remaining = transientRules
+                displaced.append(remaining.remove(at: index).storedFileID)
+                transientRules = remaining
+            }
         }
+        rules = updated
+        reclaim(displaced)
         persistRules()
         publish()
+        return true
     }
 
-    /// Appends several rules that survive relaunch, persisting and publishing once for the lot.
+    /// Adds several rules that survive relaunch, persisting and publishing once for the lot.
     ///
     /// Every mutation JSON-encodes the whole rules array into `UserDefaults` and republishes the
     /// interceptor's snapshot, so adding a HAR import's worth of rules one at a time costs one
     /// full encode and one snapshot per entry. HAR files routinely hold hundreds of entries.
     ///
-    /// - Parameter newRules: The rules to add, in the order they should be evaluated. Adding
-    ///   none is a no-op, so an import that produced nothing does not churn the snapshot.
-    func add(contentsOf newRules: [NetworkRule]) {
-        guard !newRules.isEmpty else { return }
-        rules.append(contentsOf: newRules.map(\.sanitised))
+    /// Each rule is upserted exactly as ``add(_:)`` upserts one, so an import that repeats an
+    /// identifier leaves one row rather than two, and the replaced row's body is reclaimed.
+    ///
+    /// - Parameter newRules: The rules to add, in the order they should be evaluated. Adding none
+    ///   is a no-op, so an import that produced nothing does not churn the snapshot.
+    /// The rules array is rebuilt in a local and assigned once, because `@Published` emits on
+    /// every mutation: appending in place would cost the list a rebuild, and the snapshot an
+    /// encode, per entry — which is the very thing this method exists to avoid.
+    ///
+    /// - Returns: How many were stored. A rule whose mock body could not be written is skipped
+    ///   rather than stored pointing at bytes that are not there, so this can be fewer than were
+    ///   offered.
+    @discardableResult
+    func add(contentsOf newRules: [NetworkRule]) -> Int {
+        guard !newRules.isEmpty else { return 0 }
+        var updated = rules
+        var remainingTransient = transientRules
+        var displaced: [UUID?] = []
+        var stored = 0
+        for candidate in newRules {
+            guard let rule = prepared(candidate) else { continue }
+            if let index = updated.firstIndex(where: { $0.id == rule.id }) {
+                displaced.append(updated[index].storedFileID)
+                updated[index] = rule
+            } else {
+                updated.append(rule)
+                if let index = remainingTransient.firstIndex(where: { $0.id == rule.id }) {
+                    displaced.append(remainingTransient.remove(at: index).storedFileID)
+                }
+            }
+            stored += 1
+        }
+        guard stored > 0 else { return 0 }
+        rules = updated
+        if remainingTransient.count != transientRules.count {
+            transientRules = remainingTransient
+        }
+        reclaim(displaced)
         persistRules()
         publish()
+        return stored
     }
 
     /// Adds a rule for this launch only. It is never written to `UserDefaults`.
@@ -210,48 +268,85 @@ internal final class NetworkRuleStore: ObservableObject {
     /// in one launch — from a helper called on every sign-in, say — leaves one row rather than a
     /// growing pile of identical ones.
     ///
-    /// - Parameter rule: The rule to add, or the replacement for a transient rule already
-    ///   registered under the same identifier.
-    func addTransient(_ rule: NetworkRule) {
-        let rule = rule.sanitised
-        if let index = transientRules.firstIndex(where: { $0.id == rule.id }) {
-            transientRules[index] = rule
+    /// An identifier lives in exactly one list. Registering a transient rule under an identifier
+    /// the persisted list holds *moves* it: the persisted copy is deleted, along with any file it
+    /// owned. Letting the two lists both hold one identifier would mean ``remove(id:)`` deleted
+    /// the persisted copy and its body while the transient copy carried on matching and serving an
+    /// empty one, so the last registration wins outright rather than half-winning.
+    ///
+    /// - Parameter rule: The rule to add, or the replacement for a rule already registered under
+    ///   the same identifier.
+    /// - Returns: `false` when the rule carried mock body bytes that could not be written, in
+    ///   which case nothing is stored. `true` otherwise.
+    @discardableResult
+    func addTransient(_ rule: NetworkRule) -> Bool {
+        guard let rule = prepared(rule) else { return false }
+        var updated = transientRules
+        var displaced: [UUID?] = []
+        var didChangePersistedRules = false
+        if let index = updated.firstIndex(where: { $0.id == rule.id }) {
+            displaced.append(updated[index].storedFileID)
+            updated[index] = rule
         } else {
-            transientRules.append(rule)
+            updated.append(rule)
+            if let index = rules.firstIndex(where: { $0.id == rule.id }) {
+                var remaining = rules
+                displaced.append(remaining.remove(at: index).storedFileID)
+                rules = remaining
+                didChangePersistedRules = true
+            }
         }
+        transientRules = updated
+        reclaim(displaced)
+        if didChangePersistedRules { persistRules() }
         publish()
+        return true
     }
 
     /// Replaces the stored rule carrying the same identifier, leaving its position alone.
     ///
-    /// Does nothing when no rule has that identifier, so an edit of a rule deleted in the
-    /// meantime cannot resurrect it.
+    /// Does nothing when no rule has that identifier, so an edit of a rule deleted in the meantime
+    /// cannot resurrect it. Whatever file the replaced rule owned is reclaimed, unless another
+    /// surviving rule points at it too.
     ///
     /// - Parameter rule: The edited rule.
-    func update(_ rule: NetworkRule) {
-        let rule = rule.sanitised
+    /// - Returns: `false` when the rule carried mock body bytes that could not be written, in
+    ///   which case nothing is changed. `true` otherwise, including when no rule carries this
+    ///   identifier and there is nothing to update — the caller asked for a state that now holds.
+    @discardableResult
+    func update(_ rule: NetworkRule) -> Bool {
         if let index = rules.firstIndex(where: { $0.id == rule.id }) {
+            guard let rule = prepared(rule) else { return false }
+            let replaced = rules[index].storedFileID
             rules[index] = rule
+            reclaim([replaced])
             persistRules()
             publish()
-        } else if let index = transientRules.firstIndex(where: { $0.id == rule.id }) {
-            transientRules[index] = rule
-            publish()
+            return true
         }
+        if let index = transientRules.firstIndex(where: { $0.id == rule.id }) {
+            guard let rule = prepared(rule) else { return false }
+            let replaced = transientRules[index].storedFileID
+            transientRules[index] = rule
+            reclaim([replaced])
+            publish()
+            return true
+        }
+        return true
     }
 
-    /// Deletes the rule with this identifier, along with any mock body it owns.
+    /// Deletes the rule with this identifier, along with any file it owns.
+    ///
+    /// The file survives if another rule points at it: the public API encourages building one
+    /// ``MockResponse`` and reusing it, which shares one body identifier between overrides, and
+    /// deleting the first of them must not empty the second.
     ///
     /// - Parameter id: The identifier of the rule to delete.
     func remove(id: UUID) {
-        if let index = rules.firstIndex(where: { $0.id == id }) {
-            deleteBody(for: rules.remove(at: index))
-            persistRules()
-            publish()
-        } else if let index = transientRules.firstIndex(where: { $0.id == id }) {
-            deleteBody(for: transientRules.remove(at: index))
-            publish()
-        }
+        guard let removed = takeRule(id: id) else { return }
+        reclaim([removed.fileID])
+        if removed.wasPersisted { persistRules() }
+        publish()
     }
 
     /// Reorders the persisted rules, which is what changes their precedence.
@@ -265,15 +360,74 @@ internal final class NetworkRuleStore: ObservableObject {
         publish()
     }
 
-    /// Deletes every rule, persisted and transient, and every mock body they own.
+    /// Deletes every rule, persisted and transient, and every file they own.
     func removeAll() {
-        for rule in rules + transientRules {
-            deleteBody(for: rule)
-        }
+        let owned: [UUID?] = (rules + transientRules).map(\.storedFileID)
         rules.removeAll()
         transientRules.removeAll()
+        reclaim(owned)
         persistRules()
         publish()
+    }
+
+    /// Sanitises a rule and writes any bytes it is still carrying.
+    ///
+    /// - Parameter rule: The rule about to be stored.
+    /// - Returns: The rule as it should be stored, or `nil` when its mock body could not be
+    ///   written — in which case ``lastFailure`` says so and the caller stores nothing.
+    private func prepared(_ rule: NetworkRule) -> NetworkRule? {
+        let rule = rule.sanitised
+        guard case .mock(var mock) = rule.actions.stub, let pending = mock.pendingBody else {
+            return rule
+        }
+        do {
+            mock.bodyID = try storeBody(pending)
+            mock.pendingBody = nil
+            var resolved = rule
+            resolved.actions.stub = .mock(mock)
+            return resolved
+        } catch {
+            lastFailure = .bodyNotWritten
+            return nil
+        }
+    }
+
+    /// Removes whichever list holds this identifier, since only one of them ever does.
+    ///
+    /// - Parameter id: The identifier to remove.
+    /// - Returns: `nil` when no rule carries it; otherwise whether the rule was persisted and the
+    ///   identifier of the file it owned, if it owned one.
+    private func takeRule(id: UUID) -> (wasPersisted: Bool, fileID: UUID?)? {
+        if let index = rules.firstIndex(where: { $0.id == id }) {
+            return (true, rules.remove(at: index).storedFileID)
+        }
+        if let index = transientRules.firstIndex(where: { $0.id == id }) {
+            return (false, transientRules.remove(at: index).storedFileID)
+        }
+        return nil
+    }
+
+    /// Deletes files no surviving rule points at.
+    ///
+    /// Call it *after* the rule arrays have been updated, so what it sees is what will be applied.
+    /// The reference check is the point: two overrides can share one body identifier — building
+    /// one ``MockResponse`` and reusing it is exactly what the public API suggests — and deleting
+    /// a file the other one still serves would leave it answering with an empty body forever.
+    ///
+    /// - Parameter ids: Candidate file identifiers. `nil` entries, from rules that owned no file,
+    ///   are ignored.
+    private func reclaim(_ ids: [UUID?]) {
+        for id in Set(ids.compactMap { $0 }) where !isReferenced(id) {
+            try? FileManager.default.removeItem(at: bodyURL(for: id))
+        }
+    }
+
+    /// Whether any rule, persisted or transient, still owns this file.
+    ///
+    /// - Parameter id: The file identifier to look for.
+    /// - Returns: `true` when some rule would be emptied by deleting it.
+    private func isReferenced(_ id: UUID) -> Bool {
+        (rules + transientRules).contains { $0.storedFileID == id }
     }
 
     // MARK: - Bodies
@@ -294,14 +448,46 @@ internal final class NetworkRuleStore: ObservableObject {
 
     /// Writes a mock response body to disk and returns the identifier a rule stores instead.
     ///
+    /// The bytes are staged at a file this store names and then renamed into place, rather than
+    /// written with `Data`'s `.atomic` option. `.atomic` stages through a temporary file
+    /// *Foundation* names, which survives a process death mid-write under a name neither the
+    /// orphan sweep nor anything else recognises; a rename within one directory is just as atomic,
+    /// and the debris of an interrupted write is `<identifier>.tmp` — a name
+    /// ``sweepBodies(in:keeping:ignoringFilesNewerThan:)`` knows belongs to Scyther.
+    ///
     /// - Parameter data: The body bytes.
     /// - Returns: The identifier to put in ``MockResponse/bodyID``.
+    /// - Throws: Whatever creating the directory, writing the file or renaming it throws. Callers
+    ///   must not carry on: a rule pointing at bytes that are not on disk answers with the stub's
+    ///   status and headers and an empty body, which surfaces inside the host app as a decode
+    ///   error with nothing pointing back at Scyther.
     @discardableResult
-    func storeBody(_ data: Data) -> UUID {
+    func storeBody(_ data: Data) throws -> UUID {
         let id = UUID()
-        createBodyDirectory()
-        try? data.write(to: bodyURL(for: id), options: .atomic)
+        try createBodyDirectory()
+        let staging = Self.stagingURL(for: id, in: bodyDirectory)
+        try data.write(to: staging)
+        do {
+            try FileManager.default.moveItem(at: staging, to: bodyURL(for: id))
+        } catch {
+            try? FileManager.default.removeItem(at: staging)
+            throw error
+        }
         return id
+    }
+
+    /// The suffix on the file a body is staged at while it is being written.
+    nonisolated static let stagingSuffix = ".tmp"
+
+    /// The file a body is staged at while it is being written.
+    ///
+    /// - Parameters:
+    ///   - id: The identifier the finished file will be named after.
+    ///   - directory: The body directory to stage inside, so the rename that follows stays within
+    ///     one volume and is therefore atomic.
+    /// - Returns: The staging file's URL.
+    nonisolated static func stagingURL(for id: UUID, in directory: URL) -> URL {
+        directory.appendingPathComponent("\(id.uuidString)\(stagingSuffix)", isDirectory: false)
     }
 
     /// Copies a picked file into the rules directory and returns the copy's absolute path.
@@ -319,11 +505,11 @@ internal final class NetworkRuleStore: ObservableObject {
     /// - Returns: The absolute path of the copy, or `nil` when the file could not be read or the
     ///   copy could not be written.
     func storeFile(at url: URL) -> String? {
-        createBodyDirectory()
         let destination = bodyURL(for: UUID())
         let isAccessing = url.startAccessingSecurityScopedResource()
         defer { if isAccessing { url.stopAccessingSecurityScopedResource() } }
         do {
+            try createBodyDirectory()
             try FileManager.default.copyItem(at: url, to: destination)
         } catch {
             return nil
@@ -333,14 +519,29 @@ internal final class NetworkRuleStore: ObservableObject {
 
     /// Creates the body directory if it is not there, and keeps it out of the host app's backup.
     ///
-    /// `Application Support` is backed up to iCloud by default. A colleague's 40 MB HAR import is
-    /// a debugging artefact, not the user's data, and inflating someone's backup by the size of
-    /// it is not a thing a debugging tool should do.
-    private func createBodyDirectory() {
+    /// - Throws: Whatever `createDirectory` throws. A write that carries on regardless produces a
+    ///   rule pointing at bytes nothing ever wrote.
+    private func createBodyDirectory() throws {
         let fileManager = FileManager.default
-        guard !fileManager.fileExists(atPath: bodyDirectory.path) else { return }
-        try? fileManager.createDirectory(at: bodyDirectory, withIntermediateDirectories: true)
+        if !fileManager.fileExists(atPath: bodyDirectory.path) {
+            try fileManager.createDirectory(at: bodyDirectory, withIntermediateDirectories: true)
+        }
+        excludeBodyDirectoryFromBackup()
+    }
 
+    /// Marks the body directory as excluded from the host app's backup.
+    ///
+    /// `Application Support` is backed up to iCloud by default. A colleague's 40 MB HAR import is
+    /// a debugging artefact, not the user's data, and inflating someone's backup by the size of it
+    /// is not a thing a debugging tool should do.
+    ///
+    /// Called on **every** path that reaches the directory rather than only when creating it: a
+    /// directory that already exists — which is every launch after the first — or one whose first
+    /// creation failed would otherwise never be marked at all.
+    ///
+    /// Best effort. Failing to set the flag is not a reason to fail the write that needed the
+    /// directory; the cost is a larger backup, not a broken override.
+    private func excludeBodyDirectoryFromBackup() {
         var directory = bodyDirectory
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
@@ -414,11 +615,14 @@ internal final class NetworkRuleStore: ObservableObject {
     /// period the sweep could delete a mock's body seconds before it was first used.
     nonisolated static let bodySweepGracePeriod: TimeInterval = 60
 
-    /// Deletes every file in `directory` whose name is not a referenced identifier.
+    /// Deletes every file in `directory` whose name is not a referenced identifier, along with any
+    /// staging file left behind by an interrupted write.
     ///
-    /// Deliberately conservative: a file whose name is not a UUID at all is left alone, because
-    /// this walks a directory inside the host app's container and deleting something it did not
-    /// write would be far worse than leaving a stray file behind.
+    /// Deliberately conservative: a file whose name is neither a UUID nor `<UUID>.tmp` is left
+    /// alone, because this walks a directory inside the host app's container and deleting
+    /// something it did not write would be far worse than leaving a stray file behind. A staging
+    /// file *is* Scyther's own — see ``storeBody(_:)`` — and is reclaimed whether or not its
+    /// identifier is referenced, because a body that finished writing is not named that way.
     ///
     /// - Parameters:
     ///   - directory: The body directory to sweep.
@@ -437,23 +641,23 @@ internal final class NetworkRuleStore: ObservableObject {
 
         let cutoff = Date().addingTimeInterval(-grace)
         for file in files {
-            guard let id = UUID(uuidString: file.lastPathComponent), !referenced.contains(id) else { continue }
+            let name = file.lastPathComponent
+            if !isStagingFile(named: name) {
+                guard let id = UUID(uuidString: name), !referenced.contains(id) else { continue }
+            }
             let modified = (try? file.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
             guard let modified, modified < cutoff else { continue }
             try? fileManager.removeItem(at: file)
         }
     }
 
-    /// Deletes the file a rule owns, if it owns one.
+    /// Whether a file name is one ``storeBody(_:)`` stages a body at.
     ///
-    /// Covers both kinds of stored bytes: a mock's body, and the copy a map-local override made of
-    /// the file the developer picked. Both live in ``bodyDirectory`` under an identifier, so both
-    /// are deleted the same way and swept the same way.
-    ///
-    /// - Parameter rule: The rule being deleted.
-    private func deleteBody(for rule: NetworkRule) {
-        guard let id = rule.storedFileID else { return }
-        try? FileManager.default.removeItem(at: bodyURL(for: id))
+    /// - Parameter name: A file name from the body directory.
+    /// - Returns: `true` for `<UUID>.tmp`, which only an interrupted write leaves behind.
+    nonisolated static func isStagingFile(named name: String) -> Bool {
+        guard name.hasSuffix(stagingSuffix) else { return false }
+        return UUID(uuidString: String(name.dropLast(stagingSuffix.count))) != nil
     }
 
     // MARK: - Persistence

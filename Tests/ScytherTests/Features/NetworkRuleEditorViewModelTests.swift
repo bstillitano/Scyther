@@ -149,13 +149,51 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
 
     /// A saved mock rule whose body is already on disk, and the identifier it points at.
     private func savedMockRule(body: String) throws -> (rule: NetworkRule, bodyID: UUID) {
-        let bodyID = store.storeBody(Data(body.utf8))
+        let bodyID = try store.storeBody(Data(body.utf8))
         let rule = NetworkRule(
             name: "Cart", isEnabled: true, match: .path("/api/cart"),
             actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: bodyID, delay: 0)))
         )
         store.add(rule)
         return (rule, bodyID)
+    }
+
+    /// A body whose file has gone missing loads as `""`, which is what the editor opened with too,
+    /// so the unchanged-body guard used to skip the rewrite however many times the developer
+    /// re-saved. The override stayed broken and the editor gave no clue why.
+    func testAnOverrideWhoseBodyWentMissingCanBeRepairedInTheEditor() throws {
+        let saved = try savedMockRule(body: "gone")
+        try FileManager.default.removeItem(at: store.bodyURL(for: saved.bodyID))
+
+        let viewModel = NetworkRuleEditorViewModel(rule: saved.rule, store: store)
+        XCTAssertEqual(viewModel.bodyText, "")
+
+        XCTAssertTrue(viewModel.save())
+
+        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).actions.stub else {
+            return XCTFail("expected a mock action")
+        }
+        XCTAssertNil(mock.bodyID, "an override that serves nothing should say so rather than point at nothing")
+    }
+
+    /// The sheet must not dismiss over an override that was never stored: the developer would find
+    /// out from the empty list behind it.
+    func testAnOverrideWhoseBodyCannotBeWrittenKeepsTheEditorOpen() throws {
+        let blocker = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try Data("in the way".utf8).write(to: blocker)
+        addTeardownBlock { try? FileManager.default.removeItem(at: blocker) }
+        let unwritable = NetworkRuleStore(defaults: defaults,
+                                          bodyDirectory: blocker.appendingPathComponent("bodies",
+                                                                                        isDirectory: true))
+
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: unwritable)
+        viewModel.draft.name = "Cart"
+        viewModel.draft.match = .path("/api/cart")
+        viewModel.bodyText = "{}"
+
+        XCTAssertFalse(viewModel.save())
+        XCTAssertTrue(viewModel.didFailToSave)
+        XCTAssertTrue(unwritable.rules.isEmpty)
     }
 
     func testEditingTheBodyDeletesTheOneItSupersedes() throws {

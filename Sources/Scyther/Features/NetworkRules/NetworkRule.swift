@@ -301,10 +301,25 @@ public struct MockResponse: Codable, Sendable, Equatable {
     /// - Note: Capped at 30 seconds when the response is served.
     public var delay: TimeInterval
 
+    /// Body bytes waiting to be written, carried until the rule holding them is stored.
+    ///
+    /// ``json(_:status:delay:)`` used to write its bytes at value-construction time, through the
+    /// shared store: a value built in a test wrote into the real Application Support container,
+    /// and a value built on an App Store launch wrote a file for a feature that never runs. The
+    /// bytes now travel with the value, and ``NetworkRuleStore`` writes them — into *its* body
+    /// directory — when the rule is added or updated, filling in ``bodyID``. A value that is
+    /// simply discarded leaves nothing on disk to reclaim.
+    ///
+    /// Never persisted: by the time a rule reaches `UserDefaults` its bytes are on disk and
+    /// ``bodyID`` points at them.
+    internal var pendingBody: Data?
+
     /// The keys a canned response is persisted under.
     ///
     /// Spelled out rather than synthesised so the on-disk format cannot change under a rename,
     /// and so a property that must never be persisted cannot be added to one by accident.
+    /// - Important: ``pendingBody`` is deliberately absent. It is bytes on their way to disk, not
+    ///   part of the stored shape.
     private enum CodingKeys: String, CodingKey {
         /// ``statusCode``.
         case statusCode

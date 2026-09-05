@@ -87,7 +87,7 @@ final class NetworkRuleStoreTests: XCTestCase {
 
     func testRemovingARuleDeletesItsBody() throws {
         let store = makeStore()
-        let bodyID = store.storeBody(Data("{\"ok\":true}".utf8))
+        let bodyID = try store.storeBody(Data("{\"ok\":true}".utf8))
         var rule = makeRule("with body")
         rule.actions.stub = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: bodyID, delay: 0))
         store.add(rule)
@@ -183,7 +183,7 @@ final class NetworkRuleStoreTests: XCTestCase {
     /// was set aside to be recovered.
     func testAnUnreadableBlobStandsTheSweepDown() async throws {
         let store = makeStore()
-        let body = store.storeBody(Data("belongs to the unreadable configuration".utf8))
+        let body = try store.storeBody(Data("belongs to the unreadable configuration".utf8))
         try age(store.bodyURL(for: body))
         defaults.set(Data("not json at all".utf8), forKey: "Scyther.NetworkRules.Rules")
 
@@ -266,6 +266,184 @@ final class NetworkRuleStoreTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: picked.path))
     }
 
+    // MARK: - Bodies on disk
+
+    private func mockRule(_ name: String, bodyID: UUID?) -> NetworkRule {
+        var rule = makeRule(name)
+        rule.actions.stub = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: bodyID, delay: 0))
+        return rule
+    }
+
+    /// A body directory that cannot be created, because a file sits where its parent should be.
+    private func unwritableStore() throws -> NetworkRuleStore {
+        let blocker = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try Data("in the way".utf8).write(to: blocker)
+        addTeardownBlock { try? FileManager.default.removeItem(at: blocker) }
+        return NetworkRuleStore(defaults: defaults,
+                                bodyDirectory: blocker.appendingPathComponent("bodies", isDirectory: true))
+    }
+
+    func testStoringABodyThatCannotBeWrittenThrows() throws {
+        let store = try unwritableStore()
+        XCTAssertThrowsError(try store.storeBody(Data("nowhere to put this".utf8)),
+                             "returning an identifier for a write that failed strands every caller")
+    }
+
+    /// A stub pointing at bytes that are not on disk answers with the right status and an empty
+    /// body, which surfaces in the host app as a decode error with nothing pointing back here.
+    func testAnOverrideWhoseBodyCannotBeWrittenIsNotStored() throws {
+        let store = try unwritableStore()
+
+        let stored = store.add(.mock(name: "mock", matching: .path("/a"), returning: .json("{}")))
+
+        XCTAssertFalse(stored)
+        XCTAssertTrue(store.rules.isEmpty)
+        XCTAssertEqual(store.lastFailure, .bodyNotWritten)
+    }
+
+    /// Building the value used to write a file through the *shared* store, so a test with an
+    /// injected directory wrote into the real Application Support container.
+    func testAJSONMockWritesNothingUntilTheRuleHoldingItIsStored() throws {
+        let response = MockResponse.json(#"{"a":1}"#)
+        XCTAssertNil(response.bodyID)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: bodyDirectory.path),
+                       "building the value touches no disk at all")
+
+        let store = makeStore()
+        XCTAssertTrue(store.add(.mock(name: "mock", matching: .path("/a"), returning: response)))
+
+        guard case .mock(let mock) = store.rules.first?.actions.stub, let bodyID = mock.bodyID else {
+            return XCTFail("the store fills the body identifier in")
+        }
+        XCTAssertNil(mock.pendingBody, "and clears the bytes it has written")
+        XCTAssertEqual(store.bodyData(for: bodyID), Data(#"{"a":1}"#.utf8))
+        XCTAssertEqual(store.bodyURL(for: bodyID).deletingLastPathComponent().standardizedFileURL,
+                       bodyDirectory.standardizedFileURL,
+                       "into the injected directory, not the shared one")
+    }
+
+    /// The documented API encourages building one `MockResponse` and reusing it, which shares one
+    /// body identifier between overrides.
+    func testDeletingOneOverrideLeavesABodyAnotherOnePointsAt() throws {
+        let store = makeStore()
+        let bodyID = try store.storeBody(Data("shared".utf8))
+        let first = mockRule("first", bodyID: bodyID)
+        let second = mockRule("second", bodyID: bodyID)
+        store.add(first)
+        store.add(second)
+
+        store.remove(id: first.id)
+        XCTAssertEqual(store.bodyData(for: bodyID), Data("shared".utf8),
+                       "the surviving override would otherwise serve an empty body forever")
+
+        store.remove(id: second.id)
+        XCTAssertNil(store.bodyData(for: bodyID), "and the last reference going takes it with it")
+    }
+
+    func testRemovingEverythingReclaimsASharedBody() throws {
+        let store = makeStore()
+        let bodyID = try store.storeBody(Data("shared".utf8))
+        store.add(mockRule("first", bodyID: bodyID))
+        store.addTransient(mockRule("second", bodyID: bodyID))
+
+        store.removeAll()
+
+        XCTAssertNil(store.bodyData(for: bodyID))
+    }
+
+    /// Re-adding a stable-identifier override in a long-lived process wrote a fresh body every
+    /// time and orphaned the previous one, with nothing reclaiming them until the next launch.
+    func testReplacingAnOverrideReclaimsTheBodyItNoLongerPointsAt() throws {
+        let store = makeStore()
+        let first = try store.storeBody(Data("first".utf8))
+        var rule = mockRule("stable", bodyID: first)
+        store.add(rule)
+
+        let second = try store.storeBody(Data("second".utf8))
+        rule.actions.stub = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: second, delay: 0))
+        store.add(rule)
+
+        XCTAssertNil(store.bodyData(for: first))
+        XCTAssertEqual(store.bodyData(for: second), Data("second".utf8))
+        XCTAssertEqual(store.rules.count, 1)
+    }
+
+    func testUpdatingAnOverrideReclaimsTheBodyItNoLongerPointsAt() throws {
+        let store = makeStore()
+        let first = try store.storeBody(Data("first".utf8))
+        var rule = mockRule("edited", bodyID: first)
+        store.add(rule)
+
+        let second = try store.storeBody(Data("second".utf8))
+        rule.actions.stub = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: second, delay: 0))
+        store.update(rule)
+
+        XCTAssertNil(store.bodyData(for: first))
+        XCTAssertEqual(store.bodyData(for: second), Data("second".utf8))
+    }
+
+    func testReplacingAnOverrideKeepsABodyAnotherOneAlsoPointsAt() throws {
+        let store = makeStore()
+        let shared = try store.storeBody(Data("shared".utf8))
+        var rule = mockRule("stable", bodyID: shared)
+        store.add(rule)
+        store.add(mockRule("other", bodyID: shared))
+
+        rule.actions.stub = .mock(MockResponse(statusCode: 204, headers: [:], bodyID: nil, delay: 0))
+        store.add(rule)
+
+        XCTAssertEqual(store.bodyData(for: shared), Data("shared".utf8))
+    }
+
+    /// A directory that already exists — which is every launch after the first — was never marked,
+    /// and `Application Support` is backed up by default.
+    func testAnExistingBodyDirectoryIsStillExcludedFromBackup() throws {
+        try FileManager.default.createDirectory(at: bodyDirectory, withIntermediateDirectories: true)
+        let store = makeStore()
+
+        try store.storeBody(Data("body".utf8))
+
+        let values = try bodyDirectory.resourceValues(forKeys: [.isExcludedFromBackupKey])
+        XCTAssertEqual(values.isExcludedFromBackup, true)
+    }
+
+    // MARK: - One identifier, one list
+
+    /// The same identifier in both lists made `remove(id:)` delete the persisted copy and its body
+    /// while the transient copy carried on matching and serving an empty one.
+    func testRegisteringATransientRuleMovesAPersistedIdentifierAcross() throws {
+        let store = makeStore()
+        let bodyID = try store.storeBody(Data("persisted".utf8))
+        var persisted = mockRule("persisted", bodyID: bodyID)
+        let id = persisted.id
+        store.add(persisted)
+
+        persisted.name = "transient"
+        persisted.actions.stub = .mock(MockResponse(statusCode: 204, headers: [:], bodyID: nil, delay: 0))
+        store.addTransient(persisted)
+
+        XCTAssertTrue(store.rules.isEmpty, "an identifier lives in exactly one list")
+        XCTAssertEqual(store.transientRules.map(\.name), ["transient"])
+        XCTAssertTrue(makeStore().rules.isEmpty, "and the move is persisted")
+        XCTAssertNil(store.bodyData(for: bodyID), "the replaced copy's body goes with it")
+
+        store.remove(id: id)
+        XCTAssertTrue(store.transientRules.isEmpty)
+    }
+
+    func testAddingAPersistedRuleMovesATransientIdentifierAcross() {
+        let store = makeStore()
+        var rule = makeRule("registered in code")
+        store.addTransient(rule)
+
+        rule.name = "promoted"
+        store.add(rule)
+
+        XCTAssertTrue(store.transientRules.isEmpty)
+        XCTAssertEqual(store.rules.map(\.name), ["promoted"])
+        XCTAssertEqual(makeStore().rules.map(\.name), ["promoted"])
+    }
+
     // MARK: - Body sweep
 
     /// Backdates a file past the sweep's grace period, standing in for a body written by an
@@ -279,8 +457,8 @@ final class NetworkRuleStoreTests: XCTestCase {
 
     func testTheSweepDeletesOrphanedBodiesAndKeepsReferencedOnes() throws {
         let store = makeStore()
-        let referenced = store.storeBody(Data("still in use".utf8))
-        let orphan = store.storeBody(Data("nothing points here".utf8))
+        let referenced = try store.storeBody(Data("still in use".utf8))
+        let orphan = try store.storeBody(Data("nothing points here".utf8))
         try age(store.bodyURL(for: referenced))
         try age(store.bodyURL(for: orphan))
 
@@ -294,9 +472,9 @@ final class NetworkRuleStoreTests: XCTestCase {
 
     /// A body is written before the rule that points at it is stored, so a sweep racing a
     /// `Scyther.start()` that is immediately followed by `rules.add(...)` must not eat it.
-    func testTheSweepLeavesAFreshlyWrittenBodyAlone() {
+    func testTheSweepLeavesAFreshlyWrittenBodyAlone() throws {
         let store = makeStore()
-        let justWritten = store.storeBody(Data("about to be referenced".utf8))
+        let justWritten = try store.storeBody(Data("about to be referenced".utf8))
 
         NetworkRuleStore.sweepBodies(in: bodyDirectory,
                                      keeping: [],
@@ -309,7 +487,7 @@ final class NetworkRuleStoreTests: XCTestCase {
     /// not written by the store, and deleting it would be far worse than leaving it.
     func testTheSweepLeavesFilesItDidNotName() throws {
         let store = makeStore()
-        store.storeBody(Data("a real body".utf8))
+        try store.storeBody(Data("a real body".utf8))
         let stranger = bodyDirectory.appendingPathComponent("something-else.txt")
         try Data("not ours".utf8).write(to: stranger)
         try age(stranger)
@@ -321,6 +499,37 @@ final class NetworkRuleStoreTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: stranger.path))
     }
 
+    /// `.atomic` stages through a file Foundation names, which an interrupted write leaves behind
+    /// under a name the sweep cannot match. Scyther names its own staging file so it can.
+    func testTheSweepReclaimsTheDebrisOfAnInterruptedWrite() throws {
+        let store = makeStore()
+        let live = try store.storeBody(Data("live".utf8))
+        let debris = NetworkRuleStore.stagingURL(for: live, in: bodyDirectory)
+        try Data("half written".utf8).write(to: debris)
+        try age(debris)
+
+        NetworkRuleStore.sweepBodies(in: bodyDirectory,
+                                     keeping: [live],
+                                     ignoringFilesNewerThan: NetworkRuleStore.bodySweepGracePeriod)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: debris.path),
+                       "a body that finished writing is not named that way, so this is debris")
+        XCTAssertEqual(store.bodyData(for: live), Data("live".utf8))
+    }
+
+    /// A write in flight stages under exactly that name, so the grace period covers it.
+    func testTheSweepLeavesFreshStagingDebrisAlone() throws {
+        let debris = NetworkRuleStore.stagingURL(for: UUID(), in: bodyDirectory)
+        try FileManager.default.createDirectory(at: bodyDirectory, withIntermediateDirectories: true)
+        try Data("being written right now".utf8).write(to: debris)
+
+        NetworkRuleStore.sweepBodies(in: bodyDirectory,
+                                     keeping: [],
+                                     ignoringFilesNewerThan: NetworkRuleStore.bodySweepGracePeriod)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: debris.path))
+    }
+
     func testSweepingTheStoreKeepsAFileAMapLocalRulePointsAt() async throws {
         let store = makeStore()
         let path = try XCTUnwrap(store.storeFile(at: try pickedFile(named: "users.json", contents: "[]")))
@@ -328,7 +537,7 @@ final class NetworkRuleStoreTests: XCTestCase {
         rule.actions.stub = .mapLocal(MapLocalFile(relativePath: path, fileName: "users.json"))
         store.add(rule)
 
-        let orphan = store.storeBody(Data("orphan".utf8))
+        let orphan = try store.storeBody(Data("orphan".utf8))
         try age(URL(fileURLWithPath: path))
         try age(store.bodyURL(for: orphan))
 
@@ -346,17 +555,17 @@ final class NetworkRuleStoreTests: XCTestCase {
     func testSweepingTheStoreKeepsBodiesBothPersistedAndTransientRulesPointAt() async throws {
         let store = makeStore()
 
-        let persistedBody = store.storeBody(Data("persisted".utf8))
+        let persistedBody = try store.storeBody(Data("persisted".utf8))
         var persisted = makeRule("persisted")
         persisted.actions.stub = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: persistedBody, delay: 0))
         store.add(persisted)
 
-        let transientBody = store.storeBody(Data("transient".utf8))
+        let transientBody = try store.storeBody(Data("transient".utf8))
         var transient = makeRule("transient")
         transient.actions.stub = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: transientBody, delay: 0))
         store.addTransient(transient)
 
-        let orphan = store.storeBody(Data("orphan".utf8))
+        let orphan = try store.storeBody(Data("orphan".utf8))
         for id in [persistedBody, transientBody, orphan] {
             try age(store.bodyURL(for: id))
         }
@@ -378,7 +587,7 @@ final class NetworkRuleStoreTests: XCTestCase {
     /// business inflating the host app's iCloud backup.
     func testTheBodyDirectoryIsExcludedFromBackup() throws {
         let store = makeStore()
-        store.storeBody(Data("body".utf8))
+        try store.storeBody(Data("body".utf8))
 
         let values = try bodyDirectory.resourceValues(forKeys: [.isExcludedFromBackupKey])
         XCTAssertEqual(values.isExcludedFromBackup, true)

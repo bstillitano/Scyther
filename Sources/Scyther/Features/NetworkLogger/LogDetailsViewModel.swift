@@ -294,9 +294,9 @@ class LogDetailsViewModel: ViewModel {
     /// It starts disabled: creating it from the log should never change the behaviour of the app
     /// until the developer says so in the editor.
     ///
-    /// - Returns: The pre-filled override, not yet added to ``ruleStore``. The response body is
-    ///   written to the store as a side effect, so abandoning the editor leaves one unreferenced
-    ///   body file behind.
+    /// - Returns: The pre-filled override, not yet added to ``ruleStore``. The response body
+    ///   travels with the override rather than being written here, so abandoning the editor leaves
+    ///   nothing on disk to reclaim.
     @MainActor
     func makeMockRule() -> NetworkRule {
         let components = httpRequest.requestURL.flatMap { URLComponents(string: $0) }
@@ -317,18 +317,19 @@ class LogDetailsViewModel: ViewModel {
         }
 
         let body = httpRequest.readRawData(httpRequest.getResponseBodyFilepath())
-        let bodyID = (body?.isEmpty == false) ? ruleStore.storeBody(body ?? Data()) : nil
+        var mock = MockResponse(statusCode: httpRequest.responseCode ?? 200,
+                                headers: headers,
+                                bodyID: nil,
+                                delay: 0)
+        if let body, !body.isEmpty {
+            mock.pendingBody = body
+        }
 
         return NetworkRule(
             name: "\(method) \(path)",
             isEnabled: false,
             match: match,
-            actions: NetworkRuleActions(stub: .mock(MockResponse(
-                statusCode: httpRequest.responseCode ?? 200,
-                headers: headers,
-                bodyID: bodyID,
-                delay: 0
-            )))
+            actions: NetworkRuleActions(stub: .mock(mock))
         )
     }
 }

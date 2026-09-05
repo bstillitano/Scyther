@@ -223,12 +223,41 @@ final class NetworkRulesViewModel: ViewModel {
         }
 
         do {
-            let imported = try HARRuleImporter.rules(from: data) { store.storeBody($0) }
-            store.add(contentsOf: imported)
-            importOutcome = .imported(count: imported.count)
+            // The importer hands back an identifier per body because that is what a rule stores.
+            // Nothing is written here: the bytes are parked under a placeholder identifier and
+            // then attached to the rule that claimed it, so the store writes them into its own
+            // body directory when it takes the rules — and an import that is never stored, or one
+            // whose disk is full, leaves nothing behind.
+            var parked: [UUID: Data] = [:]
+            let imported = try HARRuleImporter.rules(from: data) { body in
+                let placeholder = UUID()
+                parked[placeholder] = body
+                return placeholder
+            }
+            let stored = store.add(contentsOf: imported.map { Self.attachingBody(from: parked, to: $0) })
+            importOutcome = .imported(count: stored)
         } catch {
             importOutcome = .failed
         }
+    }
+
+    /// Moves an imported rule's body from the placeholder map onto the rule itself.
+    ///
+    /// - Parameters:
+    ///   - parked: Bodies keyed by the placeholder identifier the importer was handed.
+    ///   - rule: The imported rule.
+    /// - Returns: The rule carrying its bytes, ready for the store to write them.
+    private static func attachingBody(from parked: [UUID: Data], to rule: NetworkRule) -> NetworkRule {
+        guard case .mock(var mock) = rule.actions.stub,
+              let placeholder = mock.bodyID,
+              let body = parked[placeholder] else {
+            return rule
+        }
+        mock.bodyID = nil
+        mock.pendingBody = body
+        var attached = rule
+        attached.actions.stub = .mock(mock)
+        return attached
     }
 
     /// Reads a picked file's bytes without blocking the main actor.

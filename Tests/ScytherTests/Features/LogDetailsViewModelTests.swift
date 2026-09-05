@@ -199,7 +199,18 @@ final class LogDetailsViewModelTests: XCTestCase {
         XCTAssertEqual(mock.headers["X-Request-Id"], "abc")
         XCTAssertEqual(mock.delay, 0)
 
-        let bodyID = try XCTUnwrap(mock.bodyID)
+        // The bytes travel with the override rather than being written here, so abandoning the
+        // editor the rule opens leaves nothing on disk to reclaim.
+        XCTAssertNil(mock.bodyID)
+        XCTAssertEqual(mock.pendingBody, Data(#"{"id":1}"#.utf8))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: bodyDirectory.path),
+                       "building the override writes nothing")
+
+        XCTAssertTrue(store.add(viewModel.makeMockRule()))
+        guard case .mock(let stored) = store.rules.first?.actions.stub else {
+            return XCTFail("expected the stored override to carry a mock")
+        }
+        let bodyID = try XCTUnwrap(stored.bodyID, "the store writes the bytes when it takes the rule")
         XCTAssertEqual(store.bodyData(for: bodyID), Data(#"{"id":1}"#.utf8))
     }
 

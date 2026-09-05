@@ -648,9 +648,21 @@ registered them, appear read-only under "Registered in Code", and are evaluated 
 persisted override. Use the transient form for anything the app registers for itself.
 
 Both are an **upsert** on `NetworkRule.id`: an override whose identifier is already known replaces
-that override in place. Code that runs on every launch should therefore pass a constant `id`, as
-the example above does — an override built without one gets a fresh identifier each time, so a
-call in `didFinishLaunching` would store another copy of the same override on every launch.
+that override in place, and whatever body file the replaced override owned is reclaimed unless
+another override still points at it. Code that runs on every launch should therefore pass a
+constant `id`, as the example above does — an override built without one gets a fresh identifier
+each time, so a call in `didFinishLaunching` would store another copy of the same override on every
+launch.
+
+An identifier lives in **exactly one** of the two lists. Registering a transient override under an
+identifier the persisted list holds moves it across, and vice versa: the last registration wins
+outright, rather than leaving two copies that `remove(id:)` can only half delete.
+
+`MockResponse.json(_:)` writes nothing when it is built. The bytes travel with the value and are
+written when the override holding it is added or updated, so a response that is never stored leaves
+nothing on disk. If those bytes cannot be written the override is **not** stored — `add(_:)` and
+`update(_:)` return `false` and the menu says so — because an override pointing at a body that is
+not there would answer with the right status code and an empty body.
 
 Overrides are persisted as JSON, which cannot express an infinite or NaN number. A latency, delay
 or failure rate that is not finite — `1e400` typed into the editor parses to `inf` — is replaced

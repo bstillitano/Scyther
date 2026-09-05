@@ -162,7 +162,7 @@ final class NetworkRuleInterceptorTests: XCTestCase {
 
     func testAMatchedMockIsServedWithoutTheNetwork() async throws {
         let store = try makeStore()
-        let bodyID = store.storeBody(Data("{\"mocked\":true}".utf8))
+        let bodyID = try store.storeBody(Data("{\"mocked\":true}".utf8))
         store.add(NetworkRule(
             id: UUID(),
             name: "cart",
@@ -369,7 +369,7 @@ final class NetworkRuleInterceptorTests: XCTestCase {
     /// as the ceiling implies. One kilobyte at one kilobyte per second is a second.
     func testABandwidthCeilingPacesAStubbedBody() async throws {
         let store = try makeStore()
-        let bodyID = store.storeBody(Data(repeating: UInt8(ascii: "x"), count: 32 * 1024))
+        let bodyID = try store.storeBody(Data(repeating: UInt8(ascii: "x"), count: 32 * 1024))
         store.add(NetworkRule(
             id: UUID(),
             name: "throttled cart",

@@ -640,6 +640,21 @@
     "zh-Hans": "关",
     "zh-Hant": "關"
   },
+  "Override Not Saved": {
+    "comment": "Alert title shown when an override could not be saved because its body could not be written",
+    "fr": "Remplacement non enregistré",
+    "de": "Override nicht gespeichert",
+    "es": "Anulación no guardada",
+    "it": "Override non salvato",
+    "pt-BR": "Substituição não salva",
+    "nl": "Overschrijving niet bewaard",
+    "ja": "オーバーライドを保存できません",
+    "zh-Hans": "覆盖规则未保存",
+    "zh-Hant": "覆寫規則未儲存",
+    "ko": "재정의를 저장하지 못함",
+    "ru": "Переопределение не сохранено",
+    "ar": "لم يتم حفظ التجاوز"
+  },
   "Overrides Not Loaded": {
     "comment": "Alert title shown when the saved overrides could not be read at launch",
     "fr": "Remplacements non chargés",
@@ -834,6 +849,21 @@
     "ko": "스텁",
     "ru": "Заглушка",
     "ar": "استجابة بديلة"
+  },
+  "The mock response body could not be written to disk, so the override was not saved.": {
+    "comment": "Alert message explaining that a mock response body could not be written",
+    "fr": "Le corps de la réponse simulée n'a pas pu être écrit sur le disque ; le remplacement n'a donc pas été enregistré.",
+    "de": "Der Body der Mock-Antwort konnte nicht auf die Festplatte geschrieben werden, daher wurde der Override nicht gespeichert.",
+    "es": "No se pudo escribir en el disco el cuerpo de la respuesta simulada, por lo que la anulación no se guardó.",
+    "it": "Non è stato possibile scrivere su disco il corpo della risposta simulata, quindi l'override non è stato salvato.",
+    "pt-BR": "Não foi possível gravar o corpo da resposta simulada no disco, então a substituição não foi salva.",
+    "nl": "De body van het mock-antwoord kon niet naar schijf worden geschreven, dus de overschrijving is niet bewaard.",
+    "ja": "モック応答のボディをディスクに書き込めなかったため、オーバーライドは保存されませんでした。",
+    "zh-Hans": "无法将模拟响应正文写入磁盘，因此未保存该覆盖规则。",
+    "zh-Hant": "無法將模擬回應主體寫入磁碟，因此未儲存該覆寫規則。",
+    "ko": "모의 응답 본문을 디스크에 기록하지 못해 재정의가 저장되지 않았습니다.",
+    "ru": "Не удалось записать тело фиктивного ответа на диск, поэтому переопределение не сохранено.",
+    "ar": "تعذّرت كتابة نص الاستجابة الوهمية على القرص، لذا لم يتم حفظ التجاوز."
   },
   "The saved overrides could not be read, so the list started empty. They have been set aside rather than deleted.": {
     "comment": "Alert message explaining that the persisted overrides were unreadable and have been preserved",
