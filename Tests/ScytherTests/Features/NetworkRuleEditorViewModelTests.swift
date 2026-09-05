@@ -684,7 +684,7 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
         viewModel.importMapLocalFile(from: try pickedFile(named: "users.json"))
 
         XCTAssertEqual(viewModel.contentType, "application/json")
-        XCTAssertEqual(viewModel.contentTypeSelection, "application/json")
+        XCTAssertEqual(viewModel.contentTypeSelection, .listed("application/json"))
         XCTAssertFalse(viewModel.isCustomContentType)
     }
 
@@ -694,22 +694,45 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
         viewModel.contentType = "application/vnd.example+json"
 
         XCTAssertTrue(viewModel.isCustomContentType)
-        XCTAssertNil(viewModel.contentTypeSelection)
+        XCTAssertEqual(viewModel.contentTypeSelection, .custom)
     }
 
     func testChoosingCustomKeepsWhatTheEntryAlreadyHeld() {
         let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
         viewModel.stubKind = .mapLocal
-        viewModel.contentTypeSelection = "text/csv"
+        viewModel.contentTypeSelection = .listed("text/csv")
         XCTAssertEqual(viewModel.contentType, "text/csv")
 
-        viewModel.contentTypeSelection = nil
+        viewModel.contentTypeSelection = .custom
         XCTAssertTrue(viewModel.isCustomContentType, "Custom reveals the field rather than clearing it")
         XCTAssertEqual(viewModel.contentType, "text/csv")
 
-        viewModel.contentTypeSelection = "application/json"
+        viewModel.contentTypeSelection = .listed("application/json")
         XCTAssertFalse(viewModel.isCustomContentType)
         XCTAssertEqual(viewModel.contentType, "application/json")
+    }
+
+    /// A map local stub with no content type starts at None, not Custom: Custom would reveal an
+    /// empty field for a value the developer has not decided to give.
+    func testANewMapLocalOverrideStartsWithNoContentType() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.stubKind = .mapLocal
+
+        XCTAssertEqual(viewModel.contentTypeSelection, .unset)
+        XCTAssertFalse(viewModel.isCustomContentType, "the Custom field stays hidden until it is chosen")
+        XCTAssertEqual(viewModel.contentType, "")
+    }
+
+    /// Choosing None after a type was set clears it, so the header is omitted again.
+    func testChoosingNoneClearsTheContentType() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.stubKind = .mapLocal
+        viewModel.contentTypeSelection = .listed("application/json")
+
+        viewModel.contentTypeSelection = .unset
+
+        XCTAssertEqual(viewModel.contentType, "")
+        XCTAssertFalse(viewModel.isCustomContentType)
     }
 
     func testReopeningAMapLocalOverrideSeedsThePickerFromWhatWasStored() {
@@ -720,7 +743,7 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
                                                                      contentType: "application/json")))
         )
         let viewModel = NetworkRuleEditorViewModel(rule: rule, store: store)
-        XCTAssertEqual(viewModel.contentTypeSelection, "application/json")
+        XCTAssertEqual(viewModel.contentTypeSelection, .listed("application/json"))
         XCTAssertFalse(viewModel.isCustomContentType)
     }
 

@@ -305,7 +305,9 @@ final class NetworkRuleEditorViewModel: ViewModel {
         if case .mapLocal(let file) = draft.actions.stub, let type = file.contentType, !type.isEmpty {
             self.isCustomContentType = !Self.contentTypes.contains(type)
         } else {
-            self.isCustomContentType = true
+            // No content type yet means None, not Custom — Custom would reveal an empty field for
+            // a value the developer has not decided to give.
+            self.isCustomContentType = false
         }
 
         if case .mock(let mock) = draft.actions.stub {
@@ -574,7 +576,7 @@ final class NetworkRuleEditorViewModel: ViewModel {
         if file.contentType?.isEmpty ?? true {
             let derived = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType
             file.contentType = derived
-            isCustomContentType = derived.map { !Self.contentTypes.contains($0) } ?? true
+            isCustomContentType = derived.map { !Self.contentTypes.contains($0) } ?? false
         }
         draft.actions.stub = .mapLocal(file)
     }
@@ -597,6 +599,11 @@ final class NetworkRuleEditorViewModel: ViewModel {
         set {
             guard case .mapLocal(var file) = draft.actions.stub else { return }
             file.contentType = newValue.isEmpty ? nil : newValue
+            // Keep the Custom field on screen for a value the picker cannot represent, whoever
+            // wrote it — otherwise typing one would hide the field that is holding it.
+            if !newValue.isEmpty, !Self.contentTypes.contains(newValue) {
+                isCustomContentType = true
+            }
             draft.actions.stub = .mapLocal(file)
         }
     }
@@ -608,16 +615,41 @@ final class NetworkRuleEditorViewModel: ViewModel {
     /// rather than spell it. Custom stays available for the rest, and keeps whatever the entry
     /// already held rather than clearing it, so switching to Custom to adjust a type is not a
     /// retype.
-    var contentTypeSelection: String? {
-        get { isCustomContentType ? nil : contentType }
-        set {
-            guard let newValue else {
-                isCustomContentType = true
-                return
-            }
-            isCustomContentType = false
-            contentType = newValue
+    var contentTypeSelection: ContentTypeChoice {
+        get {
+            if isCustomContentType { return .custom }
+            let type = contentType
+            if type.isEmpty { return .unset }
+            // A value that is not one of the offered ones is Custom however it got there — a HAR
+            // import and a picked file can both produce one without the picker being touched.
+            return Self.contentTypes.contains(type) ? .listed(type) : .custom
         }
+        set {
+            switch newValue {
+            case .unset:
+                isCustomContentType = false
+                contentType = ""
+            case .listed(let type):
+                isCustomContentType = false
+                contentType = type
+            case .custom:
+                isCustomContentType = true
+            }
+        }
+    }
+
+    /// What the Content type picker is showing.
+    ///
+    /// Three states rather than two, because "no content type at all" is a real answer and used to
+    /// be spelled as Custom with an empty field — which showed a text field for nothing and made
+    /// the omission look like an unfinished entry.
+    enum ContentTypeChoice: Hashable {
+        /// No `Content-Type` header is returned.
+        case unset
+        /// One of ``NetworkRuleEditorViewModel/contentTypes``.
+        case listed(String)
+        /// Anything else, typed into the field the picker reveals.
+        case custom
     }
 
     // MARK: - Rewrite

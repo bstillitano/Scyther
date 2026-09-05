@@ -132,11 +132,12 @@ struct NetworkRuleActionFields: View {
                     .keyboardType(.numberPad)
             }
             Picker(localized("Content type"), selection: $viewModel.contentTypeSelection) {
+                Text(localized("None")).tag(NetworkRuleEditorViewModel.ContentTypeChoice.unset)
                 ForEach(NetworkRuleEditorViewModel.contentTypes, id: \.self) { type in
                     // A registered MIME token, shown as it goes out on the wire.
-                    Text(type).tag(String?.some(type))
+                    Text(type).tag(NetworkRuleEditorViewModel.ContentTypeChoice.listed(type))
                 }
-                Text(localized("Custom")).tag(String?.none)
+                Text(localized("Custom")).tag(NetworkRuleEditorViewModel.ContentTypeChoice.custom)
             }
             if viewModel.isCustomContentType {
                 TextField(localized("Content type"), text: $viewModel.contentType)
