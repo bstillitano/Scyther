@@ -225,7 +225,9 @@ The override arrives **disabled**. Nothing about the app's behaviour changes unt
 on, from the editor or with a swipe on the list.
 
 A response an override synthesised cannot itself be saved as a mock — there would be nothing to
-learn from the copy. Those rows are marked instead: the log list shows a pink **MOCKED** badge,
+learn from the copy. An override that shapes a request without answering it — a header rewrite or
+a network condition — wears a brown **OVERRIDDEN** badge instead, so it is never mistaken for
+traffic nobody touched. Those rows are marked instead: the log list shows a pink **MOCKED** badge,
 and the details page lists every override that shaped the request in an **Overrides** row of the
 Developer Info section.
 
@@ -339,6 +341,29 @@ cannot quietly break the next one.
 - Note: Overrides only apply to traffic Scyther intercepts, which is `URLSession` traffic through
   a standard configuration. A custom `URLSessionConfiguration` that does not carry Scyther's
   `URLProtocol` bypasses overrides exactly as it bypasses logging.
+
+## Network Conditioning
+
+**Networking → Network Conditioning** degrades **every** request Scyther intercepts, which is what
+Network Link Conditioner does without needing a Mac or a provisioning profile. The menu row shows
+the active preset, or `Off`, so conditioning is never quietly on.
+
+The screen carries a master switch, a preset picker — Wi-Fi, 4G, 3G, EDGE and a very bad network,
+plus Custom — and the three numbers underneath it: a latency in seconds, a ceiling in KB/s, and a
+failure rate. Picking a preset fills the three in; editing any of them makes the picker read
+Custom again, because that is what it now is.
+
+The global condition is a **floor**, not an addition. A request override whose own condition
+matches replaces it outright, so one endpoint can be conditioned differently — or barely at all —
+while the rest of the app is on EDGE. An override that matches but carries no condition leaves the
+global one in place.
+
+It is off by default, persisted across launches, and separate from overrides: **Enable Request
+Overrides** does not reach it, and neither does turning every override off.
+
+- Note: A request the global condition slowed or failed carries the same brown `OVERRIDDEN` badge
+  a per-override condition produces, so the log never shows a conditioned request as ordinary
+  traffic.
 
 ## Request Replay
 

@@ -693,6 +693,12 @@ A response an override already synthesised cannot be saved as a mock. Those rows
 instead: a pink **MOCKED** badge in the log list, and an **Overrides** row in the details
 page's Developer Info section naming every override that shaped the request.
 
+An override that shapes a request **without answering it** — a header rewrite, or a network
+condition — leaves the row looking like ordinary traffic otherwise, so it carries a brown
+**OVERRIDDEN** badge instead. The four badges use four colours nothing else in the log wears, so
+`MOCKED`, `OVERRIDDEN`, `REPLAY` and `HELD` can appear together on one row and still be read
+apart. A stubbed row never wears `OVERRIDDEN`, because `MOCKED` already says what happened.
+
 #### Importing a HAR File
 
 **Import from HAR**, in the add menu of the overrides list, reads a HAR 1.2 document — one
