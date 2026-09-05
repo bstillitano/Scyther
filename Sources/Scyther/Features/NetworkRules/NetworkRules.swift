@@ -17,9 +17,13 @@ import Foundation
 /// ## Usage
 ///
 /// ```swift
-/// // Persisted: survives relaunch and appears in the debug menu.
+/// // Persisted: survives relaunch and appears in the debug menu. The identifier is a
+/// // constant, so a relaunch updates this rule instead of storing a second copy of it.
 /// Scyther.network.rules.add(
-///     .mock(name: "Empty cart", matching: .path("/api/cart"), returning: .json("{}"))
+///     .mock(id: UUID(uuidString: "6F0B0C3E-4C1E-4E3D-9C0B-0F5E7A9D2B41")!,
+///           name: "Empty cart",
+///           matching: .path("/api/cart"),
+///           returning: .json("{}"))
 /// )
 ///
 /// // This launch only: never written to disk.
@@ -76,7 +80,28 @@ public final class NetworkRules: Sendable {
 
     /// Adds a rule that survives relaunch, at the lowest precedence.
     ///
-    /// - Parameter rule: The rule to add.
+    /// Adding is an **upsert**: a rule whose ``NetworkRule/id`` is already stored replaces that
+    /// rule in place. Give a rule a stable identifier when the same call runs on every launch —
+    /// from `didFinishLaunching`, say — or each launch stores another copy of it:
+    ///
+    /// ```swift
+    /// // The identifier is a constant, so relaunching updates this override rather than
+    /// // adding a second one beside it.
+    /// let emptyCart = UUID(uuidString: "6F0B0C3E-4C1E-4E3D-9C0B-0F5E7A9D2B41")!
+    /// Scyther.network.rules.add(
+    ///     .mock(id: emptyCart,
+    ///           name: "Empty cart",
+    ///           matching: .path("/api/cart"),
+    ///           returning: .json("{}"))
+    /// )
+    /// ```
+    ///
+    /// A rule built without an identifier gets a fresh one, which is right for a rule created
+    /// once — from the menu, or behind a launch argument — and wrong for one registered on every
+    /// launch.
+    ///
+    /// - Parameter rule: The rule to add, or the replacement for a rule already stored under the
+    ///   same identifier.
     public func add(_ rule: NetworkRule) {
         NetworkRuleStore.shared.add(rule)
     }
@@ -86,7 +111,11 @@ public final class NetworkRules: Sendable {
     /// Use this for rules the app installs for itself — a UI test's stubbed endpoints, say — so
     /// that they cannot outlive the run that created them.
     ///
-    /// - Parameter rule: The rule to add.
+    /// Upserts by ``NetworkRule/id`` exactly as ``add(_:)`` does, so registering the same rule
+    /// twice within one launch leaves one rule rather than two.
+    ///
+    /// - Parameter rule: The rule to add, or the replacement for a transient rule already
+    ///   registered under the same identifier.
     public func addTransient(_ rule: NetworkRule) {
         NetworkRuleStore.shared.addTransient(rule)
     }
@@ -115,42 +144,52 @@ public extension NetworkRule {
     /// A rule that answers matching requests with a canned response instead of hitting the network.
     ///
     /// - Parameters:
+    ///   - id: A stable identifier. Defaults to a fresh one; pass a constant when the same call
+    ///     runs on every launch, so ``NetworkRules/add(_:)`` updates the rule rather than adding
+    ///     another copy of it.
     ///   - name: The label shown in the rule list and in the log's applied-rules badge.
     ///   - matching: The requests this rule applies to.
     ///   - returning: The response to synthesise.
     /// - Returns: An enabled rule.
-    static func mock(name: String,
+    static func mock(id: UUID = UUID(),
+                     name: String,
                      matching: NetworkRuleMatch,
                      returning: MockResponse) -> NetworkRule {
-        NetworkRule(id: UUID(), name: name, isEnabled: true, match: matching, action: .mock(returning))
+        NetworkRule(id: id, name: name, isEnabled: true, match: matching, action: .mock(returning))
     }
 
     /// A rule that slows, throttles or randomly fails matching requests.
     ///
     /// - Parameters:
+    ///   - id: A stable identifier. Defaults to a fresh one; pass a constant when the same call
+    ///     runs on every launch.
     ///   - name: The label shown in the rule list.
     ///   - matching: The requests this rule applies to.
     ///   - condition: The latency, bandwidth ceiling and failure rate to apply.
     /// - Returns: An enabled rule.
-    static func condition(name: String,
+    static func condition(id: UUID = UUID(),
+                          name: String,
                           matching: NetworkRuleMatch,
                           _ condition: NetworkCondition) -> NetworkRule {
-        NetworkRule(id: UUID(), name: name, isEnabled: true, match: matching, action: .condition(condition))
+        NetworkRule(id: id, name: name, isEnabled: true, match: matching, action: .condition(condition))
     }
 
     /// A rule that sets or removes headers on matching requests before they are sent.
     ///
     /// - Parameters:
+    ///   - id: A stable identifier. Defaults to a fresh one; pass a constant when the same call
+    ///     runs on every launch.
     ///   - name: The label shown in the rule list.
     ///   - matching: The requests this rule applies to.
     ///   - set: Headers to set, replacing any existing value.
     ///   - remove: Header names to remove. A name in both is removed.
     /// - Returns: An enabled rule.
-    static func headers(name: String,
+    static func headers(id: UUID = UUID(),
+                        name: String,
                         matching: NetworkRuleMatch,
                         set: [String: String] = [:],
                         remove: [String] = []) -> NetworkRule {
-        NetworkRule(id: UUID(),
+        NetworkRule(id: id,
                     name: name,
                     isEnabled: true,
                     match: matching,
@@ -160,14 +199,18 @@ public extension NetworkRule {
     /// A rule that answers matching requests with the contents of a local file.
     ///
     /// - Parameters:
+    ///   - id: A stable identifier. Defaults to a fresh one; pass a constant when the same call
+    ///     runs on every launch.
     ///   - name: The label shown in the rule list.
     ///   - matching: The requests this rule applies to.
-    ///   - serving: The file to serve, described by its absolute path.
+    ///   - serving: The file to serve, described by its absolute path. It must be an **absolute**
+    ///     path, so it has to come from code or from Scyther's file browser.
     /// - Returns: An enabled rule.
-    static func mapLocal(name: String,
+    static func mapLocal(id: UUID = UUID(),
+                         name: String,
                          matching: NetworkRuleMatch,
                          serving: MapLocalFile) -> NetworkRule {
-        NetworkRule(id: UUID(), name: name, isEnabled: true, match: matching, action: .mapLocal(serving))
+        NetworkRule(id: id, name: name, isEnabled: true, match: matching, action: .mapLocal(serving))
     }
 }
 

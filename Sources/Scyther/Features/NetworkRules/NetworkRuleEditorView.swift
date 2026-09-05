@@ -12,8 +12,8 @@ import SwiftUI
 /// Pushed from a row of ``NetworkRulesView`` when editing, and presented as a sheet when creating.
 /// It deliberately does not wrap itself in a `NavigationStack` — the pushed case already sits in
 /// one, and the sheet supplies its own — so the same view serves both. Nothing is written until
-/// **Save** is tapped, and **Save** stays disabled until the override is named and constrains at
-/// least one facet of a request — see ``NetworkRuleEditorViewModel/isValid``.
+/// **Save** is tapped, and **Save** stays disabled until the override is named and given a host,
+/// path or query — see ``NetworkRuleEditorViewModel/isValid``.
 ///
 /// The Action section swaps its fields for whichever behaviour the picker names, and remembers
 /// what was typed into the others, so comparing two ways of stubbing the same endpoint does not

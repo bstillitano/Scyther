@@ -274,3 +274,82 @@ final class NetworkRuleInterceptorTests: XCTestCase {
         }
     }
 }
+
+/// Drives `HTTPInterceptorURLProtocol`'s data-delegate callbacks directly, which is the only way
+/// to observe the bandwidth ceiling: a stubbed response never creates a data task, and a real one
+/// needs a server.
+final class NetworkRuleBandwidthTests: XCTestCase {
+
+    /// Stands in for the URL loading system, recording the bytes the interceptor forwards.
+    private final class RecordingClient: NSObject, URLProtocolClient, @unchecked Sendable {
+        private(set) var forwardedByteCount: Int = 0
+
+        func urlProtocol(_ protocol: URLProtocol, didLoad data: Data) {
+            forwardedByteCount += data.count
+        }
+
+        func urlProtocol(_ protocol: URLProtocol, wasRedirectedTo request: URLRequest, redirectResponse: URLResponse) { }
+        func urlProtocol(_ protocol: URLProtocol, cachedResponseIsValid cachedResponse: CachedURLResponse) { }
+        func urlProtocol(_ protocol: URLProtocol, didReceive response: URLResponse, cacheStoragePolicy policy: URLCache.StoragePolicy) { }
+        func urlProtocol(_ protocol: URLProtocol, didFailWithError error: Error) { }
+        func urlProtocolDidFinishLoading(_ protocol: URLProtocol) { }
+        func urlProtocol(_ protocol: URLProtocol, didReceive challenge: URLAuthenticationChallenge) { }
+        func urlProtocol(_ protocol: URLProtocol, didCancel challenge: URLAuthenticationChallenge) { }
+    }
+
+    private let url = URL(string: "https://api.example.com/v1/large")!
+
+    /// The number of bytes forwarded and the wall-clock time it took to forward them, delivering
+    /// `chunks` chunks of `chunkSize` bytes through the data delegate under `condition`.
+    private func deliver(chunks: Int,
+                         chunkSize: Int,
+                         condition: NetworkCondition?) -> (bytes: Int, elapsed: TimeInterval) {
+        let client = RecordingClient()
+        let request = URLRequest(url: url)
+        let interceptor = HTTPInterceptorURLProtocol(request: request, cachedResponse: nil, client: client)
+        interceptor.condition = condition
+
+        let session = URLSession(configuration: .ephemeral)
+        let task = session.dataTask(with: request)
+        let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
+
+        let start = Date()
+        interceptor.urlSession(session, dataTask: task, didReceive: response) { _ in }
+        let chunk = Data(count: chunkSize)
+        for _ in 0..<chunks {
+            interceptor.urlSession(session, dataTask: task, didReceive: chunk)
+        }
+        return (client.forwardedByteCount, Date().timeIntervalSince(start))
+    }
+
+    /// The regression: CFNetwork delivers a body in chunks smaller than a second's worth of any
+    /// realistic ceiling, so a per-delivery budget throttles nothing at all.
+    func testAChunkedResponseIsPacedAcrossDeliveries() {
+        // 512 KB at 512 KB/s should take about a second, in eight deliveries none of which is
+        // anywhere near a second's worth on its own.
+        let throttled = deliver(chunks: 8,
+                                chunkSize: 64 * 1024,
+                                condition: NetworkCondition(latency: 0, bandwidthKBps: 512, failureRate: 0))
+
+        XCTAssertEqual(throttled.bytes, 8 * 64 * 1024, "every byte is still forwarded, just later")
+        XCTAssertGreaterThan(throttled.elapsed, 0.7,
+                             "eight 64 KB deliveries under a 512 KB/s ceiling must take about a second")
+        XCTAssertLessThan(throttled.elapsed, 5, "and must not overshoot the ceiling either")
+    }
+
+    func testTheSameResponseIsNotDelayedWithoutACeiling() {
+        let unthrottled = deliver(chunks: 8, chunkSize: 64 * 1024, condition: nil)
+        XCTAssertEqual(unthrottled.bytes, 8 * 64 * 1024)
+        XCTAssertLessThan(unthrottled.elapsed, 0.3, "an unconditioned response is forwarded as it arrives")
+    }
+
+    /// A condition with latency but no ceiling must not throttle the body either — the latency is
+    /// applied once, in `startLoading()`.
+    func testAConditionWithoutACeilingDoesNotPaceTheBody() {
+        let result = deliver(chunks: 8,
+                             chunkSize: 64 * 1024,
+                             condition: NetworkCondition(latency: 2, bandwidthKBps: nil, failureRate: 0))
+        XCTAssertEqual(result.bytes, 8 * 64 * 1024)
+        XCTAssertLessThan(result.elapsed, 0.3)
+    }
+}

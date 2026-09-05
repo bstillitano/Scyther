@@ -40,11 +40,33 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
         try? FileManager.default.removeItem(at: bodyDirectory)
     }
 
-    func testANewRuleIsInvalidUntilItIsNamed() {
+    func testANewRuleIsInvalidUntilItIsNamedAndPointedAtAnEndpoint() {
         let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
         XCTAssertFalse(viewModel.isValid)
         viewModel.draft.name = "Empty cart"
+        XCTAssertFalse(viewModel.isValid, "a name alone does not say which requests the override is for")
+        viewModel.draft.match.path = .pattern("/api/cart")
         XCTAssertTrue(viewModel.isValid)
+    }
+
+    /// Two taps — name it, save it — used to produce an enabled override mocking every `GET` the
+    /// app makes, because the draft was seeded with a method and a method counted as a facet.
+    func testAMethodsOnlyDraftIsRejected() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Every GET"
+        viewModel.draft.match = NetworkRuleMatch(methods: ["GET"], host: nil, path: nil, query: [:])
+        XCTAssertFalse(
+            viewModel.isValid,
+            "an override matching every GET in the app is the same hazard as one matching everything"
+        )
+
+        viewModel.save()
+        XCTAssertTrue(store.rules.isEmpty)
+    }
+
+    func testANewRuleStartsWithoutAMethodSeeded() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        XCTAssertTrue(viewModel.draft.match.methods.isEmpty, "a new override matches any method")
     }
 
     func testARuleMatchingNothingIsRejected() {

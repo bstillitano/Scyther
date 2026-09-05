@@ -193,6 +193,10 @@ public enum Scyther {
         // Clean up old network logs (files older than 7 days)
         NetworkLogCleaner.shared.cleanupOldLogs()
 
+        // Publish the persisted request overrides so they apply from the launch's first request
+        // rather than from the first time the overrides screen happens to be opened.
+        NetworkRuleStore.shared.activate()
+
         Console.shared.startCapturing()
         Network.shared.startIntercepting()
         Interface.shared.setup()

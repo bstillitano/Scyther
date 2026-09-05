@@ -109,13 +109,43 @@ internal final class NetworkRuleStore: ObservableObject {
         publish()
     }
 
+    // MARK: - Activation
+
+    /// Publishes the current rules so the interceptor applies them from the first request.
+    ///
+    /// Loading the persisted rules and publishing them is something only *constructing* the store
+    /// does, and nothing outside this folder constructs it. Without a call from
+    /// ``Scyther/start()`` an override a developer enabled yesterday would sit dormant after a
+    /// relaunch and then switch itself on mid-session, the moment the overrides screen happened
+    /// to be opened.
+    ///
+    /// Idempotent: it republishes state the store already holds, so calling it more than once
+    /// costs a snapshot and changes nothing.
+    func activate() {
+        publish()
+    }
+
     // MARK: - Mutation
 
-    /// Appends a rule that survives relaunch, at the lowest precedence of the persisted rules.
+    /// Adds a rule that survives relaunch, at the lowest precedence of the persisted rules.
     ///
-    /// - Parameter rule: The rule to add.
+    /// Adding is an upsert: a rule whose identifier is already stored **replaces** that rule in
+    /// place rather than appending a second copy. A host app that registers an override from
+    /// `didFinishLaunching` would otherwise grow both the persisted blob and the menu list by one
+    /// row on every launch, and two rows sharing an identifier make ``update(_:)`` and
+    /// ``remove(id:)`` reach only the first of them.
+    ///
+    /// Callers who want one stable override across launches should therefore build it with a
+    /// stable identifier — see ``NetworkRules/add(_:)``.
+    ///
+    /// - Parameter rule: The rule to add, or the replacement for a rule already stored under the
+    ///   same identifier.
     func add(_ rule: NetworkRule) {
-        rules.append(rule)
+        if let index = rules.firstIndex(where: { $0.id == rule.id }) {
+            rules[index] = rule
+        } else {
+            rules.append(rule)
+        }
         persistRules()
         publish()
     }
@@ -135,11 +165,20 @@ internal final class NetworkRuleStore: ObservableObject {
         publish()
     }
 
-    /// Appends a rule for this launch only. It is never written to `UserDefaults`.
+    /// Adds a rule for this launch only. It is never written to `UserDefaults`.
     ///
-    /// - Parameter rule: The rule to add.
+    /// Upserts by identifier exactly as ``add(_:)`` does, so registering the same override twice
+    /// in one launch — from a helper called on every sign-in, say — leaves one row rather than a
+    /// growing pile of identical ones.
+    ///
+    /// - Parameter rule: The rule to add, or the replacement for a transient rule already
+    ///   registered under the same identifier.
     func addTransient(_ rule: NetworkRule) {
-        transientRules.append(rule)
+        if let index = transientRules.firstIndex(where: { $0.id == rule.id }) {
+            transientRules[index] = rule
+        } else {
+            transientRules.append(rule)
+        }
         publish()
     }
 

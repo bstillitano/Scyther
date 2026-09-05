@@ -43,7 +43,10 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
 
     /// The conditioning a matching rule asked for, stored at `startLoading()` so that
     /// `urlSession(_:dataTask:didReceive:)` can throttle the bytes it forwards.
-    private var condition: NetworkCondition?
+    ///
+    /// - Note: Internal rather than private so a test can drive the delegate callbacks directly
+    ///   and measure the pacing. Nothing but `startLoading()` writes it in production.
+    internal var condition: NetworkCondition?
 
     /// Whether a real data task was started. A stubbed or rule-failed request never creates one,
     /// so `stopLoading()` must not spin up the lazy session just to cancel nothing.
@@ -53,8 +56,12 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// that has gone away instead of running its budget out.
     private var isCancelled: Bool = false
 
-    /// Seconds already spent asleep throttling the current response, reset when one begins.
-    private var throttleSleepUsed: TimeInterval = 0
+    /// Paces the current response to the ceiling ``condition`` asked for, or `nil` when there is
+    /// no ceiling. Rebuilt when a response begins, because the budget is per response.
+    private var throttle: BandwidthThrottle?
+
+    /// When the current response began arriving, which is what the throttle measures against.
+    private var responseStart: Date = .distantPast
 
     /// The longest a rule is allowed to block the URL loading system's thread in one go.
     ///
@@ -62,11 +69,8 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// request that appears to have hung forever.
     private static let maximumSleep: TimeInterval = 30
 
-    /// The largest bandwidth ceiling that is honoured, in kilobytes per second.
-    ///
-    /// A ceiling is host-supplied, and `bandwidthKBps * 1024` would trap on overflow for an absurd
-    /// one. Anything at or above this is effectively unthrottled anyway.
-    private static let maximumBandwidthKBps: Int = 1_000_000
+    /// The longest the bandwidth throttle may spend asleep across one whole response.
+    private static let maximumBandwidthSleep: TimeInterval = 30
 
     override open class func canInit(with request: URLRequest) -> Bool {
         return canServeRequest(request)
@@ -220,48 +224,40 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
 extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
     /// Forwards received bytes to the client, honouring any bandwidth ceiling a condition rule set.
     ///
-    /// A ceiling is applied by forwarding one second's worth of bytes at a time and sleeping in
-    /// between, on the URL loading system's thread and never the main one. Two bounds keep that
-    /// from becoming a hang:
+    /// The ceiling is a budget for the **whole response**, held by ``BandwidthThrottle`` and reset
+    /// when a response begins. Weighing only the bytes in hand would never sleep for a realistic
+    /// ceiling, because `URLSession` delivers a body in chunks far smaller than a second's worth
+    /// of it. The wait happens on the private session's own serial delegate queue, which belongs
+    /// to this request alone, and never on the main thread. Two bounds keep it from becoming a
+    /// hang:
     ///
-    /// - The sleeping is capped at `maximumSleep` seconds for the whole response, after which the
-    ///   remainder is forwarded in a single call. Without it a 10 MB body at 1 KB/s would block
-    ///   this queue for hours, which is not a simulation anyone asked for.
-    /// - The loop stops as soon as `stopLoading()` has been called, so a cancelled request does not
-    ///   keep pushing bytes at a client that has gone away.
+    /// - The throttle asks for at most `maximumBandwidthSleep` seconds across the whole response,
+    ///   after which the remaining bytes are forwarded as fast as they arrive.
+    /// - Nothing is forwarded once `stopLoading()` has been called, so a cancelled request does
+    ///   not keep pushing bytes at a client that has gone away.
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         responseData?.append(data)
 
-        guard let bandwidth = condition?.bandwidthKBps, bandwidth > 0 else {
+        guard let wait = throttle?.delay(forwarding: data.count,
+                                         elapsed: Date().timeIntervalSince(responseStart)) else {
             client?.urlProtocol(self, didLoad: data)
             return
         }
 
-        let chunkSize = max(1, min(bandwidth, Self.maximumBandwidthKBps) * 1024)
-        var start = data.startIndex
-        while start < data.endIndex {
+        if wait > 0 {
             if isCancelled { return }
-
-            if throttleSleepUsed >= Self.maximumSleep {
-                client?.urlProtocol(self, didLoad: data.subdata(in: start..<data.endIndex))
-                return
-            }
-
-            let end = data.index(start, offsetBy: chunkSize, limitedBy: data.endIndex) ?? data.endIndex
-            client?.urlProtocol(self, didLoad: data.subdata(in: start..<end))
-            start = end
-
-            if start < data.endIndex {
-                Thread.sleep(forTimeInterval: 1)
-                throttleSleepUsed += 1
-            }
+            Thread.sleep(forTimeInterval: wait)
         }
+        if isCancelled { return }
+        client?.urlProtocol(self, didLoad: data)
     }
 
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         self.response = response
         responseData = NSMutableData()
-        throttleSleepUsed = 0
+        responseStart = Date()
+        throttle = BandwidthThrottle(bandwidthKBps: condition?.bandwidthKBps,
+                                     maximumTotalSleep: Self.maximumBandwidthSleep)
 
         client?.urlProtocol(self,
                             didReceive: response,

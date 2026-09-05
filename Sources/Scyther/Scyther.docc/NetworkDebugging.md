@@ -180,9 +180,13 @@ override's. It is persisted, so it survives relaunch.
 Scyther singleton.
 
 ```swift
-// Persisted: written to UserDefaults, listed in the menu, survives relaunch.
+// Persisted: written to UserDefaults, listed in the menu, survives relaunch. The
+// identifier is a constant, so relaunching updates this override rather than adding
+// a second copy of it.
+let emptyCart = UUID(uuidString: "6F0B0C3E-4C1E-4E3D-9C0B-0F5E7A9D2B41")!
 Scyther.network.rules.add(
-    .mock(name: "Empty cart",
+    .mock(id: emptyCart,
+          name: "Empty cart",
           matching: .path("/api/cart"),
           returning: .json(#"{"items": []}"#))
 )
@@ -203,6 +207,10 @@ Scyther.network.rules.isEnabled = false
   live for the launch that registered them, are shown read-only, and cannot be reordered. Use the
   transient form for anything the app registers for itself, so it cannot outlive the run that
   created it.
+- Important: Both are an upsert on ``NetworkRule/id``: an override whose identifier is already
+  known replaces that override in place. Code that runs on every launch should pass a constant
+  `id`, as the example above does. An override built without one gets a fresh identifier every
+  time, so the same call in `didFinishLaunching` would store another copy of it on every launch.
 
 Transient overrides are evaluated after every persisted one, so a persisted mock on the same
 endpoint takes precedence.

@@ -126,9 +126,9 @@ final class NetworkRuleEditorViewModel: ViewModel {
 
     /// Creates an editor for a new or existing rule.
     ///
-    /// A new rule starts matching `GET`, which gives it one facet and so makes it valid the
-    /// moment it is named. Starting with no facets at all would make a freshly named rule fail
-    /// validation for a reason the form does not visibly explain.
+    /// A new rule starts constraining nothing, and so is invalid until it is named and given a
+    /// host, path or query — see ``isValid``. Seeding it with a method instead would let two
+    /// taps produce an override matching every request of that method the app makes.
     ///
     /// - Parameters:
     ///   - rule: The rule to edit, or `nil` to create one.
@@ -137,7 +137,7 @@ final class NetworkRuleEditorViewModel: ViewModel {
         let draft = rule ?? NetworkRule(
             name: "",
             isEnabled: true,
-            match: NetworkRuleMatch(methods: ["GET"]),
+            match: NetworkRuleMatch(),
             action: .mock(MockResponse())
         )
         self.init(draft: draft, isNewRule: rule == nil, store: store)
@@ -209,13 +209,13 @@ final class NetworkRuleEditorViewModel: ViewModel {
 
     /// Whether ``save()`` should be offered.
     ///
-    /// A rule needs a name so it can be told apart in the list, and at least one match facet:
-    /// methods, host, path or query. A rule with none of those matches every request the app
-    /// makes, which is almost never what the developer meant and is hard to diagnose once
-    /// enabled.
+    /// A rule needs a name so it can be told apart in the list, and a host, path or query so it
+    /// picks out some endpoint rather than the whole app. A method on its own does not count:
+    /// an override matching every `GET` the app makes is the same hazard as one matching
+    /// everything, and just as hard to diagnose once it is enabled.
     var isValid: Bool {
         guard !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
-        return draft.match.hasAnyFacet
+        return draft.match.hasHostPathOrQuery
     }
 
     // MARK: - Match
@@ -507,14 +507,17 @@ internal extension NetworkRulePattern.Kind {
 }
 
 internal extension NetworkRuleMatch {
-    /// Whether this match constrains anything at all.
+    /// Whether this match names an endpoint rather than a swathe of the app's traffic.
     ///
-    /// A match with no facets is a wildcard over every request the app makes. That is a legal
-    /// value — the engine treats an empty facet as "any" — but it is almost never what a
-    /// developer typing into the editor intended, so ``NetworkRuleEditorViewModel/isValid``
-    /// refuses it.
-    var hasAnyFacet: Bool {
-        if !methods.isEmpty { return true }
+    /// A match with no host, path or query applies to every request the app makes — every `GET`
+    /// of them, if a method is selected, which is not meaningfully narrower. Those are legal
+    /// values, because the engine treats an empty facet as "any", but they are almost never what
+    /// a developer typing into the editor intended, so ``NetworkRuleEditorViewModel/isValid``
+    /// refuses them.
+    ///
+    /// Methods deliberately do not count: they narrow *how* a request is made, never *what* it
+    /// is made to.
+    var hasHostPathOrQuery: Bool {
         if let host, !host.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return true }
         if let path, !path.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return true }
         return !query.isEmpty
