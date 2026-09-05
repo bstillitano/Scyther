@@ -294,6 +294,10 @@ class LogDetailsViewModel: ViewModel {
     /// It starts disabled: creating it from the log should never change the behaviour of the app
     /// until the developer says so in the editor.
     ///
+    /// The path is taken percent-encoded, because that is the form ``NetworkRuleMatch/matches(_:)``
+    /// compares against — a captured `/v1/a%2Fb` has to keep its escaped separator or the override
+    /// would match a different endpoint than the one it was built from.
+    ///
     /// - Returns: The pre-filled override, not yet added to ``ruleStore``. The response body
     ///   travels with the override rather than being written here, so abandoning the editor leaves
     ///   nothing on disk to reclaim.
@@ -301,7 +305,7 @@ class LogDetailsViewModel: ViewModel {
     func makeMockRule() -> NetworkRule {
         let components = httpRequest.requestURL.flatMap { URLComponents(string: $0) }
         let method = (httpRequest.requestMethod ?? "GET").uppercased()
-        let path = (components?.path).flatMap { $0.isEmpty ? nil : $0 } ?? "/"
+        let path = (components?.percentEncodedPath).flatMap { $0.isEmpty ? nil : $0 } ?? "/"
 
         let match = NetworkRuleMatch(
             methods: [method],

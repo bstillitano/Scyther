@@ -132,6 +132,22 @@ constraint, and host and path accept `*` as a wildcard. Overrides are evaluated 
 
 Reordering the list is what changes precedence.
 
+### What matching compares
+
+- Method, host and path are compared **case-insensitively**. Query names are compared
+  **case-sensitively**, because a query name is data rather than protocol.
+- The path is compared **percent-encoded**, exactly as it travels on the wire. `%2F` is therefore
+  not a separator — `/v1/a%2Fb` is one segment and does not satisfy a rule for `/v1/a/b` — and a
+  path copied out of the log, out of a HAR, or off an address bar matches the request it came
+  from. A path typed with a literal space will not.
+- A **trailing slash is part of the path**: `/v1/users` and `/v1/users/` are different paths. Use
+  `/v1/users*` to match both. A URL with no path at all, `https://api.example.com`, is matched as
+  `/`.
+- Every query pair listed must be present. A key that repeats is satisfied by **any** of its
+  occurrences, so `page=2` matches `?page=1&page=2`, and a key present with no value — `?flag` —
+  reads as an empty value. Values are compared percent-decoded.
+- A pattern left **blank** places no constraint at all, exactly as leaving the facet out does.
+
 ### The four actions
 
 | Action | Type | What it does |

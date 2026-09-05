@@ -15,9 +15,15 @@ final class NetworkRulePatternTests: XCTestCase {
         XCTAssertFalse(pattern.matches("cdn.api.example.com"))
     }
 
+    /// "Anywhere" means anywhere: a substring at the very start and one at the very end both
+    /// count. Asserting only the middle would pass just as well against a `hasPrefix` or a
+    /// `hasSuffix` implementation, neither of which is what the kind is named for.
     func testContainsMatchesAnywhere() {
         let pattern = NetworkRulePattern(kind: .contains, value: "example")
-        XCTAssertTrue(pattern.matches("api.example.com"))
+        XCTAssertTrue(pattern.matches("example.com"), "a match at the very start counts")
+        XCTAssertTrue(pattern.matches("api.example.com"), "a match in the middle counts")
+        XCTAssertTrue(pattern.matches("api.example"), "a match at the very end counts")
+        XCTAssertTrue(pattern.matches("example"), "the whole candidate counts")
         XCTAssertFalse(pattern.matches("api.other.com"))
     }
 
@@ -33,8 +39,21 @@ final class NetworkRulePatternTests: XCTestCase {
         XCTAssertFalse(NetworkRulePattern(kind: .wildcard, value: "/a+b").matches("/aab"))
     }
 
-    func testEmptyWildcardMatchesEverything() {
+    /// The star matches everything. The test that used to carry this assertion was called
+    /// `testEmptyWildcardMatchesEverything`, which named a different — and untrue — claim: an
+    /// *empty* wildcard is an empty string, and as a comparison it matches only the empty string.
+    /// What an empty pattern means to a rule is settled by ``NetworkRuleMatch``, not here.
+    func testStarWildcardMatchesEverything() {
         XCTAssertTrue(NetworkRulePattern(kind: .wildcard, value: "*").matches("anything"))
+        XCTAssertTrue(NetworkRulePattern(kind: .wildcard, value: "*").matches(""))
+    }
+
+    /// A pattern is a comparison and nothing more, so an empty one compares as an empty string.
+    /// ``NetworkRuleMatch`` is where an empty pattern is read as "no constraint".
+    func testAnEmptyPatternValueMatchesOnlyTheEmptyString() {
+        let empty = NetworkRulePattern(kind: .wildcard, value: "")
+        XCTAssertFalse(empty.matches("anything"))
+        XCTAssertTrue(empty.matches(""))
     }
 }
 
@@ -76,6 +95,9 @@ final class NetworkRuleMatchTests: XCTestCase {
         XCTAssertFalse(match.matches(request("https://a.com/x")))
     }
 
+    /// The host facet is compared against the host alone, so neither the scheme nor the port is
+    /// part of it — and a pattern that spells the port out cannot match, which is the half that
+    /// proves the port is genuinely absent rather than merely tolerated.
     func testMatchIgnoresPortAndScheme() {
         let match = NetworkRuleMatch(
             methods: [],
@@ -84,6 +106,135 @@ final class NetworkRuleMatchTests: XCTestCase {
             query: [:]
         )
         XCTAssertTrue(match.matches(request("http://localhost:8080/health")))
+        XCTAssertTrue(match.matches(request("https://localhost/health")))
+
+        let withPort = NetworkRuleMatch(
+            methods: [],
+            host: NetworkRulePattern(kind: .exact, value: "localhost:8080"),
+            path: nil,
+            query: [:]
+        )
+        XCTAssertFalse(withPort.matches(request("http://localhost:8080/health")),
+                       "the port is not part of the host a pattern is compared against")
+    }
+
+    // MARK: - Path
+
+    /// A URL with no path at all — `https://api.example.com` — presents as `"/"`, which is what
+    /// both producers of a rule write into the pattern. Comparing the raw empty string here made
+    /// every such override dead on arrival.
+    func testAnEmptyPathIsNormalisedToRoot() {
+        let match = NetworkRuleMatch(
+            methods: [],
+            host: nil,
+            path: NetworkRulePattern(kind: .exact, value: "/"),
+            query: [:]
+        )
+        XCTAssertTrue(match.matches(request("https://api.example.com")))
+        XCTAssertTrue(match.matches(request("https://api.example.com/")))
+    }
+
+    /// A trailing slash is a different path, and an exact pattern says so.
+    func testATrailingSlashIsPartOfThePath() {
+        let match = NetworkRuleMatch(
+            methods: [],
+            host: nil,
+            path: NetworkRulePattern(kind: .exact, value: "/v1/users"),
+            query: [:]
+        )
+        XCTAssertTrue(match.matches(request("https://a.com/v1/users")))
+        XCTAssertFalse(match.matches(request("https://a.com/v1/users/")),
+                       "an exact path pattern does not ignore a trailing slash")
+    }
+
+    /// The path is compared exactly as it travels on the wire. An escaped separator is not a
+    /// separator, so `/v1/a%2Fb` is one segment and must not satisfy a rule written for the two
+    /// segments `/v1/a/b`.
+    func testPathIsMatchedBeforePercentDecoding() {
+        let match = NetworkRuleMatch(
+            methods: [],
+            host: nil,
+            path: NetworkRulePattern(kind: .exact, value: "/v1/a/b"),
+            query: [:]
+        )
+        XCTAssertTrue(match.matches(request("https://a.com/v1/a/b")))
+        XCTAssertFalse(match.matches(request("https://a.com/v1/a%2Fb")),
+                       "an escaped separator is not a separator")
+    }
+
+    /// The corollary: a path copied out of the log, out of a HAR, or off the address bar is
+    /// percent-encoded, and pasting it into a rule has to work.
+    func testAnEncodedPathMatchesTheEncodedPatternItWasCopiedFrom() {
+        let match = NetworkRuleMatch(
+            methods: [],
+            host: nil,
+            path: NetworkRulePattern(kind: .exact, value: "/v1/a%20b"),
+            query: [:]
+        )
+        XCTAssertTrue(match.matches(request("https://a.com/v1/a%20b")))
+    }
+
+    // MARK: - Empty facets
+
+    /// A pattern with an empty value places no constraint, as ``NetworkRuleMatch``'s own
+    /// documentation promises. Comparing it as a string instead made it constrain everything
+    /// away: the empty host equalled no host at all, so the rule could never fire.
+    func testAPatternWithAnEmptyValuePlacesNoConstraint() {
+        let match = NetworkRuleMatch(
+            methods: [],
+            host: NetworkRulePattern(kind: .exact, value: ""),
+            path: NetworkRulePattern(kind: .wildcard, value: ""),
+            query: [:]
+        )
+        XCTAssertTrue(match.matches(request("https://api.example.com/v1/users")))
+    }
+
+    /// And an empty pattern cannot fail a request with no URL either, since it constrains nothing.
+    func testAnEmptyPatternStillMatchesWhenTheURLIsMissing() {
+        var request = URLRequest(url: URL(string: "https://a.com")!)
+        request.httpMethod = "GET"
+        request.url = nil
+        let match = NetworkRuleMatch(
+            methods: [],
+            host: NetworkRulePattern(kind: .exact, value: ""),
+            path: nil,
+            query: [:]
+        )
+        XCTAssertTrue(match.matches(request))
+    }
+
+    // MARK: - Query
+
+    /// A repeated key is matched against every occurrence, not just the first. A rule asking for
+    /// `page=2` against `?page=1&page=2` is asking whether that pair is present, and it is.
+    func testARepeatedQueryKeyMatchesAnyOccurrence() {
+        let match = NetworkRuleMatch(methods: [], host: nil, path: nil, query: ["page": "2"])
+        XCTAssertTrue(match.matches(request("https://a.com/x?page=1&page=2")))
+        XCTAssertTrue(match.matches(request("https://a.com/x?page=2&page=1")))
+        XCTAssertFalse(match.matches(request("https://a.com/x?page=1&page=3")))
+    }
+
+    /// A key present with no value at all reads as an empty value, so `?flag` and `?flag=` both
+    /// satisfy a rule written for `flag` = `""`.
+    func testAValuelessQueryKeyMatchesAnEmptyExpectedValue() {
+        let match = NetworkRuleMatch(methods: [], host: nil, path: nil, query: ["flag": ""])
+        XCTAssertTrue(match.matches(request("https://a.com/x?flag")))
+        XCTAssertTrue(match.matches(request("https://a.com/x?flag=")))
+        XCTAssertFalse(match.matches(request("https://a.com/x?flag=1")))
+    }
+
+    /// Query names are case-sensitive — unlike a header name, and unlike a host or path pattern.
+    func testQueryNamesAreCaseSensitive() {
+        let match = NetworkRuleMatch(methods: [], host: nil, path: nil, query: ["Page": "2"])
+        XCTAssertTrue(match.matches(request("https://a.com/x?Page=2")))
+        XCTAssertFalse(match.matches(request("https://a.com/x?page=2")))
+    }
+
+    /// Query values are compared after percent-decoding, so a value with a space is written the
+    /// way a developer would say it rather than the way it travels.
+    func testQueryValuesAreComparedDecoded() {
+        let match = NetworkRuleMatch(methods: [], host: nil, path: nil, query: ["q": "hello world"])
+        XCTAssertTrue(match.matches(request("https://a.com/x?q=hello%20world")))
     }
 
     func testAMethodOnlyMatchStillMatchesWhenTheURLIsMissing() {

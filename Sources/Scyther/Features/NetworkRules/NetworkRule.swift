@@ -191,18 +191,37 @@ public struct NetworkRule: Identifiable, Codable, Sendable, Equatable {
 /// The conditions a request must satisfy for a ``NetworkRule`` to apply.
 ///
 /// A rule matches when every non-empty facet matches; an empty or `nil` facet places no
-/// constraint on that part of the request.
+/// constraint on that part of the request. A pattern whose ``NetworkRulePattern/value`` is the
+/// empty string counts as empty, and so constrains nothing either.
+///
+/// ``matches(_:)`` documents the comparison each facet performs, down to percent-encoding,
+/// trailing slashes and repeated query keys.
 public struct NetworkRuleMatch: Codable, Sendable, Equatable {
     /// Uppercased HTTP methods. Empty matches any method.
+    ///
+    /// Compared case-insensitively even so, and a request with no method of its own is treated
+    /// as a `GET`, which is what `URLSession` sends for one.
     public var methods: Set<String>
 
     /// Host pattern, e.g. `api.example.com` or `*.example.com`. Nil matches any host.
+    ///
+    /// Compared case-insensitively against the host alone: the scheme and the port are not part
+    /// of it, so `localhost` matches `http://localhost:8080/health` and `localhost:8080` matches
+    /// nothing. A pattern with an empty value places no constraint.
     public var host: NetworkRulePattern?
 
     /// Path pattern, e.g. `/v1/users` or `/v1/*`. Nil matches any path.
+    ///
+    /// Compared case-insensitively against the **percent-encoded** path, so `%2F` is not a
+    /// separator and a path pasted out of the log matches the request it was copied from. A
+    /// trailing slash is significant, a URL with no path is compared as `"/"`, and a pattern with
+    /// an empty value places no constraint. See ``matches(_:)``.
     public var path: NetworkRulePattern?
 
     /// Query items that must all be present with these values. Empty matches any query.
+    ///
+    /// Names are compared case-sensitively, values after percent-decoding. A key that repeats is
+    /// satisfied by any of its occurrences, and a key present with no value reads as `""`.
     public var query: [String: String]
 
     /// The keys a match is persisted under.
@@ -608,9 +627,34 @@ public extension NetworkRulePattern {
 }
 
 public extension NetworkRuleMatch {
-    /// Whether `request` satisfies every non-empty facet of this match.
+    /// Whether `request` satisfies every constraining facet of this match.
     ///
-    /// An empty facet is a wildcard: no methods means any method, a nil host means any host.
+    /// An empty facet is a wildcard: no methods means any method, a nil host means any host, and
+    /// a pattern whose ``NetworkRulePattern/value`` is empty means the same as no pattern at all.
+    ///
+    /// ## The exact semantics
+    ///
+    /// | Facet | How it is compared |
+    /// |---|---|
+    /// | Method | Case-insensitively. A request with no method reads as `GET`. |
+    /// | Host | Case-insensitively, against the host alone — never the scheme, the port or the userinfo. |
+    /// | Path | Case-insensitively, against the **percent-encoded** path, with an empty path read as `"/"`. |
+    /// | Query | Every pair listed must be present. Names are case-sensitive; values are compared percent-decoded. |
+    ///
+    /// - Note: The path is compared before percent-decoding, so `%2F` is not a separator:
+    ///   `/v1/a%2Fb` is one segment and does not satisfy a rule written for `/v1/a/b`. The
+    ///   trade-off is deliberate — a path copied out of the log, out of a HAR or off an address
+    ///   bar is percent-encoded, and pasting it into a rule has to match the request it came
+    ///   from. A path typed with a literal space or a literal `%` will not.
+    ///
+    /// - Note: A trailing slash is part of the path. `/v1/users` and `/v1/users/` are different
+    ///   paths, and an exact pattern for one does not match the other; use `/v1/users*` to match
+    ///   both. A URL with no path at all — `https://api.example.com` — is read as `"/"`, which is
+    ///   what a rule built from a log entry or a HAR entry carries for it.
+    ///
+    /// - Note: A query key that repeats is satisfied by **any** of its occurrences, so a rule
+    ///   asking for `page=2` matches `?page=1&page=2`. A key present with no value at all reads
+    ///   as an empty value, so `?flag` and `?flag=` both satisfy `flag` = `""`.
     ///
     /// - Parameter request: The outgoing request to test.
     func matches(_ request: URLRequest) -> Bool {
@@ -618,6 +662,8 @@ public extension NetworkRuleMatch {
             let method = (request.httpMethod ?? "GET").uppercased()
             guard methods.contains(where: { $0.uppercased() == method }) else { return false }
         }
+        let host = Self.constraining(self.host)
+        let path = Self.constraining(self.path)
         guard let url = request.url,
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             return host == nil && path == nil && query.isEmpty
@@ -626,15 +672,39 @@ public extension NetworkRuleMatch {
             guard let candidate = components.host, host.matches(candidate) else { return false }
         }
         if let path {
-            guard path.matches(components.path) else { return false }
+            guard path.matches(Self.candidatePath(of: components)) else { return false }
         }
         if !query.isEmpty {
-            let items = Dictionary(
-                (components.queryItems ?? []).map { ($0.name, $0.value ?? "") },
-                uniquingKeysWith: { first, _ in first }
-            )
-            for (name, value) in query where items[name] != value { return false }
+            let items = components.queryItems ?? []
+            for (name, value) in query {
+                guard items.contains(where: { $0.name == name && ($0.value ?? "") == value }) else {
+                    return false
+                }
+            }
         }
         return true
+    }
+}
+
+private extension NetworkRuleMatch {
+    /// The pattern to compare against, or `nil` when it constrains nothing.
+    ///
+    /// A pattern with an empty value is not a comparison against the empty string: this type's
+    /// contract is that an empty facet places no constraint, and a half-filled pattern reaching
+    /// the matcher from the public API used to constrain the request away entirely.
+    ///
+    /// - Parameter pattern: The facet as configured.
+    /// - Returns: `pattern` when it has something to compare, otherwise `nil`.
+    static func constraining(_ pattern: NetworkRulePattern?) -> NetworkRulePattern? {
+        guard let pattern, !pattern.value.isEmpty else { return nil }
+        return pattern
+    }
+
+    /// The path a pattern is compared against: percent-encoded, and never empty.
+    ///
+    /// - Parameter components: The request URL's components.
+    /// - Returns: The percent-encoded path, or `"/"` when the URL carries no path.
+    static func candidatePath(of components: URLComponents) -> String {
+        components.percentEncodedPath.isEmpty ? "/" : components.percentEncodedPath
     }
 }

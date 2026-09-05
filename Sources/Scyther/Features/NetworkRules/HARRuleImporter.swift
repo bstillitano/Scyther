@@ -55,6 +55,10 @@ enum HARRuleImporter {
     /// The method is uppercased once and reused for both the rule's name and its match, and an
     /// empty path (a URL with no trailing slash, e.g. `https://api.example.com`) is normalised to
     /// `"/"` so the rule is never named with a trailing space or matched against an empty path.
+    ///
+    /// The path is taken percent-encoded, because that is the form
+    /// ``NetworkRuleMatch/matches(_:)`` compares against: a captured `/v1/a%2Fb` keeps its escaped
+    /// separator rather than becoming a rule for the two segments `/v1/a/b`.
     private static func rule(for entry: HAREntry, storeBody: (Data) -> UUID) -> NetworkRule? {
         guard let url = URL(string: entry.request.url),
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
@@ -62,7 +66,7 @@ enum HARRuleImporter {
             return nil
         }
         let method = entry.request.method.uppercased()
-        let path = components.path.isEmpty ? "/" : components.path
+        let path = components.percentEncodedPath.isEmpty ? "/" : components.percentEncodedPath
 
         let bodyID = bodyID(for: entry.response.content, storeBody: storeBody)
         let mock = MockResponse(
