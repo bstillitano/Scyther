@@ -401,6 +401,9 @@ public struct MapLocalFile: Codable, Sendable, Equatable {
     public var contentType: String?
 
     /// Seconds to wait before responding, simulating network latency.
+    ///
+    /// - Note: Capped at 30 seconds when the response is served, exactly as
+    ///   ``MockResponse/delay`` is — both stubs are delayed on the same path.
     public var delay: TimeInterval
 
     /// The keys a map-local action is persisted under.

@@ -582,9 +582,9 @@ actions is named once.
 | Action | What it does |
 | --- | --- |
 | **Mock Response** | Answers with a status code, headers and a body typed into the editor, after an optional delay. Headers are a dictionary, so a mock cannot repeat a header name — a HAR import keeps the last of a repeated `Set-Cookie`. |
-| **Map Local** | Answers with the contents of a file, with a status code and `Content-Type`. The file is chosen with the system file importer and **copied into Scyther's rules directory**, so the override keeps working after the document moves or goes away and no security-scoped bookmark is needed. A path supplied from code is used as given; an unreadable path falls through to the real network. |
+| **Map Local File** | Answers with the contents of a file, with a status code and `Content-Type`. The file is chosen with the system file importer and **copied into Scyther's rules directory**, so the override keeps working after the document moves or goes away and no security-scoped bookmark is needed. A path supplied from code is used as given; an unreadable path falls through to the real network. |
 | **Rewrite Headers** | Sets and removes headers on the outgoing request. |
-| **Condition** | Adds latency, caps bandwidth in KB/s, and fails a fraction of matching requests with a `URLError`. Latency and a stub's delay are capped at 30 seconds together, and are waited out without holding a thread. The latency is applied first and the failure rolled after it, so "slow and flaky" is slow before it is flaky, and a rate of `1` never lets a request through. |
+| **Network Condition** | Adds latency, caps bandwidth in KB/s, and fails a fraction of matching requests with a `URLError`. Latency and a stub's delay are capped at 30 seconds together, and are waited out without holding a thread. The latency is applied first and the failure rolled after it, so "slow and flaky" is slow before it is flaky, and a rate of `1` never lets a request through. |
 
 A bandwidth ceiling is likewise honoured for at most 30 seconds of added delay per response, so
 that a debug tool cannot appear to have hung. A body larger than `30 × bandwidthKBps` kilobytes
@@ -593,6 +593,26 @@ the effective rate a function of body size: 1 MB at 10 KB/s takes about 30 secon
 the ceiling implies. A response that has been idle may forward one second's worth of data at the
 ceiling before pacing resumes, so a long-poll or an SSE stream is throttled rather than released
 in bursts.
+
+#### In the Editor
+
+- **An override has to name an endpoint.** It is not savable until it is named, given a host, path
+  or query, and given something to do. A facet that matches everything however it is spelled — a
+  path of `*` set to Wildcard, or `/` set to Contains — does not count, because an override
+  applied to every request in the app is the hazard the guard exists to prevent. A method on its
+  own does not count either.
+- **A mock body that is not text is left alone.** A body holding bytes that are not valid UTF-8 —
+  a captured image, most often — is shown as a size rather than opened in the text editor, because
+  editing it as text would write every one of those bytes back as a replacement character. So is
+  a body larger than a megabyte, which is more than anyone edits by hand.
+- **The map local file is one row.** It reads *Choose File* until something is chosen and then
+  shows the name of the document that was picked, not the name of the copy Scyther keeps. Tapping
+  it opens the picker either way, so replacing a file is the same gesture as choosing one.
+- **The `Content-Type` is picked, not typed.** The types a developer actually mocks are offered in
+  a picker, with **Custom** revealing a free-text field for anything else. Picking a file fills it
+  in from the document's type, so `response.json` arrives as `application/json`.
+- Status codes are stored inside `100...599`, and a negative or non-numeric delay is stored as
+  zero.
 
 #### Saving a Captured Request as a Mock
 
@@ -631,6 +651,10 @@ the literal body it is rather than decoded into bytes that came from nowhere.
 **Enable Request Overrides**, at the top of the list, suspends every override at once without
 deleting any of them — the quickest way to tell whether a behaviour belongs to the app or to an
 override. It is persisted across launches.
+
+The count badge on the menu's **Request Overrides** row follows this switch: it reports how many
+overrides are *being applied*, so turning the switch off empties it however many overrides are
+enabled behind it.
 
 #### Registering Overrides in Code
 

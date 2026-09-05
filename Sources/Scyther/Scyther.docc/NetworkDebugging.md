@@ -149,16 +149,19 @@ Reordering the list is what changes precedence.
 - Every query pair listed must be present. A key that repeats is satisfied by **any** of its
   occurrences, so `page=2` matches `?page=1&page=2`, and a key present with no value — `?flag` —
   reads as an empty value. Values are compared percent-decoded.
-- A pattern left **blank** places no constraint at all, exactly as leaving the facet out does.
+- A pattern left **blank** places no constraint at all, exactly as leaving the facet out does. So
+  does one that matches everything anyway — a path of `*` set to Wildcard, or `/` set to Contains
+  — which is why the editor refuses to save either spelling. The engine still honours them for a
+  rule built in code; the guard is on what the editor will save.
 
 ### The four actions
 
 | Action | Type | What it does |
 | --- | --- | --- |
 | Mock Response | ``MockResponse`` | Answers with a status code, headers and a body typed into the editor, after an optional delay. |
-| Map Local | ``MapLocalFile`` | Answers with the contents of a file on the device, with a status code and `Content-Type`. |
+| Map Local File | ``MapLocalFile`` | Answers with the contents of a file on the device, with a status code and `Content-Type`. |
 | Rewrite Headers | ``NetworkHeaderRewrite`` | Sets and removes headers on the outgoing request, then lets it go to the network. |
-| Condition | ``NetworkCondition`` | Adds latency, caps bandwidth, and fails a fraction of matching requests with a `URLError`. |
+| Network Condition | ``NetworkCondition`` | Adds latency, caps bandwidth, and fails a fraction of matching requests with a `URLError`. |
 
 - Note: A condition's latency and a mock's delay are each capped at 30 seconds. Neither is waited
   out on the thread the request started on, so a delayed override cannot hold up traffic it does

@@ -112,14 +112,17 @@ class MenuViewModel: ViewModel {
     /// Keeps the override store's publishers alive for the lifetime of the menu.
     private var cancellables: Set<AnyCancellable> = []
 
-    /// How many request overrides are currently enabled, persisted and transient together.
+    /// How many request overrides are currently being applied, persisted and transient together.
     ///
     /// Shown as a badge on the Request Overrides row so overrides are never silently on. A
     /// developer chasing a response that will not change has to be able to see, from the menu's
     /// first screen, that something is rewriting their traffic — the MOCKED badge is only visible
     /// inside the network log, and the master switch only on the overrides screen itself.
     ///
-    /// Zero when nothing is enabled, which is what hides the badge.
+    /// Zero when nothing is enabled, which is what hides the badge — and zero while the master
+    /// switch is off, however many overrides are enabled behind it. The badge says what is being
+    /// applied, not what is configured; with the switch off nothing is, and a count there would
+    /// send that developer looking for an override that is not running.
     @Published private(set) var enabledOverrideCount: Int = 0
 
     /// What the Network Conditioning row shows as its detail text: the active preset, `Custom`,
@@ -212,14 +215,20 @@ class MenuViewModel: ViewModel {
     ///
     /// Subscribing rather than reading once on appearance: an override can be enabled from the
     /// overrides screen, from a swipe on its row, or from `Scyther.network.rules` while the menu
-    /// is on screen, and the badge has to follow all three. No `receive(on:)` — the store and
-    /// this view model are both main-actor isolated, so the values already arrive on the main
-    /// thread.
+    /// is on screen, and the badge has to follow all three. The master switch is a fourth: it
+    /// stops every override being applied without changing one of them, so it has to be joined
+    /// here or the badge keeps reading a count for overrides that are standing down. No
+    /// `receive(on:)` — the store and this view model are both main-actor isolated, so the values
+    /// already arrive on the main thread.
     override func setup() {
         super.setup()
         networkRuleStore.$rules
-            .combineLatest(networkRuleStore.$transientRules)
-            .sink { [weak self] rules, transient in
+            .combineLatest(networkRuleStore.$transientRules, networkRuleStore.$isEnabled)
+            .sink { [weak self] rules, transient, isEnabled in
+                guard isEnabled else {
+                    self?.enabledOverrideCount = 0
+                    return
+                }
                 self?.enabledOverrideCount = (rules + transient).filter(\.isEnabled).count
             }
             .store(in: &cancellables)

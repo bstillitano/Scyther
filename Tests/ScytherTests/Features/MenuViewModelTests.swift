@@ -96,6 +96,14 @@ final class MenuViewModelTests: XCTestCase {
         UserDefaults.standard.removePersistentDomain(forName: suiteName)
     }
 
+    /// Restores the process-global snapshot the badge tests published to.
+    ///
+    /// Constructing a `NetworkRuleStore` publishes its rules and its body directory to
+    /// `NetworkRuleSnapshot`, which every later interceptor test reads.
+    override func tearDown() {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [])
+    }
+
     func testNothingIsPinnedByDefault() {
         defer { wipeDefaults() }
         let viewModel = MenuViewModel(defaults: makeDefaults())
@@ -420,11 +428,20 @@ final class MenuViewModelTests: XCTestCase {
 
     /// A throwaway override store, so counting the badge cannot depend on — or disturb — whatever
     /// the developer running the suite has configured.
+    ///
+    /// The suite and the body directory are both torn down. `wipeDefaults()` clears the *pinning*
+    /// domain, which is a different one, so every badge test used to leave a populated preference
+    /// domain behind on the machine that ran it.
     private func makeOverrideStore() -> NetworkRuleStore {
-        NetworkRuleStore(
-            defaults: UserDefaults(suiteName: "MenuViewModelTests.\(UUID().uuidString)")!,
-            bodyDirectory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-        )
+        let suiteName = "MenuViewModelTests.Overrides.\(UUID().uuidString)"
+        let bodyDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(suiteName, isDirectory: true)
+        addTeardownBlock {
+            UserDefaults.standard.removePersistentDomain(forName: suiteName)
+            try? FileManager.default.removeItem(at: bodyDirectory)
+        }
+        return NetworkRuleStore(defaults: UserDefaults(suiteName: suiteName)!,
+                                bodyDirectory: bodyDirectory)
     }
 
     private func makeOverride(named name: String, isEnabled: Bool) -> NetworkRule {
@@ -473,6 +490,33 @@ final class MenuViewModelTests: XCTestCase {
         rule.isEnabled = false
         store.update(rule)
         XCTAssertEqual(viewModel.enabledOverrideCount, 0)
+    }
+
+    /// The badge's whole job is that overrides are never silently on. With the master switch off
+    /// nothing is being applied, so a badge reading a count asserts the opposite of the truth.
+    func testTheOverrideCountIsZeroWhileTheMasterSwitchIsOff() {
+        defer { wipeDefaults() }
+        let store = makeOverrideStore()
+        store.add(makeOverride(named: "on", isEnabled: true))
+        store.isEnabled = false
+
+        let viewModel = MenuViewModel(defaults: makeDefaults(), networkRuleStore: store)
+
+        XCTAssertEqual(viewModel.enabledOverrideCount, 0, "nothing is applied while overrides are switched off")
+    }
+
+    func testTheOverrideCountFollowsTheMasterSwitchWhileTheMenuIsOnScreen() {
+        defer { wipeDefaults() }
+        let store = makeOverrideStore()
+        store.add(makeOverride(named: "on", isEnabled: true))
+        let viewModel = MenuViewModel(defaults: makeDefaults(), networkRuleStore: store)
+        XCTAssertEqual(viewModel.enabledOverrideCount, 1)
+
+        store.isEnabled = false
+        XCTAssertEqual(viewModel.enabledOverrideCount, 0)
+
+        store.isEnabled = true
+        XCTAssertEqual(viewModel.enabledOverrideCount, 1, "the overrides were never deleted, only stood down")
     }
 
     func testSearchResultsUseTheDeveloperOptionsSnapshot() {
