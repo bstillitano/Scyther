@@ -142,6 +142,18 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
     /// Whether the response was synthesised by a rule rather than received from the network.
     var wasStubbed: Bool = false
 
+    /// Names of the breakpoints that held this exchange, if any.
+    ///
+    /// A request held on the way out and again on the way back carries the same name twice, which
+    /// is what happened: it was stopped twice.
+    var breakpointNames: [String] = []
+
+    /// Whether the developer changed anything while the exchange was held.
+    ///
+    /// The log shows what the app actually sent and received, so a held-and-edited entry describes
+    /// the edit rather than the original. This is what says so.
+    var wasEdited: Bool = false
+
     /// The `getRandomHash()` value of the request this one replays, if it is a replay.
     ///
     /// `nil` for traffic the app itself made. Set from the `Scyther_Replay_Of_Request` property
