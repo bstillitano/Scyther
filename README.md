@@ -606,7 +606,10 @@ override. It is persisted across launches.
 #### Registering Overrides in Code
 
 `Scyther.network.rules` is the programmatic entry point. Like every other Scyther singleton it is
-`@MainActor`-isolated.
+`@MainActor`-isolated, and every member of it is inert until `Scyther.start()` has run — which it
+does not do on an App Store build. The calls below can sit unguarded in `didFinishLaunching`: on a
+release build they read back nothing, write nothing to preferences, and put no file in the user's
+container.
 
 ```swift
 // Persisted: written to UserDefaults, listed in the menu, survives relaunch. The

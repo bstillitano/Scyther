@@ -59,6 +59,8 @@ import Foundation
 /// ### Stored Files
 /// - ``storeBody(_:)``
 /// - ``stagingURL(for:in:)``
+/// - ``deleteOrphans(_:)``
+/// - ``orphanCandidates(in:ignoringFilesNewerThan:)``
 /// - ``storeFile(at:)``
 /// - ``bodyURL(for:)``
 /// - ``bodyData(for:)``
@@ -600,11 +602,35 @@ internal final class NetworkRuleStore: ObservableObject {
     /// what the developer had configured, so every body on disk would look orphaned.
     func sweepOrphanedBodies() {
         guard unreadableBlob == nil else { return }
-        let referenced = Set((rules + transientRules).compactMap(\.storedFileID))
         let directory = bodyDirectory
-        Task.detached(priority: .utility) {
-            Self.sweepBodies(in: directory, keeping: referenced, ignoringFilesNewerThan: Self.bodySweepGracePeriod)
+        Task { [weak self] in
+            let candidates = await Task.detached(priority: .utility) {
+                Self.orphanCandidates(in: directory, ignoringFilesNewerThan: Self.bodySweepGracePeriod)
+            }.value
+            self?.deleteOrphans(candidates)
         }
+    }
+
+    /// Deletes the candidates nothing references *now*.
+    ///
+    /// The enumeration runs off the main actor and can take a while over a big directory; the
+    /// decision is taken back here, against the rules as they stand at the moment of deleting.
+    /// Deciding off the main actor against a reference set captured before the walk began made the
+    /// sweep a race: an override registered a few seconds after `Scyther.start()` could have its
+    /// body deleted by a slow sweep that reached that directory entry a minute later, and the
+    /// grace period only narrowed the window rather than closing it.
+    ///
+    /// - Parameter candidates: What the enumeration found, from
+    ///   ``orphanCandidates(in:ignoringFilesNewerThan:)``.
+    func deleteOrphans(_ candidates: [OrphanCandidate]) {
+        let doomed = candidates
+            .filter { candidate in
+                guard let id = candidate.bodyID else { return true }
+                return !isReferenced(id)
+            }
+            .map(\.url)
+        guard !doomed.isEmpty else { return }
+        Task.detached(priority: .utility) { Self.delete(doomed) }
     }
 
     /// How recently a body may have been written and still survive a sweep, in seconds.
@@ -618,11 +644,13 @@ internal final class NetworkRuleStore: ObservableObject {
     /// Deletes every file in `directory` whose name is not a referenced identifier, along with any
     /// staging file left behind by an interrupted write.
     ///
-    /// Deliberately conservative: a file whose name is neither a UUID nor `<UUID>.tmp` is left
-    /// alone, because this walks a directory inside the host app's container and deleting
-    /// something it did not write would be far worse than leaving a stray file behind. A staging
-    /// file *is* Scyther's own — see ``storeBody(_:)`` — and is reclaimed whether or not its
-    /// identifier is referenced, because a body that finished writing is not named that way.
+    /// Enumerates and decides in one pass against a fixed reference set, which is right for a
+    /// caller that holds one — a test, above all. ``sweepOrphanedBodies()`` uses the two halves
+    /// separately so that the decision can be taken on the main actor, against the rules as they
+    /// stand when the deleting actually happens.
+    ///
+    /// A staging file is Scyther's own — see ``storeBody(_:)`` — and is reclaimed whether or not
+    /// its identifier is referenced, because a body that finished writing is not named that way.
     ///
     /// - Parameters:
     ///   - directory: The body directory to sweep.
@@ -632,22 +660,70 @@ internal final class NetworkRuleStore: ObservableObject {
     nonisolated static func sweepBodies(in directory: URL,
                                         keeping referenced: Set<UUID>,
                                         ignoringFilesNewerThan grace: TimeInterval) {
-        let fileManager = FileManager.default
-        guard let files = try? fileManager.contentsOfDirectory(at: directory,
-                                                               includingPropertiesForKeys: [.contentModificationDateKey],
-                                                               options: .skipsHiddenFiles) else {
-            return
+        let doomed = orphanCandidates(in: directory, ignoringFilesNewerThan: grace)
+            .filter { candidate in
+                guard let id = candidate.bodyID else { return true }
+                return !referenced.contains(id)
+            }
+            .map(\.url)
+        delete(doomed)
+    }
+
+    /// A file in the body directory that the sweep may delete, once something decides it is
+    /// unreferenced.
+    struct OrphanCandidate: Sendable, Equatable {
+        /// The file itself.
+        let url: URL
+
+        /// The body identifier the file is named after, or `nil` when it is the staging file of an
+        /// interrupted write — which is Scyther's own debris and never referenced by anything.
+        let bodyID: UUID?
+    }
+
+    /// Everything in `directory` old enough to be deleted, whether or not a rule points at it.
+    ///
+    /// Split out from the decision so the walk — which is the slow part — can run off the main
+    /// actor while the reference check runs on it, against the rules as they stand at the moment
+    /// of deleting.
+    ///
+    /// Deliberately conservative: a file whose name is neither a UUID nor `<UUID>.tmp` is not a
+    /// candidate at all, because this walks a directory inside the host app's container and
+    /// deleting something Scyther did not write would be far worse than leaving a stray file.
+    ///
+    /// - Parameters:
+    ///   - directory: The body directory to walk.
+    ///   - grace: Files modified more recently than this many seconds ago are skipped — see
+    ///     ``bodySweepGracePeriod``.
+    /// - Returns: The candidates, in no particular order.
+    nonisolated static func orphanCandidates(in directory: URL,
+                                             ignoringFilesNewerThan grace: TimeInterval) -> [OrphanCandidate] {
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: .skipsHiddenFiles
+        ) else {
+            return []
         }
 
         let cutoff = Date().addingTimeInterval(-grace)
-        for file in files {
+        return files.compactMap { file in
             let name = file.lastPathComponent
-            if !isStagingFile(named: name) {
-                guard let id = UUID(uuidString: name), !referenced.contains(id) else { continue }
-            }
-            let modified = (try? file.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
-            guard let modified, modified < cutoff else { continue }
-            try? fileManager.removeItem(at: file)
+            let bodyID = UUID(uuidString: name)
+            guard bodyID != nil || isStagingFile(named: name) else { return nil }
+            let modified = (try? file.resourceValues(forKeys: [.contentModificationDateKey]))?
+                .contentModificationDate
+            guard let modified, modified < cutoff else { return nil }
+            return OrphanCandidate(url: file, bodyID: bodyID)
+        }
+    }
+
+    /// Deletes files the sweep has decided are orphaned.
+    ///
+    /// - Parameter files: The files to remove. Failures are ignored: a file that has already gone,
+    ///   or one the sandbox will not let go of, is not worth failing a launch over.
+    nonisolated static func delete(_ files: [URL]) {
+        for file in files {
+            try? FileManager.default.removeItem(at: file)
         }
     }
 

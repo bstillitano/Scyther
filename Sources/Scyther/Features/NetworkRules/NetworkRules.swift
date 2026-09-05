@@ -67,6 +67,14 @@ import Foundation
 /// - ``remove(id:)``
 /// - ``removeAll()``
 ///
+/// ## Production safety
+///
+/// Every member here is inert until ``Scyther/start()`` has run, which it does not do on an App
+/// Store build unless the host app explicitly asks for it. A reader hands back nothing and a
+/// mutator writes nothing — not to `UserDefaults`, not to disk. The usage above is exactly what
+/// the documentation suggests putting in `didFinishLaunching`, and a debugging tool has no
+/// business creating directories in a user's container for a feature that will never run.
+///
 /// - Note: Isolated to the main actor, like every other Scyther singleton, so the compiler
 ///   enforces safe access to the store rather than leaving it to a runtime check.
 @MainActor
@@ -76,19 +84,31 @@ public final class NetworkRules: Sendable {
     private init() {}
 
     /// Every rule that survives relaunch, in precedence order.
+    ///
+    /// Empty until ``Scyther/start()`` has run, because until then no rule is being applied.
     public var all: [NetworkRule] {
-        NetworkRuleStore.shared.rules
+        guard Scyther.isStarted else { return [] }
+        return NetworkRuleStore.shared.rules
     }
 
     /// Every rule registered for this launch only, evaluated after ``all``.
+    ///
+    /// Empty until ``Scyther/start()`` has run, because until then no rule is being applied.
     public var transient: [NetworkRule] {
-        NetworkRuleStore.shared.transientRules
+        guard Scyther.isStarted else { return [] }
+        return NetworkRuleStore.shared.transientRules
     }
 
     /// The master switch. When `false` no rule is applied, but none is deleted either.
+    ///
+    /// Reads as `false` and ignores writes until ``Scyther/start()`` has run: the interceptor is
+    /// not installed, so nothing is being applied whatever this said.
     public var isEnabled: Bool {
-        get { NetworkRuleStore.shared.isEnabled }
-        set { NetworkRuleStore.shared.isEnabled = newValue }
+        get { Scyther.isStarted && NetworkRuleStore.shared.isEnabled }
+        set {
+            guard Scyther.isStarted else { return }
+            NetworkRuleStore.shared.isEnabled = newValue
+        }
     }
 
     /// Adds a rule that survives relaunch, at the lowest precedence.
@@ -115,8 +135,12 @@ public final class NetworkRules: Sendable {
     ///
     /// - Parameter rule: The rule to add, or the replacement for a rule already stored under the
     ///   same identifier.
-    public func add(_ rule: NetworkRule) {
-        NetworkRuleStore.shared.add(rule)
+    /// - Returns: `false` when nothing was stored — because ``Scyther/start()`` has not run, or
+    ///   because a mock body the rule carried could not be written to disk. `true` otherwise.
+    @discardableResult
+    public func add(_ rule: NetworkRule) -> Bool {
+        guard Scyther.isStarted else { return false }
+        return NetworkRuleStore.shared.add(rule)
     }
 
     /// Adds a rule for this launch only. Nothing is written to disk.
@@ -127,28 +151,42 @@ public final class NetworkRules: Sendable {
     /// Upserts by ``NetworkRule/id`` exactly as ``add(_:)`` does, so registering the same rule
     /// twice within one launch leaves one rule rather than two.
     ///
-    /// - Parameter rule: The rule to add, or the replacement for a transient rule already
-    ///   registered under the same identifier.
-    public func addTransient(_ rule: NetworkRule) {
-        NetworkRuleStore.shared.addTransient(rule)
+    /// An identifier lives in exactly one of the two lists, so registering a transient rule under
+    /// an identifier ``add(_:)`` stored moves it across rather than leaving two copies.
+    ///
+    /// - Parameter rule: The rule to add, or the replacement for a rule already registered under
+    ///   the same identifier.
+    /// - Returns: `false` when nothing was stored — because ``Scyther/start()`` has not run, or
+    ///   because a mock body the rule carried could not be written to disk. `true` otherwise.
+    @discardableResult
+    public func addTransient(_ rule: NetworkRule) -> Bool {
+        guard Scyther.isStarted else { return false }
+        return NetworkRuleStore.shared.addTransient(rule)
     }
 
     /// Replaces the rule carrying the same identifier, leaving its position alone.
     ///
     /// - Parameter rule: The edited rule.
-    public func update(_ rule: NetworkRule) {
-        NetworkRuleStore.shared.update(rule)
+    /// - Returns: `false` when the edit was not applied — because ``Scyther/start()`` has not run,
+    ///   or because a mock body the rule carried could not be written to disk. `true` otherwise,
+    ///   including when no rule carries this identifier and there is nothing to update.
+    @discardableResult
+    public func update(_ rule: NetworkRule) -> Bool {
+        guard Scyther.isStarted else { return false }
+        return NetworkRuleStore.shared.update(rule)
     }
 
     /// Deletes a rule, along with any mock body it owns.
     ///
     /// - Parameter id: The identifier of the rule to delete.
     public func remove(id: UUID) {
+        guard Scyther.isStarted else { return }
         NetworkRuleStore.shared.remove(id: id)
     }
 
     /// Deletes every rule, persisted and transient, and every mock body they own.
     public func removeAll() {
+        guard Scyther.isStarted else { return }
         NetworkRuleStore.shared.removeAll()
     }
 }

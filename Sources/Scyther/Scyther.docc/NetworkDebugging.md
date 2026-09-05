@@ -188,7 +188,10 @@ override's. It is persisted, so it survives relaunch.
 ### Registering overrides from code
 
 ``Scyther/Network/rules`` is the programmatic entry point. It is `@MainActor`, like every other
-Scyther singleton.
+Scyther singleton, and every member of it is inert until ``Scyther/start()`` has run — which it
+does not do on an App Store build. The code below can sit unguarded in `didFinishLaunching`: on a
+release build it reads back nothing, writes nothing to preferences, and puts no file in the user's
+container.
 
 ```swift
 // Persisted: written to UserDefaults, listed in the menu, survives relaunch. The
@@ -219,9 +222,18 @@ Scyther.network.rules.isEnabled = false
   transient form for anything the app registers for itself, so it cannot outlive the run that
   created it.
 - Important: Both are an upsert on ``NetworkRule/id``: an override whose identifier is already
-  known replaces that override in place. Code that runs on every launch should pass a constant
+  known replaces that override in place, and whatever body file it owned is reclaimed unless
+  another override still points at it. Code that runs on every launch should pass a constant
   `id`, as the example above does. An override built without one gets a fresh identifier every
   time, so the same call in `didFinishLaunching` would store another copy of it on every launch.
+- Important: An identifier lives in exactly one of the two lists. Registering a transient override
+  under an identifier ``NetworkRules/add(_:)`` stored moves it across, and vice versa: the last
+  registration wins outright.
+- Note: ``MockResponse/json(_:status:delay:)`` writes nothing when it is built. Its bytes travel
+  with the value and are written when the override holding it is stored, so a response that is
+  never registered leaves nothing on disk. Both `add` methods return `false` when nothing was
+  stored — Scyther is not running, or those bytes could not be written — rather than storing an
+  override that would answer with the right status code and an empty body.
 
 Transient overrides are evaluated after every persisted one, so a persisted mock on the same
 endpoint takes precedence.

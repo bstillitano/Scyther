@@ -530,6 +530,46 @@ final class NetworkRuleStoreTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: debris.path))
     }
 
+    /// The enumeration runs off the main actor and can take a while; deciding against a reference
+    /// set captured before it began made the sweep a race an override registered seconds after
+    /// `Scyther.start()` could lose.
+    func testACandidateReferencedBetweenTheWalkAndTheDeleteSurvives() async throws {
+        let store = makeStore()
+        let body = try store.storeBody(Data("about to be referenced".utf8))
+        try age(store.bodyURL(for: body))
+
+        // What the detached walk sees: nothing references it yet.
+        let candidates = NetworkRuleStore.orphanCandidates(
+            in: bodyDirectory,
+            ignoringFilesNewerThan: NetworkRuleStore.bodySweepGracePeriod
+        )
+        XCTAssertTrue(candidates.contains { $0.bodyID == body })
+
+        // The override arrives while the sweep is still walking.
+        store.add(mockRule("registered mid-sweep", bodyID: body))
+        store.deleteOrphans(candidates)
+        try? await Task.sleep(nanoseconds: 200_000_000)
+
+        XCTAssertEqual(store.bodyData(for: body), Data("about to be referenced".utf8))
+    }
+
+    func testDeletingOrphansStillReclaimsWhatNothingReferences() async throws {
+        let store = makeStore()
+        let orphan = try store.storeBody(Data("orphan".utf8))
+        try age(store.bodyURL(for: orphan))
+
+        let candidates = NetworkRuleStore.orphanCandidates(
+            in: bodyDirectory,
+            ignoringFilesNewerThan: NetworkRuleStore.bodySweepGracePeriod
+        )
+        store.deleteOrphans(candidates)
+
+        for _ in 0..<200 where store.bodyData(for: orphan) != nil {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertNil(store.bodyData(for: orphan))
+    }
+
     func testSweepingTheStoreKeepsAFileAMapLocalRulePointsAt() async throws {
         let store = makeStore()
         let path = try XCTUnwrap(store.storeFile(at: try pickedFile(named: "users.json", contents: "[]")))
@@ -593,6 +633,84 @@ final class NetworkRuleStoreTests: XCTestCase {
         XCTAssertEqual(values.isExcludedFromBackup, true)
     }
 
+    // MARK: - Snapshot publication
+
+    /// The snapshot is the only thing the interceptor can read, so a mutation that changes the
+    /// rules without republishing leaves live traffic being matched against the previous set. Each
+    /// of these fails if `publish()` is deleted from the mutation it covers.
+    private var snapshotNames: [String] {
+        NetworkRuleSnapshot.current.rules.map(\.name)
+    }
+
+    func testAddingSeveralRulesAtOncePublishesThem() {
+        let store = makeStore()
+        store.add(contentsOf: [makeRule("first"), makeRule("second")])
+        XCTAssertEqual(store.rules.map(\.name), ["first", "second"])
+        XCTAssertEqual(snapshotNames, ["first", "second"])
+        XCTAssertEqual(makeStore().rules.map(\.name), ["first", "second"])
+    }
+
+    func testAddingNoRulesAtAllChangesNothing() {
+        let store = makeStore()
+        store.add(makeRule("already here"))
+        XCTAssertEqual(store.add(contentsOf: []), 0)
+        XCTAssertEqual(snapshotNames, ["already here"])
+    }
+
+    func testMovingARulePublishesTheNewPrecedence() {
+        let store = makeStore()
+        store.add(makeRule("first"))
+        store.add(makeRule("second"))
+        store.move(from: IndexSet(integer: 1), to: 0)
+        XCTAssertEqual(snapshotNames, ["second", "first"])
+    }
+
+    func testUpdatingARulePublishesTheEdit() {
+        let store = makeStore()
+        var rule = makeRule("before")
+        store.add(rule)
+        rule.name = "after"
+        store.update(rule)
+        XCTAssertEqual(snapshotNames, ["after"])
+    }
+
+    func testUpdatingATransientRulePublishesTheEdit() {
+        let store = makeStore()
+        var rule = makeRule("before")
+        store.addTransient(rule)
+        rule.name = "after"
+        store.update(rule)
+        XCTAssertEqual(snapshotNames, ["after"])
+    }
+
+    func testRemovingARulePublishesItsAbsence() {
+        let store = makeStore()
+        let rule = makeRule("doomed")
+        store.add(rule)
+        store.addTransient(makeRule("kept"))
+        store.remove(id: rule.id)
+        XCTAssertEqual(snapshotNames, ["kept"])
+    }
+
+    func testRemovingATransientRulePublishesItsAbsence() {
+        let store = makeStore()
+        let rule = makeRule("doomed")
+        store.addTransient(rule)
+        store.remove(id: rule.id)
+        XCTAssertTrue(snapshotNames.isEmpty)
+    }
+
+    func testRemovingEverythingPublishesAnEmptyRuleSet() {
+        let store = makeStore()
+        store.add(makeRule("persisted"))
+        store.addTransient(makeRule("transient"))
+        store.removeAll()
+        XCTAssertTrue(store.rules.isEmpty)
+        XCTAssertTrue(store.transientRules.isEmpty)
+        XCTAssertTrue(snapshotNames.isEmpty)
+        XCTAssertTrue(makeStore().rules.isEmpty)
+    }
+
     // MARK: - Upsert
 
     func testAddingARuleWithAStoredIdentifierReplacesItInPlace() {
@@ -638,6 +756,65 @@ final class NetworkRuleStoreTests: XCTestCase {
         store.add(.condition(name: "c", matching: .path("/c"), NetworkCondition(latency: 1)))
         store.add(.mapLocal(name: "l", matching: .path("/d"), serving: MapLocalFile(relativePath: "/tmp/x.json")))
         XCTAssertEqual(store.rules.count, 4)
+    }
+}
+
+
+/// The public facade writes nothing while Scyther is not running.
+///
+/// `Scyther.network.rules` is what the documentation tells a host app to call from
+/// `didFinishLaunching`, and `start()` refuses to run on an App Store build. Every mutator used to
+/// forward to the store regardless, so following our own guide created a directory and wrote to
+/// preferences in a user's container for a feature that never runs — and nothing reclaimed it,
+/// because the sweep is only reachable from `start()`.
+@MainActor
+final class NetworkRulesFacadeTests: XCTestCase {
+
+    /// Whether the process was already started when this test began.
+    private var wasStarted = false
+
+    override func setUp() async throws {
+        wasStarted = Scyther.isStarted
+        Scyther._started = false
+    }
+
+    override func tearDown() async throws {
+        Scyther._started = wasStarted
+    }
+
+    private func rule(_ name: String) -> NetworkRule {
+        NetworkRule(name: name,
+                    match: .host("facade.invalid"),
+                    actions: NetworkRuleActions(stub: .mock(.json("{}"))))
+    }
+
+    func testMutatorsWriteNothingWhileScytherIsNotRunning() {
+        let before = NetworkRuleStore.shared.rules
+
+        XCTAssertFalse(Scyther.network.rules.add(rule("persisted")))
+        XCTAssertFalse(Scyther.network.rules.addTransient(rule("transient")))
+        XCTAssertFalse(Scyther.network.rules.update(rule("edited")))
+        Scyther.network.rules.isEnabled = false
+
+        XCTAssertEqual(NetworkRuleStore.shared.rules, before)
+        XCTAssertTrue(NetworkRuleStore.shared.transientRules.isEmpty)
+        XCTAssertTrue(NetworkRuleStore.shared.isEnabled, "the master switch is untouched too")
+    }
+
+    func testReadersHandBackNothingWhileScytherIsNotRunning() {
+        XCTAssertTrue(Scyther.network.rules.all.isEmpty)
+        XCTAssertTrue(Scyther.network.rules.transient.isEmpty)
+        XCTAssertFalse(Scyther.network.rules.isEnabled,
+                       "nothing is being applied, whatever the persisted switch says")
+    }
+
+    func testTheFacadeWorksNormallyOnceScytherIsRunning() {
+        Scyther._started = true
+        let added = rule("registered in code")
+        defer { Scyther.network.rules.remove(id: added.id) }
+
+        XCTAssertTrue(Scyther.network.rules.add(added))
+        XCTAssertTrue(Scyther.network.rules.all.contains { $0.id == added.id })
     }
 }
 
