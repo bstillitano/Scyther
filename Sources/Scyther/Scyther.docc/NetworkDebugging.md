@@ -139,6 +139,9 @@ Reordering the list is what changes precedence.
 | Mock Response | ``MockResponse`` | Answers with a status code, headers and a body typed into the editor, after an optional delay. |
 | Map Local | ``MapLocalFile`` | Answers with the contents of a file on the device, with a status code and `Content-Type`. |
 
+- Note: A condition's latency and a mock's delay are each capped at 30 seconds. Neither is waited
+  out on the thread the request started on, so a delayed override cannot hold up traffic it does
+  not match.
 - Note: ``MockResponse/headers`` is a dictionary, so a mocked response cannot repeat a header
   name. Where a real response may send `Set-Cookie` more than once, only one value survives, and a
   HAR import keeps the last of the repeats.

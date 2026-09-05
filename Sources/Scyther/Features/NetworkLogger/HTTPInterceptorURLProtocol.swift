@@ -52,8 +52,8 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// so `stopLoading()` must not spin up the lazy session just to cancel nothing.
     private var didStartTask: Bool = false
 
-    /// Set by `stopLoading()` so a bandwidth throttle mid-sleep stops forwarding bytes to a client
-    /// that has gone away instead of running its budget out.
+    /// Set by `stopLoading()` so that neither a pending delayed delivery nor a bandwidth throttle
+    /// mid-sleep keeps pushing bytes at a client that has gone away.
     private var isCancelled: Bool = false
 
     /// Paces the current response to the ceiling ``condition`` asked for, or `nil` when there is
@@ -63,14 +63,27 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// When the current response began arriving, which is what the throttle measures against.
     private var responseStart: Date = .distantPast
 
-    /// The longest a rule is allowed to block the URL loading system's thread in one go.
+    /// The longest a rule may hold a request back before it is sent or answered.
     ///
     /// A developer typing an unreasonable latency into the menu should see a slow request, not a
     /// request that appears to have hung forever.
-    private static let maximumSleep: TimeInterval = 30
+    private static let maximumDelay: TimeInterval = 30
 
     /// The longest the bandwidth throttle may spend asleep across one whole response.
     private static let maximumBandwidthSleep: TimeInterval = 30
+
+    /// The queue a rule's latency or mock delay is scheduled on.
+    ///
+    /// `startLoading()` runs on a thread the URL loading system owns, and whether that thread is
+    /// per-request or drawn from a shared pool is not ours to know. Sleeping on it to simulate
+    /// latency risks holding up traffic that matches no override at all, so the delay is
+    /// scheduled here and the load finished from the block. `startLoading()` only has to *start*
+    /// the load; the client's callbacks are free to arrive later, on another thread.
+    ///
+    /// Serial and shared, because it does nothing but wait: the work each block performs is
+    /// either handing a stub to the client or resuming a data task.
+    private static let delayQueue = DispatchQueue(label: "com.scyther.networkRules.delay",
+                                                  qos: .userInitiated)
 
     override open class func canInit(with request: URLRequest) -> Bool {
         return canServeRequest(request)
@@ -125,7 +138,8 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
             let bodies = { NetworkRuleStore.bodyDataOffMainActor(for: $0) }
             if let (response, body) = NetworkRuleStubResponder.response(for: stub, url: url, bodyProvider: bodies) {
                 model.appliedRuleNames = outcome.stubRuleName.map { [$0] } ?? []
-                serve(response, body: body, after: NetworkRuleStubResponder.delay(for: stub))
+                let delay = min(NetworkRuleStubResponder.delay(for: stub), Self.maximumDelay)
+                perform(after: delay) { $0.serve(response, body: body) }
                 return
             }
         }
@@ -150,20 +164,43 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
 
         URLProtocol.setProperty(true, forKey: internalNetworkRequestKey, in: mutableRequest)
 
-        if let condition = outcome.condition {
-            if condition.failureRate > 0, Double.random(in: 0...1) < condition.failureRate {
-                let error = URLError(URLError.Code(rawValue: condition.failureCode))
-                model.saveErrorResponse()
-                finishWithFailure(error)
-                return
-            }
-            if condition.latency > 0 {
-                Thread.sleep(forTimeInterval: min(condition.latency, Self.maximumSleep))
-            }
+        if let condition = outcome.condition,
+           condition.failureRate > 0,
+           Double.random(in: 0...1) < condition.failureRate {
+            let error = URLError(URLError.Code(rawValue: condition.failureCode))
+            model.saveErrorResponse()
+            finishWithFailure(error)
+            return
         }
 
-        didStartTask = true
-        session.dataTask(with: mutableRequest as URLRequest).resume()
+        let outgoing = mutableRequest as URLRequest
+        let latency = min(outcome.condition?.latency ?? 0, Self.maximumDelay)
+        perform(after: latency) { interceptor in
+            interceptor.didStartTask = true
+            interceptor.session.dataTask(with: outgoing).resume()
+        }
+    }
+
+    /// Finishes starting the load, after a rule's delay if it asked for one.
+    ///
+    /// A delay of zero runs `work` inline, so a request no condition or mock delay touches keeps
+    /// exactly the threading and ordering it had before rules existed. Anything above zero is
+    /// scheduled on ``delayQueue`` instead of slept for — see that queue's note.
+    ///
+    /// - Parameters:
+    ///   - delay: Seconds to wait, already clamped to ``maximumDelay``.
+    ///   - work: What to do once the wait is over. Skipped entirely when the request has been
+    ///     cancelled in the meantime, so a cancelled request delivers nothing, and when the
+    ///     instance is gone.
+    private func perform(after delay: TimeInterval, _ work: @escaping @Sendable (HTTPInterceptorURLProtocol) -> Void) {
+        guard delay > 0 else {
+            work(self)
+            return
+        }
+        Self.delayQueue.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self, !self.isCancelled else { return }
+            work(self)
+        }
     }
 
     /// Hands a rule's synthesised response to the client as though it had come from the network.
@@ -172,16 +209,13 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// logged exactly as a real one is, with ``HTTPRequest/wasStubbed`` set so the log can say
     /// where it came from.
     ///
+    /// Any delay the mock asked for has already elapsed by the time this is called — see
+    /// ``perform(after:_:)`` — so this never waits.
+    ///
     /// - Parameters:
     ///   - response: The response to serve.
     ///   - body: The response body.
-    ///   - delay: Seconds to wait before serving, capped at ``maximumSleep``. Slept on the URL
-    ///     loading system's thread, never the main one.
-    private func serve(_ response: HTTPURLResponse, body: Data, after delay: TimeInterval) {
-        if delay > 0 {
-            Thread.sleep(forTimeInterval: min(delay, Self.maximumSleep))
-        }
-
+    private func serve(_ response: HTTPURLResponse, body: Data) {
         client?.urlProtocol(self,
                             didReceive: response,
                             cacheStoragePolicy: NetworkHelper.instance.cacheStoragePolicy)

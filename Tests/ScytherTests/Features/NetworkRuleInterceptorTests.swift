@@ -393,3 +393,135 @@ final class NetworkRuleBandwidthTests: XCTestCase {
         XCTAssertLessThan(result.elapsed, 0.3)
     }
 }
+
+/// A rule's latency and a mock's delay used to be slept for on the thread `startLoading()` was
+/// called on — a thread the URL loading system owns, and possibly shares with requests that match
+/// no override at all. These drive `startLoading()` directly, because that thread is the subject.
+final class NetworkRuleDelayTests: XCTestCase {
+
+    /// Records what the interceptor delivered, and when it finished.
+    private final class RecordingClient: NSObject, URLProtocolClient, @unchecked Sendable {
+        private let lock = NSLock()
+        private var events: [String] = []
+
+        /// Called on whichever thread finished the load.
+        var onFinish: (@Sendable () -> Void)?
+
+        /// The callbacks received so far, in order.
+        var received: [String] { lock.withLock { events } }
+
+        private func record(_ event: String) {
+            lock.withLock { events.append(event) }
+        }
+
+        func urlProtocol(_ protocol: URLProtocol, didReceive response: URLResponse, cacheStoragePolicy policy: URLCache.StoragePolicy) {
+            record("response")
+        }
+        func urlProtocol(_ protocol: URLProtocol, didLoad data: Data) {
+            record("data")
+        }
+        func urlProtocolDidFinishLoading(_ protocol: URLProtocol) {
+            record("finished")
+            onFinish?()
+        }
+        func urlProtocol(_ protocol: URLProtocol, didFailWithError error: Error) {
+            record("failed")
+            onFinish?()
+        }
+        func urlProtocol(_ protocol: URLProtocol, wasRedirectedTo request: URLRequest, redirectResponse: URLResponse) { }
+        func urlProtocol(_ protocol: URLProtocol, cachedResponseIsValid cachedResponse: CachedURLResponse) { }
+        func urlProtocol(_ protocol: URLProtocol, didReceive challenge: URLAuthenticationChallenge) { }
+        func urlProtocol(_ protocol: URLProtocol, didCancel challenge: URLAuthenticationChallenge) { }
+    }
+
+    private let url = URL(string: "https://delayed.invalid/profile")!
+
+    override func tearDown() {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [])
+    }
+
+    /// Publishes one mock rule with the given delay and returns an interceptor wired to `client`.
+    private func interceptor(mockDelay: TimeInterval, client: RecordingClient) -> HTTPInterceptorURLProtocol {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [
+            NetworkRule(
+                id: UUID(),
+                name: "delayed",
+                isEnabled: true,
+                match: .host("delayed.invalid"),
+                action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: mockDelay))
+            )
+        ])
+        return HTTPInterceptorURLProtocol(request: URLRequest(url: url), cachedResponse: nil, client: client)
+    }
+
+    func testStartLoadingReturnsWithoutWaitingOutAMockDelay() {
+        let client = RecordingClient()
+        let delivered = expectation(description: "the stub is delivered")
+        client.onFinish = { delivered.fulfill() }
+        let interceptor = interceptor(mockDelay: 1, client: client)
+
+        let start = Date()
+        interceptor.startLoading()
+        let returned = Date().timeIntervalSince(start)
+
+        XCTAssertLessThan(returned, 0.2, "startLoading must not hold the thread the URL loading system gave it")
+        XCTAssertTrue(client.received.isEmpty, "and must not have answered yet either")
+
+        wait(for: [delivered], timeout: 10)
+        XCTAssertGreaterThanOrEqual(Date().timeIntervalSince(start), 1,
+                                    "the delay is still honoured, just not by occupying a thread")
+        XCTAssertEqual(client.received, ["response", "data", "finished"])
+    }
+
+    /// The same for a condition's latency, which delays a request that really does go out.
+    func testStartLoadingReturnsWithoutWaitingOutAConditionLatency() {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [
+            NetworkRule(
+                id: UUID(),
+                name: "slow",
+                isEnabled: true,
+                match: .host("unreachable.invalid"),
+                action: .condition(NetworkCondition(latency: 1, bandwidthKBps: nil, failureRate: 0))
+            )
+        ])
+        let client = RecordingClient()
+        let finished = expectation(description: "the request completes")
+        client.onFinish = { finished.fulfill() }
+        let request = URLRequest(url: URL(string: "https://unreachable.invalid/latency")!)
+        let interceptor = HTTPInterceptorURLProtocol(request: request, cachedResponse: nil, client: client)
+
+        let start = Date()
+        interceptor.startLoading()
+
+        XCTAssertLessThan(Date().timeIntervalSince(start), 0.2,
+                          "a second of latency must not be a second of somebody else's thread")
+
+        // The host does not resolve, so the load fails — after the latency, which is the point.
+        wait(for: [finished], timeout: 30)
+        XCTAssertGreaterThanOrEqual(Date().timeIntervalSince(start), 1)
+    }
+
+    /// The common path — nothing delayed — keeps the ordering it has always had.
+    func testAnUndelayedMockIsStillServedInline() {
+        let client = RecordingClient()
+        let interceptor = interceptor(mockDelay: 0, client: client)
+
+        interceptor.startLoading()
+
+        XCTAssertEqual(client.received, ["response", "data", "finished"])
+    }
+
+    func testCancellingDuringTheDelayDeliversNothing() {
+        let client = RecordingClient()
+        let interceptor = interceptor(mockDelay: 0.4, client: client)
+
+        interceptor.startLoading()
+        interceptor.stopLoading()
+
+        let waited = expectation(description: "the delay elapses")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { waited.fulfill() }
+        wait(for: [waited], timeout: 5)
+
+        XCTAssertTrue(client.received.isEmpty, "a cancelled request must deliver nothing at all")
+    }
+}

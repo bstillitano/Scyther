@@ -30,7 +30,7 @@ public struct NetworkRule: Identifiable, Codable, Sendable, Equatable {
 
     /// Creates a rule.
     ///
-    /// Most callers use the ergonomic constructors — ``mock(name:matching:returning:)`` and its
+    /// Most callers use the ergonomic constructors — ``mock(id:name:matching:returning:)`` and its
     /// siblings — rather than this initialiser.
     ///
     /// - Parameters:

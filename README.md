@@ -545,7 +545,7 @@ dragging a row is what changes precedence:
 | **Mock Response** | Answers with a status code, headers and a body typed into the editor, after an optional delay. Headers are a dictionary, so a mock cannot repeat a header name — a HAR import keeps the last of a repeated `Set-Cookie`. |
 | **Map Local** | Answers with the contents of a file on the device, with a status code and `Content-Type`. The path is **absolute**, so it has to come from code or from Scyther's file browser rather than being typed on a device; an unreadable path falls through to the real network. |
 | **Rewrite Headers** | Sets and removes headers on the outgoing request, then lets it go to the network. |
-| **Condition** | Adds latency, caps bandwidth in KB/s, and fails a fraction of matching requests with a `URLError`. |
+| **Condition** | Adds latency, caps bandwidth in KB/s, and fails a fraction of matching requests with a `URLError`. Latency and a mock's delay are each capped at 30 seconds, and are waited out without holding a thread. |
 
 #### Saving a Captured Request as a Mock
 
