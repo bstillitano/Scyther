@@ -253,8 +253,46 @@ final class NetworkRulesViewModelTests: XCTestCase {
         let url = try writeFile(har(entries: 3), named: "three.har")
         await viewModel.importHAR(from: url)
         XCTAssertEqual(store.rules.count, 3)
-        XCTAssertEqual(viewModel.importOutcome, .imported(count: 3))
+        XCTAssertEqual(viewModel.importOutcome, .imported(count: 3, skipped: 0))
         XCTAssertTrue(store.rules.allSatisfy { !$0.isEnabled }, "imported overrides arrive disabled")
+    }
+
+    /// A capture in which not every entry can be read still imports the ones that can, and the
+    /// alert says how many were lost: 1 of 2 is a partial success, not a success.
+    func testImportingAHARWithAnUnreadableEntryReportsWhatWasLost() async throws {
+        let viewModel = NetworkRulesViewModel(store: store)
+        let partial = """
+        {"log":{"version":"1.2","creator":{"name":"Scyther","version":"1"},"entries":[
+          {"startedDateTime":"2026-09-05T00:00:00.000Z","time":1,
+           "request":{"method":"GET","url":"https://api.example.com/v1/aborted","httpVersion":"HTTP/1.1",
+                      "cookies":[],"headers":[],"queryString":[],"headersSize":-1,"bodySize":0},
+           "cache":{},"timings":{"send":0,"wait":1,"receive":0}},
+          {"startedDateTime":"2026-09-05T00:00:00.000Z","time":1,
+           "request":{"method":"GET","url":"https://api.example.com/v1/ok","httpVersion":"HTTP/1.1",
+                      "cookies":[],"headers":[],"queryString":[],"headersSize":-1,"bodySize":0},
+           "response":{"status":200,"statusText":"OK","httpVersion":"HTTP/1.1","cookies":[],
+                       "headers":[],"content":{"size":0,"mimeType":"","text":null},
+                       "redirectURL":"","headersSize":-1,"bodySize":0},
+           "cache":{},"timings":{"send":0,"wait":1,"receive":0}}
+        ]}}
+        """
+        let url = try writeFile(partial, named: "partial.har")
+        await viewModel.importHAR(from: url)
+        XCTAssertEqual(store.rules.count, 1, "the readable entry must still be imported")
+        XCTAssertEqual(viewModel.importOutcome, .imported(count: 1, skipped: 1))
+    }
+
+    /// The alert names the skipped entries only when there were some, and two outcomes that
+    /// differ in either number are different alerts.
+    func testTheImportAlertNamesTheSkippedEntriesOnlyWhenThereAreSome() {
+        let clean = NetworkRuleImportOutcome.imported(count: 3, skipped: 0)
+        let partial = NetworkRuleImportOutcome.imported(count: 3, skipped: 2)
+        XCTAssertEqual(clean.message,
+                       localized("Imported \(3) overrides. Every imported override starts disabled."))
+        XCTAssertTrue(partial.message.hasPrefix(clean.message), "the count sentence is unchanged")
+        XCTAssertTrue(partial.message.contains(localized("\(2) entries could not be read.")),
+                      "a developer given 3 of 5 overrides has to be told about the other 2")
+        XCTAssertNotEqual(clean.id, partial.id, "the alert must redraw when the numbers differ")
     }
 
     func testImportingAFileThatIsNotAHARReportsFailure() async throws {

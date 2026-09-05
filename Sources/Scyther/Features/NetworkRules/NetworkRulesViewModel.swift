@@ -215,6 +215,15 @@ final class NetworkRulesViewModel: ViewModel {
     /// menu for the length of the read, and adding the rules one at a time would JSON-encode the
     /// whole rules array into `UserDefaults` once per entry.
     ///
+    /// Nothing is written by the importer: a decoded response body travels on the rule that
+    /// answers with it, and the store writes it into its own body directory when it takes the
+    /// rules — so an import the store refuses leaves nothing behind.
+    ///
+    /// The reported outcome counts both sides of a partial import. An entry can be lost on the
+    /// way in, when it cannot be decoded or its URL cannot be parsed, and an override can be lost
+    /// on the way out, when the store cannot write the body it carries; a developer who hands
+    /// over 300 entries and gets 297 overrides is told which number is which.
+    ///
     /// - Parameter url: The file the developer picked.
     func importHAR(from url: URL) async {
         guard let data = await Self.contents(of: url) else {
@@ -223,41 +232,13 @@ final class NetworkRulesViewModel: ViewModel {
         }
 
         do {
-            // The importer hands back an identifier per body because that is what a rule stores.
-            // Nothing is written here: the bytes are parked under a placeholder identifier and
-            // then attached to the rule that claimed it, so the store writes them into its own
-            // body directory when it takes the rules — and an import that is never stored, or one
-            // whose disk is full, leaves nothing behind.
-            var parked: [UUID: Data] = [:]
-            let imported = try HARRuleImporter.rules(from: data) { body in
-                let placeholder = UUID()
-                parked[placeholder] = body
-                return placeholder
-            }
-            let stored = store.add(contentsOf: imported.map { Self.attachingBody(from: parked, to: $0) })
-            importOutcome = .imported(count: stored)
+            let result = try HARRuleImporter.result(from: data)
+            let stored = store.add(contentsOf: result.rules)
+            let notStored = result.rules.count - stored
+            importOutcome = .imported(count: stored, skipped: result.skippedEntries + notStored)
         } catch {
             importOutcome = .failed
         }
-    }
-
-    /// Moves an imported rule's body from the placeholder map onto the rule itself.
-    ///
-    /// - Parameters:
-    ///   - parked: Bodies keyed by the placeholder identifier the importer was handed.
-    ///   - rule: The imported rule.
-    /// - Returns: The rule carrying its bytes, ready for the store to write them.
-    private static func attachingBody(from parked: [UUID: Data], to rule: NetworkRule) -> NetworkRule {
-        guard case .mock(var mock) = rule.actions.stub,
-              let placeholder = mock.bodyID,
-              let body = parked[placeholder] else {
-            return rule
-        }
-        mock.bodyID = nil
-        mock.pendingBody = body
-        var attached = rule
-        attached.actions.stub = .mock(mock)
-        return attached
     }
 
     /// Reads a picked file's bytes without blocking the main actor.
@@ -283,8 +264,13 @@ final class NetworkRulesViewModel: ViewModel {
 
 /// The outcome of a HAR import, as the list's alert presents it.
 enum NetworkRuleImportOutcome: Identifiable, Equatable {
-    /// The document was read and produced this many overrides, every one of them disabled.
-    case imported(count: Int)
+    /// The document was read and produced `count` overrides, every one of them disabled, while
+    /// `skipped` of its entries produced none.
+    ///
+    /// An entry is skipped when it cannot be decoded, when its URL cannot be parsed, or when the
+    /// store will not write the body it carries. Reporting only the overrides added would leave a
+    /// developer to notice for themselves that three of their three hundred entries had gone.
+    case imported(count: Int, skipped: Int)
 
     /// The file could not be read, or was not a HAR document.
     case failed
@@ -292,7 +278,7 @@ enum NetworkRuleImportOutcome: Identifiable, Equatable {
     /// A stable identity, so the alert redraws when one outcome replaces another.
     var id: String {
         switch self {
-        case .imported(let count): return "imported.\(count)"
+        case .imported(let count, let skipped): return "imported.\(count).\(skipped)"
         case .failed: return "failed"
         }
     }
@@ -305,11 +291,13 @@ enum NetworkRuleImportOutcome: Identifiable, Equatable {
         }
     }
 
-    /// The alert's body copy.
+    /// The alert's body copy, naming the skipped entries only when there were any.
     var message: String {
         switch self {
-        case .imported(let count):
-            return localized("Imported \(count) overrides. Every imported override starts disabled.")
+        case .imported(let count, let skipped):
+            let imported = localized("Imported \(count) overrides. Every imported override starts disabled.")
+            guard skipped > 0 else { return imported }
+            return imported + " " + localized("\(skipped) entries could not be read.")
         case .failed:
             return localized("The selected file could not be read as a HAR document.")
         }

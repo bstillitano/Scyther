@@ -121,7 +121,7 @@ enum NetworkLogRedactor {
             cookies: entry.request.cookies.map { HARCookie(name: $0.name, value: placeholder) },
             headers: redact(entry.request.headers),
             queryString: redact(entry.request.queryString),
-            postData: entry.request.postData.map { HARPostData(mimeType: $0.mimeType, text: redactText($0.text)) },
+            postData: entry.request.postData.map { HARPostData(mimeType: $0.mimeType, text: $0.text.map(redactText)) },
             headersSize: entry.request.headersSize,
             bodySize: entry.request.bodySize
         )

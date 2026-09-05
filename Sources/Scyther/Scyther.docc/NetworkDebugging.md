@@ -192,8 +192,15 @@ Developer Info section.
 
 **Import from HAR** in the list's add menu reads a HAR 1.2 document — one exported by Scyther, or
 captured in Charles, Proxyman or Chrome DevTools — and turns each entry into a mock override named
-`<METHOD> <path>`, matching that method, host and path. An entry whose URL cannot be parsed is
-skipped rather than failing the import, and an alert reports how many overrides were added.
+`<METHOD> <path>`, matching that method, host and path. Entries are read one at a time, so a
+capture full of the things a real HAR contains — an aborted request with no `response` object, a
+multipart upload whose `postData` carries `params` and no `text`, an entry whose URL cannot be
+parsed — costs those entries and nothing else. The alert reports both numbers: how many overrides
+were added, and how many entries produced none.
+
+A response body labelled `encoding: "base64"` is decoded even when it is wrapped across lines, as
+Charles and other MIME-style encoders write it, and text that plainly is not base64 is taken as
+the literal body it is rather than decoded into bytes that came from nowhere.
 
 Every imported override arrives disabled, for the same reason a saved mock does: importing a
 colleague's capture should never silently change what the app does.

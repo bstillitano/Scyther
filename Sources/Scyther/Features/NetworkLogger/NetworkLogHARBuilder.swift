@@ -76,9 +76,15 @@ struct HARCookie: Codable, Sendable {
 }
 
 /// A request body.
+///
+/// `text` is optional because a HAR in the wild often has no such thing: a multipart upload as
+/// Chrome DevTools writes it carries a `params` list and no `text` at all. Requiring it here made
+/// ``HARRuleImporter`` unable to read the entry, and it is a request body Scyther never reads
+/// anyway — an imported override answers with the *response*. Scyther's own exporter always
+/// writes it, and an omitted `text` is omitted from the JSON rather than written as null.
 struct HARPostData: Codable, Sendable {
     let mimeType: String
-    let text: String
+    let text: String?
 }
 
 /// A response body. `encoding` is `"base64"` when `text` is base64 rather than literal text.

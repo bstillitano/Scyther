@@ -613,9 +613,18 @@ page's Developer Info section naming every override that shaped the request.
 
 **Import from HAR**, in the add menu of the overrides list, reads a HAR 1.2 document — one
 exported by Scyther, or captured in Charles, Proxyman or Chrome DevTools — and turns each entry
-into a mock override named `<METHOD> <path>` matching that method, host and path. Entries whose
-URL cannot be parsed are skipped rather than failing the import, and an alert reports how many
-overrides were added. Every imported override arrives disabled.
+into a mock override named `<METHOD> <path>` matching that method, host and path. Every imported
+override arrives disabled.
+
+Entries are read one at a time, so the things a real capture contains — an aborted request with no
+`response` object, a multipart upload whose `postData` carries `params` and no `text`, an entry
+whose URL cannot be parsed — cost those entries and nothing else rather than discarding the whole
+import. The alert reports both numbers: how many overrides were added, and how many entries
+produced none.
+
+A response body labelled `encoding: "base64"` is decoded even when it is wrapped across lines, the
+way Charles and other MIME-style encoders write it. Text that plainly is not base64 is taken as
+the literal body it is rather than decoded into bytes that came from nowhere.
 
 #### The Master Switch
 

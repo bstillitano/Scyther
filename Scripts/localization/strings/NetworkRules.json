@@ -1,4 +1,62 @@
 {
+  "%lld entries could not be read.": {
+    "ar": {
+      "zero": "لم يتعذّر قراءة أي إدخال.",
+      "one": "تعذّرت قراءة إدخال واحد.",
+      "two": "تعذّرت قراءة إدخالين.",
+      "few": "تعذّرت قراءة %lld إدخالات.",
+      "many": "تعذّرت قراءة %lld إدخالًا.",
+      "other": "تعذّرت قراءة %lld إدخال."
+    },
+    "comment": "Second sentence of the HAR import alert, counting the entries that produced no override",
+    "de": {
+      "one": "%lld Eintrag konnte nicht gelesen werden.",
+      "other": "%lld Einträge konnten nicht gelesen werden."
+    },
+    "en": {
+      "one": "%lld entry could not be read.",
+      "other": "%lld entries could not be read."
+    },
+    "es": {
+      "one": "No se pudo leer %lld entrada.",
+      "other": "No se pudieron leer %lld entradas."
+    },
+    "fr": {
+      "one": "%lld entrée n'a pas pu être lue.",
+      "other": "%lld entrées n'ont pas pu être lues."
+    },
+    "it": {
+      "one": "%lld voce non è stata letta.",
+      "other": "%lld voci non sono state lette."
+    },
+    "ja": {
+      "other": "%lld件のエントリを読み取れませんでした。"
+    },
+    "ko": {
+      "other": "항목 %lld개를 읽을 수 없습니다."
+    },
+    "nl": {
+      "one": "%lld vermelding kon niet worden gelezen.",
+      "other": "%lld vermeldingen konden niet worden gelezen."
+    },
+    "plural": true,
+    "pt-BR": {
+      "one": "%lld entrada não pôde ser lida.",
+      "other": "%lld entradas não puderam ser lidas."
+    },
+    "ru": {
+      "one": "%lld запись не удалось прочитать.",
+      "few": "%lld записи не удалось прочитать.",
+      "many": "%lld записей не удалось прочитать.",
+      "other": "%lld записей не удалось прочитать."
+    },
+    "zh-Hans": {
+      "other": "有 %lld 条记录无法读取。"
+    },
+    "zh-Hant": {
+      "other": "有 %lld 筆記錄無法讀取。"
+    }
+  },
   "0 means unthrottled.": {
     "ar": "القيمة 0 تعني بدون تقييد.",
     "comment": "Footer explaining that a zero bandwidth ceiling applies no throttle",

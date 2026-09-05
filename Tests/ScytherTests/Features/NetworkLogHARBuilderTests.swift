@@ -104,15 +104,17 @@ final class NetworkLogHARBuilderTests: XCTestCase {
     }
 
     /// Exporting an image response to HAR and feeding the result straight back through
-    /// ``HARRuleImporter`` must hand `storeBody` the original bytes, unchanged.
+    /// ``HARRuleImporter`` must leave the imported override carrying the original bytes.
     func testImageBodyRoundTripsThroughHARExportAndImport() throws {
         let bytes = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x80, 0x81, 0x82, 0xC3])
         let request = makeRequest(responseBody: bytes, contentType: "image/jpeg")
         let har = NetworkLogHARBuilder.build(from: [request])
         let data = try NetworkLogHARBuilder.encode(har)
-        var stored: [Data] = []
-        _ = try HARRuleImporter.rules(from: data) { body in stored.append(body); return UUID() }
-        XCTAssertEqual(stored, [bytes])
+        let result = try HARRuleImporter.result(from: data)
+        guard case .mock(let mock) = try XCTUnwrap(result.rules.first).actions.stub else {
+            return XCTFail("expected a mock")
+        }
+        XCTAssertEqual(mock.pendingBody, bytes)
     }
 
     func testRequestWithoutBodyHasNoPostData() throws {
