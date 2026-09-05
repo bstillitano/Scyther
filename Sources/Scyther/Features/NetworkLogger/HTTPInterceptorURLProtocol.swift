@@ -285,9 +285,8 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
 
         /// Either nothing stubbed this request or the stub could not be produced — a map-local
         /// file that has been deleted, say — so it goes to the network and the rules that shape
-        /// it there are the ones to credit.
-        /// Parallel to ``HTTPRequest/appliedRuleNames``, as on the stub path above: same length,
-        /// same order, assigned together.
+        /// it there are the ones to credit. Names and ids stay parallel, as on the stub path
+        /// above: same length, same order, assigned together.
         model.appliedRuleNames = outcome.networkRuleNames
         model.appliedRuleIDs = outcome.networkRuleIDs
 
