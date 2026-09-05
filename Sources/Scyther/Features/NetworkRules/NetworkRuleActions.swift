@@ -47,6 +47,18 @@ public struct NetworkRuleActions: Codable, Sendable, Equatable {
     /// Latency, bandwidth ceiling and failure rate applied to this request, stubbed or not.
     public var condition: NetworkCondition?
 
+    /// The keys a set of actions is persisted under.
+    ///
+    /// Spelled out rather than synthesised so the on-disk format cannot change under a rename.
+    private enum CodingKeys: String, CodingKey {
+        /// ``stub``.
+        case stub
+        /// ``rewriteHeaders``.
+        case rewriteHeaders
+        /// ``condition``.
+        case condition
+    }
+
     /// Creates a set of actions. Every facet is optional; an omitted one does nothing.
     ///
     /// - Parameters:

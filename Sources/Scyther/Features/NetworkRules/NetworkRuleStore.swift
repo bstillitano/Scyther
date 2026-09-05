@@ -43,6 +43,10 @@ import Foundation
 /// - ``transientRules``
 /// - ``isEnabled``
 ///
+/// ### Reporting Failures
+/// - ``lastFailure``
+/// - ``acknowledgeFailure()``
+///
 /// ### Mutating Rules
 /// - ``add(_:)``
 /// - ``add(contentsOf:)``
@@ -65,6 +69,8 @@ internal final class NetworkRuleStore: ObservableObject {
     private enum Key {
         /// The JSON-encoded array of persisted rules.
         static let rules = "Scyther.NetworkRules.Rules"
+        /// A rules blob this version could not read, moved here rather than overwritten.
+        static let unreadableRules = "Scyther.NetworkRules.Rules.Unreadable"
         /// The master switch. Absent means enabled.
         static let isEnabled = "Scyther.NetworkRules.Enabled"
     }
@@ -84,6 +90,21 @@ internal final class NetworkRuleStore: ObservableObject {
     /// Rules registered from code for this launch only, evaluated after every persisted rule.
     @Published private(set) var transientRules: [NetworkRule] = []
 
+    /// The most recent thing the store could not do, or `nil` when nothing has gone wrong.
+    ///
+    /// ``NetworkRulesView`` presents it as an alert and then calls ``acknowledgeFailure()``. It
+    /// exists because the two things that can fail here — encoding the rules and decoding them —
+    /// both used to fail silently, leaving the developer looking at a list that did not match
+    /// what the interceptor was applying.
+    @Published private(set) var lastFailure: NetworkRuleStoreFailure?
+
+    /// A persisted blob this version could not decode, held until something is about to overwrite
+    /// it.
+    ///
+    /// `nil` in the ordinary case. While it is set the store knows it does not know what the
+    /// developer had configured, which is why ``sweepOrphanedBodies()`` stands down.
+    private var unreadableBlob: Data?
+
     /// The master switch. Turning it off leaves every rule intact but stops the interceptor
     /// applying any of them.
     @Published var isEnabled: Bool {
@@ -99,6 +120,12 @@ internal final class NetworkRuleStore: ObservableObject {
     /// action added by a newer release, say — is dropped, and the rules either side of it are
     /// still loaded.
     ///
+    /// A blob that will not decode as an array *at all* — truncated, or a future version that
+    /// wraps the rules in an object — is a different matter, because there is no element to skip.
+    /// The store starts empty, records ``NetworkRuleStoreFailure/rulesNotLoaded``, and keeps the
+    /// bytes; the next write moves them to a key of their own rather than overwriting them, so an
+    /// unreadable configuration is set aside instead of destroyed.
+    ///
     /// - Parameters:
     ///   - defaults: Where rules and the master switch are persisted. Defaults to Scyther's own
     ///     suite; tests pass a throwaway suite.
@@ -107,7 +134,15 @@ internal final class NetworkRuleStore: ObservableObject {
     init(defaults: UserDefaults = .scyther, bodyDirectory: URL = NetworkRuleStore.defaultBodyDirectory) {
         self.defaults = defaults
         self.bodyDirectory = bodyDirectory
-        self.rules = Self.decodeRules(from: defaults.data(forKey: Key.rules))
+        let stored = defaults.data(forKey: Key.rules)
+        switch Self.decodeRules(from: stored) {
+        case .loaded(let loaded):
+            self.rules = loaded
+        case .unreadable:
+            self.rules = []
+            self.unreadableBlob = stored
+            self.lastFailure = .rulesNotLoaded
+        }
         self.isEnabled = defaults.object(forKey: Key.isEnabled) as? Bool ?? true
         publish()
     }
@@ -144,6 +179,7 @@ internal final class NetworkRuleStore: ObservableObject {
     /// - Parameter rule: The rule to add, or the replacement for a rule already stored under the
     ///   same identifier.
     func add(_ rule: NetworkRule) {
+        let rule = rule.sanitised
         if let index = rules.firstIndex(where: { $0.id == rule.id }) {
             rules[index] = rule
         } else {
@@ -163,7 +199,7 @@ internal final class NetworkRuleStore: ObservableObject {
     ///   none is a no-op, so an import that produced nothing does not churn the snapshot.
     func add(contentsOf newRules: [NetworkRule]) {
         guard !newRules.isEmpty else { return }
-        rules.append(contentsOf: newRules)
+        rules.append(contentsOf: newRules.map(\.sanitised))
         persistRules()
         publish()
     }
@@ -177,6 +213,7 @@ internal final class NetworkRuleStore: ObservableObject {
     /// - Parameter rule: The rule to add, or the replacement for a transient rule already
     ///   registered under the same identifier.
     func addTransient(_ rule: NetworkRule) {
+        let rule = rule.sanitised
         if let index = transientRules.firstIndex(where: { $0.id == rule.id }) {
             transientRules[index] = rule
         } else {
@@ -192,6 +229,7 @@ internal final class NetworkRuleStore: ObservableObject {
     ///
     /// - Parameter rule: The edited rule.
     func update(_ rule: NetworkRule) {
+        let rule = rule.sanitised
         if let index = rules.firstIndex(where: { $0.id == rule.id }) {
             rules[index] = rule
             persistRules()
@@ -356,7 +394,11 @@ internal final class NetworkRuleStore: ObservableObject {
     /// The referenced identifiers are collected here, on the main actor; the file enumeration and
     /// the deletions happen off it, because a directory holding a HAR import's worth of bodies is
     /// not something to walk while a host app is trying to draw its first frame.
+    ///
+    /// Stands down entirely when the persisted blob could not be read: the store does not know
+    /// what the developer had configured, so every body on disk would look orphaned.
     func sweepOrphanedBodies() {
+        guard unreadableBlob == nil else { return }
         let referenced = Set((rules + transientRules).compactMap(\.storedFileID))
         let directory = bodyDirectory
         Task.detached(priority: .utility) {
@@ -417,9 +459,32 @@ internal final class NetworkRuleStore: ObservableObject {
     // MARK: - Persistence
 
     /// Writes the persisted rules to `UserDefaults`. Transient rules are deliberately excluded.
+    ///
+    /// An encode that throws is recorded as ``NetworkRuleStoreFailure/rulesNotSaved`` rather than
+    /// dropped: without it the in-memory array and the published snapshot advance while
+    /// `UserDefaults` keeps the previous blob, and nothing says so. Every rule is sanitised on the
+    /// way in — see ``NetworkRule/sanitised`` — so the encoder should never be handed a value it
+    /// refuses, but a silent write is not a thing to leave standing on the strength of "should".
+    ///
+    /// A blob the store could not read is moved aside here rather than overwritten, because this
+    /// is the moment it would otherwise be destroyed.
     private func persistRules() {
-        guard let data = try? JSONEncoder().encode(rules) else { return }
-        defaults.set(data, forKey: Key.rules)
+        do {
+            let data = try JSONEncoder().encode(rules)
+            if let unreadableBlob {
+                defaults.set(unreadableBlob, forKey: Key.unreadableRules)
+                self.unreadableBlob = nil
+            }
+            defaults.set(data, forKey: Key.rules)
+            if lastFailure == .rulesNotSaved { lastFailure = nil }
+        } catch {
+            lastFailure = .rulesNotSaved
+        }
+    }
+
+    /// Clears ``lastFailure`` once the developer has been told about it.
+    func acknowledgeFailure() {
+        lastFailure = nil
     }
 
     /// Writes the master switch to `UserDefaults`.
@@ -436,14 +501,29 @@ internal final class NetworkRuleStore: ObservableObject {
                                    bodyDirectory: bodyDirectory)
     }
 
+    /// What reading the persisted blob produced.
+    private enum LoadOutcome {
+        /// The blob decoded as an array. Elements this version could not understand were skipped.
+        case loaded([NetworkRule])
+        /// The blob is not an array this version can read at all, so there is nothing to skip.
+        case unreadable
+    }
+
     /// Decodes persisted rules, skipping any the current version cannot understand.
     ///
+    /// Skipping one element is safe: the rules either side of it still load. Failing to decode the
+    /// blob itself is not, because an empty list would be written straight back over the
+    /// developer's whole configuration — so that case is reported rather than flattened.
+    ///
     /// - Parameter data: The JSON written by ``persistRules()``, or `nil` on a first launch.
-    /// - Returns: Every rule that decoded cleanly, in stored order.
-    private static func decodeRules(from data: Data?) -> [NetworkRule] {
-        guard let data else { return [] }
-        guard let decoded = try? JSONDecoder().decode([FailableRule].self, from: data) else { return [] }
-        return decoded.compactMap(\.rule)
+    /// - Returns: ``LoadOutcome/loaded(_:)`` with every rule that decoded cleanly, in stored order,
+    ///   or ``LoadOutcome/unreadable`` when the blob is not a readable array.
+    private static func decodeRules(from data: Data?) -> LoadOutcome {
+        guard let data, !data.isEmpty else { return .loaded([]) }
+        guard let decoded = try? JSONDecoder().decode([FailableRule].self, from: data) else {
+            return .unreadable
+        }
+        return .loaded(decoded.compactMap(\.rule))
     }
 }
 

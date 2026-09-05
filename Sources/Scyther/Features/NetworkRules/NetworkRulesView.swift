@@ -148,6 +148,18 @@ struct NetworkRulesView: View {
         } message: { outcome in
             Text(outcome.message)
         }
+        .alert(
+            viewModel.storeFailure?.title ?? "",
+            isPresented: Binding(
+                get: { viewModel.storeFailure != nil },
+                set: { if !$0 { viewModel.storeFailure = nil } }
+            ),
+            presenting: viewModel.storeFailure
+        ) { _ in
+            Button(localized("OK"), role: .cancel) { viewModel.storeFailure = nil }
+        } message: { failure in
+            Text(failure.message)
+        }
         .navigationTitle(localized("Request Overrides"))
     }
 

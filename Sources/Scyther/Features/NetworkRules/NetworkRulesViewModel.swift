@@ -47,6 +47,7 @@ import Foundation
 /// - ``importHAR(from:)``
 /// - ``reportImportFailure()``
 /// - ``importOutcome``
+/// - ``storeFailure``
 final class NetworkRulesViewModel: ViewModel {
     /// The persisted rules, in precedence order, mirrored from the store.
     @Published private(set) var rules: [NetworkRule] = []
@@ -96,6 +97,9 @@ final class NetworkRulesViewModel: ViewModel {
         store.$isEnabled
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
+        store.$lastFailure
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
     }
 
     /// The master switch. Turning it off leaves every rule intact but stops the interceptor
@@ -106,6 +110,19 @@ final class NetworkRulesViewModel: ViewModel {
     var isEnabled: Bool {
         get { store.isEnabled }
         set { store.isEnabled = newValue }
+    }
+
+    /// The most recent thing the store could not do, awaiting acknowledgement. `nil` hides the
+    /// alert.
+    ///
+    /// Reads through to the store exactly as ``isEnabled`` does, so the alert cannot show a
+    /// failure the store has already forgotten. Setting it to `nil` acknowledges the failure.
+    var storeFailure: NetworkRuleStoreFailure? {
+        get { store.lastFailure }
+        set {
+            guard newValue == nil else { return }
+            store.acknowledgeFailure()
+        }
     }
 
     /// Whether the list has nothing to show.

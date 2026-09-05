@@ -652,6 +652,12 @@ that override in place. Code that runs on every launch should therefore pass a c
 the example above does — an override built without one gets a fresh identifier each time, so a
 call in `didFinishLaunching` would store another copy of the same override on every launch.
 
+Overrides are persisted as JSON, which cannot express an infinite or NaN number. A latency, delay
+or failure rate that is not finite — `1e400` typed into the editor parses to `inf` — is replaced
+with `0` on the way in, rather than being allowed to fail the write for every override at once. If
+a write does fail, or if the saved overrides cannot be read at launch, the overrides screen says
+so; an unreadable blob is set aside under its own preferences key rather than overwritten.
+
 #### Stubbing a UI Test
 
 Transient overrides make a UI test hermetic without running a stub server:

@@ -31868,6 +31868,160 @@
         }
       }
     },
+    "Overrides Not Loaded": {
+      "comment": "Alert title shown when the saved overrides could not be read at launch",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لم يتم تحميل التجاوزات"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Overrides nicht geladen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Anulaciones no cargadas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Remplacements non chargés"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Override non caricati"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "オーバーライドを読み込めません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "재정의를 불러오지 못함"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Overschrijvingen niet geladen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Substituições não carregadas"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Переопределения не загружены"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "覆盖规则未加载"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "覆寫規則未載入"
+          }
+        }
+      }
+    },
+    "Overrides Not Saved": {
+      "comment": "Alert title shown when the overrides could not be written to preferences",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لم يتم حفظ التجاوزات"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Overrides nicht gespeichert"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Anulaciones no guardadas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Remplacements non enregistrés"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Override non salvati"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "オーバーライドを保存できません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "재정의를 저장하지 못함"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Overschrijvingen niet bewaard"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Substituições não salvas"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Переопределения не сохранены"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "覆盖规则未保存"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "覆寫規則未儲存"
+          }
+        }
+      }
+    },
     "Overrides are applied in order. The first matching stub wins, and so does the first matching condition.": {
       "comment": "Footer explaining that overrides are evaluated in order, per action",
       "localizations": {
@@ -44613,6 +44767,83 @@
         }
       }
     },
+    "The saved overrides could not be read, so the list started empty. They have been set aside rather than deleted.": {
+      "comment": "Alert message explaining that the persisted overrides were unreadable and have been preserved",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تعذّرت قراءة التجاوزات المحفوظة، لذا بدأت القائمة فارغة. وقد تم وضعها جانباً بدلاً من حذفها."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Die gespeicherten Overrides konnten nicht gelesen werden, daher startete die Liste leer. Sie wurden beiseitegelegt statt gelöscht."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No se pudieron leer las anulaciones guardadas, así que la lista comenzó vacía. Se han apartado en lugar de eliminarse."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Les remplacements enregistrés n'ont pas pu être lus, la liste a donc démarré vide. Ils ont été mis de côté plutôt que supprimés."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Non è stato possibile leggere gli override salvati, quindi l'elenco è partito vuoto. Sono stati messi da parte anziché eliminati."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "保存されたオーバーライドを読み取れなかったため、リストは空で開始しました。削除ではなく別に保管されています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "저장된 재정의를 읽지 못해 목록이 비어 있는 상태로 시작했습니다. 삭제되지 않고 따로 보관되었습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "De bewaarde overschrijvingen konden niet worden gelezen, dus de lijst begon leeg. Ze zijn apart gezet in plaats van verwijderd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Não foi possível ler as substituições salvas, então a lista começou vazia. Elas foram guardadas em vez de excluídas."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Не удалось прочитать сохранённые переопределения, поэтому список начался пустым. Они отложены, а не удалены."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "无法读取已保存的覆盖规则，因此列表以空白开始。它们已被另行保留，而非删除。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "無法讀取已儲存的覆寫規則，因此清單以空白開始。它們已被另行保留，而非刪除。"
+          }
+        }
+      }
+    },
     "The selected file could not be copied.": {
       "comment": "Alert message when a picked map local file could not be copied into the rules directory",
       "localizations": {
@@ -49306,6 +49537,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "是"
+          }
+        }
+      }
+    },
+    "Your overrides could not be written to preferences, so this change will not survive a relaunch.": {
+      "comment": "Alert message explaining that the overrides failed to persist",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تعذّرت كتابة التجاوزات في التفضيلات، لذا لن يبقى هذا التغيير بعد إعادة التشغيل."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Deine Overrides konnten nicht in den Einstellungen gespeichert werden, daher übersteht diese Änderung keinen Neustart."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No se pudieron escribir tus anulaciones en las preferencias, por lo que este cambio no sobrevivirá a un reinicio."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Vos remplacements n'ont pas pu être écrits dans les préférences ; cette modification ne survivra pas à un redémarrage."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Non è stato possibile scrivere i tuoi override nelle preferenze, quindi questa modifica non sopravvivrà a un riavvio."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "オーバーライドを環境設定に書き込めなかったため、この変更は再起動後に失われます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "재정의를 환경설정에 기록하지 못해 이 변경 사항은 재실행 후 유지되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Je overschrijvingen konden niet naar de voorkeuren worden geschreven, dus deze wijziging overleeft een herstart niet."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Não foi possível gravar suas substituições nas preferências, então esta alteração não sobreviverá a uma reinicialização."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Не удалось записать переопределения в настройки, поэтому это изменение не сохранится после перезапуска."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "无法将你的覆盖规则写入偏好设置，因此此更改在重新启动后将丢失。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "無法將你的覆寫規則寫入偏好設定，因此此變更在重新啟動後將遺失。"
           }
         }
       }

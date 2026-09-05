@@ -205,6 +205,20 @@ public struct NetworkRuleMatch: Codable, Sendable, Equatable {
     /// Query items that must all be present with these values. Empty matches any query.
     public var query: [String: String]
 
+    /// The keys a match is persisted under.
+    ///
+    /// Spelled out rather than synthesised so the on-disk format cannot change under a rename.
+    private enum CodingKeys: String, CodingKey {
+        /// ``methods``.
+        case methods
+        /// ``host``.
+        case host
+        /// ``path``.
+        case path
+        /// ``query``.
+        case query
+    }
+
     /// Creates a match. Every facet is optional; an omitted one places no constraint.
     ///
     /// ``host(_:path:methods:)`` and ``path(_:methods:)`` cover the common cases without needing
@@ -245,6 +259,16 @@ public struct NetworkRulePattern: Codable, Sendable, Equatable {
     /// The pattern text, interpreted according to ``kind``.
     public var value: String
 
+    /// The keys a pattern is persisted under.
+    ///
+    /// Spelled out rather than synthesised so the on-disk format cannot change under a rename.
+    private enum CodingKeys: String, CodingKey {
+        /// ``kind``.
+        case kind
+        /// ``value``.
+        case value
+    }
+
     /// Creates a pattern.
     ///
     /// - Parameters:
@@ -277,10 +301,25 @@ public struct MockResponse: Codable, Sendable, Equatable {
     /// - Note: Capped at 30 seconds when the response is served.
     public var delay: TimeInterval
 
+    /// The keys a canned response is persisted under.
+    ///
+    /// Spelled out rather than synthesised so the on-disk format cannot change under a rename,
+    /// and so a property that must never be persisted cannot be added to one by accident.
+    private enum CodingKeys: String, CodingKey {
+        /// ``statusCode``.
+        case statusCode
+        /// ``headers``.
+        case headers
+        /// ``bodyID``.
+        case bodyID
+        /// ``delay``.
+        case delay
+    }
+
     /// Creates a canned response.
     ///
-    /// ``json(_:status:delay:)`` is the easier way to return a JSON body, because it writes the
-    /// bytes to disk and fills in ``bodyID`` for you.
+    /// ``json(_:status:delay:)`` is the easier way to return a JSON body, because it carries the
+    /// bytes until the rule holding it is stored, and the store fills in ``bodyID``.
     ///
     /// - Parameters:
     ///   - statusCode: The HTTP status code. Defaults to `200`.
@@ -330,6 +369,22 @@ public struct MapLocalFile: Codable, Sendable, Equatable {
     /// Seconds to wait before responding, simulating network latency.
     public var delay: TimeInterval
 
+    /// The keys a map-local action is persisted under.
+    ///
+    /// Spelled out rather than synthesised so the on-disk format cannot change under a rename.
+    private enum CodingKeys: String, CodingKey {
+        /// ``relativePath``.
+        case relativePath
+        /// ``fileName``.
+        case fileName
+        /// ``statusCode``.
+        case statusCode
+        /// ``contentType``.
+        case contentType
+        /// ``delay``.
+        case delay
+    }
+
     /// Creates a map-local action.
     ///
     /// - Parameters:
@@ -359,6 +414,16 @@ public struct NetworkHeaderRewrite: Codable, Sendable, Equatable {
 
     /// Header names to remove.
     public var remove: [String]
+
+    /// The keys a header rewrite is persisted under.
+    ///
+    /// Spelled out rather than synthesised so the on-disk format cannot change under a rename.
+    private enum CodingKeys: String, CodingKey {
+        /// ``set``.
+        case set
+        /// ``remove``.
+        case remove
+    }
 
     /// Creates a header rewrite.
     ///
@@ -394,6 +459,20 @@ public struct NetworkCondition: Codable, Sendable, Equatable {
     /// The `URLError.Code` raw value used when a request fails, default `.notConnectedToInternet`.
     public var failureCode: Int
 
+    /// The keys a condition is persisted under.
+    ///
+    /// Spelled out rather than synthesised so the on-disk format cannot change under a rename.
+    private enum CodingKeys: String, CodingKey {
+        /// ``latency``.
+        case latency
+        /// ``bandwidthKBps``.
+        case bandwidthKBps
+        /// ``failureRate``.
+        case failureRate
+        /// ``failureCode``.
+        case failureCode
+    }
+
     /// Creates a set of network conditions.
     ///
     /// ```swift
@@ -416,6 +495,47 @@ public struct NetworkCondition: Codable, Sendable, Equatable {
         self.failureRate = failureRate
         self.failureCode = failureCode
     }
+}
+
+internal extension NetworkRule {
+    /// A copy of this rule with every number JSON cannot express replaced by the one that does
+    /// nothing.
+    ///
+    /// `JSONEncoder` throws on a non-finite `Double`, and `.infinity` is reachable from both the
+    /// public API and the editor — pasting `1e400` into a latency field parses to `inf`. An
+    /// encode that throws would leave the in-memory rules and the persisted blob disagreeing from
+    /// then on, and, because the offending rule stays in the array, every later mutation would
+    /// fail to persist too. ``NetworkRuleStore`` sanitises on the way in so the encoder can never
+    /// be handed one.
+    ///
+    /// A non-finite delay, latency or failure rate becomes `0` — the value that does nothing —
+    /// rather than a guess at what the developer meant by infinity.
+    var sanitised: NetworkRule {
+        var copy = self
+        switch copy.actions.stub {
+        case .mock(var mock):
+            mock.delay = mock.delay.finiteOrZero
+            copy.actions.stub = .mock(mock)
+        case .mapLocal(var file):
+            file.delay = file.delay.finiteOrZero
+            copy.actions.stub = .mapLocal(file)
+        case nil:
+            break
+        }
+        if var condition = copy.actions.condition {
+            condition.latency = condition.latency.finiteOrZero
+            condition.failureRate = condition.failureRate.finiteOrZero
+            copy.actions.condition = condition
+        }
+        return copy
+    }
+}
+
+private extension Double {
+    /// This value when JSON can express it, and `0` when it cannot.
+    ///
+    /// Infinity and NaN are the two values `JSONEncoder` refuses outright.
+    var finiteOrZero: Double { isFinite ? self : 0 }
 }
 
 public extension NetworkHeaderRewrite {

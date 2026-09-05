@@ -640,6 +640,36 @@
     "zh-Hans": "关",
     "zh-Hant": "關"
   },
+  "Overrides Not Loaded": {
+    "comment": "Alert title shown when the saved overrides could not be read at launch",
+    "fr": "Remplacements non chargés",
+    "de": "Overrides nicht geladen",
+    "es": "Anulaciones no cargadas",
+    "it": "Override non caricati",
+    "pt-BR": "Substituições não carregadas",
+    "nl": "Overschrijvingen niet geladen",
+    "ja": "オーバーライドを読み込めません",
+    "zh-Hans": "覆盖规则未加载",
+    "zh-Hant": "覆寫規則未載入",
+    "ko": "재정의를 불러오지 못함",
+    "ru": "Переопределения не загружены",
+    "ar": "لم يتم تحميل التجاوزات"
+  },
+  "Overrides Not Saved": {
+    "comment": "Alert title shown when the overrides could not be written to preferences",
+    "fr": "Remplacements non enregistrés",
+    "de": "Overrides nicht gespeichert",
+    "es": "Anulaciones no guardadas",
+    "it": "Override non salvati",
+    "pt-BR": "Substituições não salvas",
+    "nl": "Overschrijvingen niet bewaard",
+    "ja": "オーバーライドを保存できません",
+    "zh-Hans": "覆盖规则未保存",
+    "zh-Hant": "覆寫規則未儲存",
+    "ko": "재정의를 저장하지 못함",
+    "ru": "Переопределения не сохранены",
+    "ar": "لم يتم حفظ التجاوزات"
+  },
   "Overrides are applied in order. The first matching stub wins, and so does the first matching condition.": {
     "ar": "تُطبَّق التجاوزات بالترتيب. تفوز أول استجابة بديلة مطابقة، وكذلك أول شرط مطابق.",
     "comment": "Footer explaining that overrides are evaluated in order, per action",
@@ -805,6 +835,21 @@
     "ru": "Заглушка",
     "ar": "استجابة بديلة"
   },
+  "The saved overrides could not be read, so the list started empty. They have been set aside rather than deleted.": {
+    "comment": "Alert message explaining that the persisted overrides were unreadable and have been preserved",
+    "fr": "Les remplacements enregistrés n'ont pas pu être lus, la liste a donc démarré vide. Ils ont été mis de côté plutôt que supprimés.",
+    "de": "Die gespeicherten Overrides konnten nicht gelesen werden, daher startete die Liste leer. Sie wurden beiseitegelegt statt gelöscht.",
+    "es": "No se pudieron leer las anulaciones guardadas, así que la lista comenzó vacía. Se han apartado en lugar de eliminarse.",
+    "it": "Non è stato possibile leggere gli override salvati, quindi l'elenco è partito vuoto. Sono stati messi da parte anziché eliminati.",
+    "pt-BR": "Não foi possível ler as substituições salvas, então a lista começou vazia. Elas foram guardadas em vez de excluídas.",
+    "nl": "De bewaarde overschrijvingen konden niet worden gelezen, dus de lijst begon leeg. Ze zijn apart gezet in plaats van verwijderd.",
+    "ja": "保存されたオーバーライドを読み取れなかったため、リストは空で開始しました。削除ではなく別に保管されています。",
+    "zh-Hans": "无法读取已保存的覆盖规则，因此列表以空白开始。它们已被另行保留，而非删除。",
+    "zh-Hant": "無法讀取已儲存的覆寫規則，因此清單以空白開始。它們已被另行保留，而非刪除。",
+    "ko": "저장된 재정의를 읽지 못해 목록이 비어 있는 상태로 시작했습니다. 삭제되지 않고 따로 보관되었습니다.",
+    "ru": "Не удалось прочитать сохранённые переопределения, поэтому список начался пустым. Они отложены, а не удалены.",
+    "ar": "تعذّرت قراءة التجاوزات المحفوظة، لذا بدأت القائمة فارغة. وقد تم وضعها جانباً بدلاً من حذفها."
+  },
   "The selected file could not be copied.": {
     "comment": "Alert message when a picked map local file could not be copied into the rules directory",
     "fr": "Le fichier sélectionné n'a pas pu être copié.",
@@ -849,5 +894,20 @@
     "ru": "Шаблон",
     "zh-Hans": "通配符",
     "zh-Hant": "萬用字元"
+  },
+  "Your overrides could not be written to preferences, so this change will not survive a relaunch.": {
+    "comment": "Alert message explaining that the overrides failed to persist",
+    "fr": "Vos remplacements n'ont pas pu être écrits dans les préférences ; cette modification ne survivra pas à un redémarrage.",
+    "de": "Deine Overrides konnten nicht in den Einstellungen gespeichert werden, daher übersteht diese Änderung keinen Neustart.",
+    "es": "No se pudieron escribir tus anulaciones en las preferencias, por lo que este cambio no sobrevivirá a un reinicio.",
+    "it": "Non è stato possibile scrivere i tuoi override nelle preferenze, quindi questa modifica non sopravvivrà a un riavvio.",
+    "pt-BR": "Não foi possível gravar suas substituições nas preferências, então esta alteração não sobreviverá a uma reinicialização.",
+    "nl": "Je overschrijvingen konden niet naar de voorkeuren worden geschreven, dus deze wijziging overleeft een herstart niet.",
+    "ja": "オーバーライドを環境設定に書き込めなかったため、この変更は再起動後に失われます。",
+    "zh-Hans": "无法将你的覆盖规则写入偏好设置，因此此更改在重新启动后将丢失。",
+    "zh-Hant": "無法將你的覆寫規則寫入偏好設定，因此此變更在重新啟動後將遺失。",
+    "ko": "재정의를 환경설정에 기록하지 못해 이 변경 사항은 재실행 후 유지되지 않습니다.",
+    "ru": "Не удалось записать переопределения в настройки, поэтому это изменение не сохранится после перезапуска.",
+    "ar": "تعذّرت كتابة التجاوزات في التفضيلات، لذا لن يبقى هذا التغيير بعد إعادة التشغيل."
   }
 }

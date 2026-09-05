@@ -148,6 +148,66 @@ final class NetworkRuleCodingTests: XCTestCase {
         XCTAssertTrue(json.contains("\"mock\""))
     }
 
+    /// Pins every persisted key name. Each type spells its `CodingKeys` out, so this is what
+    /// would catch a rename — or a new property — quietly changing the on-disk format.
+    func testEveryPersistedFieldKeepsItsKeyName() throws {
+        let rule = NetworkRule(
+            id: identifier,
+            name: "everything",
+            isEnabled: true,
+            match: NetworkRuleMatch(methods: ["GET"],
+                                    host: NetworkRulePattern(kind: .wildcard, value: "*.example.com"),
+                                    path: NetworkRulePattern(kind: .exact, value: "/v1"),
+                                    query: ["a": "1"]),
+            actions: NetworkRuleActions(
+                stub: .mock(MockResponse(statusCode: 200, headers: ["A": "1"], bodyID: UUID(), delay: 1)),
+                rewriteHeaders: NetworkHeaderRewrite(set: ["B": "2"], remove: ["C"]),
+                condition: NetworkCondition(latency: 1, bandwidthKBps: 8, failureRate: 0.5)
+            )
+        )
+        let data = try JSONEncoder().encode(rule)
+        let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        XCTAssertEqual(Set(object.keys), ["id", "name", "isEnabled", "match", "actions"])
+
+        let match = try XCTUnwrap(object["match"] as? [String: Any])
+        XCTAssertEqual(Set(match.keys), ["methods", "host", "path", "query"])
+        XCTAssertEqual(Set(try XCTUnwrap(match["host"] as? [String: Any]).keys), ["kind", "value"])
+
+        let actions = try XCTUnwrap(object["actions"] as? [String: Any])
+        XCTAssertEqual(Set(actions.keys), ["stub", "rewriteHeaders", "condition"])
+
+        let stub = try XCTUnwrap(actions["stub"] as? [String: Any])
+        XCTAssertEqual(Set(stub.keys), ["mock"])
+        XCTAssertEqual(Set(try XCTUnwrap(stub["mock"] as? [String: Any]).keys),
+                       ["statusCode", "headers", "bodyID", "delay"])
+
+        XCTAssertEqual(Set(try XCTUnwrap(actions["rewriteHeaders"] as? [String: Any]).keys),
+                       ["set", "remove"])
+        XCTAssertEqual(Set(try XCTUnwrap(actions["condition"] as? [String: Any]).keys),
+                       ["latency", "bandwidthKBps", "failureRate", "failureCode"])
+    }
+
+    /// A map-local stub's keys, which the mock case above cannot reach.
+    func testAMapLocalStubKeepsItsKeyNames() throws {
+        let rule = NetworkRule(id: identifier,
+                               name: "file",
+                               match: .path("/v1"),
+                               actions: NetworkRuleActions(stub: .mapLocal(
+                                MapLocalFile(relativePath: "/tmp/x.json",
+                                             fileName: "x.json",
+                                             statusCode: 200,
+                                             contentType: "application/json",
+                                             delay: 0)
+                               )))
+        let data = try JSONEncoder().encode(rule)
+        let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let stub = try XCTUnwrap((object["actions"] as? [String: Any])?["stub"] as? [String: Any])
+        XCTAssertEqual(Set(stub.keys), ["mapLocal"])
+        XCTAssertEqual(Set(try XCTUnwrap(stub["mapLocal"] as? [String: Any]).keys),
+                       ["relativePath", "fileName", "statusCode", "contentType", "delay"])
+    }
+
     func testTheLegacyKeyIsNeverWritten() throws {
         let rule = NetworkRule(id: identifier,
                                name: "cart",

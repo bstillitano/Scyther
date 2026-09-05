@@ -112,6 +112,89 @@ final class NetworkRuleStoreTests: XCTestCase {
         XCTAssertEqual(store.rules.map(\.name), ["valid"], "the rules either side of it still load")
     }
 
+    // MARK: - Persistence integrity
+
+    /// `JSONEncoder` refuses a non-finite `Double`, and both the public API and the editor can
+    /// hand the store one. Losing the write silently means the in-memory rules and the persisted
+    /// blob disagree from then on.
+    func testARuleCarryingANonFiniteLatencyIsStillPersisted() {
+        let store = makeStore()
+        store.add(NetworkRule(name: "infinite",
+                              match: .path("/a"),
+                              actions: NetworkRuleActions(condition: NetworkCondition(latency: .infinity))))
+
+        XCTAssertEqual(makeStore().rules.map(\.name), ["infinite"])
+        XCTAssertEqual(store.rules.first?.actions.condition?.latency, 0,
+                       "a value JSON cannot express is sanitised on the way in")
+    }
+
+    /// The worse half of the same defect: the offending rule stays in the array, so every later
+    /// mutation fails to persist too.
+    func testANonFiniteValueDoesNotStopEveryLaterRuleBeingPersisted() {
+        let store = makeStore()
+        store.add(NetworkRule(name: "infinite",
+                              match: .path("/a"),
+                              actions: NetworkRuleActions(condition: NetworkCondition(latency: .infinity))))
+        store.add(makeRule("second"))
+
+        XCTAssertEqual(makeStore().rules.map(\.name), ["infinite", "second"])
+    }
+
+    func testANonFiniteMockDelayIsSanitised() {
+        let store = makeStore()
+        store.add(NetworkRule(name: "nan",
+                              match: .path("/a"),
+                              actions: NetworkRuleActions(stub: .mock(MockResponse(delay: .nan)))))
+
+        guard case .mock(let mock) = makeStore().rules.first?.actions.stub else {
+            return XCTFail("expected the rule to survive the round trip")
+        }
+        XCTAssertEqual(mock.delay, 0)
+    }
+
+    /// A blob that will not decode as an array at all — truncated, or a future version that wraps
+    /// it in an object — must not become an empty list that is then written back over the
+    /// developer's whole configuration.
+    func testAnUnreadableBlobIsSetAsideRatherThanOverwritten() {
+        let original = Data(#"{"version": 2, "rules": []}"#.utf8)
+        defaults.set(original, forKey: "Scyther.NetworkRules.Rules")
+
+        let store = makeStore()
+        XCTAssertTrue(store.rules.isEmpty)
+
+        store.add(makeRule("written after the unreadable load"))
+
+        let survives = defaults.dictionaryRepresentation().values.contains { ($0 as? Data) == original }
+        XCTAssertTrue(survives, "the developer's configuration is set aside, not destroyed")
+    }
+
+    func testAnUnreadableBlobIsReportedRatherThanShownAsAnEmptyList() {
+        defaults.set(Data("not json at all".utf8), forKey: "Scyther.NetworkRules.Rules")
+
+        let store = makeStore()
+
+        XCTAssertEqual(store.lastFailure, .rulesNotLoaded)
+        store.acknowledgeFailure()
+        XCTAssertNil(store.lastFailure)
+    }
+
+    /// The store does not know what the developer had configured, so every body on disk looks
+    /// orphaned. Sweeping on that basis would delete the bodies of the very configuration that
+    /// was set aside to be recovered.
+    func testAnUnreadableBlobStandsTheSweepDown() async throws {
+        let store = makeStore()
+        let body = store.storeBody(Data("belongs to the unreadable configuration".utf8))
+        try age(store.bodyURL(for: body))
+        defaults.set(Data("not json at all".utf8), forKey: "Scyther.NetworkRules.Rules")
+
+        let reloaded = makeStore()
+        reloaded.sweepOrphanedBodies()
+        try? await Task.sleep(nanoseconds: 200_000_000)
+
+        XCTAssertEqual(reloaded.bodyData(for: body),
+                       Data("belongs to the unreadable configuration".utf8))
+    }
+
     // MARK: - Map local copies
 
     /// Writes a throwaway document, standing in for one picked with the system file importer.
