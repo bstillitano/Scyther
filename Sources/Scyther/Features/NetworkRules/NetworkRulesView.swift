@@ -176,11 +176,16 @@ struct NetworkRulesView: View {
         NavigationLink {
             NetworkRuleEditorView(rule: rule, store: store)
         } label: {
-            // A two-`Text` label is the stock way to give a row a title and a subtitle; SwiftUI
-            // styles the second line itself, so a disabled override reads as disabled without
-            // anything here restyling the row by hand.
-            Text(rule.name)
-            Text(viewModel.subtitle(for: rule))
+            // Matches `MenuView.searchResultLabel(title:icon:tint:breadcrumbText:)`, which is how
+            // every other title-over-subtitle row in the menu is built. A bare two-`Text` label is
+            // documented for `Toggle` and `LabeledContent` but not for `NavigationLink`, so the
+            // stack is explicit rather than left to an unspecified layout.
+            VStack(alignment: .leading, spacing: 2) {
+                Text(rule.name)
+                Text(viewModel.subtitle(for: rule))
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            }
         }
         .swipeActions(edge: .trailing) {
             // Spelled out rather than left to `onDelete`, because declaring any trailing swipe
