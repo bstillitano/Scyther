@@ -69,10 +69,15 @@ struct HTTPRequestView: View {
     ///
     /// Renders nothing when the response came off the wire, so both branches of `body` can place
     /// it unconditionally rather than each repeating the same `if`.
+    ///
+    /// Pink rather than orange so a synthesised response cannot be mistaken for anything else in
+    /// the log: orange already marks a GraphQL mutation, and no other lozenge in the list uses
+    /// pink. A response that did not come off the wire is the single most misleading thing the
+    /// log can show, so it gets the colour nothing else competes with.
     @ViewBuilder
     private var mockedBadge: some View {
         if viewModel.wasStubbed {
-            lozenge(localized("MOCKED"), colour: .orange)
+            lozenge(localized("MOCKED"), colour: .pink)
         }
     }
 
