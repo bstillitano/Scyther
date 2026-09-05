@@ -87,11 +87,19 @@ struct TrafficStatsView: View {
                 LabeledContent(localized("Stubbed"), value: viewModel.stubbedCountText)
                     .monospacedDigit()
             }
-            LabeledContent(localized("Failures"), value: viewModel.failureCountText)
-                .monospacedDigit()
+            // Red once anything has failed. The count and the rate are the same fact, so they
+            // carry the same colour; colouring one and not the other reads as an oversight.
+            LabeledContent(localized("Failures")) {
+                Text(viewModel.failureCountText)
+                    .foregroundStyle(summary.failureCount > 0 ? Color.red : Color.secondary)
+            }
+            .monospacedDigit()
             if let failureRate = viewModel.failureRateText {
-                LabeledContent(localized("Failure rate"), value: failureRate)
-                    .monospacedDigit()
+                LabeledContent(localized("Failure rate")) {
+                    Text(failureRate)
+                        .foregroundStyle(summary.failureCount > 0 ? Color.red : Color.secondary)
+                }
+                .monospacedDigit()
             }
             if summary.pendingCount > 0 {
                 LabeledContent(localized("Pending"), value: viewModel.pendingCountText)
