@@ -22,6 +22,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Feature Flags](#feature-flags)
   - [Server Configuration](#server-configuration)
   - [Network Logging](#network-logging)
+  - [Traffic Stats](#traffic-stats)
   - [Request Overrides](#request-overrides)
   - [Network Conditioning](#network-conditioning)
   - [Console Logging](#console-logging)
@@ -55,6 +56,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **cURL Export**: Generate cURL commands for any captured request
 - **Log Export**: Share the captured requests as a zip containing a HAR 1.2 file, raw bodies, and a cURL command per request, with best-effort redaction and a sensitivity warning
 - **Filter Chips**: Narrow the network log by method, status class, host, content type, API kind, GraphQL operation, duration, exact status code, or recency from glass chips pinned above the list, or edit every filter at once from the all-filters sheet
+- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall of the recent requests on a shared axis
 - **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests — combined on one override — from the menu or from code
 - **Save as Mock**: Turn any captured response into a disabled mock override in one tap, and import a HAR file as a whole set of them
 - **Network Conditioning**: Degrade every intercepted request at once — latency, a bandwidth ceiling and a failure rate, with the presets Network Link Conditioner made familiar
@@ -520,6 +522,64 @@ Network logs are automatically cleaned up to prevent disk bloat:
 - **7-day retention**: Log files older than 7 days are automatically deleted on app startup
 - **Manual cleanup**: Clearing logs via the UI also deletes all associated files from disk
 - **Files managed**: `SessionLog.log`, request body files, and response body files
+
+---
+
+### Traffic Stats
+
+The chart button in the **Network Logs** toolbar opens **Traffic Stats**: what is slow, what is
+failing, and what was happening at the same time as what. Everything is computed from the requests
+already in memory, so it adds no capture, no storage and no cost to the request path.
+
+The screen describes **the list you were looking at**. The log's search field and filter chips
+narrow the requests before the figures are computed, so filtering to one host turns the summary
+into that host's summary. The caption under the title says which it is — `8 requests`, or
+`21 of 340 requests` when a filter is on.
+
+#### What the figures mean
+
+| Row | Meaning |
+| --- | --- |
+| Requests | Every request in the filtered set, stubbed or not |
+| Stubbed | How many of them a request override answered without touching the network |
+| Failures | Requests that came back at 400 or above, plus requests that never came back at all |
+| Failure rate | Failures over the requests that actually went to the network |
+| Pending | Requests still in flight |
+| Median / 95th Percentile | Round-trip duration, nearest rank |
+| Fastest / Slowest | Shown instead of the percentiles below five completed requests |
+| Bytes Received | Total response body length received over the network |
+| Elapsed | Wall-clock time from the first request starting to the last one finishing |
+
+**Stubbed responses are counted but never measured.** A response a request override synthesised
+never left the device: its duration measures Scyther rather than the server, and its status code
+was authored rather than returned. Averaging it into "slowest endpoints" or an error rate would
+make both lie, so a stub is counted in *Requests* and *Stubbed* and left out of every duration,
+failure and byte total, and out of the host and endpoint breakdowns entirely.
+
+**Percentiles use the nearest rank**, not interpolation, so every duration reported is one a
+request actually took. **Below five completed requests there are no percentiles at all** — a
+median of three samples is noise — and the summary shows the fastest and slowest round trips
+instead.
+
+#### The waterfall
+
+One bar per request, the most recent forty, on a shared seconds axis: bars that overlap were in
+flight at the same time, and a staircase means the calls were serialised. Each bar is labelled
+with its duration and coloured by outcome — succeeded, failed, pending or stubbed. A request that
+has not come back yet runs to the end of the axis, because its real end is not known.
+
+#### The breakdowns
+
+**Slowest Endpoints** groups requests by `METHOD host/path` with the query string dropped and any
+numeric or UUID path segment collapsed to `:id`, so `/users/1` and `/users/2` aggregate rather
+than producing one endpoint per record. Each row shows the request count, the median, and — as the
+figure beside it — the slowest round trip.
+
+**By Host** puts the worst offender first: most failures, then slowest median. Each row shows the
+request count, how many failed, and the host's median round trip.
+
+Stats describe the current session only. The log is an in-memory FIFO, so nothing is persisted
+across launches and there are no trends over time.
 
 ---
 

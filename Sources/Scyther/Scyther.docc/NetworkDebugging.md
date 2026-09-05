@@ -91,6 +91,43 @@ dimension name with a count when several are. A Reset button appears in each
 sheet while it has a selection, and a red Clear chip appears in the bar whenever any filter is active.
 Filters are held in memory for the current session only.
 
+## Traffic Stats
+
+The chart button in the Network Logs navigation bar opens **Traffic Stats**, which answers what is
+slow, what is failing, and what was happening at the same time as what — computed from the
+requests already in memory, so it adds nothing to the request path.
+
+The screen describes the list you were looking at: search and filter chips narrow the requests
+before the figures are computed, and the caption under the title says whether it is covering the
+whole session (`8 requests`) or a slice of it (`21 of 340 requests`).
+
+The summary reports the request count, how many were stubbed, failures and the failure rate,
+pending requests, median and 95th percentile duration, bytes received, and the wall-clock span of
+the session.
+
+- **A stubbed response is counted but never measured.** A response a request override synthesised
+  never left the device, so its duration measures Scyther rather than the server and its status
+  code was authored rather than returned. Stubs are counted in *Requests* and *Stubbed* and left
+  out of every duration, failure and byte total, and out of the host and endpoint breakdowns.
+- **Percentiles use the nearest rank**, so every duration reported is one a request actually took
+  rather than a number interpolated between two of them.
+- **Below five completed requests there are no percentiles.** A median of three samples is noise,
+  so the summary shows the fastest and slowest round trips instead.
+- **A request that never came back is counted as pending and as a failure**, never as a
+  zero-duration completion, which would flatter every latency figure.
+
+The **waterfall** draws the most recent forty requests as bars on a shared seconds axis, labelled
+with their durations and coloured by outcome. Bars that overlap were in flight at the same time; a
+staircase means the calls were serialised. A pending request runs to the end of the axis, because
+its real end is not yet known.
+
+**Slowest Endpoints** groups by `METHOD host/path`, dropping the query string and collapsing any
+numeric or UUID path segment to `:id`, so `/users/1` and `/users/2` aggregate. **By Host** puts the
+worst offender first: most failures, then slowest median.
+
+Stats describe the current session only — the log is an in-memory FIFO, so nothing persists across
+launches.
+
 ## Exporting the Whole Log
 
 The export button in the Network Logs navigation bar packages the requests currently shown into
@@ -356,6 +393,8 @@ If you're using a custom `URLSessionConfiguration`, Scyther's protocol may not b
 
 ## See Also
 
+- ``TrafficStatistics``
+- ``WaterfallSeries``
 - ``NetworkLogger``
 - ``NetworkLoggerRequest``
 - ``Network``

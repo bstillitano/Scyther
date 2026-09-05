@@ -86,6 +86,12 @@ class NetworkLogsViewModel: ViewModel {
         filterTask?.cancel()
     }
 
+    /// How many requests the log holds before the search term and the chip filters narrow it.
+    ///
+    /// The traffic stats caption reports the filtered count against this, so a reader can tell
+    /// whether the figures describe the whole session or a slice of it.
+    var totalRequestCount: Int { items.count }
+
     /// Sets up the view model by initializing search debouncing and starting the network logger subscription.
     override func setup() {
         super.setup()
