@@ -334,11 +334,11 @@ public struct MenuView: View {
     ///
     /// The label is derived entirely from the item, so every navigation row in the
     /// menu is laid out identically and only the destination varies.
-    private func navigationRow(for item: MenuItem) -> some View {
+    private func navigationRow(for item: MenuItem, description: String? = nil) -> some View {
         NavigationLink {
             destination(for: item)
         } label: {
-            row(withLabel: item.title, icon: item.icon, tint: item.tint)
+            row(withLabel: item.title, description: description, icon: item.icon, tint: item.tint)
         }
     }
 
@@ -476,15 +476,17 @@ public struct MenuView: View {
         case .networkLogs:
             navigationRow(for: item)
         case .networkRules:
-            // The count of enabled overrides, so overrides are never silently on. A nil badge
-            // hides it at zero; shown as a nought it would read as a badge that means nothing.
-            // Applied unconditionally rather than through an if/else, which would give the row two
-            // structural identities and risk popping the user back here the moment they toggled
-            // the last override off on the screen this link pushed.
-            navigationRow(for: item)
-                .badge(viewModel.enabledOverrideCount > 0
-                       ? Text(verbatim: "\(viewModel.enabledOverrideCount)")
-                       : nil)
+            // The count of enabled overrides, so overrides are never silently on. Carried as the
+            // row's trailing detail text rather than through `.badge(_:)`, which on a
+            // `NavigationLink` renders *after* the disclosure chevron and reads as "> 1". Passing
+            // it as a description keeps the count inside the link's own label, so it sits before
+            // the chevron the way a trailing value does everywhere else in this menu — and it is
+            // the same `row(withLabel:description:...)` builder every other detail row uses.
+            // Nil below one, since a nought would read as a count that means nothing.
+            navigationRow(for: item,
+                          description: viewModel.enabledOverrideCount > 0
+                          ? "\(viewModel.enabledOverrideCount)"
+                          : nil)
         case .serverConfiguration:
             navigationRow(for: item)
         case .environmentVariables:
