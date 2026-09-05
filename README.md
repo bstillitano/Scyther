@@ -54,7 +54,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **cURL Export**: Generate cURL commands for any captured request
 - **Log Export**: Share the captured requests as a zip containing a HAR 1.2 file, raw bodies, and a cURL command per request, with best-effort redaction and a sensitivity warning
 - **Filter Chips**: Narrow the network log by method, status class, host, content type, API kind, GraphQL operation, duration, exact status code, or recency from glass chips pinned above the list, or edit every filter at once from the all-filters sheet
-- **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests, from the menu or from code
+- **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests — combined on one override — from the menu or from code
 - **Save as Mock**: Turn any captured response into a disabled mock override in one tap, and import a HAR file as a whole set of them
 - **Server Configuration**: Switch between development, staging, and production environments
 - **IP Address**: Display the device's public IP address
@@ -532,20 +532,37 @@ Each override matches on HTTP method, host, path and query. An omitted facet pla
 constraint, and host and path accept `*` as a wildcard. Overrides are evaluated top to bottom, and
 dragging a row is what changes precedence:
 
-- The **first** matching mock or map local wins and short-circuits the network.
+- The **first** matching stub — a mock or a map local — wins and short-circuits the network.
 - The **first** matching condition supplies the latency, bandwidth ceiling and failure rate;
   conditions are not stacked.
 - **Every** matching header rewrite applies, a later one winning a collision. Within one rewrite,
   headers are set before any are removed, so a header named in both ends up removed.
 
-#### The Four Actions
+#### Actions Compose
+
+An override carries a stub, a header rewrite and a condition **independently**, each with its own
+switch in the editor. Mock and map local are the one pair that cannot both apply, because they
+would both be answering the same request; everything else combines, so "mock this endpoint and
+make it slow" is one override rather than an impossibility.
+
+A stub no longer suppresses the rest:
+
+- **A condition applies to a stubbed response.** Its latency delays the synthesised answer — added
+  to the stub's own delay, then clamped once — its failure rate can fail it, and its bandwidth
+  ceiling paces the synthetic body.
+- **A header rewrite is recorded on the logged request but has no wire effect** when the request
+  is stubbed, because nothing is sent. The log still shows the request as it would have gone out.
+
+The log's **Overrides** row credits everything that actually contributed, which for a stubbed
+request is the stub first and then whatever else applied to it. An override carrying several
+actions is named once.
 
 | Action | What it does |
 | --- | --- |
 | **Mock Response** | Answers with a status code, headers and a body typed into the editor, after an optional delay. Headers are a dictionary, so a mock cannot repeat a header name — a HAR import keeps the last of a repeated `Set-Cookie`. |
-| **Map Local** | Answers with the contents of a file on the device, with a status code and `Content-Type`. The path is **absolute**, so it has to come from code or from Scyther's file browser rather than being typed on a device; an unreadable path falls through to the real network. |
-| **Rewrite Headers** | Sets and removes headers on the outgoing request, then lets it go to the network. |
-| **Condition** | Adds latency, caps bandwidth in KB/s, and fails a fraction of matching requests with a `URLError`. Latency and a mock's delay are each capped at 30 seconds, and are waited out without holding a thread. The latency is applied first and the failure rolled after it, so "slow and flaky" is slow before it is flaky, and a rate of `1` never lets a request through. |
+| **Map Local** | Answers with the contents of a file, with a status code and `Content-Type`. The file is chosen with the system file importer and **copied into Scyther's rules directory**, so the override keeps working after the document moves or goes away and no security-scoped bookmark is needed. A path supplied from code is used as given; an unreadable path falls through to the real network. |
+| **Rewrite Headers** | Sets and removes headers on the outgoing request. |
+| **Condition** | Adds latency, caps bandwidth in KB/s, and fails a fraction of matching requests with a `URLError`. Latency and a stub's delay are capped at 30 seconds together, and are waited out without holding a thread. The latency is applied first and the failure rolled after it, so "slow and flaky" is slow before it is flaky, and a rate of `1` never lets a request through. |
 
 A bandwidth ceiling is likewise honoured for at most 30 seconds of added delay per response, so
 that a debug tool cannot appear to have hung. A body larger than `30 × bandwidthKBps` kilobytes
@@ -606,6 +623,15 @@ Scyther.network.rules.addTransient(
     .headers(name: "Staging auth",
              matching: .host("*.staging.example.com"),
              set: ["Authorization": "Bearer test-token"])
+)
+
+// Several actions at once: build the rule directly rather than through the
+// single-action conveniences above.
+Scyther.network.rules.add(
+    NetworkRule(name: "Slow cart",
+                match: .path("/api/cart"),
+                actions: NetworkRuleActions(stub: .mock(.json("{}")),
+                                            condition: NetworkCondition(latency: 3)))
 )
 
 // Read, edit and clear.

@@ -152,7 +152,7 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
         let bodyID = store.storeBody(Data(body.utf8))
         let rule = NetworkRule(
             name: "Cart", isEnabled: true, match: .path("/api/cart"),
-            action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: bodyID, delay: 0))
+            actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: bodyID, delay: 0)))
         )
         store.add(rule)
         return (rule, bodyID)
@@ -166,7 +166,7 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
         viewModel.bodyText = "new"
         viewModel.save()
 
-        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).action else {
+        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).actions.stub else {
             return XCTFail("expected a mock action")
         }
         let newBodyID = try XCTUnwrap(mock.bodyID)
@@ -184,20 +184,22 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
         viewModel.bodyText = ""
         viewModel.save()
 
-        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).action else {
+        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).actions.stub else {
             return XCTFail("expected a mock action")
         }
         XCTAssertNil(mock.bodyID)
         XCTAssertFalse(FileManager.default.fileExists(atPath: store.bodyURL(for: saved.bodyID).path))
     }
 
-    func testSwitchingTheActionAwayFromAMockDeletesTheStrandedBody() throws {
+    func testRemovingTheStubDeletesTheStrandedBody() throws {
         let saved = try savedMockRule(body: "old")
         let viewModel = NetworkRuleEditorViewModel(rule: saved.rule, store: store)
-        viewModel.actionKind = .condition
+        viewModel.isConditioning = true
+        viewModel.stubKind = .none
         viewModel.save()
 
-        XCTAssertEqual(store.rules.first?.action.kind, .condition)
+        XCTAssertNil(store.rules.first?.actions.stub)
+        XCTAssertNotNil(store.rules.first?.actions.condition)
         XCTAssertFalse(
             FileManager.default.fileExists(atPath: store.bodyURL(for: saved.bodyID).path),
             "no rule can reach that body any more"
@@ -210,7 +212,7 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
         viewModel.draft.name = "Cart (renamed)"
         viewModel.save()
 
-        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).action else {
+        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).actions.stub else {
             return XCTFail("expected a mock action")
         }
         XCTAssertEqual(mock.bodyID, saved.bodyID)
@@ -220,21 +222,146 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
     func testSwitchingAwayFromAMockAndBackKeepsTheBody() throws {
         let saved = try savedMockRule(body: "old")
         let viewModel = NetworkRuleEditorViewModel(rule: saved.rule, store: store)
-        viewModel.actionKind = .condition
-        viewModel.actionKind = .mock
+        viewModel.stubKind = .none
+        viewModel.stubKind = .mock
         viewModel.save()
 
-        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).action else {
+        guard case .mock(let mock) = try XCTUnwrap(store.rules.first).actions.stub else {
             return XCTFail("expected a mock action")
         }
         XCTAssertEqual(mock.bodyID, saved.bodyID)
         XCTAssertEqual(store.bodyData(for: saved.bodyID), Data("old".utf8))
     }
 
+    // MARK: - Map local
+
+    func testImportingAFileCopiesItAndNamesIt() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Picked.\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        let picked = directory.appendingPathComponent("users.json")
+        try Data("[]".utf8).write(to: picked)
+
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Users"
+        viewModel.draft.match = .path("/v1/users")
+        viewModel.stubKind = .mapLocal
+        viewModel.importMapLocalFile(from: picked)
+
+        XCTAssertEqual(viewModel.mapLocalSummary, "users.json")
+        XCTAssertEqual(viewModel.contentType, "application/json",
+                       "the content type is filled in from the document's extension")
+        XCTAssertFalse(viewModel.didFailToImportFile)
+
+        guard case .mapLocal(let file) = try XCTUnwrap(viewModel.draft.actions.stub) else {
+            return XCTFail("expected a map local stub")
+        }
+        XCTAssertNotEqual(file.relativePath, picked.path, "the override points at the copy")
+        XCTAssertEqual(try Data(contentsOf: URL(fileURLWithPath: file.relativePath)), Data("[]".utf8))
+    }
+
+    func testImportingAFileLeavesATypedContentTypeAlone() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Picked.\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        let picked = directory.appendingPathComponent("users.json")
+        try Data("[]".utf8).write(to: picked)
+
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.stubKind = .mapLocal
+        viewModel.contentType = "text/plain"
+        viewModel.importMapLocalFile(from: picked)
+
+        XCTAssertEqual(viewModel.contentType, "text/plain")
+    }
+
+    func testImportingAFileThatCannotBeReadIsReported() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.stubKind = .mapLocal
+        viewModel.importMapLocalFile(from: FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString)/nothing.json"))
+
+        XCTAssertTrue(viewModel.didFailToImportFile)
+        XCTAssertEqual(viewModel.mapLocalSummary, localized("Not set"))
+    }
+
+    // MARK: - Composing actions
+
+    func testANewOverrideStartsAsAMockWithNothingElseSwitchedOn() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        XCTAssertEqual(viewModel.stubKind, .mock)
+        XCTAssertFalse(viewModel.isRewritingHeaders)
+        XCTAssertFalse(viewModel.isConditioning)
+    }
+
+    func testAnOverrideCanStubAndConditionAtOnce() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Slow cart"
+        viewModel.draft.match = .path("/api/cart")
+        viewModel.isConditioning = true
+        viewModel.latency = 3
+        viewModel.save()
+
+        let saved = store.rules.first
+        XCTAssertNotNil(saved?.actions.stub)
+        XCTAssertEqual(saved?.actions.condition?.latency, 3)
+    }
+
+    func testTurningAnActionOffAndBackOnKeepsWhatWasTypedIntoIt() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.isConditioning = true
+        viewModel.latency = 7
+        viewModel.isConditioning = false
+        XCTAssertNil(viewModel.draft.actions.condition)
+        viewModel.isConditioning = true
+        XCTAssertEqual(viewModel.latency, 7)
+    }
+
+    func testTurningTheRewriteOffAndBackOnKeepsItsHeaders() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.isRewritingHeaders = true
+        viewModel.setHeaders = [NetworkRuleHeaderField(name: "Authorization", value: "Bearer test")]
+        viewModel.isRewritingHeaders = false
+        viewModel.isRewritingHeaders = true
+
+        XCTAssertEqual(viewModel.draft.actions.rewriteHeaders?.set, ["Authorization": "Bearer test"])
+        XCTAssertEqual(viewModel.setHeaders.map(\.name), ["Authorization"])
+    }
+
+    func testEditingHeadersWhileTheRewriteIsOffChangesNothing() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.setHeaders = [NetworkRuleHeaderField(name: "Authorization", value: "Bearer test")]
+        XCTAssertNil(viewModel.draft.actions.rewriteHeaders)
+    }
+
+    func testAnOverrideWithNoActionsIsInvalid() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Inert"
+        viewModel.draft.match = .path("/api/cart")
+        XCTAssertTrue(viewModel.isValid)
+
+        viewModel.stubKind = .none
+        XCTAssertFalse(viewModel.isValid, "an override that matches traffic and does nothing to it")
+
+        viewModel.isRewritingHeaders = true
+        XCTAssertTrue(viewModel.isValid)
+    }
+
+    func testSavingAnInvalidOverrideWritesNothing() {
+        let viewModel = NetworkRuleEditorViewModel(rule: nil, store: store)
+        viewModel.draft.name = "Inert"
+        viewModel.draft.match = .path("/api/cart")
+        viewModel.stubKind = .none
+        viewModel.save()
+        XCTAssertTrue(store.rules.isEmpty)
+    }
+
     func testSavingAnExistingRuleUpdatesItInPlace() {
         var rule = NetworkRule(
             id: UUID(), name: "Old", isEnabled: true, match: .path("/api/cart"),
-            action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0))
+            actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0)))
         )
         store.add(rule)
         rule.name = "New"

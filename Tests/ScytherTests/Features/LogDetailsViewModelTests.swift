@@ -191,7 +191,7 @@ final class LogDetailsViewModelTests: XCTestCase {
         let viewModel = LogDetailsViewModel(httpRequest: capture, store: store)
         await viewModel.onFirstAppear()
 
-        guard case .mock(let mock) = viewModel.makeMockRule().action else {
+        guard case .mock(let mock) = viewModel.makeMockRule().actions.stub else {
             return XCTFail("expected a mock action")
         }
         XCTAssertEqual(mock.statusCode, 201)
@@ -213,7 +213,7 @@ final class LogDetailsViewModelTests: XCTestCase {
         let viewModel = LogDetailsViewModel(httpRequest: capture, store: makeStore())
         await viewModel.onFirstAppear()
 
-        guard case .mock(let mock) = viewModel.makeMockRule().action else {
+        guard case .mock(let mock) = viewModel.makeMockRule().actions.stub else {
             return XCTFail("expected a mock action")
         }
         XCTAssertEqual(mock.headers, ["Content-Type": "application/json"])
@@ -225,7 +225,7 @@ final class LogDetailsViewModelTests: XCTestCase {
         let viewModel = LogDetailsViewModel(httpRequest: capture, store: store)
         await viewModel.onFirstAppear()
 
-        guard case .mock(let mock) = viewModel.makeMockRule().action else {
+        guard case .mock(let mock) = viewModel.makeMockRule().actions.stub else {
             return XCTFail("expected a mock action")
         }
         XCTAssertNil(mock.bodyID)

@@ -35,7 +35,7 @@ final class HARRuleImporterTests: XCTestCase {
         XCTAssertEqual(rule.match.methods, ["GET"], "a lowercase HAR method must be uppercased in the match")
         XCTAssertEqual(rule.match.host?.value, "api.example.com")
         XCTAssertEqual(rule.match.path?.value, "/v1/users")
-        guard case .mock(let mock) = rule.action else { return XCTFail("expected a mock action") }
+        guard case .mock(let mock) = rule.actions.stub else { return XCTFail("expected a mock action") }
         XCTAssertEqual(mock.statusCode, 200)
         XCTAssertEqual(mock.headers["Content-Type"], "application/json")
         XCTAssertNotNil(mock.bodyID)
@@ -48,7 +48,7 @@ final class HARRuleImporterTests: XCTestCase {
         let rules = try HARRuleImporter.rules(from: Data(noBody.utf8)) { data in
             stored.append(data); return UUID()
         }
-        guard case .mock(let mock) = try XCTUnwrap(rules.first).action else { return XCTFail("expected a mock") }
+        guard case .mock(let mock) = try XCTUnwrap(rules.first).actions.stub else { return XCTFail("expected a mock") }
         XCTAssertNil(mock.bodyID)
         XCTAssertTrue(stored.isEmpty)
     }
@@ -96,7 +96,7 @@ final class HARRuleImporterTests: XCTestCase {
             with: "\"headers\":[{\"name\":\"X-Cache\",\"value\":\"HIT\"},{\"name\":\"X-Cache\",\"value\":\"MISS\"}]"
         )
         let rules = try HARRuleImporter.rules(from: Data(repeatedHeader.utf8)) { _ in UUID() }
-        guard case .mock(let mock) = try XCTUnwrap(rules.first).action else { return XCTFail("expected a mock") }
+        guard case .mock(let mock) = try XCTUnwrap(rules.first).actions.stub else { return XCTFail("expected a mock") }
         XCTAssertEqual(mock.headers["X-Cache"], "MISS")
     }
 

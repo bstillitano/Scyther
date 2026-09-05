@@ -433,7 +433,7 @@ final class MenuViewModelTests: XCTestCase {
             name: name,
             isEnabled: isEnabled,
             match: .path("/v1/*"),
-            action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0))
+            actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0)))
         )
     }
 

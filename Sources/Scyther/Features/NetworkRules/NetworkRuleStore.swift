@@ -52,8 +52,9 @@ import Foundation
 /// - ``move(from:to:)``
 /// - ``removeAll()``
 ///
-/// ### Mock Bodies
+/// ### Stored Files
 /// - ``storeBody(_:)``
+/// - ``storeFile(at:)``
 /// - ``bodyURL(for:)``
 /// - ``bodyData(for:)``
 /// - ``bodyDataOffMainActor(for:)``
@@ -265,6 +266,33 @@ internal final class NetworkRuleStore: ObservableObject {
         return id
     }
 
+    /// Copies a picked file into the rules directory and returns the copy's absolute path.
+    ///
+    /// A map-local override stores the copy rather than the original for two reasons. A document
+    /// picked outside the app's container is only readable through a security-scoped URL, which
+    /// an override cannot hold across a relaunch; and a path into somebody's Files app is not one
+    /// an override can rely on tomorrow. The copy is named after a fresh identifier, exactly as a
+    /// mock body is, so ``sweepOrphanedBodies()`` reclaims it once no override points at it.
+    ///
+    /// The read is wrapped in a security-scoped access pair, because the URL the system file
+    /// importer hands back points outside the app's own container.
+    ///
+    /// - Parameter url: The file the developer picked.
+    /// - Returns: The absolute path of the copy, or `nil` when the file could not be read or the
+    ///   copy could not be written.
+    func storeFile(at url: URL) -> String? {
+        createBodyDirectory()
+        let destination = bodyURL(for: UUID())
+        let isAccessing = url.startAccessingSecurityScopedResource()
+        defer { if isAccessing { url.stopAccessingSecurityScopedResource() } }
+        do {
+            try FileManager.default.copyItem(at: url, to: destination)
+        } catch {
+            return nil
+        }
+        return destination.path
+    }
+
     /// Creates the body directory if it is not there, and keeps it out of the host app's backup.
     ///
     /// `Application Support` is backed up to iCloud by default. A colleague's 40 MB HAR import is
@@ -329,10 +357,7 @@ internal final class NetworkRuleStore: ObservableObject {
     /// the deletions happen off it, because a directory holding a HAR import's worth of bodies is
     /// not something to walk while a host app is trying to draw its first frame.
     func sweepOrphanedBodies() {
-        let referenced = Set((rules + transientRules).compactMap { rule -> UUID? in
-            guard case .mock(let mock) = rule.action else { return nil }
-            return mock.bodyID
-        })
+        let referenced = Set((rules + transientRules).compactMap(\.storedFileID))
         let directory = bodyDirectory
         Task.detached(priority: .utility) {
             Self.sweepBodies(in: directory, keeping: referenced, ignoringFilesNewerThan: Self.bodySweepGracePeriod)
@@ -377,12 +402,16 @@ internal final class NetworkRuleStore: ObservableObject {
         }
     }
 
-    /// Deletes the body file a rule owns, if it owns one.
+    /// Deletes the file a rule owns, if it owns one.
+    ///
+    /// Covers both kinds of stored bytes: a mock's body, and the copy a map-local override made of
+    /// the file the developer picked. Both live in ``bodyDirectory`` under an identifier, so both
+    /// are deleted the same way and swept the same way.
     ///
     /// - Parameter rule: The rule being deleted.
     private func deleteBody(for rule: NetworkRule) {
-        guard case .mock(let mock) = rule.action, let bodyID = mock.bodyID else { return }
-        try? FileManager.default.removeItem(at: bodyURL(for: bodyID))
+        guard let id = rule.storedFileID else { return }
+        try? FileManager.default.removeItem(at: bodyURL(for: id))
     }
 
     // MARK: - Persistence
@@ -415,6 +444,25 @@ internal final class NetworkRuleStore: ObservableObject {
         guard let data else { return [] }
         guard let decoded = try? JSONDecoder().decode([FailableRule].self, from: data) else { return [] }
         return decoded.compactMap(\.rule)
+    }
+}
+
+internal extension NetworkRule {
+    /// The identifier of the file in the rules directory this override owns, if it owns one.
+    ///
+    /// A mock's body and a map-local override's copy of a picked file are both written into the
+    /// rules directory under a fresh identifier, so deletion and the orphan sweep treat them
+    /// alike. `nil` for an override that owns no bytes, and for a map-local override pointing at
+    /// a path supplied from code — which Scyther did not write and must never delete.
+    var storedFileID: UUID? {
+        switch actions.stub {
+        case .mock(let mock):
+            return mock.bodyID
+        case .mapLocal(let file):
+            return UUID(uuidString: URL(fileURLWithPath: file.relativePath).lastPathComponent)
+        case nil:
+            return nil
+        }
     }
 }
 

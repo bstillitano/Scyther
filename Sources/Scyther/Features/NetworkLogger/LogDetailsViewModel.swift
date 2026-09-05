@@ -323,12 +323,12 @@ class LogDetailsViewModel: ViewModel {
             name: "\(method) \(path)",
             isEnabled: false,
             match: match,
-            action: .mock(MockResponse(
+            actions: NetworkRuleActions(stub: .mock(MockResponse(
                 statusCode: httpRequest.responseCode ?? 200,
                 headers: headers,
                 bodyID: bodyID,
                 delay: 0
-            ))
+            )))
         )
     }
 }

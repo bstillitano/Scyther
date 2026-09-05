@@ -114,22 +114,19 @@ final class NetworkRulesViewModel: ViewModel {
     /// traffic, so an empty state in front of one would be a lie.
     var isEmpty: Bool { rules.isEmpty && transientRules.isEmpty }
 
-    /// The separator between the two halves of a row's subtitle.
+    /// The subtitle for one override's row, naming everything it does.
     ///
-    /// A middle dot rather than a hyphen, matching the way iOS itself joins two facts on one
-    /// line. Not localised: it is punctuation, not words.
-    private static let subtitleSeparator = " \u{00B7} "
-
-    /// The subtitle for one override's row, naming what it does and whether it is on.
-    ///
-    /// Carrying the enabled state in the text is what lets a disabled override read as disabled
-    /// without the row being recoloured by hand, which would fight the list's own styling.
+    /// An override carries a stub, a rewrite and a condition independently, so the subtitle lists
+    /// what is actually switched on rather than naming a single behaviour. It no longer says
+    /// whether the override is enabled: the row shows that by reading as disabled, which is
+    /// something a developer takes in without reading at all.
     ///
     /// - Parameter rule: The override the row shows.
-    /// - Returns: For example `Mock Response · Off`.
+    /// - Returns: For example `Mock Response · Network Condition`, or `No actions` for an
+    ///   override that does nothing — which the editor refuses to save, but which an override
+    ///   registered from code may still be.
     func subtitle(for rule: NetworkRule) -> String {
-        let state = rule.isEnabled ? localized("On") : localized("Off")
-        return rule.action.kind.title + Self.subtitleSeparator + state
+        rule.actions.summary
     }
 
     /// Enables or disables a single rule.

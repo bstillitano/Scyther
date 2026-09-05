@@ -3067,6 +3067,83 @@
         }
       }
     },
+    "A stubbed request is answered without leaving the device.": {
+      "comment": "Footer under the stub picker in the override editor",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يتم الرد على الطلب المستبدل دون مغادرة الجهاز."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Eine ersetzte Anfrage wird beantwortet, ohne das Gerät zu verlassen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Una solicitud simulada se responde sin salir del dispositivo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Une requête simulée reçoit une réponse sans quitter l'appareil."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Una richiesta simulata riceve risposta senza lasciare il dispositivo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "スタブされたリクエストは端末から送信されずに応答されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "스텁된 요청은 기기를 벗어나지 않고 응답됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Een vervangen aanvraag wordt beantwoord zonder het apparaat te verlaten."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Uma requisição simulada é respondida sem sair do dispositivo."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Запрос с заглушкой получает ответ, не покидая устройство."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "被桩替换的请求无需离开设备即可得到响应。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "被樁取代的請求無需離開裝置即可獲得回應。"
+          }
+        }
+      }
+    },
     "APNS Token": {
       "comment": "Menu row showing the Apple push notification token. APNS stays untranslated",
       "localizations": {
@@ -3914,83 +3991,6 @@
         }
       }
     },
-    "Action": {
-      "comment": "Section header and picker label for the behaviour an override performs",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "الإجراء"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Aktion"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Acción"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Action"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Azione"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "アクション"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "동작"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Actie"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Ação"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Действие"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "操作"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "動作"
-          }
-        }
-      }
-    },
     "Actions": {
       "comment": "Section header for the actions available on a file",
       "localizations": {
@@ -4700,6 +4700,83 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "Also applies to a stubbed response.": {
+      "comment": "Footer under the Network Condition switch in the override editor",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ينطبق أيضًا على الاستجابة المستبدلة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Gilt auch für eine ersetzte Antwort."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "También se aplica a una respuesta simulada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "S'applique également à une réponse simulée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Si applica anche a una risposta simulata."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "スタブされた応答にも適用されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "스텁된 응답에도 적용됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Geldt ook voor een vervangen antwoord."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Também se aplica a uma resposta simulada."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Применяется и к подменённому ответу."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "同样适用于桩响应。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "同樣適用於樁回應。"
           }
         }
       }
@@ -8416,6 +8493,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "語言變更將在下次啟動時套用至整個 App。Scyther 選單會立即切換。"
+          }
+        }
+      }
+    },
+    "Choose File": {
+      "comment": "Button opening the system file importer for a map local override",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "اختيار ملف"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Datei auswählen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Elegir archivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Choisir un fichier"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scegli file"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ファイルを選択"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "파일 선택"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Kies bestand"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Escolher arquivo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Выбрать файл"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "选择文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "選擇檔案"
           }
         }
       }
@@ -19374,83 +19528,6 @@
         }
       }
     },
-    "File path": {
-      "comment": "Field holding the absolute path a map local override serves",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "مسار الملف"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Dateipfad"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Ruta del archivo"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Chemin du fichier"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Percorso del file"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "ファイルパス"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "파일 경로"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Bestandspad"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Caminho do arquivo"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Путь к файлу"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "文件路径"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "檔案路徑"
-          }
-        }
-      }
-    },
     "Filters": {
       "comment": "Navigation title of the all-filters sheet",
       "localizations": {
@@ -27941,6 +28018,83 @@
         }
       }
     },
+    "No actions": {
+      "comment": "Row subtitle for an override that does nothing to the requests it matches",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لا إجراءات"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Keine Aktionen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Sin acciones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aucune action"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nessuna azione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "アクションなし"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "동작 없음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Geen acties"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Sem ações"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Нет действий"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "无操作"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "無動作"
+          }
+        }
+      }
+    },
     "No configurations": {
       "comment": "Empty state when the host app registered no server configurations",
       "localizations": {
@@ -29558,6 +29712,83 @@
         }
       }
     },
+    "None": {
+      "comment": "Stub picker option meaning the request is not answered locally",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "بلا"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Keine"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ninguno"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aucun"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nessuno"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "なし"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "없음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Geen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nenhum"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Нет"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "无"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "無"
+          }
+        }
+      }
+    },
     "Not %@": {
       "comment": "Host filter chip title when a single host is excluded; %@ is the host name",
       "localizations": {
@@ -30324,83 +30555,6 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "關"
-          }
-        }
-      }
-    },
-    "On": {
-      "comment": "Second half of an override row's subtitle, meaning the override is enabled",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "تشغيل"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Ein"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Activado"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Activé"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Attivo"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "オン"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "켬"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Aan"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Ativado"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Вкл."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "开"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "開"
           }
         }
       }
@@ -31483,79 +31637,79 @@
         }
       }
     },
-    "Overrides are applied in order. The first matching mock or map local wins.": {
-      "comment": "Footer under the master switch explaining override precedence",
+    "Overrides are applied in order. The first matching stub wins, and so does the first matching condition.": {
+      "comment": "Footer explaining that overrides are evaluated in order, per action",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "تُطبَّق التجاوزات بالترتيب. يفوز أول محاكاة أو ملف محلي مطابق."
+            "value": "تُطبَّق التجاوزات بالترتيب. تفوز أول استجابة بديلة مطابقة، وكذلك أول شرط مطابق."
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Overrides werden der Reihe nach angewendet. Das erste passende Mock oder Map Local gewinnt."
+            "value": "Overrides werden der Reihe nach angewendet. Die erste passende Ersatzantwort gewinnt, ebenso die erste passende Bedingung."
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Las anulaciones se aplican en orden. Gana la primera simulación o archivo local que coincida."
+            "value": "Las anulaciones se aplican en orden. Gana la primera respuesta simulada que coincida, y también la primera condición que coincida."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Les remplacements sont appliqués dans l'ordre. La première simulation ou redirection locale correspondante l'emporte."
+            "value": "Les surcharges sont appliquées dans l'ordre. La première réponse simulée correspondante l'emporte, tout comme la première condition correspondante."
           }
         },
         "it": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Gli override vengono applicati in ordine. Vince il primo mock o file locale corrispondente."
+            "value": "Le sostituzioni vengono applicate in ordine. Vince la prima risposta simulata corrispondente e la prima condizione corrispondente."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "上書きは順番に適用されます。最初に一致したモックまたはローカルファイルが優先されます。"
+            "value": "オーバーライドは順に適用されます。最初に一致したスタブが優先され、最初に一致した条件も同様です。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "재정의는 순서대로 적용됩니다. 처음 일치하는 목 응답 또는 로컬 파일이 우선합니다."
+            "value": "재정의는 순서대로 적용됩니다. 처음 일치하는 스텁이 적용되며, 처음 일치하는 조건도 마찬가지입니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Overschrijvingen worden op volgorde toegepast. De eerste passende mock of lokaal bestand wint."
+            "value": "Overrides worden op volgorde toegepast. Het eerste passende vervangantwoord wint, net als de eerste passende conditie."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "As substituições são aplicadas em ordem. Vence a primeira simulação ou arquivo local correspondente."
+            "value": "As substituições são aplicadas em ordem. A primeira resposta simulada correspondente vence, assim como a primeira condição correspondente."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Переопределения применяются по порядку. Побеждает первая подходящая подмена или локальный файл."
+            "value": "Переопределения применяются по порядку. Побеждает первая подходящая заглушка, а также первое подходящее условие."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "覆盖按顺序应用。第一个匹配的模拟响应或本地文件生效。"
+            "value": "覆盖规则按顺序应用。第一个匹配的桩响应生效，第一个匹配的条件同样生效。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "覆寫依序套用。第一個符合的模擬回應或本機檔案生效。"
+            "value": "覆寫規則會依序套用。第一個符合的樁回應生效，第一個符合的條件同樣生效。"
           }
         }
       }
@@ -34964,6 +35118,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "找不到記錄"
+          }
+        }
+      }
+    },
+    "Recorded on the log. Nothing is sent while the request is stubbed.": {
+      "comment": "Footer under the Rewrite Headers switch in the override editor",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يُسجَّل في السجل. لا يُرسَل شيء أثناء استبدال الطلب."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Wird im Protokoll erfasst. Es wird nichts gesendet, solange die Anfrage ersetzt wird."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Se registra en el registro. No se envía nada mientras la solicitud está simulada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Consigné dans le journal. Rien n'est envoyé tant que la requête est simulée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Registrato nel log. Non viene inviato nulla finché la richiesta è simulata."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ログに記録されます。リクエストがスタブされている間は何も送信されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "로그에 기록됩니다. 요청이 스텁된 동안에는 아무것도 전송되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Vastgelegd in het logboek. Er wordt niets verzonden zolang de aanvraag wordt vervangen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Registrado no log. Nada é enviado enquanto a requisição está simulada."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Записывается в журнал. Пока запрос подменён, ничего не отправляется."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "会记录到日志。请求被桩替换时不会发送任何内容。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "會記錄到日誌。請求被樁取代時不會傳送任何內容。"
           }
         }
       }
@@ -42283,6 +42514,83 @@
         }
       }
     },
+    "Stub": {
+      "comment": "Picker label choosing what answers a matching request in place of the network",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "استجابة بديلة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ersatzantwort"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Respuesta simulada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Réponse simulée"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Risposta simulata"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "スタブ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "스텁"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Vervangantwoord"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Resposta simulada"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Заглушка"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "桩响应"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "樁回應"
+          }
+        }
+      }
+    },
     "Subscription": {
       "comment": "GraphQL operation filter option",
       "localizations": {
@@ -43993,6 +44301,83 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "The selected file could not be copied.": {
+      "comment": "Alert message when a picked map local file could not be copied into the rules directory",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تعذّر نسخ الملف المحدد."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Die ausgewählte Datei konnte nicht kopiert werden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No se pudo copiar el archivo seleccionado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Le fichier sélectionné n'a pas pu être copié."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Impossibile copiare il file selezionato."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "選択したファイルをコピーできませんでした。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "선택한 파일을 복사할 수 없습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Het geselecteerde bestand kon niet worden gekopieerd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Não foi possível copiar o arquivo selecionado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Не удалось скопировать выбранный файл."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "无法复制所选文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "無法複製所選檔案。"
           }
         }
       }

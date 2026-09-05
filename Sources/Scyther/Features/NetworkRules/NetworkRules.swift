@@ -10,9 +10,22 @@ import Foundation
 /// Mocks, conditions and rewrites matching HTTP requests.
 ///
 /// Reached through ``Scyther/Network/rules``. Rules added here are evaluated in order for every
-/// request Scyther intercepts: the first matching mock or map-local short-circuits the network,
-/// the first matching condition applies its latency and failure rate, and every matching header
-/// rewrite is applied.
+/// request Scyther intercepts: the first matching stub short-circuits the network, the first
+/// matching condition applies its latency, bandwidth ceiling and failure rate, and every matching
+/// header rewrite is applied.
+///
+/// A rule carries as many of those as it likes — see ``NetworkRuleActions`` — so an endpoint can
+/// be mocked *and* made slow. The ergonomic constructors below each build one action; build a
+/// ``NetworkRule`` directly to combine them:
+///
+/// ```swift
+/// Scyther.network.rules.add(
+///     NetworkRule(name: "Slow cart",
+///                 match: .path("/api/cart"),
+///                 actions: NetworkRuleActions(stub: .mock(.json("{}")),
+///                                             condition: NetworkCondition(latency: 3)))
+/// )
+/// ```
 ///
 /// ## Usage
 ///
@@ -155,7 +168,11 @@ public extension NetworkRule {
                      name: String,
                      matching: NetworkRuleMatch,
                      returning: MockResponse) -> NetworkRule {
-        NetworkRule(id: id, name: name, isEnabled: true, match: matching, action: .mock(returning))
+        NetworkRule(id: id,
+                    name: name,
+                    isEnabled: true,
+                    match: matching,
+                    actions: NetworkRuleActions(stub: .mock(returning)))
     }
 
     /// A rule that slows, throttles or randomly fails matching requests.
@@ -171,7 +188,11 @@ public extension NetworkRule {
                           name: String,
                           matching: NetworkRuleMatch,
                           _ condition: NetworkCondition) -> NetworkRule {
-        NetworkRule(id: id, name: name, isEnabled: true, match: matching, action: .condition(condition))
+        NetworkRule(id: id,
+                    name: name,
+                    isEnabled: true,
+                    match: matching,
+                    actions: NetworkRuleActions(condition: condition))
     }
 
     /// A rule that sets or removes headers on matching requests before they are sent.
@@ -193,7 +214,9 @@ public extension NetworkRule {
                     name: name,
                     isEnabled: true,
                     match: matching,
-                    action: .rewriteHeaders(NetworkHeaderRewrite(set: set, remove: remove)))
+                    actions: NetworkRuleActions(
+                        rewriteHeaders: NetworkHeaderRewrite(set: set, remove: remove)
+                    ))
     }
 
     /// A rule that answers matching requests with the contents of a local file.
@@ -204,13 +227,18 @@ public extension NetworkRule {
     ///   - name: The label shown in the rule list.
     ///   - matching: The requests this rule applies to.
     ///   - serving: The file to serve, described by its absolute path. It must be an **absolute**
-    ///     path, so it has to come from code or from Scyther's file browser.
+    ///     path; a file picked in the editor is copied into the rules directory and the copy's
+    ///     path is what the override stores.
     /// - Returns: An enabled rule.
     static func mapLocal(id: UUID = UUID(),
                          name: String,
                          matching: NetworkRuleMatch,
                          serving: MapLocalFile) -> NetworkRule {
-        NetworkRule(id: id, name: name, isEnabled: true, match: matching, action: .mapLocal(serving))
+        NetworkRule(id: id,
+                    name: name,
+                    isEnabled: true,
+                    match: matching,
+                    actions: NetworkRuleActions(stub: .mapLocal(serving)))
     }
 }
 

@@ -168,7 +168,7 @@ final class NetworkRuleInterceptorTests: XCTestCase {
             name: "cart",
             isEnabled: true,
             match: .host("unreachable.invalid"),
-            action: .mock(MockResponse(statusCode: 418, headers: ["X-Mock": "yes"], bodyID: bodyID, delay: 0))
+            actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 418, headers: ["X-Mock": "yes"], bodyID: bodyID, delay: 0)))
         ))
 
         // The host does not resolve; only a stub can answer it.
@@ -194,7 +194,7 @@ final class NetworkRuleInterceptorTests: XCTestCase {
             name: "staging auth",
             isEnabled: true,
             match: .host("unreachable.invalid"),
-            action: .rewriteHeaders(NetworkHeaderRewrite(set: ["Authorization": "Bearer rewritten"],
+            actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["Authorization": "Bearer rewritten"],
                                                          remove: ["X-Original"]))
         ))
 
@@ -225,7 +225,7 @@ final class NetworkRuleInterceptorTests: XCTestCase {
             name: "offline",
             isEnabled: true,
             match: .host("unreachable.invalid"),
-            action: .condition(NetworkCondition(
+            actions: NetworkRuleActions(condition: NetworkCondition(
                 latency: 0,
                 bandwidthKBps: nil,
                 failureRate: 1,
@@ -248,51 +248,146 @@ final class NetworkRuleInterceptorTests: XCTestCase {
             name: "slow",
             isEnabled: true,
             match: .host("unreachable.invalid"),
-            action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0.4))
+            actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0.4)))
         ))
         let start = Date()
         _ = try await perform("https://unreachable.invalid/slow")
         XCTAssertGreaterThanOrEqual(Date().timeIntervalSince(start), 0.4)
     }
 
-    /// The log's Overrides row names what shaped the request. A mock returns before the rewrite is
-    /// applied and before the condition is honoured, so crediting every matching override would
-    /// have it naming ones that did nothing at all.
-    func testOnlyTheOverrideThatServedTheResponseIsCredited() async throws {
+    /// The log's Overrides row names what shaped the request, which is now a larger set than the
+    /// override that served the response: a condition applies to a stub, and a rewrite still
+    /// shapes the request the log describes even though nothing goes on the wire.
+    func testEveryOverrideThatAppliedIsCredited() async throws {
         let store = try makeStore()
         store.add(NetworkRule(
             id: UUID(),
             name: "rewrite",
             isEnabled: true,
             match: .host("unreachable.invalid"),
-            action: .rewriteHeaders(NetworkHeaderRewrite(set: ["X-Rewritten": "yes"], remove: []))
+            actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["X-Rewritten": "yes"], remove: []))
         ))
         store.add(NetworkRule(
             id: UUID(),
-            name: "offline",
+            name: "slow",
             isEnabled: true,
             match: .host("unreachable.invalid"),
-            action: .condition(NetworkCondition(latency: 0, bandwidthKBps: nil, failureRate: 1, failureCode: -1009))
+            actions: NetworkRuleActions(condition: NetworkCondition(latency: 0.2, bandwidthKBps: nil, failureRate: 0))
         ))
         store.add(NetworkRule(
             id: UUID(),
             name: "cart",
             isEnabled: true,
             match: .host("unreachable.invalid"),
-            action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0))
+            actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0)))
         ))
 
         let url = "https://unreachable.invalid/credited"
         let (_, response) = try await perform(url)
-        XCTAssertEqual(response.statusCode, 200, "the mock is what answered, despite the failure condition")
+        XCTAssertEqual(response.statusCode, 200, "the mock is what answered")
 
         let found = await loggedRequest(matching: url)
         let logged = try XCTUnwrap(found)
         XCTAssertEqual(
             logged.appliedRuleNames,
-            ["cart"],
-            "the rewrite never went on the wire and the condition never fired, so neither applied"
+            ["cart", "rewrite", "slow"],
+            "the stub first, then everything else that still applied to it"
         )
+        let headers = try XCTUnwrap(logged.requestHeaders)
+        XCTAssertEqual(headers["X-Rewritten"] as? String, "yes",
+                       "a rewrite has no wire effect on a stub, but the log still shows it")
+    }
+
+    /// One override carrying both a stub and a condition is credited once, not twice.
+    func testAnOverrideThatBothStubsAndConditionsIsNamedOnce() async throws {
+        let store = try makeStore()
+        store.add(NetworkRule(
+            id: UUID(),
+            name: "slow cart",
+            isEnabled: true,
+            match: .host("unreachable.invalid"),
+            actions: NetworkRuleActions(
+                stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0)),
+                condition: NetworkCondition(latency: 0.2, bandwidthKBps: nil, failureRate: 0)
+            )
+        ))
+
+        let url = "https://unreachable.invalid/once"
+        _ = try await perform(url)
+        let found = await loggedRequest(matching: url)
+        let logged = try XCTUnwrap(found)
+        XCTAssertEqual(logged.appliedRuleNames, ["slow cart"])
+    }
+
+    /// "Mock this endpoint and make it slow" — the combination that used to be inert.
+    func testAConditionDelaysAStubbedResponse() async throws {
+        let store = try makeStore()
+        store.add(NetworkRule(
+            id: UUID(),
+            name: "slow cart",
+            isEnabled: true,
+            match: .host("unreachable.invalid"),
+            actions: NetworkRuleActions(
+                stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0)),
+                condition: NetworkCondition(latency: 0.5, bandwidthKBps: nil, failureRate: 0)
+            )
+        ))
+
+        let start = Date()
+        let (_, response) = try await perform("https://unreachable.invalid/slow-mock")
+        XCTAssertEqual(response.statusCode, 200)
+        XCTAssertGreaterThanOrEqual(Date().timeIntervalSince(start), 0.5,
+                                    "the condition's latency reaches the stub, not just the network")
+    }
+
+    /// A failure rate takes out a stubbed request too, so an endpoint can be mocked and flaky.
+    func testAFailureConditionFailsAStubbedResponse() async throws {
+        let store = try makeStore()
+        store.add(NetworkRule(
+            id: UUID(),
+            name: "flaky cart",
+            isEnabled: true,
+            match: .host("unreachable.invalid"),
+            actions: NetworkRuleActions(
+                stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0)),
+                condition: NetworkCondition(latency: 0,
+                                            bandwidthKBps: nil,
+                                            failureRate: 1,
+                                            failureCode: URLError.Code.timedOut.rawValue)
+            )
+        ))
+
+        do {
+            _ = try await perform("https://unreachable.invalid/flaky-mock")
+            XCTFail("expected the condition to fail the stubbed request")
+        } catch {
+            XCTAssertEqual((error as? URLError)?.code, .timedOut)
+        }
+    }
+
+    /// A bandwidth ceiling paces a synthetic body, which means the response takes at least as long
+    /// as the ceiling implies. One kilobyte at one kilobyte per second is a second.
+    func testABandwidthCeilingPacesAStubbedBody() async throws {
+        let store = try makeStore()
+        let bodyID = store.storeBody(Data(repeating: UInt8(ascii: "x"), count: 32 * 1024))
+        store.add(NetworkRule(
+            id: UUID(),
+            name: "throttled cart",
+            isEnabled: true,
+            match: .host("unreachable.invalid"),
+            actions: NetworkRuleActions(
+                stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: bodyID, delay: 0)),
+                condition: NetworkCondition(latency: 0, bandwidthKBps: 32, failureRate: 0)
+            )
+        ))
+
+        let start = Date()
+        let (data, response) = try await perform("https://unreachable.invalid/throttled-mock")
+        let elapsed = Date().timeIntervalSince(start)
+        XCTAssertEqual(response.statusCode, 200)
+        XCTAssertEqual(data.count, 32 * 1024, "every byte still arrives, just later")
+        XCTAssertGreaterThanOrEqual(elapsed, 0.5,
+                                    "32 KB at 32 KB/s cannot be delivered instantly")
     }
 
     func testTheMasterSwitchDisablesEverything() async throws {
@@ -302,7 +397,7 @@ final class NetworkRuleInterceptorTests: XCTestCase {
             name: "cart",
             isEnabled: true,
             match: .host("unreachable.invalid"),
-            action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0))
+            actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0)))
         ))
         store.isEnabled = false
 
@@ -588,7 +683,7 @@ final class NetworkRuleDelayTests: XCTestCase {
                 name: "delayed",
                 isEnabled: true,
                 match: .host("delayed.invalid"),
-                action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: mockDelay))
+                actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: mockDelay)))
             )
         ])
         return HTTPInterceptorURLProtocol(request: URLRequest(url: url), cachedResponse: nil, client: client)
@@ -621,7 +716,7 @@ final class NetworkRuleDelayTests: XCTestCase {
                 name: "slow",
                 isEnabled: true,
                 match: .host("unreachable.invalid"),
-                action: .condition(NetworkCondition(latency: 1, bandwidthKBps: nil, failureRate: 0))
+                actions: NetworkRuleActions(condition: NetworkCondition(latency: 1, bandwidthKBps: nil, failureRate: 0))
             )
         ])
         let client = RecordingClient()
@@ -679,7 +774,7 @@ final class NetworkRuleDelayTests: XCTestCase {
                 name: "slow",
                 isEnabled: true,
                 match: .host("unreachable.invalid"),
-                action: .condition(NetworkCondition(latency: latency,
+                actions: NetworkRuleActions(condition: NetworkCondition(latency: latency,
                                                     bandwidthKBps: nil,
                                                     failureRate: failureRate))
             )
@@ -762,7 +857,7 @@ final class NetworkRuleDelayTests: XCTestCase {
                 name: host,
                 isEnabled: true,
                 match: .host(host),
-                action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: delay))
+                actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: delay)))
             )
         }
         NetworkRuleSnapshot.update(isEnabled: true, rules: [

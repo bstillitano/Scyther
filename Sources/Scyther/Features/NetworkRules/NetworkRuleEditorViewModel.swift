@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UniformTypeIdentifiers
 
 /// Backs ``NetworkRuleEditorView``, the form used to create a request override or edit an
 /// existing one.
@@ -13,13 +14,21 @@ import Foundation
 /// The view model owns a ``draft`` copy of the rule and writes nothing until ``save()`` is called,
 /// so abandoning the sheet leaves the store untouched. Everything the form binds to is exposed
 /// here rather than reaching into ``draft`` from the view, which keeps the validation and the
-/// action-switching logic in a place a test can reach.
+/// action plumbing in a place a test can reach.
+///
+/// ## Composing actions
+///
+/// An override carries a stub, a header rewrite and a condition independently — see
+/// ``NetworkRuleActions`` — so the form has a switch per action rather than one picker choosing
+/// between them. Turning an action off remembers what was typed into it, so comparing two ways of
+/// shaping the same endpoint never means retyping either of them.
 ///
 /// ## Validity
 ///
-/// ``isValid`` guards two mistakes that are easy to make and unpleasant to debug: an unnamed rule
-/// (indistinguishable from every other unnamed rule in the list) and a rule with no match facets
-/// at all, which would silently apply to every request the app makes.
+/// ``isValid`` guards three mistakes that are easy to make and unpleasant to debug: an unnamed
+/// rule (indistinguishable from every other unnamed rule in the list), a rule with no match facets
+/// at all, which would silently apply to every request the app makes, and a rule that does nothing
+/// to what it matches.
 ///
 /// ## Usage
 ///
@@ -53,17 +62,25 @@ import Foundation
 /// - ``pathKind``
 /// - ``patternKinds``
 ///
-/// ### Action Fields
-/// - ``actionKind``
+/// ### Stub Fields
+/// - ``stubKind``
 /// - ``statusCode``
 /// - ``delay``
 /// - ``bodyText``
 /// - ``bodySummary``
 /// - ``responseHeaders``
-/// - ``filePath``
+/// - ``mapLocalSummary``
+/// - ``importMapLocalFile(from:)``
+/// - ``didFailToImportFile``
 /// - ``contentType``
+///
+/// ### Rewrite Fields
+/// - ``isRewritingHeaders``
 /// - ``setHeaders``
 /// - ``removedHeaders``
+///
+/// ### Condition Fields
+/// - ``isConditioning``
 /// - ``latency``
 /// - ``bandwidthKBps``
 /// - ``failureRate``
@@ -90,15 +107,21 @@ final class NetworkRuleEditorViewModel: ViewModel {
         didSet { commitMockHeaders() }
     }
 
-    /// The headers a rewrite action sets, as ordered editable rows.
+    /// The headers the rewrite sets, as ordered editable rows.
     @Published var setHeaders: [NetworkRuleHeaderField] {
         didSet { commitRewrite() }
     }
 
-    /// The header names a rewrite action removes, as ordered editable rows.
+    /// The header names the rewrite removes, as ordered editable rows.
     @Published var removedHeaders: [NetworkRuleHeaderField] {
         didSet { commitRewrite() }
     }
+
+    /// Whether the last picked map-local file could not be copied into the rules directory.
+    ///
+    /// Drives an alert. A file the developer picked and Scyther then failed to read is worth
+    /// saying out loud, because the alternative is an override that silently serves nothing.
+    @Published var didFailToImportFile: Bool = false
 
     /// Where the edited rule is written on ``save()``.
     private let store: NetworkRuleStore
@@ -113,22 +136,29 @@ final class NetworkRuleEditorViewModel: ViewModel {
     /// The body file the rule pointed at when the editor opened, if it pointed at one.
     ///
     /// Kept so ``save()`` can delete the file it supersedes. A body is written under a fresh
-    /// identifier every time, and switching the action away from a mock orphans it entirely, so
+    /// identifier every time, and switching the stub away from a mock orphans it entirely, so
     /// without this the directory accumulates bodies no rule can ever reach.
     private let originalBodyID: UUID?
 
-    /// The last configuration seen for each action kind.
+    /// The last stub seen of each kind.
     ///
-    /// Switching the action picker away from a kind and back again would otherwise discard
+    /// Switching the stub picker away from a kind and back again would otherwise discard
     /// everything typed into it, which is infuriating when comparing two ways of stubbing the
     /// same endpoint.
-    private var rememberedActions: [NetworkRuleActionKind: NetworkRuleAction] = [:]
+    private var rememberedStubs: [NetworkRuleStubKind: NetworkRuleStub] = [:]
+
+    /// The rewrite as it was when its switch was last turned off.
+    private var rememberedRewrite: NetworkHeaderRewrite?
+
+    /// The condition as it was when its switch was last turned off.
+    private var rememberedCondition: NetworkCondition?
 
     /// Creates an editor for a new or existing rule.
     ///
-    /// A new rule starts constraining nothing, and so is invalid until it is named and given a
-    /// host, path or query — see ``isValid``. Seeding it with a method instead would let two
-    /// taps produce an override matching every request of that method the app makes.
+    /// A new rule starts constraining nothing and doing nothing, and so is invalid until it is
+    /// named, given a host, path or query, and given an action — see ``isValid``. Seeding it with
+    /// a method instead would let two taps produce an override matching every request of that
+    /// method the app makes.
     ///
     /// - Parameters:
     ///   - rule: The rule to edit, or `nil` to create one.
@@ -138,7 +168,7 @@ final class NetworkRuleEditorViewModel: ViewModel {
             name: "",
             isEnabled: true,
             match: NetworkRuleMatch(),
-            action: .mock(MockResponse())
+            actions: NetworkRuleActions(stub: .mock(MockResponse()))
         )
         self.init(draft: draft, isNewRule: rule == nil, store: store)
     }
@@ -167,9 +197,13 @@ final class NetworkRuleEditorViewModel: ViewModel {
         self.store = store
         self.isNewRule = isNewRule
         self.draft = draft
-        self.rememberedActions = [draft.action.kind: draft.action]
+        if let stub = draft.actions.stub {
+            self.rememberedStubs = [stub.kind: stub]
+        }
+        self.rememberedRewrite = draft.actions.rewriteHeaders
+        self.rememberedCondition = draft.actions.condition
 
-        if case .mock(let mock) = draft.action {
+        if case .mock(let mock) = draft.actions.stub {
             self.originalBodyID = mock.bodyID
         } else {
             self.originalBodyID = nil
@@ -184,18 +218,13 @@ final class NetworkRuleEditorViewModel: ViewModel {
         self.bodyText = body
         self.originalBodyText = body
 
-        if case .mock(let mock) = draft.action {
+        if case .mock(let mock) = draft.actions.stub {
             self.responseHeaders = .fields(from: mock.headers)
         } else {
             self.responseHeaders = []
         }
-        if case .rewriteHeaders(let rewrite) = draft.action {
-            self.setHeaders = .fields(from: rewrite.set)
-            self.removedHeaders = .fields(from: rewrite.remove)
-        } else {
-            self.setHeaders = []
-            self.removedHeaders = []
-        }
+        self.setHeaders = .fields(from: draft.actions.rewriteHeaders?.set ?? [:])
+        self.removedHeaders = .fields(from: draft.actions.rewriteHeaders?.remove ?? [])
 
         super.init()
     }
@@ -209,12 +238,14 @@ final class NetworkRuleEditorViewModel: ViewModel {
 
     /// Whether ``save()`` should be offered.
     ///
-    /// A rule needs a name so it can be told apart in the list, and a host, path or query so it
-    /// picks out some endpoint rather than the whole app. A method on its own does not count:
-    /// an override matching every `GET` the app makes is the same hazard as one matching
-    /// everything, and just as hard to diagnose once it is enabled.
+    /// A rule needs a name so it can be told apart in the list, a host, path or query so it picks
+    /// out some endpoint rather than the whole app, and at least one action so that matching a
+    /// request means something. A method on its own does not count as a match: an override
+    /// matching every `GET` the app makes is the same hazard as one matching everything, and just
+    /// as hard to diagnose once it is enabled.
     var isValid: Bool {
         guard !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        guard !draft.actions.isEmpty else { return false }
         return draft.match.hasHostPathOrQuery
     }
 
@@ -300,52 +331,64 @@ final class NetworkRuleEditorViewModel: ViewModel {
         return NetworkRulePattern(kind: kind, value: trimmed)
     }
 
-    // MARK: - Action
+    // MARK: - Stub
 
-    /// Which behaviour the rule performs. Changing it restores whatever was last typed into the
-    /// new kind, rather than resetting it.
-    var actionKind: NetworkRuleActionKind {
-        get { draft.action.kind }
+    /// What answers the request in place of the network: nothing, a mock, or a local file.
+    ///
+    /// Changing it restores whatever was last configured for the new kind, rather than resetting
+    /// it. Choosing ``NetworkRuleStubKind/none`` leaves the request to the network without
+    /// disturbing the rewrite or the condition.
+    var stubKind: NetworkRuleStubKind {
+        get { draft.actions.stub?.kind ?? .none }
         set {
-            guard newValue != draft.action.kind else { return }
-            rememberedActions[draft.action.kind] = draft.action
-            draft.action = rememberedActions[newValue] ?? newValue.emptyAction()
-            reloadHeaderFields()
+            guard newValue != stubKind else { return }
+            if let stub = draft.actions.stub { rememberedStubs[stub.kind] = stub }
+            switch newValue {
+            case .none:
+                draft.actions.stub = nil
+            case .mock:
+                draft.actions.stub = rememberedStubs[.mock] ?? .mock(MockResponse())
+            case .mapLocal:
+                draft.actions.stub = rememberedStubs[.mapLocal] ?? .mapLocal(MapLocalFile(relativePath: ""))
+            }
+            reloadResponseHeaders()
         }
     }
 
-    /// The status code a mock or map-local action returns.
+    /// The status code the stub returns. `200` when nothing is stubbed.
     var statusCode: Int {
         get {
-            switch draft.action {
+            switch draft.actions.stub {
             case .mock(let mock): return mock.statusCode
             case .mapLocal(let file): return file.statusCode
-            case .rewriteHeaders, .condition: return 200
+            case nil: return 200
             }
         }
         set {
-            switch draft.action {
-            case .mock(var mock): mock.statusCode = newValue; draft.action = .mock(mock)
-            case .mapLocal(var file): file.statusCode = newValue; draft.action = .mapLocal(file)
-            case .rewriteHeaders, .condition: break
+            switch draft.actions.stub {
+            case .mock(var mock): mock.statusCode = newValue; draft.actions.stub = .mock(mock)
+            case .mapLocal(var file): file.statusCode = newValue; draft.actions.stub = .mapLocal(file)
+            case nil: break
             }
         }
     }
 
-    /// The seconds a mock or map-local action waits before responding.
+    /// The seconds the stub waits before responding. Zero when nothing is stubbed.
+    ///
+    /// - Note: A matching condition's latency is added to this when the response is served.
     var delay: TimeInterval {
         get {
-            switch draft.action {
+            switch draft.actions.stub {
             case .mock(let mock): return mock.delay
             case .mapLocal(let file): return file.delay
-            case .rewriteHeaders, .condition: return 0
+            case nil: return 0
             }
         }
         set {
-            switch draft.action {
-            case .mock(var mock): mock.delay = newValue; draft.action = .mock(mock)
-            case .mapLocal(var file): file.delay = newValue; draft.action = .mapLocal(file)
-            case .rewriteHeaders, .condition: break
+            switch draft.actions.stub {
+            case .mock(var mock): mock.delay = newValue; draft.actions.stub = .mock(mock)
+            case .mapLocal(var file): file.delay = newValue; draft.actions.stub = .mapLocal(file)
+            case nil: break
             }
         }
     }
@@ -355,68 +398,129 @@ final class NetworkRuleEditorViewModel: ViewModel {
         bodyText.isEmpty ? localized("Not set") : localized("\(bodyText.utf8.count) bytes")
     }
 
-    /// The absolute path a map-local action serves.
-    var filePath: String {
-        get {
-            guard case .mapLocal(let file) = draft.action else { return "" }
-            return file.relativePath
-        }
-        set {
-            guard case .mapLocal(var file) = draft.action else { return }
-            file.relativePath = newValue
-            draft.action = .mapLocal(file)
-        }
+    /// The name of the file a map-local stub serves, or a placeholder while none is chosen.
+    ///
+    /// The copy on disk is named after an identifier so it can be swept like a mock body, so the
+    /// name of the document it was made from is what the row shows. A path supplied from code
+    /// carries no such name, and falls back to the file name on the end of that path.
+    var mapLocalSummary: String {
+        guard case .mapLocal(let file) = draft.actions.stub else { return localized("Not set") }
+        if let fileName = file.fileName, !fileName.isEmpty { return fileName }
+        guard !file.relativePath.isEmpty else { return localized("Not set") }
+        return URL(fileURLWithPath: file.relativePath).lastPathComponent
     }
 
-    /// The `Content-Type` a map-local action returns. Emptying it omits the header.
+    /// Copies a picked file into the rules directory and points the map-local stub at the copy.
+    ///
+    /// The file is copied rather than referenced. A document picked outside the app's container is
+    /// only readable through a security-scoped URL that this override cannot hold across a
+    /// relaunch, and a path to somebody's Files app is not a path an override can rely on
+    /// tomorrow; a copy in the rules directory is readable from the interceptor's thread forever,
+    /// and is swept like a mock body when no override points at it.
+    ///
+    /// The `Content-Type` is filled in from the document's extension when the field is still
+    /// empty, and left alone when the developer has typed one.
+    ///
+    /// - Parameter url: The file the system file importer handed back.
+    func importMapLocalFile(from url: URL) {
+        guard let path = store.storeFile(at: url) else {
+            didFailToImportFile = true
+            return
+        }
+        var file: MapLocalFile
+        if case .mapLocal(let existing) = draft.actions.stub {
+            file = existing
+        } else {
+            file = MapLocalFile(relativePath: "")
+        }
+        file.relativePath = path
+        file.fileName = url.lastPathComponent
+        if file.contentType?.isEmpty ?? true {
+            file.contentType = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType
+        }
+        draft.actions.stub = .mapLocal(file)
+    }
+
+    /// Reports a failure the file importer itself raised, before any bytes were read.
+    func reportFileImportFailure() {
+        didFailToImportFile = true
+    }
+
+    /// The `Content-Type` a map-local stub returns. Emptying it omits the header.
     var contentType: String {
         get {
-            guard case .mapLocal(let file) = draft.action else { return "" }
+            guard case .mapLocal(let file) = draft.actions.stub else { return "" }
             return file.contentType ?? ""
         }
         set {
-            guard case .mapLocal(var file) = draft.action else { return }
+            guard case .mapLocal(var file) = draft.actions.stub else { return }
             file.contentType = newValue.isEmpty ? nil : newValue
-            draft.action = .mapLocal(file)
+            draft.actions.stub = .mapLocal(file)
         }
     }
 
-    /// The seconds a condition adds before the request is sent.
+    // MARK: - Rewrite
+
+    /// Whether this override rewrites headers. Turning it off remembers what was typed.
+    var isRewritingHeaders: Bool {
+        get { draft.actions.rewriteHeaders != nil }
+        set {
+            guard newValue != isRewritingHeaders else { return }
+            if newValue {
+                let rewrite = rememberedRewrite ?? NetworkHeaderRewrite()
+                draft.actions.rewriteHeaders = rewrite
+                setHeaders = .fields(from: rewrite.set)
+                removedHeaders = .fields(from: rewrite.remove)
+            } else {
+                rememberedRewrite = draft.actions.rewriteHeaders
+                draft.actions.rewriteHeaders = nil
+            }
+        }
+    }
+
+    // MARK: - Condition
+
+    /// Whether this override conditions the request. Turning it off remembers what was typed.
+    var isConditioning: Bool {
+        get { draft.actions.condition != nil }
+        set {
+            guard newValue != isConditioning else { return }
+            if newValue {
+                draft.actions.condition = rememberedCondition ?? NetworkCondition()
+            } else {
+                rememberedCondition = draft.actions.condition
+                draft.actions.condition = nil
+            }
+        }
+    }
+
+    /// The seconds the condition adds before the request is sent, or before a stub answers.
     var latency: TimeInterval {
-        get {
-            guard case .condition(let condition) = draft.action else { return 0 }
-            return condition.latency
-        }
+        get { draft.actions.condition?.latency ?? 0 }
         set {
-            guard case .condition(var condition) = draft.action else { return }
+            guard var condition = draft.actions.condition else { return }
             condition.latency = newValue
-            draft.action = .condition(condition)
+            draft.actions.condition = condition
         }
     }
 
-    /// A condition's bandwidth ceiling in kilobytes per second. `0` means unthrottled.
+    /// The condition's bandwidth ceiling in kilobytes per second. `0` means unthrottled.
     var bandwidthKBps: Int {
-        get {
-            guard case .condition(let condition) = draft.action else { return 0 }
-            return condition.bandwidthKBps ?? 0
-        }
+        get { draft.actions.condition?.bandwidthKBps ?? 0 }
         set {
-            guard case .condition(var condition) = draft.action else { return }
+            guard var condition = draft.actions.condition else { return }
             condition.bandwidthKBps = newValue > 0 ? newValue : nil
-            draft.action = .condition(condition)
+            draft.actions.condition = condition
         }
     }
 
-    /// The fraction of matching requests a condition fails, from `0` to `1`.
+    /// The fraction of matching requests the condition fails, from `0` to `1`.
     var failureRate: Double {
-        get {
-            guard case .condition(let condition) = draft.action else { return 0 }
-            return condition.failureRate
-        }
+        get { draft.actions.condition?.failureRate ?? 0 }
         set {
-            guard case .condition(var condition) = draft.action else { return }
+            guard var condition = draft.actions.condition else { return }
             condition.failureRate = newValue
-            draft.action = .condition(condition)
+            draft.actions.condition = condition
         }
     }
 
@@ -424,24 +528,24 @@ final class NetworkRuleEditorViewModel: ViewModel {
 
     /// Writes the draft to the store, adding it when new and replacing it in place when not.
     ///
-    /// Does nothing for a draft that fails ``isValid``. The view already disables its Save button,
-    /// but the guard belongs here too: the check is the rule, not the button's appearance.
+    /// Does nothing for a draft that fails ``isValid``. The view already disables its confirm
+    /// button, but the guard belongs here too: the check is the rule, not the button's appearance.
     ///
     /// The body is written to disk only when it differs from what the editor opened with, so
     /// re-saving an unchanged rule does not leave an orphaned copy of its body behind. Whatever
     /// body the rule no longer points at is deleted, whether it was superseded by new bytes or
-    /// stranded by the action changing to something that is not a mock.
+    /// stranded by the stub changing to something that is not a mock.
     func save() {
         guard isValid else { return }
 
         var rule = draft
         rule.name = rule.name.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if case .mock(var mock) = rule.action {
+        if case .mock(var mock) = rule.actions.stub {
             if bodyText != originalBodyText {
                 let replacement = bodyText.isEmpty ? nil : store.storeBody(Data(bodyText.utf8))
                 mock.bodyID = replacement
-                rule.action = .mock(mock)
+                rule.actions.stub = .mock(mock)
                 discardOriginalBody(unless: replacement)
             }
         } else {
@@ -465,33 +569,27 @@ final class NetworkRuleEditorViewModel: ViewModel {
 
     // MARK: - Header plumbing
 
-    /// Folds ``responseHeaders`` back into the mock action. A no-op for every other action kind,
-    /// so editing headers and then switching kind cannot overwrite the new kind's configuration.
+    /// Folds ``responseHeaders`` back into the mock stub. A no-op when nothing is mocked, so
+    /// editing headers and then changing the stub kind cannot overwrite the new kind's
+    /// configuration.
     private func commitMockHeaders() {
-        guard case .mock(var mock) = draft.action else { return }
+        guard case .mock(var mock) = draft.actions.stub else { return }
         mock.headers = responseHeaders.headerDictionary
-        draft.action = .mock(mock)
+        draft.actions.stub = .mock(mock)
     }
 
-    /// Folds ``setHeaders`` and ``removedHeaders`` back into the rewrite action.
+    /// Folds ``setHeaders`` and ``removedHeaders`` back into the rewrite. A no-op while the
+    /// rewrite is switched off.
     private func commitRewrite() {
-        guard case .rewriteHeaders = draft.action else { return }
-        draft.action = .rewriteHeaders(
-            NetworkHeaderRewrite(set: setHeaders.headerDictionary, remove: removedHeaders.headerNames)
-        )
+        guard draft.actions.rewriteHeaders != nil else { return }
+        draft.actions.rewriteHeaders = NetworkHeaderRewrite(set: setHeaders.headerDictionary,
+                                                            remove: removedHeaders.headerNames)
     }
 
-    /// Repopulates the editable header rows after the action kind changes.
-    private func reloadHeaderFields() {
-        switch draft.action {
-        case .mock(let mock):
-            responseHeaders = .fields(from: mock.headers)
-        case .rewriteHeaders(let rewrite):
-            setHeaders = .fields(from: rewrite.set)
-            removedHeaders = .fields(from: rewrite.remove)
-        case .mapLocal, .condition:
-            break
-        }
+    /// Repopulates the mock's editable header rows after the stub kind changes.
+    private func reloadResponseHeaders() {
+        guard case .mock(let mock) = draft.actions.stub else { return }
+        responseHeaders = .fields(from: mock.headers)
     }
 }
 

@@ -25,8 +25,8 @@ public struct NetworkRule: Identifiable, Codable, Sendable, Equatable {
     /// The conditions a request must satisfy for this rule to apply.
     public var match: NetworkRuleMatch
 
-    /// What to do to a matching request.
-    public var action: NetworkRuleAction
+    /// What to do to a matching request. Every facet composes; see ``NetworkRuleActions``.
+    public var actions: NetworkRuleActions
 
     /// Creates a rule.
     ///
@@ -38,17 +38,153 @@ public struct NetworkRule: Identifiable, Codable, Sendable, Equatable {
     ///   - name: The label shown in the rule list.
     ///   - isEnabled: Whether the rule is evaluated. Defaults to `true`.
     ///   - match: The requests this rule applies to.
-    ///   - action: What to do to a matching request.
+    ///   - actions: What to do to a matching request. Defaults to nothing at all, which the
+    ///     editor refuses to save but which is a legal value for a rule built in code and filled
+    ///     in afterwards.
     public init(id: UUID = UUID(),
                 name: String,
                 isEnabled: Bool = true,
                 match: NetworkRuleMatch,
-                action: NetworkRuleAction) {
+                actions: NetworkRuleActions = NetworkRuleActions()) {
         self.id = id
         self.name = name
         self.isEnabled = isEnabled
         self.match = match
-        self.action = action
+        self.actions = actions
+    }
+
+    /// The keys a rule is persisted under.
+    ///
+    /// Spelled out rather than synthesised so that renaming a property in Swift cannot silently
+    /// orphan every override a developer has saved.
+    private enum CodingKeys: String, CodingKey {
+        /// ``id``.
+        case id
+        /// ``name``.
+        case name
+        /// ``isEnabled``.
+        case isEnabled
+        /// ``match``.
+        case match
+        /// ``actions``.
+        case actions
+        /// The single action a rule carried before actions became composable.
+        case action
+    }
+
+    /// Decodes a rule written in either the current shape or the one that preceded it.
+    ///
+    /// A rule used to hold one `action`; it now holds an `actions` object. A decode failure costs
+    /// the developer **every** override they have configured — ``NetworkRuleStore`` drops what it
+    /// cannot read — so the old key is still understood and lifted into the equivalent
+    /// ``NetworkRuleActions``:
+    ///
+    /// | Persisted `action` | Becomes |
+    /// |---|---|
+    /// | `mock` | ``NetworkRuleActions/stub`` = ``NetworkRuleStub/mock(_:)`` |
+    /// | `mapLocal` | ``NetworkRuleActions/stub`` = ``NetworkRuleStub/mapLocal(_:)`` |
+    /// | `rewriteHeaders` | ``NetworkRuleActions/rewriteHeaders`` |
+    /// | `condition` | ``NetworkRuleActions/condition`` |
+    ///
+    /// - Parameter decoder: The decoder positioned at one rule.
+    /// - Throws: A decoding error when the rule carries neither shape, or when a facet either
+    ///   shape names cannot be read.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        isEnabled = try container.decode(Bool.self, forKey: .isEnabled)
+        match = try container.decode(NetworkRuleMatch.self, forKey: .match)
+
+        if let actions = try container.decodeIfPresent(NetworkRuleActions.self, forKey: .actions) {
+            self.actions = actions
+        } else {
+            self.actions = try Self.legacyActions(from: container)
+        }
+    }
+
+    /// Writes a rule in the current shape. The legacy `action` key is never written.
+    ///
+    /// - Parameter encoder: The encoder to write to.
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encode(match, forKey: .match)
+        try container.encode(actions, forKey: .actions)
+    }
+
+    /// The four cases the retired `NetworkRuleAction` enum was persisted under.
+    private enum LegacyActionKey: String, CodingKey {
+        /// A canned response.
+        case mock
+        /// A local file.
+        case mapLocal
+        /// Headers to set or remove.
+        case rewriteHeaders
+        /// Latency, bandwidth and failure rate.
+        case condition
+    }
+
+    /// The single positional key the compiler synthesises for an enum's associated value.
+    private enum LegacyPayloadKey: String, CodingKey {
+        /// The action's payload, e.g. the `MockResponse` inside `.mock(_:)`.
+        case _0
+    }
+
+    /// Lifts a rule persisted with one `action` into the composable shape.
+    ///
+    /// - Parameter container: The rule's own keyed container, positioned at a rule with no
+    ///   `actions` key.
+    /// - Returns: The equivalent actions.
+    /// - Throws: `DecodingError.keyNotFound` when the rule carries no recognisable action at all,
+    ///   which is what tells ``NetworkRuleStore`` to drop it rather than store a rule that does
+    ///   nothing.
+    private static func legacyActions(
+        from container: KeyedDecodingContainer<CodingKeys>
+    ) throws -> NetworkRuleActions {
+        let action = try container.nestedContainer(keyedBy: LegacyActionKey.self, forKey: .action)
+
+        if action.contains(.mock) {
+            return NetworkRuleActions(stub: .mock(try legacyPayload(MockResponse.self, from: action, forKey: .mock)))
+        }
+        if action.contains(.mapLocal) {
+            return NetworkRuleActions(stub: .mapLocal(try legacyPayload(MapLocalFile.self, from: action, forKey: .mapLocal)))
+        }
+        if action.contains(.rewriteHeaders) {
+            return NetworkRuleActions(
+                rewriteHeaders: try legacyPayload(NetworkHeaderRewrite.self, from: action, forKey: .rewriteHeaders)
+            )
+        }
+        if action.contains(.condition) {
+            return NetworkRuleActions(
+                condition: try legacyPayload(NetworkCondition.self, from: action, forKey: .condition)
+            )
+        }
+
+        throw DecodingError.keyNotFound(
+            CodingKeys.actions,
+            DecodingError.Context(codingPath: container.codingPath,
+                                  debugDescription: "A rule must carry either actions or a legacy action.")
+        )
+    }
+
+    /// Reads one legacy action's payload out from under its positional key.
+    ///
+    /// - Parameters:
+    ///   - type: The payload type to decode.
+    ///   - container: The legacy action's container.
+    ///   - key: Which of the four cases is present.
+    /// - Returns: The decoded payload.
+    /// - Throws: Whatever decoding the payload throws.
+    private static func legacyPayload<T: Decodable>(
+        _ type: T.Type,
+        from container: KeyedDecodingContainer<LegacyActionKey>,
+        forKey key: LegacyActionKey
+    ) throws -> T {
+        let payload = try container.nestedContainer(keyedBy: LegacyPayloadKey.self, forKey: key)
+        return try payload.decode(T.self, forKey: ._0)
     }
 }
 
@@ -120,18 +256,6 @@ public struct NetworkRulePattern: Codable, Sendable, Equatable {
     }
 }
 
-/// What a matching ``NetworkRule`` does to a request.
-public enum NetworkRuleAction: Codable, Sendable, Equatable {
-    /// Short-circuits the network and returns a canned response.
-    case mock(MockResponse)
-    /// Short-circuits the network and returns the contents of a local file.
-    case mapLocal(MapLocalFile)
-    /// Sets or removes headers on the outgoing request.
-    case rewriteHeaders(NetworkHeaderRewrite)
-    /// Adds latency, throttles bandwidth, or randomly fails the request.
-    case condition(NetworkCondition)
-}
-
 /// A canned response synthesised in place of a real network call.
 public struct MockResponse: Codable, Sendable, Equatable {
     /// The HTTP status code to return.
@@ -179,14 +303,23 @@ public struct MockResponse: Codable, Sendable, Equatable {
 /// - Important: ``relativePath`` holds an **absolute** file path despite its name. The name is
 ///   retained for compatibility with rules already persisted under it.
 public struct MapLocalFile: Codable, Sendable, Equatable {
-    /// The absolute path of the file to serve, as chosen with the file browser.
+    /// The absolute path of the file to serve.
     ///
     /// - Important: Absolute, despite the name — it is read with `URL(fileURLWithPath:)` and is
-    ///   not resolved against the Documents directory or any other root. A container path is not
-    ///   something anyone can type on a device, so the value has to come from code or be copied
-    ///   from Scyther's file browser. A path that cannot be read fails safely: the responder
-    ///   returns nothing and the request goes to the real network.
+    ///   not resolved against the Documents directory or any other root. A file picked in the
+    ///   editor is **copied** into the rules directory and this holds the path of the copy, so the
+    ///   override keeps working after the document the developer picked has moved or gone away,
+    ///   and no security-scoped bookmark is needed to read it. A path supplied from code is used
+    ///   as given. A path that cannot be read fails safely: the responder returns nothing and the
+    ///   request goes to the real network.
     public var relativePath: String
+
+    /// The name of the document the copy was made from, for display in the editor.
+    ///
+    /// The copy itself is named after an identifier so it can be swept like a mock body, which
+    /// tells a developer nothing about what they picked. `nil` for a file supplied from code, and
+    /// for one persisted before this field existed.
+    public var fileName: String?
 
     /// The HTTP status code to return alongside the file's contents.
     public var statusCode: Int
@@ -201,14 +334,18 @@ public struct MapLocalFile: Codable, Sendable, Equatable {
     ///
     /// - Parameters:
     ///   - relativePath: The absolute path of the file to serve.
+    ///   - fileName: The name of the document the file was copied from, for display. Defaults to
+    ///     none, which is right for a path supplied from code.
     ///   - statusCode: The HTTP status code to return. Defaults to `200`.
     ///   - contentType: The `Content-Type` header to return, or `nil` to omit it.
     ///   - delay: Seconds to wait before responding. Defaults to none.
     public init(relativePath: String,
+                fileName: String? = nil,
                 statusCode: Int = 200,
                 contentType: String? = nil,
                 delay: TimeInterval = 0) {
         self.relativePath = relativePath
+        self.fileName = fileName
         self.statusCode = statusCode
         self.contentType = contentType
         self.delay = delay

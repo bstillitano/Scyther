@@ -11,16 +11,17 @@ import UniformTypeIdentifiers
 /// The list of request overrides, reached from **Networking → Request Overrides**.
 ///
 /// Each row is a `NavigationLink` that pushes the editor, matching the way every other row in the
-/// Scyther menu behaves. The row's subtitle names both the behaviour the override performs and
-/// whether it is currently on, so a disabled override reads as disabled without any row being
-/// recoloured by hand.
+/// Scyther menu behaves. The row's subtitle names everything the override does — a stub, a header
+/// rewrite and a condition compose — and a disabled override is drawn in the system's secondary
+/// hierarchy, so it reads as disabled instead of saying so in small grey text.
 ///
 /// ## Features
 /// - A master switch that suspends every override without deleting any of them
 /// - Tap to edit; swipe to enable, disable, or delete behind a confirmation alert
 /// - A read-only section for overrides the host app registered in code, which the engine applies
 ///   just as it does the saved ones
-/// - Drag-to-reorder, because the first matching mock or map-local override wins
+/// - Drag-to-reorder, because the first matching stub wins and so does the first matching
+///   condition
 /// - HAR import through the system file importer, reporting how many overrides were added
 ///
 /// ## Usage
@@ -67,7 +68,7 @@ struct NetworkRulesView: View {
             Section {
                 Toggle(localized("Enable Request Overrides"), isOn: $viewModel.isEnabled)
             } footer: {
-                Text(localized("Overrides are applied in order. The first matching mock or map local wins."))
+                Text(localized("Overrides are applied in order. The first matching stub wins, and so does the first matching condition."))
             }
 
             if viewModel.isEmpty {
@@ -90,6 +91,7 @@ struct NetworkRulesView: View {
                 Section {
                     ForEach(viewModel.transientRules) { rule in
                         LabeledContent(rule.name, value: viewModel.subtitle(for: rule))
+                            .foregroundStyle(rule.isEnabled ? .primary : .secondary)
                     }
                 } header: {
                     Text(localized("Registered in Code"))
@@ -184,8 +186,13 @@ struct NetworkRulesView: View {
                 Text(rule.name)
                 Text(viewModel.subtitle(for: rule))
                     .font(.footnote)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
+            // A disabled override reads as disabled rather than announcing it in words. The
+            // hierarchy is the system's own — the same one the subtitle below already uses — not a
+            // colour picked by hand, and the row stays tappable so a disabled override can still
+            // be edited before it is switched back on.
+            .foregroundStyle(rule.isEnabled ? .primary : .secondary)
         }
         .swipeActions(edge: .trailing) {
             // Spelled out rather than left to `onDelete`, because declaring any trailing swipe

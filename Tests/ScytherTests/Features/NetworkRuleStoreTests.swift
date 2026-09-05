@@ -38,7 +38,7 @@ final class NetworkRuleStoreTests: XCTestCase {
             name: name,
             isEnabled: true,
             match: .path("/v1/*"),
-            action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0))
+            actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0)))
         )
     }
 
@@ -89,7 +89,7 @@ final class NetworkRuleStoreTests: XCTestCase {
         let store = makeStore()
         let bodyID = store.storeBody(Data("{\"ok\":true}".utf8))
         var rule = makeRule("with body")
-        rule.action = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: bodyID, delay: 0))
+        rule.actions.stub = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: bodyID, delay: 0))
         store.add(rule)
 
         XCTAssertEqual(store.bodyData(for: bodyID), Data("{\"ok\":true}".utf8))
@@ -110,6 +110,77 @@ final class NetworkRuleStoreTests: XCTestCase {
         let store = makeStore()
         XCTAssertEqual(store.rules.count, 1, "a rule Scyther cannot decode is skipped, not fatal")
         XCTAssertEqual(store.rules.map(\.name), ["valid"], "the rules either side of it still load")
+    }
+
+    // MARK: - Map local copies
+
+    /// Writes a throwaway document, standing in for one picked with the system file importer.
+    private func pickedFile(named name: String, contents: String) throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Picked.\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent(name)
+        try Data(contents.utf8).write(to: url)
+        return url
+    }
+
+    func testStoringAFileCopiesItIntoTheRulesDirectory() throws {
+        let store = makeStore()
+        let picked = try pickedFile(named: "users.json", contents: "[]")
+
+        let path = try XCTUnwrap(store.storeFile(at: picked))
+        let copy = URL(fileURLWithPath: path)
+        XCTAssertEqual(copy.deletingLastPathComponent().standardizedFileURL,
+                       bodyDirectory.standardizedFileURL)
+        XCTAssertNotNil(UUID(uuidString: copy.lastPathComponent),
+                        "the copy is named like a body so the sweep can reclaim it")
+        XCTAssertEqual(try Data(contentsOf: copy), Data("[]".utf8))
+    }
+
+    /// The copy is what makes the override survive the document going away, which is the whole
+    /// reason the file is copied rather than referenced.
+    func testACopiedFileOutlivesTheDocumentItWasCopiedFrom() throws {
+        let store = makeStore()
+        let picked = try pickedFile(named: "users.json", contents: "[1]")
+        let path = try XCTUnwrap(store.storeFile(at: picked))
+
+        try FileManager.default.removeItem(at: picked)
+
+        XCTAssertEqual(try Data(contentsOf: URL(fileURLWithPath: path)), Data("[1]".utf8))
+    }
+
+    func testStoringAFileThatCannotBeReadReturnsNil() {
+        let store = makeStore()
+        let missing = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString)/nothing.json")
+        XCTAssertNil(store.storeFile(at: missing))
+    }
+
+    func testRemovingAMapLocalRuleDeletesItsCopy() throws {
+        let store = makeStore()
+        let path = try XCTUnwrap(store.storeFile(at: try pickedFile(named: "users.json", contents: "[]")))
+        var rule = makeRule("map local")
+        rule.actions.stub = .mapLocal(MapLocalFile(relativePath: path, fileName: "users.json"))
+        store.add(rule)
+
+        store.remove(id: rule.id)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: path))
+    }
+
+    /// A map-local override pointing at a path Scyther did not write — one supplied from code —
+    /// must never have that file deleted out from under the host app.
+    func testRemovingAMapLocalRuleLeavesAPathItDidNotWriteAlone() throws {
+        let store = makeStore()
+        let picked = try pickedFile(named: "users.json", contents: "[]")
+        var rule = makeRule("map local")
+        rule.actions.stub = .mapLocal(MapLocalFile(relativePath: picked.path))
+        store.add(rule)
+
+        store.remove(id: rule.id)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: picked.path))
     }
 
     // MARK: - Body sweep
@@ -167,17 +238,39 @@ final class NetworkRuleStoreTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: stranger.path))
     }
 
+    func testSweepingTheStoreKeepsAFileAMapLocalRulePointsAt() async throws {
+        let store = makeStore()
+        let path = try XCTUnwrap(store.storeFile(at: try pickedFile(named: "users.json", contents: "[]")))
+        var rule = makeRule("map local")
+        rule.actions.stub = .mapLocal(MapLocalFile(relativePath: path, fileName: "users.json"))
+        store.add(rule)
+
+        let orphan = store.storeBody(Data("orphan".utf8))
+        try age(URL(fileURLWithPath: path))
+        try age(store.bodyURL(for: orphan))
+
+        store.sweepOrphanedBodies()
+
+        for _ in 0..<200 where store.bodyData(for: orphan) != nil {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        XCTAssertNil(store.bodyData(for: orphan))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: path),
+                      "the copy a map local override serves is still in use")
+    }
+
     func testSweepingTheStoreKeepsBodiesBothPersistedAndTransientRulesPointAt() async throws {
         let store = makeStore()
 
         let persistedBody = store.storeBody(Data("persisted".utf8))
         var persisted = makeRule("persisted")
-        persisted.action = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: persistedBody, delay: 0))
+        persisted.actions.stub = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: persistedBody, delay: 0))
         store.add(persisted)
 
         let transientBody = store.storeBody(Data("transient".utf8))
         var transient = makeRule("transient")
-        transient.action = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: transientBody, delay: 0))
+        transient.actions.stub = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: transientBody, delay: 0))
         store.addTransient(transient)
 
         let orphan = store.storeBody(Data("orphan".utf8))
@@ -303,7 +396,7 @@ final class NetworkRuleStartupTests: XCTestCase {
             name: "startup override",
             isEnabled: true,
             match: .host("startup.invalid"),
-            action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0))
+            actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0)))
         )
         NetworkRuleStore.shared.add(rule)
         defer { NetworkRuleStore.shared.remove(id: rule.id) }

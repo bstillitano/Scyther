@@ -45,30 +45,45 @@ final class NetworkRulesViewModelTests: XCTestCase {
     private func rule(
         named name: String,
         isEnabled: Bool = true,
-        action: NetworkRuleAction = .mock(MockResponse())
+        actions: NetworkRuleActions = NetworkRuleActions(stub: .mock(MockResponse()))
     ) -> NetworkRule {
-        NetworkRule(name: name, isEnabled: isEnabled, match: .path("/api/\(name)"), action: action)
+        NetworkRule(name: name, isEnabled: isEnabled, match: .path("/api/\(name)"), actions: actions)
     }
 
     // MARK: - Row presentation
 
-    func testSubtitleNamesTheActionAndTheEnabledState() {
+    func testSubtitleNamesTheOnlyAction() {
         let viewModel = NetworkRulesViewModel(store: store)
-        let enabled = rule(named: "cart", isEnabled: true)
+        XCTAssertEqual(viewModel.subtitle(for: rule(named: "cart")), localized("Mock Response"))
+    }
+
+    func testSubtitleNamesEveryActionAnOverrideCarries() {
+        let viewModel = NetworkRulesViewModel(store: store)
+        let composed = rule(named: "cart", actions: NetworkRuleActions(
+            stub: .mock(MockResponse()),
+            rewriteHeaders: NetworkHeaderRewrite(set: ["A": "1"]),
+            condition: NetworkCondition(latency: 1)
+        ))
         XCTAssertEqual(
-            viewModel.subtitle(for: enabled),
-            localized("Mock Response") + " \u{00B7} " + localized("On")
+            viewModel.subtitle(for: composed),
+            [localized("Mock Response"), localized("Rewrite Headers"), localized("Network Condition")]
+                .joined(separator: " \u{00B7} ")
         )
     }
 
-    func testSubtitleReadsAsOffForADisabledOverride() {
+    /// The subtitle no longer carries the enabled state: the row shows that by reading as
+    /// disabled, so saying it in words as well would be saying it twice.
+    func testSubtitleSaysNothingAboutTheEnabledState() {
         let viewModel = NetworkRulesViewModel(store: store)
-        let disabled = rule(named: "cart", isEnabled: false, action: .condition(NetworkCondition()))
-        XCTAssertEqual(
-            viewModel.subtitle(for: disabled),
-            localized("Network Condition") + " \u{00B7} " + localized("Off"),
-            "a disabled override must read as disabled from the text alone, without a recoloured row"
-        )
+        let enabled = rule(named: "cart", isEnabled: true)
+        let disabled = rule(named: "cart", isEnabled: false)
+        XCTAssertEqual(viewModel.subtitle(for: enabled), viewModel.subtitle(for: disabled))
+    }
+
+    func testSubtitleSaysSoWhenAnOverrideDoesNothing() {
+        let viewModel = NetworkRulesViewModel(store: store)
+        let inert = rule(named: "cart", actions: NetworkRuleActions())
+        XCTAssertEqual(viewModel.subtitle(for: inert), localized("No actions"))
     }
 
     /// A HAR document with `count` entries, each a distinct GET.

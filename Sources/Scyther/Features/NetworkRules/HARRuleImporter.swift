@@ -80,7 +80,7 @@ enum HARRuleImporter {
                 path: NetworkRulePattern(kind: .exact, value: path),
                 query: [:]
             ),
-            action: .mock(mock)
+            actions: NetworkRuleActions(stub: .mock(mock))
         )
     }
 

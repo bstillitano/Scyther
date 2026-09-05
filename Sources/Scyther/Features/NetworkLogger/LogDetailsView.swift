@@ -227,7 +227,7 @@ struct LogDetailsView: View {
                 } label: {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(rule.name)
-                        Text(rule.action.kind.title)
+                        Text(rule.actions.summary)
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }

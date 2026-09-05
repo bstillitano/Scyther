@@ -14,20 +14,20 @@
     "zh-Hans": "0 表示不限速。",
     "zh-Hant": "0 表示不限速。"
   },
-  "Action": {
-    "ar": "الإجراء",
-    "comment": "Section header and picker label for the behaviour an override performs",
-    "de": "Aktion",
-    "es": "Acción",
-    "fr": "Action",
-    "it": "Azione",
-    "ja": "アクション",
-    "ko": "동작",
-    "nl": "Actie",
-    "pt-BR": "Ação",
-    "ru": "Действие",
-    "zh-Hans": "操作",
-    "zh-Hant": "動作"
+  "A stubbed request is answered without leaving the device.": {
+    "comment": "Footer under the stub picker in the override editor",
+    "fr": "Une requête simulée reçoit une réponse sans quitter l'appareil.",
+    "de": "Eine ersetzte Anfrage wird beantwortet, ohne das Gerät zu verlassen.",
+    "es": "Una solicitud simulada se responde sin salir del dispositivo.",
+    "it": "Una richiesta simulata riceve risposta senza lasciare il dispositivo.",
+    "pt-BR": "Uma requisição simulada é respondida sem sair do dispositivo.",
+    "nl": "Een vervangen aanvraag wordt beantwoord zonder het apparaat te verlaten.",
+    "ja": "スタブされたリクエストは端末から送信されずに応答されます。",
+    "zh-Hans": "被桩替换的请求无需离开设备即可得到响应。",
+    "zh-Hant": "被樁取代的請求無需離開裝置即可獲得回應。",
+    "ko": "스텁된 요청은 기기를 벗어나지 않고 응답됩니다.",
+    "ru": "Запрос с заглушкой получает ответ, не покидая устройство.",
+    "ar": "يتم الرد على الطلب المستبدل دون مغادرة الجهاز."
   },
   "Add": {
     "ar": "إضافة",
@@ -59,6 +59,21 @@
     "zh-Hans": "添加标头",
     "zh-Hant": "新增標頭"
   },
+  "Also applies to a stubbed response.": {
+    "comment": "Footer under the Network Condition switch in the override editor",
+    "fr": "S'applique également à une réponse simulée.",
+    "de": "Gilt auch für eine ersetzte Antwort.",
+    "es": "También se aplica a una respuesta simulada.",
+    "it": "Si applica anche a una risposta simulata.",
+    "pt-BR": "Também se aplica a uma resposta simulada.",
+    "nl": "Geldt ook voor een vervangen antwoord.",
+    "ja": "スタブされた応答にも適用されます。",
+    "zh-Hans": "同样适用于桩响应。",
+    "zh-Hant": "同樣適用於樁回應。",
+    "ko": "스텁된 응답에도 적용됩니다.",
+    "ru": "Применяется и к подменённому ответу.",
+    "ar": "ينطبق أيضًا على الاستجابة المستبدلة."
+  },
   "Any method": {
     "ar": "أي أسلوب",
     "comment": "Value on the Methods row when no HTTP method has been selected",
@@ -88,6 +103,21 @@
     "ru": "Пропускная способность (КБ/с)",
     "zh-Hans": "带宽（KB/秒）",
     "zh-Hant": "頻寬（KB/秒）"
+  },
+  "Choose File": {
+    "comment": "Button opening the system file importer for a map local override",
+    "fr": "Choisir un fichier",
+    "de": "Datei auswählen",
+    "es": "Elegir archivo",
+    "it": "Scegli file",
+    "pt-BR": "Escolher arquivo",
+    "nl": "Kies bestand",
+    "ja": "ファイルを選択",
+    "zh-Hans": "选择文件",
+    "zh-Hant": "選擇檔案",
+    "ko": "파일 선택",
+    "ru": "Выбрать файл",
+    "ar": "اختيار ملف"
   },
   "Contains": {
     "ar": "يحتوي على",
@@ -296,21 +326,6 @@
     "ru": "Доля сбоев",
     "zh-Hans": "失败率",
     "zh-Hant": "失敗率"
-  },
-  "File path": {
-    "ar": "مسار الملف",
-    "comment": "Field holding the absolute path a map local override serves",
-    "de": "Dateipfad",
-    "es": "Ruta del archivo",
-    "fr": "Chemin du fichier",
-    "it": "Percorso del file",
-    "ja": "ファイルパス",
-    "ko": "파일 경로",
-    "nl": "Bestandspad",
-    "pt-BR": "Caminho do arquivo",
-    "ru": "Путь к файлу",
-    "zh-Hans": "文件路径",
-    "zh-Hant": "檔案路徑"
   },
   "Header name": {
     "ar": "اسم الترويسة",
@@ -580,6 +595,36 @@
     "zh-Hans": "无覆盖",
     "zh-Hant": "無覆寫"
   },
+  "No actions": {
+    "comment": "Row subtitle for an override that does nothing to the requests it matches",
+    "fr": "Aucune action",
+    "de": "Keine Aktionen",
+    "es": "Sin acciones",
+    "it": "Nessuna azione",
+    "pt-BR": "Sem ações",
+    "nl": "Geen acties",
+    "ja": "アクションなし",
+    "zh-Hans": "无操作",
+    "zh-Hant": "無動作",
+    "ko": "동작 없음",
+    "ru": "Нет действий",
+    "ar": "لا إجراءات"
+  },
+  "None": {
+    "comment": "Stub picker option meaning the request is not answered locally",
+    "fr": "Aucun",
+    "de": "Keine",
+    "es": "Ninguno",
+    "it": "Nessuno",
+    "pt-BR": "Nenhum",
+    "nl": "Geen",
+    "ja": "なし",
+    "zh-Hans": "无",
+    "zh-Hant": "無",
+    "ko": "없음",
+    "ru": "Нет",
+    "ar": "بلا"
+  },
   "Off": {
     "ar": "إيقاف",
     "comment": "Second half of an override row's subtitle, meaning the override is disabled",
@@ -595,35 +640,20 @@
     "zh-Hans": "关",
     "zh-Hant": "關"
   },
-  "On": {
-    "ar": "تشغيل",
-    "comment": "Second half of an override row's subtitle, meaning the override is enabled",
-    "de": "Ein",
-    "es": "Activado",
-    "fr": "Activé",
-    "it": "Attivo",
-    "ja": "オン",
-    "ko": "켬",
-    "nl": "Aan",
-    "pt-BR": "Ativado",
-    "ru": "Вкл.",
-    "zh-Hans": "开",
-    "zh-Hant": "開"
-  },
-  "Overrides are applied in order. The first matching mock or map local wins.": {
-    "ar": "تُطبَّق التجاوزات بالترتيب. يفوز أول محاكاة أو ملف محلي مطابق.",
-    "comment": "Footer under the master switch explaining override precedence",
-    "de": "Overrides werden der Reihe nach angewendet. Das erste passende Mock oder Map Local gewinnt.",
-    "es": "Las anulaciones se aplican en orden. Gana la primera simulación o archivo local que coincida.",
-    "fr": "Les remplacements sont appliqués dans l'ordre. La première simulation ou redirection locale correspondante l'emporte.",
-    "it": "Gli override vengono applicati in ordine. Vince il primo mock o file locale corrispondente.",
-    "ja": "上書きは順番に適用されます。最初に一致したモックまたはローカルファイルが優先されます。",
-    "ko": "재정의는 순서대로 적용됩니다. 처음 일치하는 목 응답 또는 로컬 파일이 우선합니다.",
-    "nl": "Overschrijvingen worden op volgorde toegepast. De eerste passende mock of lokaal bestand wint.",
-    "pt-BR": "As substituições são aplicadas em ordem. Vence a primeira simulação ou arquivo local correspondente.",
-    "ru": "Переопределения применяются по порядку. Побеждает первая подходящая подмена или локальный файл.",
-    "zh-Hans": "覆盖按顺序应用。第一个匹配的模拟响应或本地文件生效。",
-    "zh-Hant": "覆寫依序套用。第一個符合的模擬回應或本機檔案生效。"
+  "Overrides are applied in order. The first matching stub wins, and so does the first matching condition.": {
+    "ar": "تُطبَّق التجاوزات بالترتيب. تفوز أول استجابة بديلة مطابقة، وكذلك أول شرط مطابق.",
+    "comment": "Footer explaining that overrides are evaluated in order, per action",
+    "de": "Overrides werden der Reihe nach angewendet. Die erste passende Ersatzantwort gewinnt, ebenso die erste passende Bedingung.",
+    "es": "Las anulaciones se aplican en orden. Gana la primera respuesta simulada que coincida, y también la primera condición que coincida.",
+    "fr": "Les surcharges sont appliquées dans l'ordre. La première réponse simulée correspondante l'emporte, tout comme la première condition correspondante.",
+    "it": "Le sostituzioni vengono applicate in ordine. Vince la prima risposta simulata corrispondente e la prima condizione corrispondente.",
+    "ja": "オーバーライドは順に適用されます。最初に一致したスタブが優先され、最初に一致した条件も同様です。",
+    "ko": "재정의는 순서대로 적용됩니다. 처음 일치하는 스텁이 적용되며, 처음 일치하는 조건도 마찬가지입니다.",
+    "nl": "Overrides worden op volgorde toegepast. Het eerste passende vervangantwoord wint, net als de eerste passende conditie.",
+    "pt-BR": "As substituições são aplicadas em ordem. A primeira resposta simulada correspondente vence, assim como a primeira condição correspondente.",
+    "ru": "Переопределения применяются по порядку. Побеждает первая подходящая заглушка, а также первое подходящее условие.",
+    "zh-Hans": "覆盖规则按顺序应用。第一个匹配的桩响应生效，第一个匹配的条件同样生效。",
+    "zh-Hant": "覆寫規則會依序套用。第一個符合的樁回應生效，第一個符合的條件同樣生效。"
   },
   "Path matching": {
     "ar": "مطابقة المسار",
@@ -639,6 +669,21 @@
     "ru": "Сравнение пути",
     "zh-Hans": "路径匹配方式",
     "zh-Hant": "路徑比對方式"
+  },
+  "Recorded on the log. Nothing is sent while the request is stubbed.": {
+    "comment": "Footer under the Rewrite Headers switch in the override editor",
+    "fr": "Consigné dans le journal. Rien n'est envoyé tant que la requête est simulée.",
+    "de": "Wird im Protokoll erfasst. Es wird nichts gesendet, solange die Anfrage ersetzt wird.",
+    "es": "Se registra en el registro. No se envía nada mientras la solicitud está simulada.",
+    "it": "Registrato nel log. Non viene inviato nulla finché la richiesta è simulata.",
+    "pt-BR": "Registrado no log. Nada é enviado enquanto a requisição está simulada.",
+    "nl": "Vastgelegd in het logboek. Er wordt niets verzonden zolang de aanvraag wordt vervangen.",
+    "ja": "ログに記録されます。リクエストがスタブされている間は何も送信されません。",
+    "zh-Hans": "会记录到日志。请求被桩替换时不会发送任何内容。",
+    "zh-Hant": "會記錄到日誌。請求被樁取代時不會傳送任何內容。",
+    "ko": "로그에 기록됩니다. 요청이 스텁된 동안에는 아무것도 전송되지 않습니다.",
+    "ru": "Записывается в журнал. Пока запрос подменён, ничего не отправляется.",
+    "ar": "يُسجَّل في السجل. لا يُرسَل شيء أثناء استبدال الطلب."
   },
   "Registered by the app for this launch only. These overrides cannot be edited or reordered and do not persist.": {
     "ar": "سجّلها التطبيق لهذا التشغيل فقط. لا يمكن تحرير هذه التجاوزات أو إعادة ترتيبها ولا يتم حفظها.",
@@ -744,6 +789,36 @@
     "ru": "Задаваемые заголовки",
     "zh-Hans": "设置的标头",
     "zh-Hant": "設定的標頭"
+  },
+  "Stub": {
+    "comment": "Picker label choosing what answers a matching request in place of the network",
+    "fr": "Réponse simulée",
+    "de": "Ersatzantwort",
+    "es": "Respuesta simulada",
+    "it": "Risposta simulata",
+    "pt-BR": "Resposta simulada",
+    "nl": "Vervangantwoord",
+    "ja": "スタブ",
+    "zh-Hans": "桩响应",
+    "zh-Hant": "樁回應",
+    "ko": "스텁",
+    "ru": "Заглушка",
+    "ar": "استجابة بديلة"
+  },
+  "The selected file could not be copied.": {
+    "comment": "Alert message when a picked map local file could not be copied into the rules directory",
+    "fr": "Le fichier sélectionné n'a pas pu être copié.",
+    "de": "Die ausgewählte Datei konnte nicht kopiert werden.",
+    "es": "No se pudo copiar el archivo seleccionado.",
+    "it": "Impossibile copiare il file selezionato.",
+    "pt-BR": "Não foi possível copiar o arquivo selecionado.",
+    "nl": "Het geselecteerde bestand kon niet worden gekopieerd.",
+    "ja": "選択したファイルをコピーできませんでした。",
+    "zh-Hans": "无法复制所选文件。",
+    "zh-Hant": "無法複製所選檔案。",
+    "ko": "선택한 파일을 복사할 수 없습니다.",
+    "ru": "Не удалось скопировать выбранный файл.",
+    "ar": "تعذّر نسخ الملف المحدد."
   },
   "The selected file could not be read as a HAR document.": {
     "ar": "تعذّرت قراءة الملف المحدد كمستند HAR.",

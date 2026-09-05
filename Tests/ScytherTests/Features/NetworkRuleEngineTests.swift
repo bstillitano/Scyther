@@ -120,7 +120,7 @@ final class NetworkRuleEngineTests: XCTestCase {
         _ name: String,
         enabled: Bool = true,
         path: String? = nil,
-        action: NetworkRuleAction
+        actions: NetworkRuleActions
     ) -> NetworkRule {
         NetworkRule(
             id: UUID(),
@@ -132,12 +132,12 @@ final class NetworkRuleEngineTests: XCTestCase {
                 path: path.map { NetworkRulePattern(kind: .wildcard, value: $0) },
                 query: [:]
             ),
-            action: action
+            actions: actions
         )
     }
 
-    private var anyMock: NetworkRuleAction {
-        .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0))
+    private var anyMock: NetworkRuleActions {
+        NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0)))
     }
 
     func testNoRulesProducesAnEmptyOutcome() {
@@ -145,19 +145,19 @@ final class NetworkRuleEngineTests: XCTestCase {
     }
 
     func testDisabledRulesAreSkipped() {
-        let rules = [rule("off", enabled: false, action: anyMock)]
+        let rules = [rule("off", enabled: false, actions: anyMock)]
         XCTAssertEqual(NetworkRuleEngine.outcome(for: request(), rules: rules), .empty)
     }
 
     func testNonMatchingRulesAreSkipped() {
-        let rules = [rule("other", path: "/v2/*", action: anyMock)]
+        let rules = [rule("other", path: "/v2/*", actions: anyMock)]
         XCTAssertEqual(NetworkRuleEngine.outcome(for: request(), rules: rules), .empty)
     }
 
     func testFirstMatchingStubWinsAndShortCircuits() {
         let first = MockResponse(statusCode: 201, headers: [:], bodyID: nil, delay: 0)
         let second = MockResponse(statusCode: 500, headers: [:], bodyID: nil, delay: 0)
-        let rules = [rule("first", action: .mock(first)), rule("second", action: .mock(second))]
+        let rules = [rule("first", actions: NetworkRuleActions(stub: .mock(first))), rule("second", actions: NetworkRuleActions(stub: .mock(second)))]
         let outcome = NetworkRuleEngine.outcome(for: request(), rules: rules)
         XCTAssertEqual(outcome.stub, .mock(first))
         XCTAssertEqual(outcome.stubRuleName, "first")
@@ -166,7 +166,7 @@ final class NetworkRuleEngineTests: XCTestCase {
     func testFirstMatchingConditionWins() {
         let slow = NetworkCondition(latency: 5, bandwidthKBps: nil, failureRate: 0, failureCode: -1009)
         let slower = NetworkCondition(latency: 10, bandwidthKBps: nil, failureRate: 0, failureCode: -1009)
-        let rules = [rule("slow", action: .condition(slow)), rule("slower", action: .condition(slower))]
+        let rules = [rule("slow", actions: NetworkRuleActions(condition: slow)), rule("slower", actions: NetworkRuleActions(condition: slower))]
         let outcome = NetworkRuleEngine.outcome(for: request(), rules: rules)
         XCTAssertEqual(outcome.condition, slow)
         XCTAssertEqual(outcome.networkRuleNames, ["slow"])
@@ -174,8 +174,8 @@ final class NetworkRuleEngineTests: XCTestCase {
 
     func testEveryMatchingHeaderRewriteApplies() {
         let rules = [
-            rule("a", action: .rewriteHeaders(NetworkHeaderRewrite(set: ["A": "1", "Shared": "first"], remove: []))),
-            rule("b", action: .rewriteHeaders(NetworkHeaderRewrite(set: ["B": "2", "Shared": "second"], remove: ["Drop"]))),
+            rule("a", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["A": "1", "Shared": "first"], remove: []))),
+            rule("b", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["B": "2", "Shared": "second"], remove: ["Drop"]))),
         ]
         let rewrite = NetworkRuleEngine.outcome(for: request(), rules: rules).headerRewrite
         XCTAssertEqual(rewrite?.set["A"], "1")
@@ -187,9 +187,9 @@ final class NetworkRuleEngineTests: XCTestCase {
     func testActionsOfDifferentKindsCompose() {
         let condition = NetworkCondition(latency: 1, bandwidthKBps: nil, failureRate: 0, failureCode: -1009)
         let rules = [
-            rule("headers", action: .rewriteHeaders(NetworkHeaderRewrite(set: ["A": "1"], remove: []))),
-            rule("condition", action: .condition(condition)),
-            rule("mock", action: anyMock),
+            rule("headers", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["A": "1"], remove: []))),
+            rule("condition", actions: NetworkRuleActions(condition: condition)),
+            rule("mock", actions: anyMock),
         ]
         let outcome = NetworkRuleEngine.outcome(for: request(), rules: rules)
         XCTAssertEqual(outcome.headerRewrite?.set["A"], "1")
@@ -209,24 +209,89 @@ final class NetworkRuleEngineTests: XCTestCase {
 
     func testMapLocalIsAlsoAStub() {
         let file = MapLocalFile(relativePath: "fixtures/users.json", statusCode: 200, contentType: "application/json", delay: 0)
-        let outcome = NetworkRuleEngine.outcome(for: request(), rules: [rule("file", action: .mapLocal(file))])
+        let outcome = NetworkRuleEngine.outcome(for: request(), rules: [rule("file", actions: NetworkRuleActions(stub: .mapLocal(file)))])
         XCTAssertEqual(outcome.stub, .mapLocal(file))
     }
 
     func testAKeySetByOneRuleAndRemovedByAnotherAppearsInBoth() {
         let rules = [
-            rule("sets", action: .rewriteHeaders(NetworkHeaderRewrite(set: ["Authorization": "Bearer test"], remove: []))),
-            rule("removes", action: .rewriteHeaders(NetworkHeaderRewrite(set: [:], remove: ["Authorization"]))),
+            rule("sets", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["Authorization": "Bearer test"], remove: []))),
+            rule("removes", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: [:], remove: ["Authorization"]))),
         ]
         let rewrite = NetworkRuleEngine.outcome(for: request(), rules: rules).headerRewrite
         XCTAssertEqual(rewrite?.set["Authorization"], "Bearer test")
         XCTAssertEqual(rewrite?.remove, ["Authorization"])
     }
 
+    func testOneRuleCanStubRewriteAndConditionAtOnce() {
+        let condition = NetworkCondition(latency: 2, bandwidthKBps: 64, failureRate: 0.5)
+        let mock = MockResponse(statusCode: 201, headers: [:], bodyID: nil, delay: 0)
+        let composed = rule("everything", actions: NetworkRuleActions(
+            stub: .mock(mock),
+            rewriteHeaders: NetworkHeaderRewrite(set: ["A": "1"], remove: ["B"]),
+            condition: condition
+        ))
+        let outcome = NetworkRuleEngine.outcome(for: request(), rules: [composed])
+
+        XCTAssertEqual(outcome.stub, .mock(mock))
+        XCTAssertEqual(outcome.headerRewrite?.set["A"], "1")
+        XCTAssertEqual(outcome.condition, condition)
+    }
+
+    /// The whole point of the change: a stub no longer suppresses a condition that matched, so
+    /// "mock this endpoint and make it slow" is expressible with two overrides as well as one.
+    func testAStubDoesNotSuppressAConditionFromAnotherRule() {
+        let condition = NetworkCondition(latency: 3)
+        let outcome = NetworkRuleEngine.outcome(for: request(), rules: [
+            rule("mock", actions: anyMock),
+            rule("slow", actions: NetworkRuleActions(condition: condition)),
+        ])
+        XCTAssertNotNil(outcome.stub)
+        XCTAssertEqual(outcome.condition, condition)
+        XCTAssertEqual(outcome.networkRuleNames, ["slow"])
+    }
+
+    func testStubbedCreditsNameTheStubFirstThenEverythingElse() {
+        let outcome = NetworkRuleEngine.outcome(for: request(), rules: [
+            rule("rewrite", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["A": "1"]))),
+            rule("mock", actions: anyMock),
+            rule("slow", actions: NetworkRuleActions(condition: NetworkCondition(latency: 1))),
+        ])
+        XCTAssertEqual(outcome.stubbedCredits.names, ["mock", "rewrite", "slow"])
+        XCTAssertEqual(outcome.stubbedCredits.ids.count, 3)
+    }
+
+    func testStubbedCreditsNameARuleCarryingSeveralActionsOnlyOnce() {
+        let composed = rule("everything", actions: NetworkRuleActions(
+            stub: .mock(MockResponse()),
+            condition: NetworkCondition(latency: 1)
+        ))
+        let outcome = NetworkRuleEngine.outcome(for: request(), rules: [composed])
+        XCTAssertEqual(outcome.stubbedCredits.names, ["everything"])
+        XCTAssertEqual(outcome.stubbedCredits.ids, [composed.id])
+    }
+
+    /// A rule that matched but whose every facet was already filled by an earlier rule did
+    /// nothing, and is not credited for it.
+    func testARuleWhoseConditionLostIsNotCredited() {
+        let outcome = NetworkRuleEngine.outcome(for: request(), rules: [
+            rule("first", actions: NetworkRuleActions(condition: NetworkCondition(latency: 1))),
+            rule("second", actions: NetworkRuleActions(condition: NetworkCondition(latency: 9))),
+        ])
+        XCTAssertEqual(outcome.condition?.latency, 1)
+        XCTAssertEqual(outcome.networkRuleNames, ["first"])
+    }
+
+    func testAnOverrideWithNoActionsChangesNothing() {
+        let outcome = NetworkRuleEngine.outcome(for: request(),
+                                                rules: [rule("inert", actions: NetworkRuleActions())])
+        XCTAssertEqual(outcome, .empty)
+    }
+
     func testAKeyRemovedByOneRuleAndSetByAnotherAlsoAppearsInBoth() {
         let rules = [
-            rule("removes", action: .rewriteHeaders(NetworkHeaderRewrite(set: [:], remove: ["Authorization"]))),
-            rule("sets", action: .rewriteHeaders(NetworkHeaderRewrite(set: ["Authorization": "Bearer test"], remove: []))),
+            rule("removes", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: [:], remove: ["Authorization"]))),
+            rule("sets", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["Authorization": "Bearer test"], remove: []))),
         ]
         let rewrite = NetworkRuleEngine.outcome(for: request(), rules: rules).headerRewrite
         XCTAssertEqual(rewrite?.set["Authorization"], "Bearer test")

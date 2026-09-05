@@ -162,6 +162,24 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// - Note: Only ever touched on ``deliveryQueue``.
     private var bandwidthSleepUsed: TimeInterval = 0
 
+    /// The stubbed response waiting to be written to the log once its paced bytes have all
+    /// reached the client, or `nil` when nothing stubbed this request.
+    ///
+    /// An unpaced stub is logged inline, the moment it has been delivered. A paced one is
+    /// delivered over time and its log entry has to wait for the last chunk, so it is parked here
+    /// and written by ``drain()``. Cleared without being written when the request is cancelled
+    /// part-way through, because a response the client never received is not one the log should
+    /// claim was served.
+    ///
+    /// - Note: Only ever touched on ``deliveryQueue``.
+    private var pendingStubLog: (response: HTTPURLResponse, body: Data)?
+
+    /// The size of one paced piece of a stubbed body, in bytes.
+    ///
+    /// Chosen to sit in the same range as the chunks `URLSession` hands its delegate, so a
+    /// synthetic body is paced with roughly the granularity a real one is.
+    private static let stubChunkSize = 8 * 1024
+
     /// Seconds of pacing this request has asked for so far.
     ///
     /// - Note: Internal so a test can assert the budget is spent across the whole request rather
@@ -264,43 +282,53 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         let outcome = snapshot.isEnabled
             ? NetworkRuleEngine.outcome(for: request, rules: snapshot.rules)
             : .empty
-        condition = outcome.condition
 
-        /// Credit only the overrides that shaped the path actually taken. A mock returns before
-        /// the rewrite is applied and before the condition is honoured, so listing every matching
-        /// override would have the log's Overrides row naming ones that did nothing.
+        /// Global conditioning is a floor, not an addition: a matching override's own condition
+        /// replaces it outright, so conditioning one endpoint still beats whatever the whole app
+        /// is set to. Adding the two would make a targeted "fast path" impossible to express.
+        let condition = outcome.condition ?? snapshot.globalCondition
+        self.condition = condition
+
+        /// A stub short-circuits the network, but no longer suppresses the other two actions. The
+        /// condition applies to the synthesised response — it delays, paces and can fail it — and
+        /// the rewrite is applied to the request the *log* describes, so the log shows what would
+        /// have gone out even though nothing does. Both are credited accordingly.
         if let stub = outcome.stub, let url = request.url {
             let bodies = { NetworkRuleStore.bodyDataOffMainActor(for: $0) }
             if let (response, body) = NetworkRuleStubResponder.response(for: stub, url: url, bodyProvider: bodies) {
                 /// Names and ids are parallel: same length, same order, one entry per override
                 /// credited. The details page looks the override up by id and shows the name, so
                 /// the two are always assigned together and must never be allowed to drift.
-                model.appliedRuleNames = outcome.stubRuleName.map { [$0] } ?? []
-                model.appliedRuleIDs = outcome.stubRuleID.map { [$0] } ?? []
-                let delay = min(NetworkRuleStubResponder.delay(for: stub), Self.maximumDelay)
-                perform(after: delay) { $0.serve(response, body: body) }
+                let credits = outcome.stubbedCredits
+                model.appliedRuleNames = credits.names
+                model.appliedRuleIDs = credits.ids
+                _ = rewrittenRequest(applying: outcome.headerRewrite)
+
+                /// The stub's own delay and the condition's latency are both "wait before this
+                /// answers", so they add rather than one silently winning — then the pair is
+                /// clamped once, so two reasonable numbers cannot combine into an apparent hang.
+                let delay = min(stub.delay + (condition?.latency ?? 0), Self.maximumDelay)
+                perform(after: delay) { interceptor in
+                    if let condition, interceptor.shouldFail(condition) {
+                        interceptor.failRequest(with: condition)
+                        return
+                    }
+                    interceptor.serve(response, body: body)
+                }
                 return
             }
         }
 
         /// Either nothing stubbed this request or the stub could not be produced — a map-local
-        /// file that has been deleted, say — so it goes to the network and the rules that shape
-        /// it there are the ones to credit. Names and ids stay parallel, as on the stub path
-        /// above: same length, same order, assigned together.
+        /// file that has been deleted, say — so it goes to the network. The stub is not credited,
+        /// because it served nothing; everything else that matched is. Names and ids stay
+        /// parallel, as on the stub path above: same length, same order, assigned together.
         model.appliedRuleNames = outcome.networkRuleNames
         model.appliedRuleIDs = outcome.networkRuleIDs
 
         /// Continue executing request
-        guard let mutableRequest = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest else {
+        guard let mutableRequest = rewrittenRequest(applying: outcome.headerRewrite) else {
             return
-        }
-
-        /// Apply any header rewrite, then re-capture the request so the log describes what actually
-        /// goes on the wire. Without the second `saveRequest` a developer checking whether their
-        /// rewrite rule worked would see the pre-rewrite headers and cURL and conclude it had not.
-        if let rewrite = outcome.headerRewrite {
-            rewrite.apply(to: mutableRequest)
-            model.saveRequest(mutableRequest as URLRequest)
         }
 
         URLProtocol.setProperty(true, forKey: internalNetworkRequestKey, in: mutableRequest)
@@ -309,7 +337,6 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         /// "slow and flaky" condition at t = 0, which is not how a degraded link behaves: a
         /// request that is going to time out still waits before it does.
         let outgoing = mutableRequest as URLRequest
-        let condition = outcome.condition
         let latency = min(condition?.latency ?? 0, Self.maximumDelay)
         perform(after: latency) { interceptor in
             if let condition, interceptor.shouldFail(condition) {
@@ -318,6 +345,26 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
             }
             interceptor.beginTask(with: outgoing)
         }
+    }
+
+    /// A mutable copy of the request with any header rewrite applied, and the log brought up to
+    /// date with it.
+    ///
+    /// Without the second `saveRequest` a developer checking whether their rewrite worked would
+    /// see the pre-rewrite headers and cURL and conclude it had not. The log is re-captured on the
+    /// stubbed path too, where the copy itself is discarded: nothing goes on the wire there, but
+    /// the log still has to describe the request the app would have sent.
+    ///
+    /// - Parameter rewrite: The merged rewrite, or `nil` when no override asked for one.
+    /// - Returns: The copy, or `nil` in the impossible case that the request cannot be copied.
+    private func rewrittenRequest(applying rewrite: NetworkHeaderRewrite?) -> NSMutableURLRequest? {
+        guard let mutableRequest = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest else {
+            return nil
+        }
+        guard let rewrite else { return mutableRequest }
+        rewrite.apply(to: mutableRequest)
+        model.saveRequest(mutableRequest as URLRequest)
+        return mutableRequest
     }
 
     /// Whether this request is the one a condition's failure rate takes out.
@@ -423,6 +470,14 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     ///   - body: The response body.
     private func serve(_ response: HTTPURLResponse, body: Data) {
         guard !hasBeenCancelled else { return }
+
+        /// A bandwidth ceiling paces a synthetic body exactly as it paces one off the wire, by
+        /// going through the same delivery pump. Nothing else about the stub changes.
+        guard !isPaced else {
+            enqueueStub(response, body: body)
+            return
+        }
+
         client?.urlProtocol(self,
                             didReceive: response,
                             cacheStoragePolicy: NetworkHelper.instance.cacheStoragePolicy)
@@ -433,6 +488,19 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         guard !hasBeenCancelled else { return }
         client?.urlProtocolDidFinishLoading(self)
 
+        logStub(response, body: body)
+    }
+
+    /// Records a served stub in the network log.
+    ///
+    /// Called once the client has been handed the whole response, never before: a response the
+    /// client never received — because it cancelled part-way through a paced delivery — is not
+    /// one the log should claim was served.
+    ///
+    /// - Parameters:
+    ///   - response: The response that was served.
+    ///   - body: The bytes that were served with it.
+    private func logStub(_ response: HTTPURLResponse, body: Data) {
         model.saveRequestBody(request)
         model.logRequest(request)
         model.wasStubbed = true
@@ -442,6 +510,49 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         Task { @MainActor in
             await NetworkLogger.instance.add(capturedModel)
             NotificationCenter.default.post(name: .LoggerReloadData, object: nil)
+        }
+    }
+
+    /// Hands a stubbed response to the pacing pump in chunks, so a bandwidth ceiling applies to it.
+    ///
+    /// The whole response — headers, every chunk and the terminal callback — is appended in one
+    /// hop onto ``deliveryQueue``, which is the queue that owns ``pendingSteps``,
+    /// ``pendingStubLog`` and ``isDraining``. Appending from here instead would touch that state
+    /// from the thread the URL loading system gave us.
+    ///
+    /// - Parameters:
+    ///   - response: The response to serve.
+    ///   - body: The bytes to pace.
+    private func enqueueStub(_ response: HTTPURLResponse, body: Data) {
+        let chunks = Self.chunks(of: body)
+        deliveryQueue.async { [weak self] in
+            guard let self else { return }
+            self.pendingStubLog = (response, body)
+            self.pendingSteps.append(.begin(response))
+            self.pendingSteps.append(contentsOf: chunks.map(PacedStep.data))
+            self.pendingSteps.append(.finish(nil))
+            guard !self.isDraining else { return }
+            self.isDraining = true
+            self.drain()
+        }
+    }
+
+    /// Splits a stubbed body into the pieces the ceiling paces.
+    ///
+    /// A synthetic body arrives all at once, so without splitting it the ceiling would delay the
+    /// whole response and then deliver it in one burst — an accurate total time, but not a
+    /// throttled transfer. `URLSession` hands a real body over in chunks of its own choosing and
+    /// the throttle is built for that, so a stub is cut to a comparable size.
+    ///
+    /// An empty body still yields one empty chunk, so a paced stub delivers the same callbacks in
+    /// the same order as an unpaced one.
+    ///
+    /// - Parameter body: The whole synthetic body.
+    /// - Returns: The body in order, in pieces of at most ``stubChunkSize`` bytes.
+    private static func chunks(of body: Data) -> [Data] {
+        guard body.count > stubChunkSize else { return [body] }
+        return stride(from: 0, to: body.count, by: stubChunkSize).map { start in
+            body.subdata(in: start..<min(start + stubChunkSize, body.count))
         }
     }
 
@@ -554,6 +665,7 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
         while true {
             if hasBeenCancelled {
                 pendingSteps.removeAll()
+                pendingStubLog = nil
                 isDraining = false
                 return
             }
@@ -593,6 +705,12 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
 
             case .finish(let error):
                 deliverTerminal(error)
+                if let stub = pendingStubLog {
+                    logStub(stub.response, body: stub.body)
+                    pendingStubLog = nil
+                }
+                /// A stubbed request never started a task, so there is no session to invalidate;
+                /// the optional chain is what makes the two paths share this one step.
                 stateLock.withLock { session }?.finishTasksAndInvalidate()
                 isDraining = false
                 return

@@ -6,22 +6,45 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
-/// The Action-specific sections of ``NetworkRuleEditorView``.
+/// The action sections of ``NetworkRuleEditorView``: what answers the request, what is rewritten
+/// on it, and how it is conditioned.
 ///
-/// Split out of the editor so that each behaviour's fields can be read in one place rather than
-/// buried inside a four-way `switch` in the middle of the form. Every field binds straight to
-/// ``NetworkRuleEditorViewModel``, which folds it back into the draft rule's action.
+/// Split out of the editor so that the three actions can be read in one place rather than buried
+/// in the middle of the form. Each has its own switch and its own fields, because an override
+/// composes as many of them as it likes — a mocked endpoint can be slow, and a conditioned one can
+/// carry a rewrite. Every field binds straight to ``NetworkRuleEditorViewModel``, which folds it
+/// back into the draft rule.
 struct NetworkRuleActionFields: View {
     /// The editor's view model.
     @ObservedObject var viewModel: NetworkRuleEditorViewModel
 
+    /// Whether the system file importer is presented for a map-local file.
+    @State private var isImportingFile: Bool = false
+
     var body: some View {
-        switch viewModel.actionKind {
-        case .mock: mockFields
-        case .mapLocal: mapLocalFields
-        case .rewriteHeaders: rewriteFields
-        case .condition: conditionFields
+        stubSection
+        if viewModel.stubKind == .mock { mockFields }
+        if viewModel.stubKind == .mapLocal { mapLocalFields }
+        rewriteSection
+        if viewModel.isRewritingHeaders { rewriteFields }
+        conditionSection
+        if viewModel.isConditioning { conditionFields }
+    }
+
+    // MARK: - Stub
+
+    /// The picker choosing what answers the request in place of the network.
+    private var stubSection: some View {
+        Section {
+            Picker(localized("Stub"), selection: $viewModel.stubKind) {
+                ForEach(NetworkRuleStubKind.allCases) { kind in
+                    Text(kind.title).tag(kind)
+                }
+            }
+        } footer: {
+            Text(localized("A stubbed request is answered without leaving the device."))
         }
     }
 
@@ -51,13 +74,31 @@ struct NetworkRuleActionFields: View {
         }
     }
 
-    /// File path, status code, content type and delay for a map-local response.
+    /// The picked file, status code, content type and delay for a map-local response.
+    ///
+    /// The file is chosen with the system file importer and copied into the rules directory, so
+    /// there is nothing to type: a container path is not something anyone can enter on a device,
+    /// and a path to a document outside the app cannot be read again after a relaunch.
     @ViewBuilder
     private var mapLocalFields: some View {
         Section(localized("Map Local File")) {
-            TextField(localized("File path"), text: $viewModel.filePath)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+            LabeledContent(localized("File"), value: viewModel.mapLocalSummary)
+            Button {
+                isImportingFile = true
+            } label: {
+                Label(localized("Choose File"), systemImage: "folder")
+            }
+            .fileImporter(isPresented: $isImportingFile, allowedContentTypes: [.data]) { result in
+                switch result {
+                case .success(let url): viewModel.importMapLocalFile(from: url)
+                case .failure: viewModel.reportFileImportFailure()
+                }
+            }
+            .alert(localized("Import Failed"), isPresented: $viewModel.didFailToImportFile) {
+                Button(localized("OK"), role: .cancel) { viewModel.didFailToImportFile = false }
+            } message: {
+                Text(localized("The selected file could not be copied."))
+            }
             LabeledContent(localized("Response Code")) {
                 TextField(localized("Response Code"), value: $viewModel.statusCode, format: .number)
                     .multilineTextAlignment(.trailing)
@@ -74,6 +115,17 @@ struct NetworkRuleActionFields: View {
         }
     }
 
+    // MARK: - Rewrite
+
+    /// The switch turning the header rewrite on, and what it means alongside a stub.
+    private var rewriteSection: some View {
+        Section {
+            Toggle(localized("Rewrite Headers"), isOn: $viewModel.isRewritingHeaders)
+        } footer: {
+            Text(localized("Recorded on the log. Nothing is sent while the request is stubbed."))
+        }
+    }
+
     /// The headers a rewrite sets, and the header names it removes.
     @ViewBuilder
     private var rewriteFields: some View {
@@ -82,6 +134,17 @@ struct NetworkRuleActionFields: View {
         }
         Section(localized("Remove headers")) {
             NetworkRuleHeaderFields(fields: $viewModel.removedHeaders, showsValue: false)
+        }
+    }
+
+    // MARK: - Condition
+
+    /// The switch turning conditioning on, and the note that it reaches a stub too.
+    private var conditionSection: some View {
+        Section {
+            Toggle(localized("Network Condition"), isOn: $viewModel.isConditioning)
+        } footer: {
+            Text(localized("Also applies to a stubbed response."))
         }
     }
 
@@ -99,8 +162,6 @@ struct NetworkRuleActionFields: View {
                     .multilineTextAlignment(.trailing)
                     .keyboardType(.numberPad)
             }
-        } header: {
-            Text(localized("Network Condition"))
         } footer: {
             Text(localized("0 means unthrottled."))
         }

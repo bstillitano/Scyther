@@ -12,12 +12,12 @@ import SwiftUI
 /// Pushed from a row of ``NetworkRulesView`` when editing, and presented as a sheet when creating.
 /// It deliberately does not wrap itself in a `NavigationStack` — the pushed case already sits in
 /// one, and the sheet supplies its own — so the same view serves both. Nothing is written until
-/// **Save** is tapped, and **Save** stays disabled until the override is named and given a host,
-/// path or query — see ``NetworkRuleEditorViewModel/isValid``.
+/// the override is confirmed, and the confirm button stays disabled until it is named, given a
+/// host, path or query, and given something to do — see ``NetworkRuleEditorViewModel/isValid``.
 ///
-/// The Action section swaps its fields for whichever behaviour the picker names, and remembers
-/// what was typed into the others, so comparing two ways of stubbing the same endpoint does not
-/// mean retyping either of them.
+/// The action sections each carry their own switch — a stub, a header rewrite and a condition all
+/// compose — and remember what was typed into them while they are off, so comparing two ways of
+/// shaping the same endpoint does not mean retyping either of them.
 struct NetworkRuleEditorView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -90,14 +90,6 @@ struct NetworkRuleEditorView: View {
                     .keyboardType(.URL)
                 Picker(localized("Path matching"), selection: $viewModel.pathKind) {
                     ForEach(NetworkRuleEditorViewModel.patternKinds, id: \.self) { kind in
-                        Text(kind.title).tag(kind)
-                    }
-                }
-            }
-
-            Section(localized("Action")) {
-                Picker(localized("Action"), selection: $viewModel.actionKind) {
-                    ForEach(NetworkRuleActionKind.allCases) { kind in
                         Text(kind.title).tag(kind)
                     }
                 }
