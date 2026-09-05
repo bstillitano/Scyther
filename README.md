@@ -537,8 +537,12 @@ dragging a row is what changes precedence:
 - The **first** matching stub — a mock or a map local — wins and short-circuits the network.
 - The **first** matching condition supplies the latency, bandwidth ceiling and failure rate;
   conditions are not stacked.
-- **Every** matching header rewrite applies, a later one winning a collision. Within one rewrite,
-  headers are set before any are removed, so a header named in both ends up removed.
+- **Every** matching header rewrite applies, and the **last** override to name a header decides
+  what happens to it — a later `set` beats an earlier `remove` exactly as it beats an earlier
+  `set`, and a later `remove` beats an earlier `set`. Header names are compared
+  case-insensitively, so `Authorization` and `authorization` are one header. Within one rewrite
+  there is no order to appeal to, so headers are set before any are removed and a header named in
+  both ends up removed.
 
 #### What Matching Compares
 

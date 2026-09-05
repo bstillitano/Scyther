@@ -349,12 +349,12 @@ final class NetworkRuleEngineTests: XCTestCase {
         XCTAssertEqual(
             outcome.stubRuleName,
             "mock",
-            "a served stub is the only override that shaped the request"
+            "the stub is credited separately, because that credit depends on it being producible"
         )
         XCTAssertEqual(
             outcome.networkRuleNames,
             ["headers", "condition"],
-            "the rewrite and the condition are only credited when the request actually goes out"
+            "the rewrite and the condition are credited in rule order, stubbed or not"
         )
     }
 
@@ -364,14 +364,77 @@ final class NetworkRuleEngineTests: XCTestCase {
         XCTAssertEqual(outcome.stub, .mapLocal(file))
     }
 
-    func testAKeySetByOneRuleAndRemovedByAnotherAppearsInBoth() {
+    /// Precedence is rule order, whichever way round the two rules are. The merged outcome names
+    /// a header once, so the engine adjudicates instead of leaving the consumer to.
+    func testALaterRemoveBeatsAnEarlierSet() {
         let rules = [
             rule("sets", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["Authorization": "Bearer test"], remove: []))),
             rule("removes", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: [:], remove: ["Authorization"]))),
         ]
         let rewrite = NetworkRuleEngine.outcome(for: request(), rules: rules).headerRewrite
-        XCTAssertEqual(rewrite?.set["Authorization"], "Bearer test")
+        XCTAssertNil(rewrite?.set["Authorization"], "the later remove wins outright")
         XCTAssertEqual(rewrite?.remove, ["Authorization"])
+    }
+
+    /// Within one rewrite there is no rule order to appeal to, so `set` is applied before
+    /// `remove` and a header named in both ends up removed.
+    func testWithinOneRewriteRemoveStillBeatsSet() {
+        let rules = [
+            rule("both", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(
+                set: ["Authorization": "Bearer test"],
+                remove: ["Authorization"]
+            ))),
+        ]
+        let rewrite = NetworkRuleEngine.outcome(for: request(), rules: rules).headerRewrite
+        XCTAssertNil(rewrite?.set["Authorization"])
+        XCTAssertEqual(rewrite?.remove, ["Authorization"])
+    }
+
+    /// Header names are case-insensitive on the wire, so two spellings are one header. Keying a
+    /// case-sensitive dictionary let both survive into the merged rewrite, and which one
+    /// `NSMutableURLRequest` ended up carrying depended on the order a Swift dictionary happened
+    /// to iterate in — a coin flip re-tossed on every launch.
+    func testTwoSpellingsOfOneHeaderNameResolveToOneWinner() {
+        let rules = [
+            rule("first", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["Authorization": "first"]))),
+            rule("second", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["authorization": "second"]))),
+        ]
+        let rewrite = NetworkRuleEngine.outcome(for: request(), rules: rules).headerRewrite
+        XCTAssertEqual(rewrite?.set.count, 1, "two spellings of one header name are one header")
+        XCTAssertEqual(rewrite?.set["authorization"], "second", "the later rule wins, under its own spelling")
+    }
+
+    /// And the case-insensitivity holds across the two operations: removing `AUTHORIZATION`
+    /// cancels a set of `Authorization`, because they are the same header.
+    func testARemoveCancelsAnEarlierSetSpelledInAnotherCase() {
+        let rules = [
+            rule("sets", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["Authorization": "Bearer test"]))),
+            rule("removes", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(remove: ["AUTHORIZATION"]))),
+        ]
+        let rewrite = NetworkRuleEngine.outcome(for: request(), rules: rules).headerRewrite
+        XCTAssertTrue(rewrite?.set.isEmpty == true)
+        XCTAssertEqual(rewrite?.remove, ["AUTHORIZATION"])
+    }
+
+    /// A rewrite that sets and removes nothing changes nothing, so it is not reported as a
+    /// rewrite and its override is not credited with one. Reporting it cost the interceptor a
+    /// second `saveRequest` of an untouched request.
+    func testARewriteThatChangesNothingIsNeitherReportedNorCredited() {
+        let outcome = NetworkRuleEngine.outcome(for: request(), rules: [
+            rule("inert", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite())),
+        ])
+        XCTAssertNil(outcome.headerRewrite, "an empty rewrite is not a rewrite")
+        XCTAssertEqual(outcome, .empty)
+    }
+
+    /// Credits are in rule order, not in facet order: an override that supplied the condition is
+    /// named before a later one that rewrote headers.
+    func testOverridesAreCreditedInRuleOrder() {
+        let outcome = NetworkRuleEngine.outcome(for: request(), rules: [
+            rule("slow", actions: NetworkRuleActions(condition: NetworkCondition(latency: 1))),
+            rule("headers", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["A": "1"]))),
+        ])
+        XCTAssertEqual(outcome.networkRuleNames, ["slow", "headers"])
     }
 
     func testOneRuleCanStubRewriteAndConditionAtOnce() {
@@ -439,13 +502,17 @@ final class NetworkRuleEngineTests: XCTestCase {
         XCTAssertEqual(outcome, .empty)
     }
 
-    func testAKeyRemovedByOneRuleAndSetByAnotherAlsoAppearsInBoth() {
+    /// The mirror image of ``testALaterRemoveBeatsAnEarlierSet()``: a later override that sets a
+    /// header an earlier one removed wins, so re-ordering the list really does change the
+    /// outcome. This is the assertion the two of them used to lack — both merely checked that the
+    /// key appeared in `set` and in `remove`, which was true whichever rule was meant to win.
+    func testALaterSetBeatsAnEarlierRemove() {
         let rules = [
             rule("removes", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: [:], remove: ["Authorization"]))),
             rule("sets", actions: NetworkRuleActions(rewriteHeaders: NetworkHeaderRewrite(set: ["Authorization": "Bearer test"], remove: []))),
         ]
         let rewrite = NetworkRuleEngine.outcome(for: request(), rules: rules).headerRewrite
         XCTAssertEqual(rewrite?.set["Authorization"], "Bearer test")
-        XCTAssertEqual(rewrite?.remove, ["Authorization"], "order of the rules does not change the outcome shape")
+        XCTAssertEqual(rewrite?.remove, [], "the later set wins outright")
     }
 }

@@ -87,7 +87,8 @@ Scyther is fully compatible with Swift 6 strict concurrency. Key components use 
 - ``NetworkRule``
 - ``NetworkRuleMatch``
 - ``NetworkRulePattern``
-- ``NetworkRuleAction``
+- ``NetworkRuleActions``
+- ``NetworkRuleStub``
 - ``MockResponse``
 - ``MapLocalFile``
 - ``NetworkHeaderRewrite``

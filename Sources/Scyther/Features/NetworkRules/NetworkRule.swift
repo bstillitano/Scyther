@@ -572,13 +572,20 @@ private extension Double {
     var finiteOrZero: Double { isFinite ? self : 0 }
 }
 
-public extension NetworkHeaderRewrite {
+internal extension NetworkHeaderRewrite {
     /// Applies this rewrite to an outgoing request, in place.
     ///
     /// Every entry in ``set`` is applied first and every name in ``remove`` second, so a header
     /// named in both ends up removed. Applying them the other way round would silently keep a
     /// header a rule asked to remove, which is why the order lives in one tested place rather
     /// than at each call site.
+    ///
+    /// A rewrite merged by ``NetworkRuleEngine`` never names one header in both, so for that one
+    /// the order is immaterial; it matters for a rewrite built by hand.
+    ///
+    /// - Note: Internal, not public. It takes an `NSMutableURLRequest` because the interceptor
+    ///   holds one, and putting a Foundation mutable-reference type in the public surface for a
+    ///   single internal call site is not worth the API it commits to.
     ///
     /// - Parameter request: The request to rewrite. Mutated in place.
     func apply(to request: NSMutableURLRequest) {

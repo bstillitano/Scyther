@@ -127,8 +127,11 @@ constraint, and host and path accept `*` as a wildcard. Overrides are evaluated 
 - The **first** matching mock or map local wins and short-circuits the network.
 - The **first** matching condition supplies the latency, bandwidth ceiling and failure rate;
   they are not stacked from several overrides.
-- **Every** matching header rewrite applies, a later one winning a collision. Within a single
-  rewrite, `set` is applied before `remove`, so a header named in both ends up removed.
+- **Every** matching header rewrite applies, and the **last** override to name a header decides
+  what happens to it: a later `set` beats an earlier `remove` just as it beats an earlier `set`,
+  and a later `remove` beats an earlier `set`. Header names are compared case-insensitively, so
+  `Authorization` and `authorization` are one header. Within a single rewrite there is no order to
+  appeal to, so `set` is applied before `remove` and a header named in both ends up removed.
 
 Reordering the list is what changes precedence.
 

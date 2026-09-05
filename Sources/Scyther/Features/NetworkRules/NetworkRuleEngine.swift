@@ -8,52 +8,53 @@
 import Foundation
 
 /// The result of evaluating every enabled rule against one request.
-public struct RuleOutcome: Sendable, Equatable {
+struct RuleOutcome: Sendable, Equatable {
     /// Headers to apply to the outgoing request, merged from every matching rewrite.
     ///
-    /// A consumer must apply every entry in `set` first, then remove every name in `remove`,
-    /// so that a key present in both ends up removed. Applying them in the opposite order would
-    /// silently keep a header a rule asked to remove.
-    public var headerRewrite: NetworkHeaderRewrite?
+    /// One header name never appears in both `set` and `remove`: the engine has already settled
+    /// which of the two the last override to name it asked for, so the consumer applies the two
+    /// collections in either order and gets the same request. `nil` when nothing matched, or when
+    /// everything that matched asked for no change at all.
+    var headerRewrite: NetworkHeaderRewrite?
     /// Conditioning from the first matching condition.
-    public var condition: NetworkCondition?
+    var condition: NetworkCondition?
     /// A response to synthesise instead of performing the request.
-    public var stub: NetworkRuleStub?
+    var stub: NetworkRuleStub?
     /// The name of the rule that supplied ``stub``, or `nil` when nothing is stubbed.
     ///
     /// Reported separately from ``networkRuleNames`` because it is the one credit that depends on
     /// the stub actually being producible: a map-local file that has since been deleted falls
     /// through to the network, and crediting the override that named it would say a response was
     /// served that never was.
-    public var stubRuleName: String?
-    /// Names of the rules that shape the request itself, in evaluation order: every matching
-    /// header rewrite, then the first matching condition.
+    var stubRuleName: String?
+    /// Names of the rules that shape the request itself, in rule order — one entry per matching
+    /// override that supplied a header rewrite, the condition, or both.
     ///
     /// Empty when nothing but a stub matched. These are credited whether or not the request is
     /// stubbed, because both still apply to a stubbed one — the condition delays, paces or fails
     /// the synthesised response, and the rewrite shapes the request the log describes even though
     /// nothing goes on the wire.
-    public var networkRuleNames: [String]
+    var networkRuleNames: [String]
     /// The identifier of the rule that supplied ``stub``, or `nil` when nothing is stubbed.
     ///
     /// Carried alongside ``stubRuleName`` so the log can link a mocked response back to the
     /// override that produced it. A name is what a developer reads; an identifier is what
     /// survives two overrides sharing one.
-    public var stubRuleID: UUID?
+    var stubRuleID: UUID?
     /// Identifiers of the rules named by ``networkRuleNames``, in the same order.
-    public var networkRuleIDs: [UUID]
+    var networkRuleIDs: [UUID]
 
     /// An outcome that changes nothing.
-    public static let empty = RuleOutcome(headerRewrite: nil,
-                                          condition: nil,
-                                          stub: nil,
-                                          stubRuleName: nil,
-                                          networkRuleNames: [],
-                                          stubRuleID: nil,
-                                          networkRuleIDs: [])
+    static let empty = RuleOutcome(headerRewrite: nil,
+                                   condition: nil,
+                                   stub: nil,
+                                   stubRuleName: nil,
+                                   networkRuleNames: [],
+                                   stubRuleID: nil,
+                                   networkRuleIDs: [])
 }
 
-public extension RuleOutcome {
+extension RuleOutcome {
     /// Every override to credit on the log when the stub is served: the stub first, then whatever
     /// else applied, with no override named twice.
     ///
@@ -74,7 +75,7 @@ public extension RuleOutcome {
 }
 
 /// Evaluates rules against a request. Pure: it reads no global state and performs no I/O.
-public enum NetworkRuleEngine {
+enum NetworkRuleEngine {
     /// Resolves every enabled rule that matches `request` into one outcome.
     ///
     /// Evaluation is first-match-wins **per facet**, not per rule:
@@ -82,8 +83,22 @@ public enum NetworkRuleEngine {
     /// | Facet | Rule |
     /// |---|---|
     /// | Stub | The first matching stub wins and short-circuits the network. |
-    /// | Header rewrite | Every matching rewrite merges, a later `set` winning a key collision. |
+    /// | Header rewrite | Every matching rewrite merges, the **last** override to name a header deciding what happens to it. |
     /// | Condition | The first matching condition wins. |
+    ///
+    /// A merged rewrite settles each header once, so precedence for a header is the same rule
+    /// order the list shows: a later override that sets a header an earlier one removed wins, and
+    /// a later override that removes one an earlier one set wins too. Within a *single* rewrite
+    /// there is no order to appeal to, so `set` is applied before `remove` and a header named in
+    /// both ends up removed.
+    ///
+    /// Header names are compared case-insensitively, because that is how `URLRequest` treats
+    /// them: `Authorization` and `authorization` are one header, and the winner is carried under
+    /// the spelling the winning override used.
+    ///
+    /// A rewrite that sets and removes nothing is not a rewrite. It is neither reported nor
+    /// credited, so an override that has been emptied out cannot make the log record a second,
+    /// identical copy of an untouched request.
     ///
     /// A stub deliberately does **not** suppress the other two. Stacking latency from several
     /// rules would be surprising, which is why the condition is first-match-wins; suppressing a
@@ -98,10 +113,8 @@ public enum NetworkRuleEngine {
     /// - Parameters:
     ///   - request: The outgoing request.
     ///   - rules: The rules to evaluate, in precedence order.
-    public static func outcome(for request: URLRequest, rules: [NetworkRule]) -> RuleOutcome {
-        var setHeaders: [String: String] = [:]
-        var removeHeaders: [String] = []
-        var sawRewrite = false
+    static func outcome(for request: URLRequest, rules: [NetworkRule]) -> RuleOutcome {
+        var headers = HeaderMerge()
         var condition: NetworkCondition?
         var stub: NetworkRuleStub?
         var stubName: String?
@@ -116,10 +129,7 @@ public enum NetworkRuleEngine {
             /// shapes rather than once per facet it happens to fill in.
             var shapesTheRequest = false
 
-            if let rewrite = rule.actions.rewriteHeaders {
-                sawRewrite = true
-                rewrite.set.forEach { setHeaders[$0.key] = $0.value }
-                removeHeaders.append(contentsOf: rewrite.remove)
+            if let rewrite = rule.actions.rewriteHeaders, headers.merge(rewrite) {
                 shapesTheRequest = true
             }
             if let value = rule.actions.condition, condition == nil {
@@ -139,7 +149,7 @@ public enum NetworkRuleEngine {
         }
 
         return RuleOutcome(
-            headerRewrite: sawRewrite ? NetworkHeaderRewrite(set: setHeaders, remove: removeHeaders) : nil,
+            headerRewrite: headers.resolved,
             condition: condition,
             stub: stub,
             stubRuleName: stubName,
@@ -147,5 +157,81 @@ public enum NetworkRuleEngine {
             stubRuleID: stubID,
             networkRuleIDs: networkIDs
         )
+    }
+}
+
+/// Folds every matching override's header rewrite into one, settling each header name once.
+///
+/// A rewrite used to be flattened into a `set` dictionary and a `remove` array that a consumer
+/// applied in that order, which meant removal won globally: a later override could not restore a
+/// header an earlier one had removed, whatever the list's order said. Names were also keyed
+/// case-sensitively, so `Authorization` and `authorization` both survived into the merged rewrite
+/// and which of them reached the request depended on the order a Swift dictionary iterated in.
+///
+/// Both fall out of recording one operation per canonical header name, in the order the names are
+/// first seen, and letting the last one recorded win.
+private struct HeaderMerge {
+    /// What the last override to name a header asked for.
+    private enum Operation {
+        /// Set the header, under the spelling that override used.
+        case set(name: String, value: String)
+        /// Remove the header, under the spelling that override used.
+        case remove(name: String)
+    }
+
+    /// The operation standing for each header name, lowercased.
+    private var operations: [String: Operation] = [:]
+
+    /// Canonical names in the order they were first seen, so the merged rewrite is stable.
+    private var order: [String] = []
+
+    /// The merged rewrite, or `nil` when nothing asked for a change.
+    ///
+    /// `set` and `remove` are disjoint: each header name is in whichever one the last override to
+    /// name it asked for.
+    var resolved: NetworkHeaderRewrite? {
+        guard !order.isEmpty else { return nil }
+        var set: [String: String] = [:]
+        var remove: [String] = []
+        for canonical in order {
+            guard let operation = operations[canonical] else { continue }
+            switch operation {
+            case .set(let name, let value): set[name] = value
+            case .remove(let name): remove.append(name)
+            }
+        }
+        return NetworkHeaderRewrite(set: set, remove: remove)
+    }
+
+    /// Folds one override's rewrite in.
+    ///
+    /// `set` is applied before `remove`, so a header this one rewrite names in both ends up
+    /// removed; inside a single rewrite there is no rule order to appeal to. Its `set` entries are
+    /// taken in a sorted order rather than the dictionary's own, so that a rewrite carrying two
+    /// spellings of one name resolves the same way on every launch.
+    ///
+    /// - Parameter rewrite: The rewrite to fold in.
+    /// - Returns: `false` when the rewrite asks for no change at all, so that its override is not
+    ///   credited with a rewrite it did not perform.
+    mutating func merge(_ rewrite: NetworkHeaderRewrite) -> Bool {
+        guard !rewrite.set.isEmpty || !rewrite.remove.isEmpty else { return false }
+        for (name, value) in rewrite.set.sorted(by: { $0.key < $1.key }) {
+            record(.set(name: name, value: value), for: name)
+        }
+        for name in rewrite.remove {
+            record(.remove(name: name), for: name)
+        }
+        return true
+    }
+
+    /// Records the operation now standing for one header name.
+    ///
+    /// - Parameters:
+    ///   - operation: What the override asked for.
+    ///   - name: The header name as that override spelled it.
+    private mutating func record(_ operation: Operation, for name: String) {
+        let canonical = name.lowercased()
+        if operations[canonical] == nil { order.append(canonical) }
+        operations[canonical] = operation
     }
 }
