@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-05
 **Status:** Approved design — ready for implementation planning
-**Part:** 2 of 5 in the networking backlog
+**Part:** 2 of 4 in the networking backlog
 **Depends on:** [Network Rules](2026-09-05-network-rules-design.md) — reuses `NetworkRuleMatch`
 and the `startLoading()` hook
 
@@ -40,7 +40,8 @@ Beyond the background in the Network Rules spec:
 
 ## Non-Goals
 
-- **Breaking on WebSocket frames.** Spec 5, and not planned there either.
+- **Breaking on WebSocket frames.** WebSocket traffic never reaches the interceptor, so there is
+  nothing here to pause.
 - **Scripted or conditional breakpoints** (pause only when a body field equals X). Matching is
   the same facet set as a rule; anything finer belongs in a scripting feature that does not exist.
 - **Editing a streaming response chunk by chunk.** A response breakpoint buffers the whole body

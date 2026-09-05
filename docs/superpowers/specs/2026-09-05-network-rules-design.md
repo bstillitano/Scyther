@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-05
 **Status:** Approved design — ready for implementation planning
-**Part:** 1 of 5 in the networking backlog (see Related Specs)
+**Part:** 1 of 4 in the networking backlog (see Related Specs)
 
 ## Summary
 
@@ -74,7 +74,8 @@ Confirmed in code on 2026-09-05:
 - **Response body editing after the fact.** A rule returns a body it already holds; editing a
   real response as it streams belongs to breakpoints.
 - **Rule sharing or sync.** Rules live on one device. Export/import beyond HAR is out of scope.
-- **WebSocket rules.** A `URLProtocol` never sees `URLSessionWebSocketTask` (spec 5).
+- **WebSocket rules.** A `URLProtocol` is never consulted for a `URLSessionWebSocketTask`, so
+  WebSocket traffic is outside this engine entirely.
 - **Regular expression matching.** Wildcard globs only, for the reason given under Matching.
 - **Rewriting request bodies.** Headers only in this pass; body rewriting has no clear use case
   that mocking does not already cover.
@@ -382,4 +383,3 @@ save-as-mock flow, HAR import, and the public API with a UI-test example. A DocC
 | 2 | Request Breakpoints | `NetworkRuleMatch`, the `startLoading` hook |
 | 3 | Request Replay and Editor | `HTTPRequest`; independent of the engine |
 | 4 | Traffic Stats and Waterfall | `NetworkLogger`; independent |
-| 5 | WebSocket Logging | independent; needs its own capture mechanism |

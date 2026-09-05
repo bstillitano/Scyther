@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-05
 **Status:** Approved design — ready for implementation planning
-**Part:** 3 of 5 in the networking backlog
+**Part:** 3 of 4 in the networking backlog
 **Depends on:** nothing. Independent of the rules engine and of breakpoints.
 
 ## Summary
