@@ -142,6 +142,13 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
     /// Whether the response was synthesised by a rule rather than received from the network.
     var wasStubbed: Bool = false
 
+    /// The `getRandomHash()` value of the request this one replays, if it is a replay.
+    ///
+    /// `nil` for traffic the app itself made. Set from the `Scyther_Replay_Of_Request` property
+    /// the replay editor stamps on its outgoing request, which is what lets the log tell a resent
+    /// request apart from a captured one and link the two together.
+    var replayOfID: String?
+
     // MARK: - Methods
 
     /// Saves the details of the given URL request to the model.
@@ -158,6 +165,15 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
         requestHeaders = request.headers
         requestType = requestHeaders?["Content-Type"] as? String
         requestCurl = request.curlString
+
+        /// Assigned only when the property is present, never cleared. A request an override
+        /// rewrites is saved twice — once as it arrived and once from the rewritten copy — and
+        /// overwriting here would drop the provenance if the copy did not carry the property
+        /// with it. Provenance is a fact about where the request came from; nothing later in the
+        /// request's life can make it untrue.
+        if let replayID = URLProtocol.property(forKey: replayOfRequestKey, in: request) as? String {
+            replayOfID = replayID
+        }
     }
 
     /// Saves the HTTP body of the given URL request to disk and caches any GraphQL metadata.

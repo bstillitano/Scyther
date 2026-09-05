@@ -1801,5 +1801,20 @@
     "ko": "재정의",
     "ru": "Переопределение",
     "ar": "تجاوز"
+  },
+  "REPLAY": {
+    "comment": "Badge on a network log row that was resent from the replay editor rather than made by the app",
+    "fr": "REJOUÉ",
+    "de": "WIEDERHOLT",
+    "es": "REENVIADA",
+    "it": "RINVIATA",
+    "pt-BR": "REENVIADA",
+    "nl": "HERHAALD",
+    "ja": "再送",
+    "zh-Hans": "重发",
+    "zh-Hant": "重送",
+    "ko": "재전송",
+    "ru": "ПОВТОР",
+    "ar": "إعادة"
   }
 }

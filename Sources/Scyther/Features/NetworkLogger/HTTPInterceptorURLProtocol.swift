@@ -793,11 +793,22 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
         }
     }
 
+    /// Follows a redirect, stripping the two markers that must not travel with it.
+    ///
+    /// The internal marker comes off so the redirect is intercepted and logged like any other
+    /// request rather than slipping past unlogged. The replay marker comes off for the mirror
+    /// reason: the entry a redirect produces is a request in its own right, and leaving the
+    /// provenance on it would list the same original's Replays section twice over for what was
+    /// one resend.
     public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        let carriesInternalMarker = URLProtocol.property(forKey: internalNetworkRequestKey, in: request) != nil
+        let carriesReplayMarker = URLProtocol.property(forKey: replayOfRequestKey, in: request) != nil
+
         let updatedRequest: URLRequest
-        if URLProtocol.property(forKey: internalNetworkRequestKey, in: request) != nil {
+        if carriesInternalMarker || carriesReplayMarker {
             let mutableRequest = (request as NSURLRequest).mutableCopy() as! NSMutableURLRequest
             URLProtocol.removeProperty(forKey: internalNetworkRequestKey, in: mutableRequest)
+            URLProtocol.removeProperty(forKey: replayOfRequestKey, in: mutableRequest)
 
             updatedRequest = mutableRequest as URLRequest
         } else {

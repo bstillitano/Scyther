@@ -40,6 +40,16 @@ final class HTTPRequestViewModelTests: XCTestCase {
         XCTAssertFalse(HTTPRequestViewModel(request: HTTPRequest()).wasStubbed)
     }
 
+    func testIsReplayMirrorsTheCapturedProvenance() {
+        let replay = HTTPRequest()
+        replay.replayOfID = "original-hash"
+        XCTAssertTrue(HTTPRequestViewModel(request: replay).isReplay)
+    }
+
+    func testIsReplayIsFalseForTrafficTheAppMade() {
+        XCTAssertFalse(HTTPRequestViewModel(request: HTTPRequest()).isReplay)
+    }
+
     func testNonGraphQLFallback() {
         let request = HTTPRequest()
         let viewModel = HTTPRequestViewModel(request: request)

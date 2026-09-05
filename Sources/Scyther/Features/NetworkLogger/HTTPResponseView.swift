@@ -44,6 +44,7 @@ struct HTTPRequestView: View {
                                 lozenge(badge, colour: viewModel.operationBadgeColor)
                             }
                             mockedBadge
+                            replayBadge
                         }
                         HighlightingText(viewModel.url, substring: searchTerm)
                             .font(.caption)
@@ -53,7 +54,10 @@ struct HTTPRequestView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     VStack(alignment: .leading, spacing: 3) {
-                        mockedBadge
+                        HStack(spacing: 6) {
+                            mockedBadge
+                            replayBadge
+                        }
                         HighlightingText(viewModel.url, substring: searchTerm)
                             .font(.caption)
                             .multilineTextAlignment(.leading)
@@ -78,6 +82,22 @@ struct HTTPRequestView: View {
     private var mockedBadge: some View {
         if viewModel.wasStubbed {
             lozenge(localized("MOCKED"), colour: .pink)
+        }
+    }
+
+    /// The badge marking a row the developer resent from the replay editor.
+    ///
+    /// Renders nothing for traffic the app itself made, so both branches of `body` can place it
+    /// unconditionally.
+    ///
+    /// Teal rather than the purple the plan named: purple is already the lozenge a GraphQL
+    /// subscription wears, and these two can appear on the same row. The mocked badge earned pink
+    /// by being the one colour nothing else in the log competes for, and a replay is told apart
+    /// the same way.
+    @ViewBuilder
+    private var replayBadge: some View {
+        if viewModel.isReplay {
+            lozenge(localized("REPLAY"), colour: .teal)
         }
     }
 
@@ -158,6 +178,12 @@ class HTTPRequestViewModel: ObservableObject {
     /// network. Drives the `MOCKED` badge on the row.
     var wasStubbed: Bool {
         request.wasStubbed
+    }
+
+    /// Whether this request was resent from the replay editor rather than made by the app.
+    /// Drives the `REPLAY` badge on the row.
+    var isReplay: Bool {
+        request.replayOfID != nil
     }
 
     /// The lozenge colour for the operation type.
