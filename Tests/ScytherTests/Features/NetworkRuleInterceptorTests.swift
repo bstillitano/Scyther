@@ -525,23 +525,118 @@ final class NetworkRuleDelayTests: XCTestCase {
         XCTAssertTrue(client.received.isEmpty, "a cancelled request must deliver nothing at all")
     }
 
-    /// Publishes one condition rule with the given latency and returns an interceptor wired to
-    /// `client`.
+    /// Publishes one condition rule with the given latency and failure rate, and returns an
+    /// interceptor wired to `client`.
     ///
     /// The host does not resolve, so a request that really starts fails instead of hanging — which
     /// is what makes "a task was started" observable without a server to talk to.
-    private func interceptor(latency: TimeInterval, client: RecordingClient) -> HTTPInterceptorURLProtocol {
+    private func interceptor(latency: TimeInterval,
+                             failureRate: Double = 0,
+                             client: RecordingClient) -> HTTPInterceptorURLProtocol {
         NetworkRuleSnapshot.update(isEnabled: true, rules: [
             NetworkRule(
                 id: UUID(),
                 name: "slow",
                 isEnabled: true,
                 match: .host("unreachable.invalid"),
-                action: .condition(NetworkCondition(latency: latency, bandwidthKBps: nil, failureRate: 0))
+                action: .condition(NetworkCondition(latency: latency,
+                                                    bandwidthKBps: nil,
+                                                    failureRate: failureRate))
             )
         ])
         let request = URLRequest(url: URL(string: "https://unreachable.invalid/latency")!)
         return HTTPInterceptorURLProtocol(request: request, cachedResponse: nil, client: client)
+    }
+
+    /// A draw of a fixed value that counts how many times it was asked for.
+    private final class CountingRandomSource: @unchecked Sendable {
+        private let lock = NSLock()
+        private let value: Double
+        private var draws: Int = 0
+
+        init(_ value: Double) { self.value = value }
+
+        /// How many draws the interceptor made.
+        var drawCount: Int { lock.withLock { draws } }
+
+        func next() -> Double {
+            lock.withLock { draws += 1 }
+            return value
+        }
+    }
+
+    /// A degraded link is slow before it is flaky. The roll used to happen at `startLoading()`, so
+    /// a condition of three seconds' latency and a 30% failure rate failed 30% of requests at
+    /// t = 0 rather than after the wait.
+    func testTheFailureIsRolledAfterTheLatencyRatherThanBeforeIt() {
+        let client = RecordingClient()
+        let failed = expectation(description: "the request fails")
+        client.onFinish = { failed.fulfill() }
+        let interceptor = interceptor(latency: 0.4, failureRate: 1, client: client)
+
+        let start = Date()
+        interceptor.startLoading()
+
+        XCTAssertTrue(client.received.isEmpty, "the latency has not elapsed, so nothing has been rolled yet")
+
+        wait(for: [failed], timeout: 5)
+        XCTAssertGreaterThanOrEqual(Date().timeIntervalSince(start), 0.4,
+                                    "the failure arrives after the wait, as a degraded link would deliver it")
+        XCTAssertEqual(client.received, ["failed"])
+        XCTAssertFalse(interceptor.hasStartedTask, "a failed request never reaches the network")
+    }
+
+    /// A rate of `1` means every request, with no draw to escape through. The comparison used to
+    /// be `Double.random(in: 0...1) < 1`, which a draw of exactly `1` walks straight past.
+    func testAFailureRateOfOneFailsWithoutDrawingAtAll() {
+        let client = RecordingClient()
+        let interceptor = interceptor(latency: 0, failureRate: 1, client: client)
+        let source = CountingRandomSource(1)
+        interceptor.randomSource = { source.next() }
+
+        interceptor.startLoading()
+
+        XCTAssertEqual(client.received, ["failed"])
+        XCTAssertFalse(interceptor.hasStartedTask)
+        XCTAssertEqual(source.drawCount, 0, "there is nothing to decide, so nothing is drawn")
+    }
+
+    /// A rate of `0` is likewise decided without a draw, and lets the request through.
+    func testAFailureRateOfZeroProceedsWithoutDrawingAtAll() {
+        let client = RecordingClient()
+        let interceptor = interceptor(latency: 0, failureRate: 0, client: client)
+        let source = CountingRandomSource(0)
+        interceptor.randomSource = { source.next() }
+
+        interceptor.startLoading()
+
+        XCTAssertTrue(interceptor.hasStartedTask)
+        XCTAssertEqual(source.drawCount, 0)
+    }
+
+    /// One draw per request — not one per chunk, and not one per matching rule — compared strictly
+    /// against the rate, so a draw equal to the rate proceeds.
+    func testAFractionalRateDrawsOnceAndComparesStrictly() {
+        let proceeding = RecordingClient()
+        let onTheBoundary = interceptor(latency: 0, failureRate: 0.5, client: proceeding)
+        let boundarySource = CountingRandomSource(0.5)
+        onTheBoundary.randomSource = { boundarySource.next() }
+
+        onTheBoundary.startLoading()
+
+        XCTAssertTrue(onTheBoundary.hasStartedTask, "a draw equal to the rate is not below it")
+        XCTAssertEqual(boundarySource.drawCount, 1, "exactly one draw decides the whole request")
+
+        let failing = RecordingClient()
+        let belowTheBoundary = interceptor(latency: 0, failureRate: 0.5, client: failing)
+        let lowSource = CountingRandomSource(0.4999)
+        belowTheBoundary.randomSource = { lowSource.next() }
+
+        belowTheBoundary.startLoading()
+
+        XCTAssertEqual(failing.received, ["failed"])
+        XCTAssertFalse(belowTheBoundary.hasStartedTask)
+        XCTAssertEqual(lowSource.drawCount, 1)
     }
 
     /// A mock's delay is answered from the interceptor; a condition's latency starts a real task.

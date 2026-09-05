@@ -545,7 +545,15 @@ dragging a row is what changes precedence:
 | **Mock Response** | Answers with a status code, headers and a body typed into the editor, after an optional delay. Headers are a dictionary, so a mock cannot repeat a header name — a HAR import keeps the last of a repeated `Set-Cookie`. |
 | **Map Local** | Answers with the contents of a file on the device, with a status code and `Content-Type`. The path is **absolute**, so it has to come from code or from Scyther's file browser rather than being typed on a device; an unreadable path falls through to the real network. |
 | **Rewrite Headers** | Sets and removes headers on the outgoing request, then lets it go to the network. |
-| **Condition** | Adds latency, caps bandwidth in KB/s, and fails a fraction of matching requests with a `URLError`. Latency and a mock's delay are each capped at 30 seconds, and are waited out without holding a thread. |
+| **Condition** | Adds latency, caps bandwidth in KB/s, and fails a fraction of matching requests with a `URLError`. Latency and a mock's delay are each capped at 30 seconds, and are waited out without holding a thread. The latency is applied first and the failure rolled after it, so "slow and flaky" is slow before it is flaky, and a rate of `1` never lets a request through. |
+
+A bandwidth ceiling is likewise honoured for at most 30 seconds of added delay per response, so
+that a debug tool cannot appear to have hung. A body larger than `30 × bandwidthKBps` kilobytes
+stops being paced part-way through and the rest is forwarded as fast as it arrives, which makes
+the effective rate a function of body size: 1 MB at 10 KB/s takes about 30 seconds, not the 100
+the ceiling implies. A response that has been idle may forward one second's worth of data at the
+ceiling before pacing resumes, so a long-poll or an SSE stream is throttled rather than released
+in bursts.
 
 #### Saving a Captured Request as a Mock
 

@@ -242,6 +242,13 @@ public struct NetworkCondition: Codable, Sendable, Equatable {
     public var latency: TimeInterval
 
     /// A bandwidth ceiling in kilobytes per second, or `nil` for unthrottled.
+    ///
+    /// - Important: The ceiling is honoured for at most 30 seconds of added delay across one
+    ///   response, so that a debug tool can never appear to have hung. A body larger than
+    ///   `30 × bandwidthKBps` kilobytes therefore stops being paced part-way through and the
+    ///   remainder is forwarded as fast as it arrives — 1 MB at 10 KB/s takes about 30 seconds
+    ///   rather than the 100 the ceiling implies. Pick a ceiling with the body size in mind, or
+    ///   read the effective rate off the log rather than off the rule.
     public var bandwidthKBps: Int?
 
     /// The fraction of matching requests, from `0` to `1`, that fail instead of proceeding.

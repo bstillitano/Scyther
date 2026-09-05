@@ -59,6 +59,17 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     ///   and measure the pacing. Nothing but `startLoading()` writes it in production.
     internal var condition: NetworkCondition?
 
+    /// The draw that decides whether a condition's ``NetworkCondition/failureRate`` fails this
+    /// request. Exactly one draw is made, and only when the rate is strictly between zero and one.
+    ///
+    /// The range is half-open. A closed `0...1` can return exactly `1`, which the strict
+    /// comparison below then lets through — a request escaping a failure rate of `1` once every
+    /// 2⁻⁵³ draws.
+    ///
+    /// - Note: Internal and settable so a test can pin the draw and count it. Nothing in
+    ///   production replaces it.
+    internal var randomSource: @Sendable () -> Double = { Double.random(in: 0..<1) }
+
     /// Whether a real data task was started. A stubbed or rule-failed request never creates one,
     /// so `stopLoading()` must not spin up a session just to cancel nothing.
     ///
@@ -197,21 +208,43 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
 
         URLProtocol.setProperty(true, forKey: internalNetworkRequestKey, in: mutableRequest)
 
-        if let condition = outcome.condition,
-           condition.failureRate > 0,
-           Double.random(in: 0...1) < condition.failureRate {
-            let error = URLError(URLError.Code(rawValue: condition.failureCode))
-            model.saveErrorResponse()
-            finishWithFailure(error)
-            return
-        }
-
+        /// The latency comes first and the failure is rolled after it. Rolling first would fail a
+        /// "slow and flaky" condition at t = 0, which is not how a degraded link behaves: a
+        /// request that is going to time out still waits before it does.
         let outgoing = mutableRequest as URLRequest
-        let latency = min(outcome.condition?.latency ?? 0, Self.maximumDelay)
+        let condition = outcome.condition
+        let latency = min(condition?.latency ?? 0, Self.maximumDelay)
         perform(after: latency) { interceptor in
+            if let condition, interceptor.shouldFail(condition) {
+                interceptor.failRequest(with: condition)
+                return
+            }
             guard let session = interceptor.beginTask() else { return }
             session.dataTask(with: outgoing).resume()
         }
+    }
+
+    /// Whether this request is the one a condition's failure rate takes out.
+    ///
+    /// A rate of one or more fails and a rate of zero or less proceeds without drawing at all, so
+    /// neither depends on the exact bounds of ``randomSource``'s range. Anything between the two
+    /// draws exactly once, per request rather than per chunk or per matching rule, and compares
+    /// strictly — a draw equal to the rate proceeds.
+    ///
+    /// - Parameter condition: The condition that matched this request.
+    /// - Returns: `true` when the request should be failed rather than sent.
+    private func shouldFail(_ condition: NetworkCondition) -> Bool {
+        guard condition.failureRate > 0 else { return false }
+        guard condition.failureRate < 1 else { return true }
+        return randomSource() < condition.failureRate
+    }
+
+    /// Fails this request with the error `condition` asked for, and records the attempt.
+    ///
+    /// - Parameter condition: The condition that took the request out.
+    private func failRequest(with condition: NetworkCondition) {
+        model.saveErrorResponse()
+        finishWithFailure(URLError(URLError.Code(rawValue: condition.failureCode)))
     }
 
     /// Finishes starting the load, after a rule's delay if it asked for one.

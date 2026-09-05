@@ -51,6 +51,43 @@ final class BandwidthThrottleTests: XCTestCase {
         XCTAssertEqual(total, 0.25, accuracy: 0.0001, "a 640 KB body at 1 KB/s must not sleep for ten minutes")
     }
 
+    /// Idle time used to accrue credit without limit, so a response that arrived late arrived all
+    /// at once: headers early, a slow backend, then a burst, and the ceiling stopped applying.
+    func testIdleTimeAccruesOnlyABoundedBurstCredit() throws {
+        var throttle = try XCTUnwrap(BandwidthThrottle(bandwidthKBps: 100, maximumTotalSleep: 30))
+
+        // Headers arrive, the backend thinks for three seconds, then sends 300 KB in one go.
+        // 300 KB at 100 KB/s is three seconds of transfer; one second of the think is forgiven,
+        // so two seconds of it are still owed.
+        let wait = throttle.delay(forwarding: 300 * 1024, elapsed: 3)
+
+        XCTAssertEqual(wait, 2, accuracy: 0.001)
+    }
+
+    /// The long-poll and server-sent-events shape: mostly idle, in bursts. Every idle period used
+    /// to bank credit, so the ceiling never applied to any of them.
+    func testCreditDoesNotAccumulateAcrossSuccessiveIdlePeriods() throws {
+        var throttle = try XCTUnwrap(BandwidthThrottle(bandwidthKBps: 100, maximumTotalSleep: 30))
+
+        var elapsed: TimeInterval = 0
+        var total: TimeInterval = 0
+        for _ in 0..<3 {
+            elapsed += 3 // the backend thinks
+            let wait = throttle.delay(forwarding: 300 * 1024, elapsed: elapsed)
+            total += wait
+            elapsed += wait // and the caller honours the delay
+        }
+
+        XCTAssertEqual(total, 6, accuracy: 0.01, "each 300 KB burst is paced, not just the first")
+    }
+
+    /// The other side of the bound: a pause shorter than the burst window is forgiven, so an
+    /// ordinary response already under its ceiling is never delayed by it.
+    func testAPauseShorterThanTheBurstWindowIsForgiven() throws {
+        var throttle = try XCTUnwrap(BandwidthThrottle(bandwidthKBps: 200, maximumTotalSleep: 30))
+        XCTAssertEqual(throttle.delay(forwarding: 64 * 1024, elapsed: 0.5), 0)
+    }
+
     /// A host app supplies the ceiling, so `bandwidthKBps * 1024` must not be allowed to overflow.
     func testAnAbsurdCeilingIsClamped() throws {
         let throttle = try XCTUnwrap(BandwidthThrottle(bandwidthKBps: .max, maximumTotalSleep: 30))
