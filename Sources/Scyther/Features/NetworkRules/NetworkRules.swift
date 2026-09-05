@@ -162,7 +162,7 @@ public extension NetworkRule {
     /// - Parameters:
     ///   - name: The label shown in the rule list.
     ///   - matching: The requests this rule applies to.
-    ///   - serving: The file to serve, described relative to the app's Documents directory.
+    ///   - serving: The file to serve, described by its absolute path.
     /// - Returns: An enabled rule.
     static func mapLocal(name: String,
                          matching: NetworkRuleMatch,

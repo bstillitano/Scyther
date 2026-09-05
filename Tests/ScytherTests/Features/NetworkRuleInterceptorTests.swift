@@ -61,6 +61,52 @@ final class NetworkRuleStubResponderTests: XCTestCase {
     }
 }
 
+final class NetworkHeaderRewriteTests: XCTestCase {
+
+    private func rewritten(_ rewrite: NetworkHeaderRewrite,
+                           startingFrom existing: [String: String] = [:]) -> NSMutableURLRequest {
+        let request = NSMutableURLRequest(url: URL(string: "https://api.example.com/v1/users")!)
+        existing.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+        rewrite.apply(to: request)
+        return request
+    }
+
+    func testAKeyOnlyInSetIsPresentWithItsValue() {
+        let request = rewritten(NetworkHeaderRewrite(set: ["Authorization": "Bearer test"], remove: []))
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test")
+    }
+
+    func testASetKeyReplacesAnExistingValue() {
+        let request = rewritten(NetworkHeaderRewrite(set: ["Authorization": "Bearer new"], remove: []),
+                                startingFrom: ["Authorization": "Bearer old"])
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer new")
+    }
+
+    func testAKeyOnlyInRemoveIsGone() {
+        let request = rewritten(NetworkHeaderRewrite(set: [:], remove: ["Authorization"]),
+                                startingFrom: ["Authorization": "Bearer old"])
+        XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
+    }
+
+    /// The contract on `RuleOutcome.headerRewrite`: sets apply first, removals second, so a key in
+    /// both ends up removed rather than quietly kept.
+    func testAKeyInBothSetAndRemoveIsRemoved() {
+        let request = rewritten(NetworkHeaderRewrite(set: ["Authorization": "Bearer test"],
+                                                     remove: ["Authorization"]))
+        XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
+    }
+
+    /// Guards the assumption removal rests on: passing `nil` really does delete the header rather
+    /// than storing an empty value.
+    func testSettingNilRemovesAHeaderFromAMutableRequest() {
+        let request = NSMutableURLRequest(url: URL(string: "https://api.example.com/v1/users")!)
+        request.setValue("Bearer old", forHTTPHeaderField: "Authorization")
+        request.setValue(nil, forHTTPHeaderField: "Authorization")
+        XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
+        XCTAssertNil(request.allHTTPHeaderFields?["Authorization"])
+    }
+}
+
 @MainActor
 final class NetworkRuleInterceptorTests: XCTestCase {
 
@@ -92,6 +138,20 @@ final class NetworkRuleInterceptorTests: XCTestCase {
         try? FileManager.default.removeItem(at: bodyDirectory)
     }
 
+    /// The model the interceptor logged for a request, once the logger's `Task` has landed it.
+    ///
+    /// The interceptor adds to ``NetworkLogger`` from a detached main-actor task, so the entry is
+    /// not there the instant `perform(_:)` returns. Polls rather than sleeping a fixed amount, and
+    /// matches on the request URL because the logger is shared across the whole test run.
+    private func loggedRequest(matching url: String) async -> HTTPRequest? {
+        for _ in 0..<200 {
+            let match = await NetworkLogger.instance.items.first { $0.requestURL == url }
+            if let match { return match }
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        return nil
+    }
+
     private func perform(_ url: String) async throws -> (Data, HTTPURLResponse) {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [HTTPInterceptorURLProtocol.self]
@@ -112,10 +172,50 @@ final class NetworkRuleInterceptorTests: XCTestCase {
         ))
 
         // The host does not resolve; only a stub can answer it.
-        let (data, response) = try await perform("https://unreachable.invalid/cart")
+        let url = "https://unreachable.invalid/cart"
+        let (data, response) = try await perform(url)
         XCTAssertEqual(response.statusCode, 418)
         XCTAssertEqual(response.value(forHTTPHeaderField: "X-Mock"), "yes")
         XCTAssertEqual(data, Data("{\"mocked\":true}".utf8))
+
+        // A stubbed response is logged exactly as a real one is, and says where it came from.
+        let found = await loggedRequest(matching: url)
+        let logged = try XCTUnwrap(found)
+        XCTAssertTrue(logged.wasStubbed)
+        XCTAssertEqual(logged.appliedRuleNames, ["cart"])
+        XCTAssertEqual(logged.responseCode, 418)
+        XCTAssertFalse(logged.noResponse)
+    }
+
+    func testARewrittenHeaderIsWhatGetsLogged() async throws {
+        let store = try makeStore()
+        store.add(NetworkRule(
+            id: UUID(),
+            name: "staging auth",
+            isEnabled: true,
+            match: .host("unreachable.invalid"),
+            action: .rewriteHeaders(NetworkHeaderRewrite(set: ["Authorization": "Bearer rewritten"],
+                                                         remove: ["X-Original"]))
+        ))
+
+        // A rewrite does not stub, so this reaches the network and fails to resolve — but it is
+        // still logged, which is the point: the log must describe the request as actually sent.
+        let url = "https://unreachable.invalid/rewrite"
+        var request = URLRequest(url: try XCTUnwrap(URL(string: url)))
+        request.setValue("Bearer original", forHTTPHeaderField: "Authorization")
+        request.setValue("please remove me", forHTTPHeaderField: "X-Original")
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [HTTPInterceptorURLProtocol.self]
+        _ = try? await URLSession(configuration: configuration).data(for: request)
+
+        let found = await loggedRequest(matching: url)
+        let logged = try XCTUnwrap(found)
+        let headers = try XCTUnwrap(logged.requestHeaders)
+        XCTAssertEqual(headers["Authorization"] as? String, "Bearer rewritten")
+        XCTAssertNil(headers["X-Original"])
+        XCTAssertEqual(logged.appliedRuleNames, ["staging auth"])
+        XCTAssertTrue(try XCTUnwrap(logged.requestCurl).contains("Bearer rewritten"))
     }
 
     func testAFailureConditionSurfacesTheConfiguredError() async throws {

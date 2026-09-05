@@ -21,7 +21,7 @@ import Foundation
 /// - ``current``
 ///
 /// ### Writing
-/// - ``update(isEnabled:rules:)``
+/// - ``update(isEnabled:rules:bodyDirectory:)``
 enum NetworkRuleSnapshot {
     /// Guards ``storage`` so that reads from the URL loading system's threads never observe a
     /// half-written value.
@@ -31,19 +31,28 @@ enum NetworkRuleSnapshot {
     ///
     /// - Note: Declared `nonisolated(unsafe)` because every access goes through ``lock``, which
     ///   provides the synchronisation the compiler cannot prove.
-    nonisolated(unsafe) private static var storage: (isEnabled: Bool, rules: [NetworkRule]) = (true, [])
+    nonisolated(unsafe) private static var storage: (isEnabled: Bool, rules: [NetworkRule], bodyDirectory: URL) =
+        (true, [], NetworkRuleStore.defaultBodyDirectory)
 
     /// The current snapshot. Safe to call from any thread.
-    static var current: (isEnabled: Bool, rules: [NetworkRule]) {
+    static var current: (isEnabled: Bool, rules: [NetworkRule], bodyDirectory: URL) {
         lock.withLock { storage }
     }
 
     /// Replaces the snapshot. Called by ``NetworkRuleStore`` after every mutation.
     ///
+    /// The body directory travels with the rules rather than living in a separate global, so the
+    /// directory the interceptor reads mock bodies from is always the one belonging to the store
+    /// that published those rules, and resetting the snapshot resets it too.
+    ///
     /// - Parameters:
     ///   - isEnabled: The master switch.
     ///   - rules: Persisted rules followed by transient ones — also their precedence order.
-    static func update(isEnabled: Bool, rules: [NetworkRule]) {
-        lock.withLock { storage = (isEnabled, rules) }
+    ///   - bodyDirectory: Where the publishing store writes mock response bodies. Defaults to
+    ///     ``NetworkRuleStore/defaultBodyDirectory``, which is what a reset restores.
+    static func update(isEnabled: Bool,
+                       rules: [NetworkRule],
+                       bodyDirectory: URL = NetworkRuleStore.defaultBodyDirectory) {
+        lock.withLock { storage = (isEnabled, rules, bodyDirectory) }
     }
 }

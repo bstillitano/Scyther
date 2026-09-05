@@ -168,8 +168,14 @@ public struct MockResponse: Codable, Sendable, Equatable {
 }
 
 /// Serves the contents of a local file in place of a real network call.
+///
+/// - Important: ``relativePath`` holds an **absolute** file path despite its name. The name is
+///   retained for compatibility with rules already persisted under it.
 public struct MapLocalFile: Codable, Sendable, Equatable {
-    /// Path relative to the app's Documents directory, chosen with the file browser.
+    /// The absolute path of the file to serve, as chosen with the file browser.
+    ///
+    /// - Important: Absolute, despite the name — it is read with `URL(fileURLWithPath:)` and is
+    ///   not resolved against the Documents directory or any other root.
     public var relativePath: String
 
     /// The HTTP status code to return alongside the file's contents.
@@ -184,7 +190,7 @@ public struct MapLocalFile: Codable, Sendable, Equatable {
     /// Creates a map-local action.
     ///
     /// - Parameters:
-    ///   - relativePath: Path relative to the app's Documents directory.
+    ///   - relativePath: The absolute path of the file to serve.
     ///   - statusCode: The HTTP status code to return. Defaults to `200`.
     ///   - contentType: The `Content-Type` header to return, or `nil` to omit it.
     ///   - delay: Seconds to wait before responding. Defaults to none.
@@ -253,6 +259,21 @@ public struct NetworkCondition: Codable, Sendable, Equatable {
         self.bandwidthKBps = bandwidthKBps
         self.failureRate = failureRate
         self.failureCode = failureCode
+    }
+}
+
+public extension NetworkHeaderRewrite {
+    /// Applies this rewrite to an outgoing request, in place.
+    ///
+    /// Every entry in ``set`` is applied first and every name in ``remove`` second, so a header
+    /// named in both ends up removed. Applying them the other way round would silently keep a
+    /// header a rule asked to remove, which is why the order lives in one tested place rather
+    /// than at each call site.
+    ///
+    /// - Parameter request: The request to rewrite. Mutated in place.
+    func apply(to request: NSMutableURLRequest) {
+        set.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+        remove.forEach { request.setValue(nil, forHTTPHeaderField: $0) }
     }
 }
 

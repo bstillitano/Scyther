@@ -49,11 +49,24 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// so `stopLoading()` must not spin up the lazy session just to cancel nothing.
     private var didStartTask: Bool = false
 
+    /// Set by `stopLoading()` so a bandwidth throttle mid-sleep stops forwarding bytes to a client
+    /// that has gone away instead of running its budget out.
+    private var isCancelled: Bool = false
+
+    /// Seconds already spent asleep throttling the current response, reset when one begins.
+    private var throttleSleepUsed: TimeInterval = 0
+
     /// The longest a rule is allowed to block the URL loading system's thread in one go.
     ///
     /// A developer typing an unreasonable latency into the menu should see a slow request, not a
     /// request that appears to have hung forever.
     private static let maximumSleep: TimeInterval = 30
+
+    /// The largest bandwidth ceiling that is honoured, in kilobytes per second.
+    ///
+    /// A ceiling is host-supplied, and `bandwidthKBps * 1024` would trap on overflow for an absurd
+    /// one. Anything at or above this is effectively unthrottled anyway.
+    private static let maximumBandwidthKBps: Int = 1_000_000
 
     override open class func canInit(with request: URLRequest) -> Bool {
         return canServeRequest(request)
@@ -115,11 +128,12 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
             return
         }
 
-        /// Apply any header rewrite. Sets run first and removals second, so a header named in both
-        /// ends up removed rather than quietly kept.
+        /// Apply any header rewrite, then re-capture the request so the log describes what actually
+        /// goes on the wire. Without the second `saveRequest` a developer checking whether their
+        /// rewrite rule worked would see the pre-rewrite headers and cURL and conclude it had not.
         if let rewrite = outcome.headerRewrite {
-            rewrite.set.forEach { mutableRequest.setValue($0.value, forHTTPHeaderField: $0.key) }
-            rewrite.remove.forEach { mutableRequest.setValue(nil, forHTTPHeaderField: $0) }
+            rewrite.apply(to: mutableRequest)
+            model.saveRequest(mutableRequest as URLRequest)
         }
 
         URLProtocol.setProperty(true, forKey: internalNetworkRequestKey, in: mutableRequest)
@@ -191,6 +205,7 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     override open func stopLoading() {
+        isCancelled = true
         guard didStartTask else { return }
         session.getTasksWithCompletionHandler { dataTasks, _, _ in
             dataTasks.forEach { $0.cancel() }
@@ -203,28 +218,50 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
 }
 
 extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
+    /// Forwards received bytes to the client, honouring any bandwidth ceiling a condition rule set.
+    ///
+    /// A ceiling is applied by forwarding one second's worth of bytes at a time and sleeping in
+    /// between, on the URL loading system's thread and never the main one. Two bounds keep that
+    /// from becoming a hang:
+    ///
+    /// - The sleeping is capped at `maximumSleep` seconds for the whole response, after which the
+    ///   remainder is forwarded in a single call. Without it a 10 MB body at 1 KB/s would block
+    ///   this queue for hours, which is not a simulation anyone asked for.
+    /// - The loop stops as soon as `stopLoading()` has been called, so a cancelled request does not
+    ///   keep pushing bytes at a client that has gone away.
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         responseData?.append(data)
 
-        /// A bandwidth ceiling is honoured by forwarding one second's worth of bytes at a time and
-        /// sleeping in between. This runs on the URL loading system's thread, never the main one.
-        if let bandwidth = condition?.bandwidthKBps, bandwidth > 0 {
-            let chunkSize = max(1, bandwidth * 1024)
-            var offset = 0
-            while offset < data.count {
-                let end = min(offset + chunkSize, data.count)
-                client?.urlProtocol(self, didLoad: data.subdata(in: offset..<end))
-                offset = end
-                if offset < data.count { Thread.sleep(forTimeInterval: 1) }
-            }
-        } else {
+        guard let bandwidth = condition?.bandwidthKBps, bandwidth > 0 else {
             client?.urlProtocol(self, didLoad: data)
+            return
+        }
+
+        let chunkSize = max(1, min(bandwidth, Self.maximumBandwidthKBps) * 1024)
+        var start = data.startIndex
+        while start < data.endIndex {
+            if isCancelled { return }
+
+            if throttleSleepUsed >= Self.maximumSleep {
+                client?.urlProtocol(self, didLoad: data.subdata(in: start..<data.endIndex))
+                return
+            }
+
+            let end = data.index(start, offsetBy: chunkSize, limitedBy: data.endIndex) ?? data.endIndex
+            client?.urlProtocol(self, didLoad: data.subdata(in: start..<end))
+            start = end
+
+            if start < data.endIndex {
+                Thread.sleep(forTimeInterval: 1)
+                throttleSleepUsed += 1
+            }
         }
     }
 
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         self.response = response
         responseData = NSMutableData()
+        throttleSleepUsed = 0
 
         client?.urlProtocol(self,
                             didReceive: response,
