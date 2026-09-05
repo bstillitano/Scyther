@@ -27,6 +27,29 @@ public struct NetworkRule: Identifiable, Codable, Sendable, Equatable {
 
     /// What to do to a matching request.
     public var action: NetworkRuleAction
+
+    /// Creates a rule.
+    ///
+    /// Most callers use the ergonomic constructors — ``mock(name:matching:returning:)`` and its
+    /// siblings — rather than this initialiser.
+    ///
+    /// - Parameters:
+    ///   - id: A stable identifier. Defaults to a fresh one.
+    ///   - name: The label shown in the rule list.
+    ///   - isEnabled: Whether the rule is evaluated. Defaults to `true`.
+    ///   - match: The requests this rule applies to.
+    ///   - action: What to do to a matching request.
+    public init(id: UUID = UUID(),
+                name: String,
+                isEnabled: Bool = true,
+                match: NetworkRuleMatch,
+                action: NetworkRuleAction) {
+        self.id = id
+        self.name = name
+        self.isEnabled = isEnabled
+        self.match = match
+        self.action = action
+    }
 }
 
 /// The conditions a request must satisfy for a ``NetworkRule`` to apply.
@@ -45,6 +68,26 @@ public struct NetworkRuleMatch: Codable, Sendable, Equatable {
 
     /// Query items that must all be present with these values. Empty matches any query.
     public var query: [String: String]
+
+    /// Creates a match. Every facet is optional; an omitted one places no constraint.
+    ///
+    /// ``host(_:path:methods:)`` and ``path(_:methods:)`` cover the common cases without needing
+    /// to build patterns by hand.
+    ///
+    /// - Parameters:
+    ///   - methods: Uppercased HTTP methods. Defaults to any method.
+    ///   - host: Host pattern. Defaults to any host.
+    ///   - path: Path pattern. Defaults to any path.
+    ///   - query: Query items that must all be present. Defaults to any query.
+    public init(methods: Set<String> = [],
+                host: NetworkRulePattern? = nil,
+                path: NetworkRulePattern? = nil,
+                query: [String: String] = [:]) {
+        self.methods = methods
+        self.host = host
+        self.path = path
+        self.query = query
+    }
 }
 
 /// A single string comparison used by ``NetworkRuleMatch`` to test a host or path.
@@ -65,6 +108,16 @@ public struct NetworkRulePattern: Codable, Sendable, Equatable {
 
     /// The pattern text, interpreted according to ``kind``.
     public var value: String
+
+    /// Creates a pattern.
+    ///
+    /// - Parameters:
+    ///   - kind: The comparison to use.
+    ///   - value: The pattern text.
+    public init(kind: Kind, value: String) {
+        self.kind = kind
+        self.value = value
+    }
 }
 
 /// What a matching ``NetworkRule`` does to a request.
@@ -92,6 +145,26 @@ public struct MockResponse: Codable, Sendable, Equatable {
 
     /// Seconds to wait before responding, simulating network latency.
     public var delay: TimeInterval
+
+    /// Creates a canned response.
+    ///
+    /// ``json(_:status:delay:)`` is the easier way to return a JSON body, because it writes the
+    /// bytes to disk and fills in ``bodyID`` for you.
+    ///
+    /// - Parameters:
+    ///   - statusCode: The HTTP status code. Defaults to `200`.
+    ///   - headers: Response headers. Defaults to none.
+    ///   - bodyID: The identifier of a body stored on disk, or `nil` for an empty body.
+    ///   - delay: Seconds to wait before responding. Defaults to none.
+    public init(statusCode: Int = 200,
+                headers: [String: String] = [:],
+                bodyID: UUID? = nil,
+                delay: TimeInterval = 0) {
+        self.statusCode = statusCode
+        self.headers = headers
+        self.bodyID = bodyID
+        self.delay = delay
+    }
 }
 
 /// Serves the contents of a local file in place of a real network call.
@@ -107,6 +180,23 @@ public struct MapLocalFile: Codable, Sendable, Equatable {
 
     /// Seconds to wait before responding, simulating network latency.
     public var delay: TimeInterval
+
+    /// Creates a map-local action.
+    ///
+    /// - Parameters:
+    ///   - relativePath: Path relative to the app's Documents directory.
+    ///   - statusCode: The HTTP status code to return. Defaults to `200`.
+    ///   - contentType: The `Content-Type` header to return, or `nil` to omit it.
+    ///   - delay: Seconds to wait before responding. Defaults to none.
+    public init(relativePath: String,
+                statusCode: Int = 200,
+                contentType: String? = nil,
+                delay: TimeInterval = 0) {
+        self.relativePath = relativePath
+        self.statusCode = statusCode
+        self.contentType = contentType
+        self.delay = delay
+    }
 }
 
 /// Headers to set or remove on a matching request before it is sent.
@@ -116,6 +206,16 @@ public struct NetworkHeaderRewrite: Codable, Sendable, Equatable {
 
     /// Header names to remove.
     public var remove: [String]
+
+    /// Creates a header rewrite.
+    ///
+    /// - Parameters:
+    ///   - set: Headers to set, replacing any existing value. Defaults to none.
+    ///   - remove: Header names to remove. Defaults to none.
+    public init(set: [String: String] = [:], remove: [String] = []) {
+        self.set = set
+        self.remove = remove
+    }
 }
 
 /// Latency, bandwidth and failure conditioning applied to a matching request.
@@ -131,6 +231,29 @@ public struct NetworkCondition: Codable, Sendable, Equatable {
 
     /// The `URLError.Code` raw value used when a request fails, default `.notConnectedToInternet`.
     public var failureCode: Int
+
+    /// Creates a set of network conditions.
+    ///
+    /// ```swift
+    /// NetworkCondition(latency: 2, failureRate: 0.1)
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - latency: Seconds added before the request is sent. Defaults to none.
+    ///   - bandwidthKBps: A bandwidth ceiling in kilobytes per second. Defaults to unthrottled.
+    ///   - failureRate: The fraction of matching requests, from `0` to `1`, that fail instead of
+    ///     proceeding. Defaults to none.
+    ///   - failureCode: The `URLError.Code` raw value used when a request fails. Defaults to
+    ///     `.notConnectedToInternet`.
+    public init(latency: TimeInterval = 0,
+                bandwidthKBps: Int? = nil,
+                failureRate: Double = 0,
+                failureCode: Int = URLError.Code.notConnectedToInternet.rawValue) {
+        self.latency = latency
+        self.bandwidthKBps = bandwidthKBps
+        self.failureRate = failureRate
+        self.failureCode = failureCode
+    }
 }
 
 public extension NetworkRulePattern {

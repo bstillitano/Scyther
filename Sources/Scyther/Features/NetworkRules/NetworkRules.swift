@@ -50,8 +50,9 @@ import Foundation
 /// - ``remove(id:)``
 /// - ``removeAll()``
 ///
-/// - Important: Call these members from the main thread. They forward to a main-actor store, and
-///   are declared without isolation so that they read naturally from a host app's setup code.
+/// - Note: Isolated to the main actor, like every other Scyther singleton, so the compiler
+///   enforces safe access to the store rather than leaving it to a runtime check.
+@MainActor
 public final class NetworkRules: Sendable {
     /// The shared rules instance.
     public static let shared = NetworkRules()
@@ -59,25 +60,25 @@ public final class NetworkRules: Sendable {
 
     /// Every rule that survives relaunch, in precedence order.
     public var all: [NetworkRule] {
-        MainActor.assumeIsolated { NetworkRuleStore.shared.rules }
+        NetworkRuleStore.shared.rules
     }
 
     /// Every rule registered for this launch only, evaluated after ``all``.
     public var transient: [NetworkRule] {
-        MainActor.assumeIsolated { NetworkRuleStore.shared.transientRules }
+        NetworkRuleStore.shared.transientRules
     }
 
     /// The master switch. When `false` no rule is applied, but none is deleted either.
     public var isEnabled: Bool {
-        get { MainActor.assumeIsolated { NetworkRuleStore.shared.isEnabled } }
-        set { MainActor.assumeIsolated { NetworkRuleStore.shared.isEnabled = newValue } }
+        get { NetworkRuleStore.shared.isEnabled }
+        set { NetworkRuleStore.shared.isEnabled = newValue }
     }
 
     /// Adds a rule that survives relaunch, at the lowest precedence.
     ///
     /// - Parameter rule: The rule to add.
     public func add(_ rule: NetworkRule) {
-        MainActor.assumeIsolated { NetworkRuleStore.shared.add(rule) }
+        NetworkRuleStore.shared.add(rule)
     }
 
     /// Adds a rule for this launch only. Nothing is written to disk.
@@ -87,26 +88,26 @@ public final class NetworkRules: Sendable {
     ///
     /// - Parameter rule: The rule to add.
     public func addTransient(_ rule: NetworkRule) {
-        MainActor.assumeIsolated { NetworkRuleStore.shared.addTransient(rule) }
+        NetworkRuleStore.shared.addTransient(rule)
     }
 
     /// Replaces the rule carrying the same identifier, leaving its position alone.
     ///
     /// - Parameter rule: The edited rule.
     public func update(_ rule: NetworkRule) {
-        MainActor.assumeIsolated { NetworkRuleStore.shared.update(rule) }
+        NetworkRuleStore.shared.update(rule)
     }
 
     /// Deletes a rule, along with any mock body it owns.
     ///
     /// - Parameter id: The identifier of the rule to delete.
     public func remove(id: UUID) {
-        MainActor.assumeIsolated { NetworkRuleStore.shared.remove(id: id) }
+        NetworkRuleStore.shared.remove(id: id)
     }
 
     /// Deletes every rule, persisted and transient, and every mock body they own.
     public func removeAll() {
-        MainActor.assumeIsolated { NetworkRuleStore.shared.removeAll() }
+        NetworkRuleStore.shared.removeAll()
     }
 }
 
@@ -154,6 +155,19 @@ public extension NetworkRule {
                     isEnabled: true,
                     match: matching,
                     action: .rewriteHeaders(NetworkHeaderRewrite(set: set, remove: remove)))
+    }
+
+    /// A rule that answers matching requests with the contents of a local file.
+    ///
+    /// - Parameters:
+    ///   - name: The label shown in the rule list.
+    ///   - matching: The requests this rule applies to.
+    ///   - serving: The file to serve, described relative to the app's Documents directory.
+    /// - Returns: An enabled rule.
+    static func mapLocal(name: String,
+                         matching: NetworkRuleMatch,
+                         serving: MapLocalFile) -> NetworkRule {
+        NetworkRule(id: UUID(), name: name, isEnabled: true, match: matching, action: .mapLocal(serving))
     }
 }
 
@@ -211,12 +225,12 @@ public extension MockResponse {
     ///   - delay: Seconds to wait before responding. Defaults to none.
     /// - Returns: A response carrying `Content-Type: application/json`.
     ///
-    /// - Important: Call this from the main thread; it writes the body through the main-actor
-    ///   rule store.
+    /// - Note: Isolated to the main actor because it writes the body through the rule store.
+    @MainActor
     static func json(_ body: String,
                      status: Int = 200,
                      delay: TimeInterval = 0) -> MockResponse {
-        let bodyID = MainActor.assumeIsolated { NetworkRuleStore.shared.storeBody(Data(body.utf8)) }
+        let bodyID = NetworkRuleStore.shared.storeBody(Data(body.utf8))
         return MockResponse(statusCode: status,
                             headers: ["Content-Type": "application/json"],
                             bodyID: bodyID,

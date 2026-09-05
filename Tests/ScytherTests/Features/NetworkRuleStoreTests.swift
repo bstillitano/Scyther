@@ -98,12 +98,26 @@ final class NetworkRuleStoreTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: store.bodyURL(for: bodyID).path))
     }
 
-    func testUnknownActionInStoredJSONSkipsThatRuleOnly() throws {
+    func testUnknownActionInStoredJSONSkipsOnlyThatRule() throws {
+        let valid = String(decoding: try JSONEncoder().encode(makeRule("valid")), as: UTF8.self)
         let json = """
         [{"id":"\(UUID().uuidString)","name":"future","isEnabled":true,
-          "match":{"methods":[],"query":{}},"action":{"unknownCase":{}}}]
+          "match":{"methods":[],"query":{}},"action":{"unknownCase":{}}},
+         \(valid)]
         """
         defaults.set(Data(json.utf8), forKey: "Scyther.NetworkRules.Rules")
-        XCTAssertEqual(makeStore().rules.count, 0, "a rule Scyther cannot decode is skipped, not fatal")
+
+        let store = makeStore()
+        XCTAssertEqual(store.rules.count, 1, "a rule Scyther cannot decode is skipped, not fatal")
+        XCTAssertEqual(store.rules.map(\.name), ["valid"], "the rules either side of it still load")
+    }
+
+    func testEveryRuleKindCanBeBuiltThroughThePublicAPI() {
+        let store = makeStore()
+        store.add(.mock(name: "m", matching: .path("/a"), returning: .json("{}")))
+        store.add(.headers(name: "h", matching: .path("/b"), set: ["X": "1"], remove: []))
+        store.add(.condition(name: "c", matching: .path("/c"), NetworkCondition(latency: 1)))
+        store.add(.mapLocal(name: "l", matching: .path("/d"), serving: MapLocalFile(relativePath: "/tmp/x.json")))
+        XCTAssertEqual(store.rules.count, 4)
     }
 }
