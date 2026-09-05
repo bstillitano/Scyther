@@ -88,8 +88,10 @@ final class NetworkHeaderRewriteTests: XCTestCase {
         XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
     }
 
-    /// The contract on `RuleOutcome.headerRewrite`: sets apply first, removals second, so a key in
-    /// both ends up removed rather than quietly kept.
+    /// The contract on ``NetworkHeaderRewrite/apply(to:)``: sets apply first, removals second, so
+    /// a key in both ends up removed rather than quietly kept. A rewrite the engine merged never
+    /// names a key in both — it settles that per header, in rule order — so this is the rule for a
+    /// rewrite built by hand, as one registered from code may be.
     func testAKeyInBothSetAndRemoveIsRemoved() {
         let request = rewritten(NetworkHeaderRewrite(set: ["Authorization": "Bearer test"],
                                                      remove: ["Authorization"]))

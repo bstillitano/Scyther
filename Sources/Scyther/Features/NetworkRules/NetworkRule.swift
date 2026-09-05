@@ -9,9 +9,9 @@ import Foundation
 
 /// A single interception rule: what to match and what to do when it matches.
 ///
-/// A rule is a plain value type with no behaviour of its own beyond matching; ``NetworkRuleEngine``
-/// composes enabled rules into an outcome, and ``NetworkRuleStore`` owns their persistence and
-/// ordering.
+/// A rule is a plain value type with no behaviour of its own beyond matching; the engine composes
+/// enabled rules into an outcome, and the store owns their persistence and ordering. Both are
+/// internal: a rule is what the host app hands over, and the machinery around it is Scyther's.
 public struct NetworkRule: Identifiable, Codable, Sendable, Equatable {
     /// A stable identifier, used for lookup, editing and deletion.
     public var id: UUID
@@ -646,7 +646,7 @@ public extension NetworkRuleMatch {
     /// | Method | Case-insensitively. A request with no method reads as `GET`. |
     /// | Host | Case-insensitively, against the host alone — never the scheme, the port or the userinfo. |
     /// | Path | Case-insensitively, against the **percent-encoded** path, with an empty path read as `"/"`. |
-    /// | Query | Every pair listed must be present. Names are case-sensitive; values are compared percent-decoded. |
+    /// | Query | Every pair listed must be present. Names case-sensitive, values decoded. |
     ///
     /// - Note: The path is compared before percent-decoding, so `%2F` is not a separator:
     ///   `/v1/a%2Fb` is one segment and does not satisfy a rule written for `/v1/a/b`. The

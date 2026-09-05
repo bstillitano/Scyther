@@ -8,7 +8,7 @@
 import Foundation
 
 /// The result of evaluating every enabled rule against one request.
-struct RuleOutcome: Sendable, Equatable {
+struct NetworkRuleOutcome: Sendable, Equatable {
     /// Headers to apply to the outgoing request, merged from every matching rewrite.
     ///
     /// One header name never appears in both `set` and `remove`: the engine has already settled
@@ -45,16 +45,16 @@ struct RuleOutcome: Sendable, Equatable {
     var networkRuleIDs: [UUID]
 
     /// An outcome that changes nothing.
-    static let empty = RuleOutcome(headerRewrite: nil,
-                                   condition: nil,
-                                   stub: nil,
-                                   stubRuleName: nil,
-                                   networkRuleNames: [],
-                                   stubRuleID: nil,
-                                   networkRuleIDs: [])
+    static let empty = NetworkRuleOutcome(headerRewrite: nil,
+                                          condition: nil,
+                                          stub: nil,
+                                          stubRuleName: nil,
+                                          networkRuleNames: [],
+                                          stubRuleID: nil,
+                                          networkRuleIDs: [])
 }
 
-extension RuleOutcome {
+extension NetworkRuleOutcome {
     /// Every override to credit on the log when the stub is served: the stub first, then whatever
     /// else applied, with no override named twice.
     ///
@@ -83,7 +83,7 @@ enum NetworkRuleEngine {
     /// | Facet | Rule |
     /// |---|---|
     /// | Stub | The first matching stub wins and short-circuits the network. |
-    /// | Header rewrite | Every matching rewrite merges, the **last** override to name a header deciding what happens to it. |
+    /// | Header rewrite | Every matching rewrite merges; the **last** override to name a header wins. |
     /// | Condition | The first matching condition wins. |
     ///
     /// A merged rewrite settles each header once, so precedence for a header is the same rule
@@ -106,14 +106,14 @@ enum NetworkRuleEngine {
     /// meant "mock this endpoint and make it slow" quietly did nothing.
     ///
     /// The names of the matching rules are still reported in two groups, because the stub credit
-    /// is conditional on the stub being producible — see ``RuleOutcome/stubRuleName``. A caller
-    /// serving the stub credits ``RuleOutcome/stubbedCredits``; one that falls through to the
-    /// network credits ``RuleOutcome/networkRuleNames``.
+    /// is conditional on the stub being producible — see ``NetworkRuleOutcome/stubRuleName``. A
+    /// caller serving the stub credits ``NetworkRuleOutcome/stubbedCredits``; one that falls
+    /// through to the network credits ``NetworkRuleOutcome/networkRuleNames``.
     ///
     /// - Parameters:
     ///   - request: The outgoing request.
     ///   - rules: The rules to evaluate, in precedence order.
-    static func outcome(for request: URLRequest, rules: [NetworkRule]) -> RuleOutcome {
+    static func outcome(for request: URLRequest, rules: [NetworkRule]) -> NetworkRuleOutcome {
         var headers = HeaderMerge()
         var condition: NetworkCondition?
         var stub: NetworkRuleStub?
@@ -148,7 +148,7 @@ enum NetworkRuleEngine {
             }
         }
 
-        return RuleOutcome(
+        return NetworkRuleOutcome(
             headerRewrite: headers.resolved,
             condition: condition,
             stub: stub,
