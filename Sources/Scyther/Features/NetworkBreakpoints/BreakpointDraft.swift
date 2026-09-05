@@ -104,7 +104,15 @@ struct BreakpointDraft: Identifiable, Equatable, Sendable {
         headers = (request.allHTTPHeaderFields ?? [:])
             .map { Header(name: $0.key, value: $0.value) }
             .sorted { $0.name < $1.name }
-        body = (request.httpBody?.isEmpty == false) ? request.httpBody : nil
+        // `httpBody` is nil for the requests that actually reach a `URLProtocol`: `URLSession`
+        // hands the body over as a stream, so reading it directly reported every POST as empty
+        // and made the body uneditable for exactly the requests worth holding. `body` is the
+        // toolkit's existing reader, which drains the stream and falls back to the property the
+        // interceptor stashes.
+        // `httpBody` first for a request that carries one directly, then the toolkit's reader for
+        // the streamed case. The reader alone is not enough: it does not look at `httpBody`.
+        let captured = request.httpBody ?? request.body
+        body = (captured?.isEmpty == false) ? captured : nil
     }
 
     /// Captures a response and the body that came with it.

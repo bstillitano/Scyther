@@ -76,6 +76,29 @@ final class HeldRequestEditorViewModelTests: XCTestCase {
                        NetworkRuleEditorViewModel.availableMethods.count + 1)
     }
 
+    /// `URLSession` hands a body to a `URLProtocol` as a stream, not as `httpBody`, so reading
+    /// the property directly reported every POST as empty and left the body uneditable for the
+    /// requests most worth holding.
+    func testAStreamedRequestBodyIsCaptured() throws {
+        let recorder = Recorder()
+        var request = URLRequest(url: URL(string: "https://api.example.com/graphql")!)
+        request.httpMethod = "POST"
+        request.httpBodyStream = InputStream(data: Data(#"{"query":"{ me }"}"#.utf8))
+
+        coordinator.pause(BreakpointDraft(request: request),
+                          name: "graphql",
+                          stage: .request,
+                          timeout: 60,
+                          resume: recorder.resume)
+        waitUntil { !coordinator.pending.isEmpty }
+        let pending = try XCTUnwrap(coordinator.pending.first)
+        let viewModel = HeldRequestEditorViewModel(pending: pending, coordinator: coordinator)
+
+        XCTAssertEqual(viewModel.bodyText, #"{"query":"{ me }"}"#,
+                       "a streamed body has to reach the editor, or it cannot be edited")
+        coordinator.resolve(id: pending.id, with: .continue(pending.draft))
+    }
+
     func testContinuingCarriesTheEdits() throws {
         let recorder = Recorder()
         let pending = try heldRequest(recorder)
