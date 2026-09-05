@@ -10,6 +10,10 @@ import Foundation
 /// The result of evaluating every enabled rule against one request.
 public struct RuleOutcome: Sendable, Equatable {
     /// Headers to apply to the outgoing request, merged from every matching rewrite rule.
+    ///
+    /// A consumer must apply every entry in `set` first, then remove every name in `remove`,
+    /// so that a key present in both ends up removed. Applying them in the opposite order would
+    /// silently keep a header a rule asked to remove.
     public var headerRewrite: NetworkHeaderRewrite?
     /// Conditioning from the first matching condition rule.
     public var condition: NetworkCondition?
@@ -20,9 +24,6 @@ public struct RuleOutcome: Sendable, Equatable {
 
     /// An outcome that changes nothing.
     public static let empty = RuleOutcome(headerRewrite: nil, condition: nil, stub: nil, appliedRuleNames: [])
-
-    /// Whether this outcome leaves the request untouched.
-    public var isEmpty: Bool { self == .empty }
 }
 
 /// What to serve instead of performing the request.

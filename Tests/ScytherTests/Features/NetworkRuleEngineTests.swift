@@ -167,7 +167,9 @@ final class NetworkRuleEngineTests: XCTestCase {
         let slow = NetworkCondition(latency: 5, bandwidthKBps: nil, failureRate: 0, failureCode: -1009)
         let slower = NetworkCondition(latency: 10, bandwidthKBps: nil, failureRate: 0, failureCode: -1009)
         let rules = [rule("slow", action: .condition(slow)), rule("slower", action: .condition(slower))]
-        XCTAssertEqual(NetworkRuleEngine.outcome(for: request(), rules: rules).condition, slow)
+        let outcome = NetworkRuleEngine.outcome(for: request(), rules: rules)
+        XCTAssertEqual(outcome.condition, slow)
+        XCTAssertEqual(outcome.appliedRuleNames, ["slow"])
     }
 
     func testEveryMatchingHeaderRewriteApplies() {
@@ -200,5 +202,25 @@ final class NetworkRuleEngineTests: XCTestCase {
         let file = MapLocalFile(relativePath: "fixtures/users.json", statusCode: 200, contentType: "application/json", delay: 0)
         let outcome = NetworkRuleEngine.outcome(for: request(), rules: [rule("file", action: .mapLocal(file))])
         XCTAssertEqual(outcome.stub, .mapLocal(file))
+    }
+
+    func testAKeySetByOneRuleAndRemovedByAnotherAppearsInBoth() {
+        let rules = [
+            rule("sets", action: .rewriteHeaders(NetworkHeaderRewrite(set: ["Authorization": "Bearer test"], remove: []))),
+            rule("removes", action: .rewriteHeaders(NetworkHeaderRewrite(set: [:], remove: ["Authorization"]))),
+        ]
+        let rewrite = NetworkRuleEngine.outcome(for: request(), rules: rules).headerRewrite
+        XCTAssertEqual(rewrite?.set["Authorization"], "Bearer test")
+        XCTAssertEqual(rewrite?.remove, ["Authorization"])
+    }
+
+    func testAKeyRemovedByOneRuleAndSetByAnotherAlsoAppearsInBoth() {
+        let rules = [
+            rule("removes", action: .rewriteHeaders(NetworkHeaderRewrite(set: [:], remove: ["Authorization"]))),
+            rule("sets", action: .rewriteHeaders(NetworkHeaderRewrite(set: ["Authorization": "Bearer test"], remove: []))),
+        ]
+        let rewrite = NetworkRuleEngine.outcome(for: request(), rules: rules).headerRewrite
+        XCTAssertEqual(rewrite?.set["Authorization"], "Bearer test")
+        XCTAssertEqual(rewrite?.remove, ["Authorization"], "order of the rules does not change the outcome shape")
     }
 }
