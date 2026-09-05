@@ -552,14 +552,22 @@ public struct MenuView: View {
 
     func row(withLabel label: String, description: String? = nil, icon: String? = nil, tint: Color = .accentColor, andLoadingState loading: Bool = false) -> some View {
         HStack {
-            if let icon {
-                HStack(spacing: 12) {
-                    iconTile(icon, tint: tint)
+            Group {
+                if let icon {
+                    HStack(spacing: 12) {
+                        iconTile(icon, tint: tint)
+                        Text(label)
+                    }
+                } else {
                     Text(label)
                 }
-            } else {
-                Text(label)
             }
+            // The trailing value below is greedy (`maxWidth: .infinity`) so a long one truncates in
+            // its own middle rather than pushing the row wider. Without a priority here the title
+            // and the value split the row evenly, so a short value like a count still took half the
+            // width and wrapped a two-word title onto a second line. The title gets its ideal width
+            // first; the value keeps whatever is left, and still truncates when that is not enough.
+            .layoutPriority(1)
             if loading {
                 ProgressView()
             } else if let description {

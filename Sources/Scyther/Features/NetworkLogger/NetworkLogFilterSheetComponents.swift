@@ -49,29 +49,6 @@ struct NetworkLogFilterEmptyRow: View {
     }
 }
 
-/// The tinted confirmation button that dismisses a filter sheet.
-///
-/// Uses the system confirm role with its system-provided checkmark label on iOS 26, which
-/// renders as prominent tinted glass, and a checkmark in a bordered prominent capsule on
-/// earlier releases.
-struct NetworkLogFilterConfirmButton: View {
-    /// Called when the button is tapped.
-    let action: () -> Void
-
-    var body: some View {
-        if #available(iOS 26.0, *) {
-            Button(role: .confirm, action: action)
-        } else {
-            Button(action: action) {
-                Image(systemName: "checkmark")
-            }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.capsule)
-            .accessibilityLabel(localized("Done"))
-        }
-    }
-}
-
 /// A segmented Include / Exclude control shown as the section header of the host checklist.
 struct NetworkLogHostModePicker: View {
     /// The current mode.

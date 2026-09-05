@@ -32,13 +32,23 @@ public struct RuleOutcome: Sendable, Equatable {
     /// could not be produced — a map-local file that no longer exists, say — and the request
     /// therefore falls through to the network.
     public var networkRuleNames: [String]
+    /// The identifier of the rule that supplied ``stub``, or `nil` when nothing is stubbed.
+    ///
+    /// Carried alongside ``stubRuleName`` so the log can link a mocked response back to the
+    /// override that produced it. A name is what a developer reads; an identifier is what
+    /// survives two overrides sharing one.
+    public var stubRuleID: UUID?
+    /// Identifiers of the rules named by ``networkRuleNames``, in the same order.
+    public var networkRuleIDs: [UUID]
 
     /// An outcome that changes nothing.
     public static let empty = RuleOutcome(headerRewrite: nil,
                                           condition: nil,
                                           stub: nil,
                                           stubRuleName: nil,
-                                          networkRuleNames: [])
+                                          networkRuleNames: [],
+                                          stubRuleID: nil,
+                                          networkRuleIDs: [])
 }
 
 /// What to serve instead of performing the request.
@@ -73,6 +83,8 @@ public enum NetworkRuleEngine {
         var stub: RuleStub?
         var stubName: String?
         var networkNames: [String] = []
+        var networkIDs: [UUID] = []
+        var stubID: UUID?
 
         for rule in rules where rule.isEnabled {
             guard rule.match.matches(request) else { continue }
@@ -82,18 +94,22 @@ public enum NetworkRuleEngine {
                 rewrite.set.forEach { setHeaders[$0.key] = $0.value }
                 removeHeaders.append(contentsOf: rewrite.remove)
                 networkNames.append(rule.name)
+                networkIDs.append(rule.id)
             case .condition(let value):
                 guard condition == nil else { continue }
                 condition = value
                 networkNames.append(rule.name)
+                networkIDs.append(rule.id)
             case .mock(let mock):
                 guard stub == nil else { continue }
                 stub = .mock(mock)
                 stubName = rule.name
+                stubID = rule.id
             case .mapLocal(let file):
                 guard stub == nil else { continue }
                 stub = .mapLocal(file)
                 stubName = rule.name
+                stubID = rule.id
             }
         }
 
@@ -102,7 +118,9 @@ public enum NetworkRuleEngine {
             condition: condition,
             stub: stub,
             stubRuleName: stubName,
-            networkRuleNames: networkNames
+            networkRuleNames: networkNames,
+            stubRuleID: stubID,
+            networkRuleIDs: networkIDs
         )
     }
 }

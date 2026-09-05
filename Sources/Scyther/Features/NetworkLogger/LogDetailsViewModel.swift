@@ -167,6 +167,12 @@ class LogDetailsViewModel: ViewModel {
     /// master switch is off.
     @Published var appliedRuleNames: [String] = []
 
+    /// The overrides that shaped this request, resolved from the store, in the order they applied.
+    ///
+    /// Only overrides the store still holds appear here, so a capture whose override has since
+    /// been deleted keeps its names in ``appliedRuleNames`` without offering a link to nothing.
+    @Published var appliedOverrides: [NetworkRule] = []
+
     /// Whether the response was synthesised by a mock or map-local override rather than received
     /// from the network.
     @Published var wasStubbed: Bool = false
@@ -257,8 +263,25 @@ class LogDetailsViewModel: ViewModel {
         curlRequest = httpRequest.requestCurl ?? ""
 
         appliedRuleNames = httpRequest.appliedRuleNames
+        appliedOverrides = resolveOverrides(for: httpRequest)
         wasStubbed = httpRequest.wasStubbed
         hasResponse = httpRequest.responseCode != nil
+    }
+
+    /// Resolves the overrides a capture recorded into the ones the store still holds.
+    ///
+    /// Matching is by identifier rather than by name, so two overrides sharing a name cannot send
+    /// the developer to the wrong one. A capture recorded before identifiers were carried has an
+    /// empty ``HTTPRequest/appliedRuleIDs`` and therefore resolves to nothing, which is correct:
+    /// its names are still displayed, just not as links.
+    ///
+    /// - Parameter httpRequest: The capture to resolve.
+    /// - Returns: The overrides still present in the store, in the order they applied.
+    private func resolveOverrides(for httpRequest: HTTPRequest) -> [NetworkRule] {
+        let known = ruleStore.rules + ruleStore.transientRules
+        return httpRequest.appliedRuleIDs.compactMap { id in
+            known.first { $0.id == id }
+        }
     }
 
     /// Builds a disabled mock override pre-filled from this capture.

@@ -26,6 +26,7 @@ struct LogDetailsView: View {
 
     var body: some View {
         List {
+            mockedSection
             overviewSection
             graphQLSection
             requestHeadersSection
@@ -180,16 +181,67 @@ struct LogDetailsView: View {
         }
     }
 
+    /// The pink banner shown above everything else when this response was synthesised.
+    ///
+    /// A mocked response is the one thing in the log that is not what the app actually received,
+    /// so it is called out before any of the captured values rather than left to a row far down
+    /// the page. Each override that shaped the request is a link into its editor.
+    @ViewBuilder
+    private var mockedSection: some View {
+        if viewModel.wasStubbed || !viewModel.appliedRuleNames.isEmpty {
+            Section {
+                if viewModel.wasStubbed {
+                    Label {
+                        Text(localized("This response was synthesised by an override, not received from the network."))
+                    } icon: {
+                        Image(systemName: "arrow.triangle.branch")
+                    }
+                    .foregroundStyle(.pink)
+                }
+                overrideRows
+            } header: {
+                if viewModel.wasStubbed {
+                    Text(localized("MOCKED"))
+                        .foregroundStyle(.pink)
+                } else {
+                    Text(localized("Overrides"))
+                }
+            }
+        }
+    }
+
+    /// One row per override that shaped this request.
+    ///
+    /// Overrides the store still holds push their editor; ones that have since been deleted are
+    /// named but inert, because there is nothing left to open.
+    @ViewBuilder
+    private var overrideRows: some View {
+        if viewModel.appliedOverrides.isEmpty {
+            ForEach(viewModel.appliedRuleNames, id: \.self) { name in
+                LabeledContent(localized("Override"), value: name)
+            }
+        } else {
+            ForEach(viewModel.appliedOverrides) { rule in
+                NavigationLink {
+                    NetworkRuleEditorView(rule: rule, store: viewModel.ruleStore, showsCancel: false)
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(rule.name)
+                        Text(rule.action.kind.title)
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
     private var developerSection: some View {
         Section(localized("Developer Info")) {
             LabeledContent(localized("Request time"), value: viewModel.requestTime)
             LabeledContent(localized("Response time"), value: viewModel.responseTime)
             LabeledContent(localized("Cache Policy"), value: viewModel.cachePolicy)
             LabeledContent(localized("Timeout"), value: viewModel.timeout)
-
-            if !viewModel.appliedRuleNames.isEmpty {
-                LabeledContent(localized("Overrides"), value: viewModel.appliedRuleNames.joined(separator: ", "))
-            }
 
             ShareLink(item: viewModel.curlRequest) {
                 Text(localized("Export cURL request"))

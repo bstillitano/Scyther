@@ -407,6 +407,10 @@ final class NetworkRuleDelayTests: XCTestCase {
         /// Called on whichever thread finished the load.
         var onFinish: (@Sendable () -> Void)?
 
+        /// Called from inside `urlProtocol(_:didReceive:cacheStoragePolicy:)`, which is a place
+        /// the URL loading system is entitled to cancel from.
+        var onResponse: (@Sendable () -> Void)?
+
         /// The callbacks received so far, in order.
         var received: [String] { lock.withLock { events } }
 
@@ -416,6 +420,7 @@ final class NetworkRuleDelayTests: XCTestCase {
 
         func urlProtocol(_ protocol: URLProtocol, didReceive response: URLResponse, cacheStoragePolicy policy: URLCache.StoragePolicy) {
             record("response")
+            onResponse?()
         }
         func urlProtocol(_ protocol: URLProtocol, didLoad data: Data) {
             record("data")
@@ -546,6 +551,118 @@ final class NetworkRuleDelayTests: XCTestCase {
         ])
         let request = URLRequest(url: URL(string: "https://unreachable.invalid/latency")!)
         return HTTPInterceptorURLProtocol(request: request, cachedResponse: nil, client: client)
+    }
+
+    /// `URLSession` holds its delegate until it is invalidated, and this instance holds the
+    /// session, so every intercepted request used to leak the protocol instance, the session, its
+    /// operation queue, the logged model and an `NSMutableData` holding the whole response body.
+    func testACompletedRequestReleasesTheInterceptor() {
+        weak var leaked: HTTPInterceptorURLProtocol?
+        let finished = expectation(description: "the request completes")
+
+        autoreleasepool {
+            let client = RecordingClient()
+            client.onFinish = { finished.fulfill() }
+            let interceptor = interceptor(latency: 0, client: client)
+            leaked = interceptor
+            interceptor.startLoading()
+            wait(for: [finished], timeout: 30)
+        }
+
+        // The session releases its delegate once the invalidation has drained, which happens on
+        // the session's own queue. Poll rather than sleep a fixed amount and hope.
+        let deadline = Date().addingTimeInterval(10)
+        while leaked != nil && Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        }
+
+        XCTAssertNil(leaked, "the session was never invalidated, so it still holds its delegate")
+    }
+
+    /// The same for a cancelled request, which never reaches `didCompleteWithError`'s invalidation.
+    func testACancelledRequestReleasesTheInterceptor() {
+        weak var leaked: HTTPInterceptorURLProtocol?
+
+        autoreleasepool {
+            let interceptor = interceptor(latency: 0, client: RecordingClient())
+            leaked = interceptor
+            interceptor.startLoading()
+            interceptor.stopLoading()
+        }
+
+        let deadline = Date().addingTimeInterval(10)
+        while leaked != nil && Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        }
+
+        XCTAssertNil(leaked, "cancelling must invalidate the session it started")
+    }
+
+    /// A client may cancel from inside the response callback. `serve()` checked cancellation once,
+    /// on the way in, and then made two more client calls regardless — which the `URLProtocol`
+    /// contract forbids.
+    func testCancellingFromInsideTheResponseCallbackStopsTheStub() {
+        let client = RecordingClient()
+        let interceptor = interceptor(mockDelay: 0, client: client)
+        client.onResponse = { [weak interceptor] in interceptor?.stopLoading() }
+
+        interceptor.startLoading()
+
+        XCTAssertEqual(client.received, ["response"],
+                       "nothing is delivered to a client that has been told to stop")
+    }
+
+    /// The delay queue used to be serial, and the block it runs is not merely a wait: serving a
+    /// stub hands three callbacks to the client and writes the bodies to the log. One slow mock
+    /// therefore held up every other override's delay behind it.
+    ///
+    /// Written without a timing margin. The first mock's delay is shorter, so it is scheduled
+    /// first for certain; it then occupies its block until told to let go. On a serial queue the
+    /// second mock can never be delivered and the expectation times out.
+    func testOneDelayedMockDoesNotHoldUpAnother() {
+        /// Two rules, so the two interceptors can be given different delays from one snapshot.
+        func mock(host: String, delay: TimeInterval) -> NetworkRule {
+            NetworkRule(
+                id: UUID(),
+                name: host,
+                isEnabled: true,
+                match: .host(host),
+                action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: delay))
+            )
+        }
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [
+            mock(host: "blocking.invalid", delay: 0.05),
+            mock(host: "waiting.invalid", delay: 0.2)
+        ])
+
+        func interceptor(host: String, client: RecordingClient) -> HTTPInterceptorURLProtocol {
+            let request = URLRequest(url: URL(string: "https://\(host)/thing")!)
+            return HTTPInterceptorURLProtocol(request: request, cachedResponse: nil, client: client)
+        }
+
+        let release = DispatchSemaphore(value: 0)
+        let occupied = expectation(description: "the first mock is occupying the delay queue")
+        let delivered = expectation(description: "the second mock is delivered anyway")
+
+        let blockingClient = RecordingClient()
+        blockingClient.onResponse = {
+            occupied.fulfill()
+            release.wait()
+        }
+        let blocking = interceptor(host: "blocking.invalid", client: blockingClient)
+
+        let waitingClient = RecordingClient()
+        waitingClient.onFinish = { delivered.fulfill() }
+        let waiting = interceptor(host: "waiting.invalid", client: waitingClient)
+
+        blocking.startLoading()
+        waiting.startLoading()
+
+        wait(for: [occupied], timeout: 5)
+        defer { release.signal() }
+        wait(for: [delivered], timeout: 5)
+
+        XCTAssertEqual(waitingClient.received, ["response", "data", "finished"])
     }
 
     /// A draw of a fixed value that counts how many times it was asked for.

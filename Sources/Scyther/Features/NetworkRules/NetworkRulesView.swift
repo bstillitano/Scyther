@@ -174,7 +174,7 @@ struct NetworkRulesView: View {
     /// subtitle naming its behaviour and whether it is on.
     private func ruleRow(for rule: NetworkRule) -> some View {
         NavigationLink {
-            NetworkRuleEditorView(rule: rule, store: store)
+            NetworkRuleEditorView(rule: rule, store: store, showsCancel: false)
         } label: {
             // Matches `MenuView.searchResultLabel(title:icon:tint:breadcrumbText:)`, which is how
             // every other title-over-subtitle row in the menu is built. A bare two-`Text` label is

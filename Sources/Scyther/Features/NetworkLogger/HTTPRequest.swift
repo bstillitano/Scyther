@@ -132,6 +132,13 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
     /// Names of the rules that shaped this request, if any.
     var appliedRuleNames: [String] = []
 
+    /// Identifiers of the overrides named by ``appliedRuleNames``, in the same order.
+    ///
+    /// Lets the request details page link back to the override that shaped this request. Empty
+    /// for a capture recorded before the identifiers were carried, in which case the names are
+    /// still shown but are not tappable.
+    var appliedRuleIDs: [UUID] = []
+
     /// Whether the response was synthesised by a rule rather than received from the network.
     var wasStubbed: Bool = false
 

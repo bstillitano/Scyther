@@ -31175,6 +31175,83 @@
         }
       }
     },
+    "Override": {
+      "comment": "Label for one request override named on the request details page",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تجاوز"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Override"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Anulación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Remplacement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Override"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "上書き"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "재정의"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Overschrijving"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Substituição"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Переопределение"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "覆盖"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "覆寫"
+          }
+        }
+      }
+    },
     "Override Text Size": {
       "comment": "Searchable row inside the Appearance page",
       "localizations": {
@@ -44455,6 +44532,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "這是一則測試通知。"
+          }
+        }
+      }
+    },
+    "This response was synthesised by an override, not received from the network.": {
+      "comment": "Banner on the request details page when the response came from a mock or map local override",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تم إنشاء هذه الاستجابة بواسطة تجاوز ولم يتم استلامها من الشبكة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Diese Antwort stammt aus einem Override und nicht aus dem Netzwerk."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Esta respuesta la generó una anulación; no se recibió de la red."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Cette réponse a été générée par un remplacement, elle ne provient pas du réseau."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Questa risposta è stata generata da un override, non ricevuta dalla rete."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "このレスポンスはネットワークからではなく、上書きによって生成されました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "이 응답은 네트워크에서 받은 것이 아니라 재정의가 생성했습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dit antwoord is door een overschrijving gemaakt en niet van het netwerk ontvangen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Esta resposta foi gerada por uma substituição, não recebida da rede."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Этот ответ создан переопределением, а не получен из сети."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "此响应由覆盖生成，并非来自网络。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "此回應由覆寫產生，並非來自網路。"
           }
         }
       }

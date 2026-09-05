@@ -24,6 +24,12 @@ struct NetworkRuleEditorView: View {
     /// The view model owning the draft rule and every field binding.
     @StateObject private var viewModel: NetworkRuleEditorViewModel
 
+    /// Whether to offer a Cancel button beside the confirm button.
+    ///
+    /// True when the editor is presented as a sheet, which has no other way out. False when it is
+    /// pushed, where the back button already discards.
+    private let showsCancel: Bool
+
     /// Creates the editor.
     ///
     /// The view model is built inside `StateObject`'s autoclosure rather than by the caller, so
@@ -33,8 +39,11 @@ struct NetworkRuleEditorView: View {
     /// - Parameters:
     ///   - rule: The override to edit, or `nil` to create one.
     ///   - store: Where the override is written on save. Defaults to the shared store.
-    init(rule: NetworkRule?, store: NetworkRuleStore = .shared) {
+    ///   - showsCancel: Whether to offer a Cancel button. Pass `false` when pushing the editor,
+    ///     where the back button already discards.
+    init(rule: NetworkRule?, store: NetworkRuleStore = .shared, showsCancel: Bool = true) {
         _viewModel = StateObject(wrappedValue: NetworkRuleEditorViewModel(rule: rule, store: store))
+        self.showsCancel = showsCancel
     }
 
     /// Creates the editor on an override that has been built elsewhere but not yet saved.
@@ -48,6 +57,7 @@ struct NetworkRuleEditorView: View {
     ///   - store: Where the override is written on save. Defaults to the shared store.
     init(prefilled rule: NetworkRule, store: NetworkRuleStore = .shared) {
         _viewModel = StateObject(wrappedValue: NetworkRuleEditorViewModel(prefilled: rule, store: store))
+        self.showsCancel = true
     }
 
     var body: some View {
@@ -98,11 +108,16 @@ struct NetworkRuleEditorView: View {
         .navigationTitle(viewModel.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button(localized("Cancel")) { dismiss() }
+            // Only a sheet needs a worded way out. When the editor is pushed, the navigation bar
+            // already carries a back button that discards exactly as Cancel would, and offering
+            // both puts two identical exits side by side.
+            if showsCancel {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(localized("Cancel")) { dismiss() }
+                }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button(localized("Save")) {
+                ConfirmButton {
                     viewModel.save()
                     dismiss()
                 }

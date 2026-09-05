@@ -31,22 +31,33 @@ internal let internalNetworkRequestKey = "Scyther_Internal_Network_Request"
 ///
 /// - Note: This protocol is automatically registered by `NetworkHelper.start()`.
 open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
-    /// Guards ``isCancelled``, ``didStartTask`` and ``session``.
+    /// Guards ``isCancelled``, ``didStartTask``, ``session`` and ``startedTask``.
     ///
     /// Three threads reach that state: `stopLoading()`, on a thread the URL loading system owns;
     /// the block scheduled on ``delayQueue``; and the private session's delegate queue. The
     /// grouping matters more than any single field does — `stopLoading()` has to decide whether a
-    /// task exists *and* claim the session to cancel it as one indivisible act, because a check
-    /// that raced the delay block would see `didStartTask == false`, cancel nothing, and let a
-    /// request the app had already abandoned go out with nothing left able to stop it.
+    /// task exists *and* take hold of it to cancel it as one indivisible act, because a check that
+    /// raced the delay block would see `didStartTask == false`, cancel nothing, and let a request
+    /// the app had already abandoned go out with nothing left able to stop it.
     private let stateLock = NSLock()
 
     /// The private session the real data task runs on, or `nil` while no task has been started.
     ///
-    /// Built in ``beginTask()`` under ``stateLock`` rather than by a `lazy var`: an unsynchronised
-    /// `lazy` initialised from two threads can produce two sessions, and `stopLoading()` would
-    /// then ask the wrong one for the tasks to cancel.
+    /// Built in ``beginTask(with:)`` under ``stateLock`` rather than by a `lazy var`: an
+    /// unsynchronised `lazy` initialised from two threads can produce two sessions, and
+    /// `stopLoading()` would then invalidate the wrong one.
     private var session: URLSession?
+
+    /// The real data task, once one has been started.
+    ///
+    /// Recorded in the same critical section that claims the right to start it, so `stopLoading()`
+    /// can cancel it directly. Asking the session for its tasks instead delivers the answer on the
+    /// session's *delegate queue*, which is the one place a cancellation cannot afford to queue
+    /// behind: a paced response occupies that queue, and the cancel would sit behind the pacing
+    /// while the socket kept transferring.
+    ///
+    /// - Note: Only ever read or written under ``stateLock``.
+    private var startedTask: URLSessionDataTask?
 
     private let model: HTTPRequest = .init()
     private var response: URLResponse?
@@ -124,10 +135,14 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// scheduled here and the load finished from the block. `startLoading()` only has to *start*
     /// the load; the client's callbacks are free to arrive later, on another thread.
     ///
-    /// Serial and shared, because it does nothing but wait: the work each block performs is
-    /// either handing a stub to the client or resuming a data task.
+    /// **Concurrent**, and shared by every request in the process. The block a delay schedules is
+    /// not merely a wait: serving a stub hands three callbacks to the client and writes the
+    /// request and response bodies to the log. On a serial queue one megabyte of mocked JSON
+    /// would hold up every other override's delay behind it, so a mock configured for 100 ms
+    /// would arrive whenever the queue got round to it.
     private static let delayQueue = DispatchQueue(label: "com.scyther.networkRules.delay",
-                                                  qos: .userInitiated)
+                                                  qos: .userInitiated,
+                                                  attributes: .concurrent)
 
     override open class func canInit(with request: URLRequest) -> Bool {
         return canServeRequest(request)
@@ -181,7 +196,11 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         if let stub = outcome.stub, let url = request.url {
             let bodies = { NetworkRuleStore.bodyDataOffMainActor(for: $0) }
             if let (response, body) = NetworkRuleStubResponder.response(for: stub, url: url, bodyProvider: bodies) {
+                /// Names and ids are parallel: same length, same order, one entry per override
+                /// credited. The details page looks the override up by id and shows the name, so
+                /// the two are always assigned together and must never be allowed to drift.
                 model.appliedRuleNames = outcome.stubRuleName.map { [$0] } ?? []
+                model.appliedRuleIDs = outcome.stubRuleID.map { [$0] } ?? []
                 let delay = min(NetworkRuleStubResponder.delay(for: stub), Self.maximumDelay)
                 perform(after: delay) { $0.serve(response, body: body) }
                 return
@@ -191,7 +210,10 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         /// Either nothing stubbed this request or the stub could not be produced — a map-local
         /// file that has been deleted, say — so it goes to the network and the rules that shape
         /// it there are the ones to credit.
+        /// Parallel to ``HTTPRequest/appliedRuleNames``, as on the stub path above: same length,
+        /// same order, assigned together.
         model.appliedRuleNames = outcome.networkRuleNames
+        model.appliedRuleIDs = outcome.networkRuleIDs
 
         /// Continue executing request
         guard let mutableRequest = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest else {
@@ -219,8 +241,7 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
                 interceptor.failRequest(with: condition)
                 return
             }
-            guard let session = interceptor.beginTask() else { return }
-            session.dataTask(with: outgoing).resume()
+            interceptor.beginTask(with: outgoing)
         }
     }
 
@@ -269,26 +290,42 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         }
     }
 
-    /// Claims the right to start the real data task, and hands back the session to start it on.
+    /// Starts the real data task, unless `stopLoading()` got there first.
     ///
-    /// Takes ``stateLock`` once and performs, indivisibly, the three things `stopLoading()` must
+    /// Takes ``stateLock`` once and performs, indivisibly, the four things `stopLoading()` must
     /// never catch half-done: it refuses a request that has already been cancelled, records that a
-    /// task now exists, and creates the session that task will belong to. Resuming the task is the
-    /// caller's job, outside the lock, because that call reaches into `URLSession`.
+    /// task now exists, creates the session that task belongs to, and creates and records the task
+    /// itself. Recording the task under the same lock is what closes the window a cancel used to
+    /// fall into — the task was created and resumed by the caller after the lock was released, so
+    /// a `stopLoading()` landing in between saw `didStartTask == true`, found no task on the
+    /// session to cancel, and let a request the app had already abandoned go out with nothing left
+    /// able to stop it.
     ///
-    /// - Returns: The session to resume the data task on, or `nil` when `stopLoading()` got there
-    ///   first — in which case nothing is started and nothing is delivered.
-    private func beginTask() -> URLSession? {
+    /// Only `resume()` happens outside the lock, because it reaches into `URLSession`, and the
+    /// state is re-read straight afterwards so that a cancel arriving in that last sliver still
+    /// reaches the task.
+    ///
+    /// - Parameter request: The request to send.
+    private func beginTask(with request: URLRequest) {
         stateLock.lock()
-        defer { stateLock.unlock() }
-        guard !isCancelled else { return nil }
-        didStartTask = true
-        if let session {
-            return session
+        guard !isCancelled else {
+            stateLock.unlock()
+            return
         }
-        let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+        didStartTask = true
+        let session = self.session ?? URLSession(configuration: .default,
+                                                 delegate: self,
+                                                 delegateQueue: nil)
         self.session = session
-        return session
+        let task = session.dataTask(with: request)
+        startedTask = task
+        stateLock.unlock()
+
+        task.resume()
+
+        guard hasBeenCancelled else { return }
+        task.cancel()
+        session.invalidateAndCancel()
     }
 
     /// Hands a rule's synthesised response to the client as though it had come from the network.
@@ -300,14 +337,25 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// Any delay the mock asked for has already elapsed by the time this is called — see
     /// ``perform(after:_:)`` — so this never waits.
     ///
+    /// Cancellation is re-checked before every callback rather than only once on the way in. A
+    /// `stopLoading()` can land between them — the client is entitled to cancel from inside the
+    /// response callback — and delivering to a client that has been told to stop is something the
+    /// `URLProtocol` contract forbids. Nothing is logged either: a response the client never
+    /// received is not one the log should claim was served.
+    ///
     /// - Parameters:
     ///   - response: The response to serve.
     ///   - body: The response body.
     private func serve(_ response: HTTPURLResponse, body: Data) {
+        guard !hasBeenCancelled else { return }
         client?.urlProtocol(self,
                             didReceive: response,
                             cacheStoragePolicy: NetworkHelper.instance.cacheStoragePolicy)
+
+        guard !hasBeenCancelled else { return }
         client?.urlProtocol(self, didLoad: body)
+
+        guard !hasBeenCancelled else { return }
         client?.urlProtocolDidFinishLoading(self)
 
         model.saveRequestBody(request)
@@ -340,19 +388,29 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
 
     /// Marks the request cancelled and cancels the data task, if one ever started.
     ///
-    /// The flag and the decision are taken together under ``stateLock`` so that a delay block
-    /// running concurrently either starts its task before this reads the state — in which case the
-    /// session is here to cancel — or finds the request already cancelled and starts nothing. The
+    /// The flag and the task are read together under ``stateLock`` so that a delay block running
+    /// concurrently either starts its task before this reads the state — in which case the task is
+    /// here to cancel — or finds the request already cancelled and starts nothing. The
     /// cancellation itself happens after the lock is released, because it calls into `URLSession`.
+    ///
+    /// The task is cancelled **directly**. Asking the session for its tasks instead delivers the
+    /// answer on the session's delegate queue, which is the same queue a paced response runs on:
+    /// `stopLoading()` would return, the app would believe the request cancelled, and the
+    /// cancellation would sit behind the pacing — up to 30 seconds — while the socket carried on
+    /// transferring.
+    ///
+    /// Invalidating is what releases the session's strong reference to this instance as its
+    /// delegate. Without it every intercepted request leaked the protocol instance, the session,
+    /// its operation queue, the logged ``HTTPRequest`` and the whole response body.
     override open func stopLoading() {
         stateLock.lock()
         isCancelled = true
-        let session = didStartTask ? self.session : nil
+        let task = startedTask
+        let session = self.session
         stateLock.unlock()
 
-        session?.getTasksWithCompletionHandler { dataTasks, _, _ in
-            dataTasks.forEach { $0.cancel() }
-        }
+        task?.cancel()
+        session?.invalidateAndCancel()
     }
 
     override open class func canonicalRequest(for request: URLRequest) -> URLRequest {
@@ -404,6 +462,15 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
         completionHandler(.allow)
     }
 
+    /// Finishes the load, logs it, and invalidates the private session.
+    ///
+    /// The invalidation is the point at which the session releases its strong reference to this
+    /// instance as its delegate. Skipping it leaked, per intercepted request, the protocol
+    /// instance, the session, its operation queue, the logged ``HTTPRequest`` and an
+    /// `NSMutableData` holding the entire response body. It goes last, after the client has been
+    /// told how the load ended, and `finishTasksAndInvalidate()` rather than
+    /// `invalidateAndCancel()` so that a callback still in flight on the delegate queue is allowed
+    /// to finish.
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         defer {
             if let error = error {
@@ -411,6 +478,7 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
             } else {
                 client?.urlProtocolDidFinishLoading(self)
             }
+            session.finishTasksAndInvalidate()
         }
 
         guard let request = task.originalRequest else {
