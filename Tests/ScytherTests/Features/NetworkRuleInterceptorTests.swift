@@ -390,6 +390,46 @@ final class NetworkRuleInterceptorTests: XCTestCase {
                                     "32 KB at 32 KB/s cannot be delivered instantly")
     }
 
+    /// The whole reason a picked file is copied: the override still serves it after the document
+    /// it came from has gone away, and after the store has been rebuilt as it is on a relaunch.
+    func testACopiedMapLocalFileIsStillServedAfterAReload() async throws {
+        let store = try makeStore()
+
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Picked.\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        let picked = directory.appendingPathComponent("users.json")
+        try Data("[1,2,3]".utf8).write(to: picked)
+
+        let path = try XCTUnwrap(store.storeFile(at: picked))
+        try FileManager.default.removeItem(at: picked)
+
+        store.add(NetworkRule(
+            id: UUID(),
+            name: "users",
+            isEnabled: true,
+            match: .host("unreachable.invalid"),
+            actions: NetworkRuleActions(stub: .mapLocal(MapLocalFile(
+                relativePath: path,
+                fileName: "users.json",
+                statusCode: 200,
+                contentType: "application/json"
+            )))
+        ))
+
+        // A relaunch: a fresh store over the same preferences and directory, republishing what it
+        // finds there.
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        let reloaded = NetworkRuleStore(defaults: defaults, bodyDirectory: bodyDirectory)
+        XCTAssertEqual(reloaded.rules.map(\.name), ["users"])
+
+        let (data, response) = try await perform("https://unreachable.invalid/users")
+        XCTAssertEqual(response.statusCode, 200)
+        XCTAssertEqual(response.value(forHTTPHeaderField: "Content-Type"), "application/json")
+        XCTAssertEqual(data, Data("[1,2,3]".utf8))
+    }
+
     func testTheMasterSwitchDisablesEverything() async throws {
         let store = try makeStore()
         store.add(NetworkRule(
