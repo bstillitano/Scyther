@@ -23,6 +23,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Server Configuration](#server-configuration)
   - [Network Logging](#network-logging)
   - [Request Overrides](#request-overrides)
+  - [Network Conditioning](#network-conditioning)
   - [Console Logging](#console-logging)
   - [Crash Logging](#crash-logging)
   - [Database Browser](#database-browser)
@@ -56,6 +57,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Filter Chips**: Narrow the network log by method, status class, host, content type, API kind, GraphQL operation, duration, exact status code, or recency from glass chips pinned above the list, or edit every filter at once from the all-filters sheet
 - **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests — combined on one override — from the menu or from code
 - **Save as Mock**: Turn any captured response into a disabled mock override in one tap, and import a HAR file as a whole set of them
+- **Network Conditioning**: Degrade every intercepted request at once — latency, a bandwidth ceiling and a failure rate, with the presets Network Link Conditioner made familiar
 - **Server Configuration**: Switch between development, staging, and production environments
 - **IP Address**: Display the device's public IP address
 
@@ -687,6 +689,37 @@ cannot quietly break the next one.
 
 ---
 
+### Network Conditioning
+
+**Networking → Network Conditioning** degrades **every** request Scyther intercepts, which is what
+Network Link Conditioner does without needing a Mac or a provisioning profile. The menu row shows
+the active preset, or `Off`, so conditioning is never quietly on.
+
+The screen carries a master switch, a preset picker, and the three numbers underneath it:
+
+| Preset | Latency | Ceiling | Failures |
+| --- | --- | --- | --- |
+| **Wi-Fi** | 0.01 s | 5,000 KB/s | none |
+| **4G** | 0.05 s | 1,500 KB/s | none |
+| **3G** | 0.1 s | 100 KB/s | none |
+| **EDGE** | 0.4 s | 30 KB/s | none |
+| **Very bad network** | 0.5 s | 125 KB/s | 10% |
+| **Custom** | — | — | — |
+
+Picking a preset fills the three fields in; editing any of them makes the picker read **Custom**
+again, because that is what it now is. Picking Custom deliberately changes nothing, so it can
+never wipe what has been typed.
+
+The global condition is a **floor**, not an addition. A request override whose own condition
+matches replaces it outright, so one endpoint can still be conditioned differently — or barely at
+all — while the rest of the app is on EDGE. An override that matches but carries no condition
+leaves the global one in place.
+
+It is off by default, persisted across launches, and has its own switch: **Enable Request
+Overrides** does not reach it, and neither does turning every override off.
+
+---
+
 ### Console Logging
 
 Capture all `print()` statements and console output.
@@ -1314,7 +1347,7 @@ in one, use **UI/UX → Language**. See [Localisation](#localisation).
 | `Scyther.featureFlags` | `FeatureFlags` | Feature flag management |
 | `Scyther.servers` | `Servers` | Server configuration |
 | `Scyther.network` | `Network` | Network logging |
-| `Scyther.network.rules` | `NetworkRules` | Request overrides — mocks, map local, header rewrites, conditioning |
+| `Scyther.network.rules` | `NetworkRules` | Request overrides — mocks, map local, header rewrites and per-endpoint conditioning, composed on one override |
 | `Scyther.console` | `Console` | Console output capture |
 | `Scyther.crashes` | `Crashes` | Crash logging and viewing |
 | `Scyther.database` | `DatabaseBrowsing` | Database browser and adapter registration |

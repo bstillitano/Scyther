@@ -410,6 +410,114 @@ final class NetworkRuleInterceptorTests: XCTestCase {
     }
 }
 
+/// Global conditioning, as the interceptor sees it.
+///
+/// Every assertion here is on which `URLError` comes back rather than on how long something took,
+/// because a failure rate of one is deterministic and a stopwatch is not.
+@MainActor
+final class NetworkGlobalConditioningTests: XCTestCase {
+
+    override func setUp() {
+        super.setUp()
+        Scyther.start()
+    }
+
+    override func tearDown() {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [])
+        NetworkRuleSnapshot.update(globalCondition: nil)
+        super.tearDown()
+    }
+
+    private func perform(_ url: String) async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [HTTPInterceptorURLProtocol.self]
+        _ = try await URLSession(configuration: configuration).data(from: URL(string: url)!)
+    }
+
+    /// Fails a request and reports the error's code, or `nil` when it somehow succeeded.
+    private func failureCode(for url: String) async -> URLError.Code? {
+        do {
+            try await perform(url)
+            return nil
+        } catch {
+            return (error as? URLError)?.code
+        }
+    }
+
+    func testGlobalConditioningAppliesWithNoOverridePresent() async {
+        NetworkRuleSnapshot.update(globalCondition: NetworkCondition(
+            latency: 0, bandwidthKBps: nil, failureRate: 1, failureCode: URLError.Code.timedOut.rawValue
+        ))
+
+        let code = await failureCode(for: "https://unreachable.invalid/global")
+        XCTAssertEqual(code, .timedOut, "the whole app is conditioned, override or not")
+    }
+
+    /// The global condition is a floor a matching override replaces, not something it adds to.
+    func testAMatchingOverridesConditionBeatsTheGlobalOne() async {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [
+            NetworkRule(name: "targeted",
+                        match: .host("unreachable.invalid"),
+                        actions: NetworkRuleActions(condition: NetworkCondition(
+                            latency: 0,
+                            bandwidthKBps: nil,
+                            failureRate: 1,
+                            failureCode: URLError.Code.networkConnectionLost.rawValue
+                        )))
+        ])
+        NetworkRuleSnapshot.update(globalCondition: NetworkCondition(
+            latency: 0, bandwidthKBps: nil, failureRate: 1, failureCode: URLError.Code.timedOut.rawValue
+        ))
+
+        let code = await failureCode(for: "https://unreachable.invalid/targeted")
+        XCTAssertEqual(code, .networkConnectionLost, "the override replaces the global condition")
+    }
+
+    /// An override that matches but carries no condition leaves the global one in place.
+    func testAnOverrideWithoutAConditionDoesNotDisplaceTheGlobalOne() async {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [
+            NetworkRule(name: "rewrite",
+                        match: .host("unreachable.invalid"),
+                        actions: NetworkRuleActions(
+                            rewriteHeaders: NetworkHeaderRewrite(set: ["X-Test": "yes"])
+                        ))
+        ])
+        NetworkRuleSnapshot.update(globalCondition: NetworkCondition(
+            latency: 0, bandwidthKBps: nil, failureRate: 1, failureCode: URLError.Code.timedOut.rawValue
+        ))
+
+        let code = await failureCode(for: "https://unreachable.invalid/rewritten")
+        XCTAssertEqual(code, .timedOut)
+    }
+
+    /// Global conditioning has its own switch, so the overrides' master switch does not reach it.
+    func testTheOverridesMasterSwitchDoesNotSuspendGlobalConditioning() async {
+        NetworkRuleSnapshot.update(isEnabled: false, rules: [])
+        NetworkRuleSnapshot.update(globalCondition: NetworkCondition(
+            latency: 0, bandwidthKBps: nil, failureRate: 1, failureCode: URLError.Code.timedOut.rawValue
+        ))
+
+        let code = await failureCode(for: "https://unreachable.invalid/switched-off")
+        XCTAssertEqual(code, .timedOut)
+    }
+
+    /// A stubbed request is conditioned by the global setting too — the stub is what a request
+    /// with no network would otherwise have no way of being slowed down or failed.
+    func testGlobalConditioningReachesAStubbedRequest() async {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [
+            NetworkRule(name: "cart",
+                        match: .host("unreachable.invalid"),
+                        actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200))))
+        ])
+        NetworkRuleSnapshot.update(globalCondition: NetworkCondition(
+            latency: 0, bandwidthKBps: nil, failureRate: 1, failureCode: URLError.Code.timedOut.rawValue
+        ))
+
+        let code = await failureCode(for: "https://unreachable.invalid/stubbed-global")
+        XCTAssertEqual(code, .timedOut)
+    }
+}
+
 /// Drives `HTTPInterceptorURLProtocol`'s data-delegate callbacks directly, which is the only way
 /// to observe the bandwidth ceiling: a stubbed response never creates a data task, and a real one
 /// needs a server.

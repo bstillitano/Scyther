@@ -79,6 +79,10 @@ import SwiftUI
 ///
 /// - ``enabledOverrideCount``
 ///
+/// ### Network Conditioning
+///
+/// - ``conditioningSummary``
+///
 /// ### UI Debugging Controls
 ///
 /// - ``slowAnimationsEnabled``
@@ -102,6 +106,9 @@ class MenuViewModel: ViewModel {
     /// The override store the Request Overrides row's badge counts.
     private let networkRuleStore: NetworkRuleStore
 
+    /// The conditioning store the Network Conditioning row's detail text describes.
+    private let conditioningStore: NetworkConditioningStore
+
     /// Keeps the override store's publishers alive for the lifetime of the menu.
     private var cancellables: Set<AnyCancellable> = []
 
@@ -114,6 +121,14 @@ class MenuViewModel: ViewModel {
     ///
     /// Zero when nothing is enabled, which is what hides the badge.
     @Published private(set) var enabledOverrideCount: Int = 0
+
+    /// What the Network Conditioning row shows as its detail text: the active preset, `Custom`,
+    /// or `Off`.
+    ///
+    /// Conditioning applies to every request the app makes, so it has to be visible from the
+    /// menu's first screen for the same reason the override count is — a developer who has
+    /// forgotten it is on will otherwise spend an afternoon blaming their backend.
+    @Published private(set) var conditioningSummary: String = localized("Off")
 
     /// The identifiers of pinned rows, in the order they were pinned.
     ///
@@ -179,7 +194,8 @@ class MenuViewModel: ViewModel {
         defaults: UserDefaults = .scyther,
         assistants: [any MenuSearchAssistant] = MenuSearchAssistants.available(),
         assistedSearchDelay: Duration = .milliseconds(300),
-        networkRuleStore: NetworkRuleStore = .shared
+        networkRuleStore: NetworkRuleStore = .shared,
+        conditioningStore: NetworkConditioningStore = .shared
     ) {
         self.defaults = defaults
         self.developerOptions = Scyther.developerOptions
@@ -187,10 +203,12 @@ class MenuViewModel: ViewModel {
         self.assistants = assistants
         self.assistedSearchDelay = assistedSearchDelay
         self.networkRuleStore = networkRuleStore
+        self.conditioningStore = conditioningStore
         super.init()
     }
 
-    /// Mirrors the override store so ``enabledOverrideCount`` is live.
+    /// Mirrors both networking stores so ``enabledOverrideCount`` and ``conditioningSummary``
+    /// are live.
     ///
     /// Subscribing rather than reading once on appearance: an override can be enabled from the
     /// overrides screen, from a swipe on its row, or from `Scyther.network.rules` while the menu
@@ -203,6 +221,13 @@ class MenuViewModel: ViewModel {
             .combineLatest(networkRuleStore.$transientRules)
             .sink { [weak self] rules, transient in
                 self?.enabledOverrideCount = (rules + transient).filter(\.isEnabled).count
+            }
+            .store(in: &cancellables)
+        conditioningStore.$isEnabled
+            .combineLatest(conditioningStore.$condition)
+            .sink { [weak self] isEnabled, condition in
+                self?.conditioningSummary = NetworkConditioningPreset.summary(isEnabled: isEnabled,
+                                                                               condition: condition)
             }
             .store(in: &cancellables)
     }

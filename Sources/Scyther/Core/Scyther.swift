@@ -207,6 +207,11 @@ public enum Scyther {
         // Reclaim mock response bodies no override points at any more
         NetworkRuleStore.shared.sweepOrphanedBodies()
 
+        // Publish any global network conditioning, for the same reason: conditioning switched on
+        // yesterday must apply from this launch's first request, not from the first time its
+        // screen happens to be opened.
+        NetworkConditioningStore.shared.activate()
+
         Console.shared.startCapturing()
         Network.shared.startIntercepting()
         Interface.shared.setup()

@@ -70,7 +70,7 @@ enum MenuItem: Hashable, Identifiable {
     case developerOption(name: String)
 
     // Networking
-    case ipAddress, networkLogs, networkRules, serverConfiguration, environmentVariables
+    case ipAddress, networkLogs, networkConditioning, networkRules, serverConfiguration, environmentVariables
 
     // Data
     case featureFlags, userDefaults, cookies, fileBrowser, databaseBrowser
@@ -100,7 +100,7 @@ enum MenuItem: Hashable, Identifiable {
         .osVersion, .hardware, .releaseYear, .uuid,
         .appIdPrefix, .displayName, .bundleId, .processId,
         .version, .buildNumber, .buildDate, .releaseType,
-        .ipAddress, .networkLogs, .networkRules, .serverConfiguration, .environmentVariables,
+        .ipAddress, .networkLogs, .networkConditioning, .networkRules, .serverConfiguration, .environmentVariables,
         .featureFlags, .userDefaults, .cookies, .fileBrowser, .databaseBrowser,
         .keychainBrowser,
         .locationSpoofer, .consoleLogs, .deepLinkTester, .crashLogs,
@@ -128,6 +128,7 @@ enum MenuItem: Hashable, Identifiable {
         case .developerOption(let name): return Self.developerOptionPrefix + name
         case .ipAddress: return "ipAddress"
         case .networkLogs: return "networkLogs"
+        case .networkConditioning: return "networkConditioning"
         case .networkRules: return "networkRules"
         case .serverConfiguration: return "serverConfiguration"
         case .environmentVariables: return "environmentVariables"
@@ -207,6 +208,7 @@ enum MenuItem: Hashable, Identifiable {
         case .developerOption(let name): return name
         case .ipAddress: return localized("IP Address")
         case .networkLogs: return localized("Network Logs")
+        case .networkConditioning: return localized("Network Conditioning")
         case .networkRules: return localized("Request Overrides")
         case .serverConfiguration: return localized("Server Configuration")
         case .environmentVariables: return localized("Environment Variables")
@@ -261,6 +263,7 @@ enum MenuItem: Hashable, Identifiable {
         case .releaseType: return "checkmark.seal"
         case .ipAddress: return "network"
         case .networkLogs: return "text.page.badge.magnifyingglass"
+        case .networkConditioning: return "tortoise"
         case .networkRules: return "arrow.triangle.branch"
         case .serverConfiguration: return "server.rack"
         case .environmentVariables: return "x.squareroot"

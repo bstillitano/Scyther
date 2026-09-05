@@ -5474,6 +5474,83 @@
         }
       }
     },
+    "Applies to every request Scyther intercepts. An override with its own condition takes precedence.": {
+      "comment": "Footer explaining the scope of global conditioning and that overrides beat it",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ينطبق على كل طلب يعترضه Scyther. يسبق التجاوز الذي يحمل شرطه الخاص."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Gilt für jede von Scyther abgefangene Anfrage. Ein Override mit eigener Bedingung hat Vorrang."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Se aplica a todas las solicitudes que Scyther intercepta. Una anulación con su propia condición tiene prioridad."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "S'applique à toutes les requêtes interceptées par Scyther. Une surcharge dotée de sa propre condition est prioritaire."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Si applica a ogni richiesta intercettata da Scyther. Una sostituzione con una propria condizione ha la precedenza."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther が傍受するすべてのリクエストに適用されます。独自の条件を持つオーバーライドが優先されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther가 가로채는 모든 요청에 적용됩니다. 자체 조건을 가진 재정의가 우선합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Geldt voor elke aanvraag die Scyther onderschept. Een override met een eigen conditie heeft voorrang."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aplica-se a todas as requisições interceptadas pelo Scyther. Uma substituição com condição própria tem precedência."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Применяется ко всем запросам, которые перехватывает Scyther. Переопределение с собственным условием имеет приоритет."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "适用于 Scyther 拦截的每个请求。带有自身条件的覆盖规则优先。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "適用於 Scyther 攔截的每個請求。帶有自身條件的覆寫規則優先。"
+          }
+        }
+      }
+    },
     "Archive": {
       "comment": "Section header for the archive being built in the export sheet",
       "localizations": {
@@ -16602,6 +16679,83 @@
         }
       }
     },
+    "Enable Network Conditioning": {
+      "comment": "Master switch on the Network Conditioning screen",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تفعيل تهيئة الشبكة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Netzwerkbedingungen aktivieren"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Activar condiciones de red"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Activer le conditionnement réseau"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Attiva condizionamento di rete"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ネットワーク調整を有効にする"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "네트워크 조절 사용"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Netwerkcondities inschakelen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ativar condicionamento de rede"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Включить условия сети"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "启用网络调节"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "啟用網路調節"
+          }
+        }
+      }
+    },
     "Enable Request Overrides": {
       "comment": "Master switch at the top of the request overrides list. Says 'Request' because the Feature Flags screen already owns the key 'Enable overrides'",
       "localizations": {
@@ -26786,6 +26940,83 @@
         }
       }
     },
+    "Network Conditioning": {
+      "comment": "Menu row and screen title for the tool that degrades every intercepted request",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تهيئة الشبكة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Netzwerkbedingungen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Condiciones de red"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Conditionnement réseau"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Condizionamento di rete"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ネットワーク調整"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "네트워크 조절"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Netwerkcondities"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Condicionamento de rede"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Условия сети"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "网络调节"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "網路調節"
+          }
+        }
+      }
+    },
     "Network Logs": {
       "comment": "Navigation title of the captured request list",
       "localizations": {
@@ -33424,6 +33655,83 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "Preset": {
+      "comment": "Picker label choosing a named link to fill in the conditioning fields",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "إعداد مسبق"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Voreinstellung"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Preajuste"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Préréglage"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Preset"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "プリセット"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "프리셋"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Voorinstelling"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Predefinição"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Профиль"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "预设"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "預設組合"
           }
         }
       }
@@ -47997,6 +48305,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "版本"
+          }
+        }
+      }
+    },
+    "Very bad network": {
+      "comment": "Conditioning preset naming a link that is both slow and unreliable",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "شبكة سيئة جدًا"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Sehr schlechtes Netzwerk"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Red muy mala"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Réseau très mauvais"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rete pessima"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "非常に悪いネットワーク"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "매우 나쁜 네트워크"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Zeer slecht netwerk"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rede muito ruim"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Очень плохая сеть"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "极差网络"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "極差網路"
           }
         }
       }

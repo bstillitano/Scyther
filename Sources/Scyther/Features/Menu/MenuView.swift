@@ -351,6 +351,7 @@ public struct MenuView: View {
     private func destination(for item: MenuItem) -> some View {
         switch item {
         case .networkLogs: NetworkLogsView()
+        case .networkConditioning: NetworkConditioningView()
         case .networkRules: NetworkRulesView()
         case .serverConfiguration: ServerConfigurationView()
         case .environmentVariables: EnvironmentVariablesView()
@@ -475,6 +476,11 @@ public struct MenuView: View {
             )
         case .networkLogs:
             navigationRow(for: item)
+        case .networkConditioning:
+            // The active preset, or Off. Conditioning the whole app is a large hammer, and a
+            // developer who has forgotten it is on will spend an afternoon blaming their backend;
+            // the row says so before the screen has to be opened.
+            navigationRow(for: item, description: viewModel.conditioningSummary)
         case .networkRules:
             // The count of enabled overrides, so overrides are never silently on. Carried as the
             // row's trailing detail text rather than through `.badge(_:)`, which on a
