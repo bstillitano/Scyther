@@ -559,7 +559,7 @@ The override arrives **disabled** — nothing changes until it is switched on, f
 with a swipe on the list.
 
 A response an override already synthesised cannot be saved as a mock. Those rows are marked
-instead: an orange **MOCKED** badge in the log list, and an **Overrides** row in the details
+instead: a pink **MOCKED** badge in the log list, and an **Overrides** row in the details
 page's Developer Info section naming every override that shaped the request.
 
 #### Importing a HAR File

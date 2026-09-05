@@ -165,7 +165,7 @@ The override arrives **disabled**. Nothing about the app's behaviour changes unt
 on, from the editor or with a swipe on the list.
 
 A response an override synthesised cannot itself be saved as a mock — there would be nothing to
-learn from the copy. Those rows are marked instead: the log list shows an orange **MOCKED** badge,
+learn from the copy. Those rows are marked instead: the log list shows a pink **MOCKED** badge,
 and the details page lists every override that shaped the request in an **Overrides** row of the
 Developer Info section.
 
