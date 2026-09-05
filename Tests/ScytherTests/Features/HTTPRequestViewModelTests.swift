@@ -50,6 +50,16 @@ final class HTTPRequestViewModelTests: XCTestCase {
         XCTAssertFalse(HTTPRequestViewModel(request: HTTPRequest()).isReplay)
     }
 
+    func testWasHeldMirrorsTheBreakpointsThatHeldIt() {
+        let held = HTTPRequest()
+        held.breakpointNames = ["cart"]
+        XCTAssertTrue(HTTPRequestViewModel(request: held).wasHeld)
+    }
+
+    func testWasHeldIsFalseForTrafficNoBreakpointStopped() {
+        XCTAssertFalse(HTTPRequestViewModel(request: HTTPRequest()).wasHeld)
+    }
+
     func testNonGraphQLFallback() {
         let request = HTTPRequest()
         let viewModel = HTTPRequestViewModel(request: request)
