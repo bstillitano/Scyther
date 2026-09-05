@@ -160,7 +160,7 @@ final class NetworkRuleEngineTests: XCTestCase {
         let rules = [rule("first", action: .mock(first)), rule("second", action: .mock(second))]
         let outcome = NetworkRuleEngine.outcome(for: request(), rules: rules)
         XCTAssertEqual(outcome.stub, .mock(first))
-        XCTAssertEqual(outcome.appliedRuleNames, ["first"])
+        XCTAssertEqual(outcome.stubRuleName, "first")
     }
 
     func testFirstMatchingConditionWins() {
@@ -169,7 +169,7 @@ final class NetworkRuleEngineTests: XCTestCase {
         let rules = [rule("slow", action: .condition(slow)), rule("slower", action: .condition(slower))]
         let outcome = NetworkRuleEngine.outcome(for: request(), rules: rules)
         XCTAssertEqual(outcome.condition, slow)
-        XCTAssertEqual(outcome.appliedRuleNames, ["slow"])
+        XCTAssertEqual(outcome.networkRuleNames, ["slow"])
     }
 
     func testEveryMatchingHeaderRewriteApplies() {
@@ -195,7 +195,16 @@ final class NetworkRuleEngineTests: XCTestCase {
         XCTAssertEqual(outcome.headerRewrite?.set["A"], "1")
         XCTAssertEqual(outcome.condition, condition)
         XCTAssertNotNil(outcome.stub)
-        XCTAssertEqual(outcome.appliedRuleNames, ["headers", "condition", "mock"])
+        XCTAssertEqual(
+            outcome.stubRuleName,
+            "mock",
+            "a served stub is the only override that shaped the request"
+        )
+        XCTAssertEqual(
+            outcome.networkRuleNames,
+            ["headers", "condition"],
+            "the rewrite and the condition are only credited when the request actually goes out"
+        )
     }
 
     func testMapLocalIsAlsoAStub() {

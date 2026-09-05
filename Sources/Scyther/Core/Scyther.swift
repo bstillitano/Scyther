@@ -197,6 +197,9 @@ public enum Scyther {
         // rather than from the first time the overrides screen happens to be opened.
         NetworkRuleStore.shared.activate()
 
+        // Reclaim mock response bodies no override points at any more
+        NetworkRuleStore.shared.sweepOrphanedBodies()
+
         Console.shared.startCapturing()
         Network.shared.startIntercepting()
         Interface.shared.setup()

@@ -116,16 +116,24 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         let outcome = snapshot.isEnabled
             ? NetworkRuleEngine.outcome(for: request, rules: snapshot.rules)
             : .empty
-        model.appliedRuleNames = outcome.appliedRuleNames
         condition = outcome.condition
 
+        /// Credit only the overrides that shaped the path actually taken. A mock returns before
+        /// the rewrite is applied and before the condition is honoured, so listing every matching
+        /// override would have the log's Overrides row naming ones that did nothing.
         if let stub = outcome.stub, let url = request.url {
             let bodies = { NetworkRuleStore.bodyDataOffMainActor(for: $0) }
             if let (response, body) = NetworkRuleStubResponder.response(for: stub, url: url, bodyProvider: bodies) {
+                model.appliedRuleNames = outcome.stubRuleName.map { [$0] } ?? []
                 serve(response, body: body, after: NetworkRuleStubResponder.delay(for: stub))
                 return
             }
         }
+
+        /// Either nothing stubbed this request or the stub could not be produced — a map-local
+        /// file that has been deleted, say — so it goes to the network and the rules that shape
+        /// it there are the ones to credit.
+        model.appliedRuleNames = outcome.networkRuleNames
 
         /// Continue executing request
         guard let mutableRequest = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest else {

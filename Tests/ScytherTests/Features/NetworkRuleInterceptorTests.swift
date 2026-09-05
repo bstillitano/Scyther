@@ -255,6 +255,46 @@ final class NetworkRuleInterceptorTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(Date().timeIntervalSince(start), 0.4)
     }
 
+    /// The log's Overrides row names what shaped the request. A mock returns before the rewrite is
+    /// applied and before the condition is honoured, so crediting every matching override would
+    /// have it naming ones that did nothing at all.
+    func testOnlyTheOverrideThatServedTheResponseIsCredited() async throws {
+        let store = try makeStore()
+        store.add(NetworkRule(
+            id: UUID(),
+            name: "rewrite",
+            isEnabled: true,
+            match: .host("unreachable.invalid"),
+            action: .rewriteHeaders(NetworkHeaderRewrite(set: ["X-Rewritten": "yes"], remove: []))
+        ))
+        store.add(NetworkRule(
+            id: UUID(),
+            name: "offline",
+            isEnabled: true,
+            match: .host("unreachable.invalid"),
+            action: .condition(NetworkCondition(latency: 0, bandwidthKBps: nil, failureRate: 1, failureCode: -1009))
+        ))
+        store.add(NetworkRule(
+            id: UUID(),
+            name: "cart",
+            isEnabled: true,
+            match: .host("unreachable.invalid"),
+            action: .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0))
+        ))
+
+        let url = "https://unreachable.invalid/credited"
+        let (_, response) = try await perform(url)
+        XCTAssertEqual(response.statusCode, 200, "the mock is what answered, despite the failure condition")
+
+        let found = await loggedRequest(matching: url)
+        let logged = try XCTUnwrap(found)
+        XCTAssertEqual(
+            logged.appliedRuleNames,
+            ["cart"],
+            "the rewrite never went on the wire and the condition never fired, so neither applied"
+        )
+    }
+
     func testTheMasterSwitchDisablesEverything() async throws {
         let store = try makeStore()
         store.add(NetworkRule(

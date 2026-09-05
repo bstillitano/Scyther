@@ -269,6 +269,10 @@ public extension MockResponse {
     /// - Returns: A response carrying `Content-Type: application/json`.
     ///
     /// - Note: Isolated to the main actor because it writes the body through the rule store.
+    /// - Note: The body is written when this value is *constructed*, before any rule holds it. A
+    ///   body whose rule is never stored — a transient rule, or a value that is simply discarded —
+    ///   is therefore left on disk until the next launch's sweep reclaims it. See
+    ///   ``NetworkRules/addTransient(_:)``.
     @MainActor
     static func json(_ body: String,
                      status: Int = 200,

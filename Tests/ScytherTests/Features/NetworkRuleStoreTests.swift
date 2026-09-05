@@ -112,6 +112,102 @@ final class NetworkRuleStoreTests: XCTestCase {
         XCTAssertEqual(store.rules.map(\.name), ["valid"], "the rules either side of it still load")
     }
 
+    // MARK: - Body sweep
+
+    /// Backdates a file past the sweep's grace period, standing in for a body written by an
+    /// earlier launch.
+    private func age(_ url: URL) throws {
+        try FileManager.default.setAttributes(
+            [.modificationDate: Date().addingTimeInterval(-NetworkRuleStore.bodySweepGracePeriod - 60)],
+            ofItemAtPath: url.path
+        )
+    }
+
+    func testTheSweepDeletesOrphanedBodiesAndKeepsReferencedOnes() throws {
+        let store = makeStore()
+        let referenced = store.storeBody(Data("still in use".utf8))
+        let orphan = store.storeBody(Data("nothing points here".utf8))
+        try age(store.bodyURL(for: referenced))
+        try age(store.bodyURL(for: orphan))
+
+        NetworkRuleStore.sweepBodies(in: bodyDirectory,
+                                     keeping: [referenced],
+                                     ignoringFilesNewerThan: NetworkRuleStore.bodySweepGracePeriod)
+
+        XCTAssertEqual(store.bodyData(for: referenced), Data("still in use".utf8))
+        XCTAssertNil(store.bodyData(for: orphan), "a body no rule points at is reclaimed")
+    }
+
+    /// A body is written before the rule that points at it is stored, so a sweep racing a
+    /// `Scyther.start()` that is immediately followed by `rules.add(...)` must not eat it.
+    func testTheSweepLeavesAFreshlyWrittenBodyAlone() {
+        let store = makeStore()
+        let justWritten = store.storeBody(Data("about to be referenced".utf8))
+
+        NetworkRuleStore.sweepBodies(in: bodyDirectory,
+                                     keeping: [],
+                                     ignoringFilesNewerThan: NetworkRuleStore.bodySweepGracePeriod)
+
+        XCTAssertEqual(store.bodyData(for: justWritten), Data("about to be referenced".utf8))
+    }
+
+    /// The directory sits inside the host app's container. Anything not named after a UUID was
+    /// not written by the store, and deleting it would be far worse than leaving it.
+    func testTheSweepLeavesFilesItDidNotName() throws {
+        let store = makeStore()
+        store.storeBody(Data("a real body".utf8))
+        let stranger = bodyDirectory.appendingPathComponent("something-else.txt")
+        try Data("not ours".utf8).write(to: stranger)
+        try age(stranger)
+
+        NetworkRuleStore.sweepBodies(in: bodyDirectory,
+                                     keeping: [],
+                                     ignoringFilesNewerThan: NetworkRuleStore.bodySweepGracePeriod)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: stranger.path))
+    }
+
+    func testSweepingTheStoreKeepsBodiesBothPersistedAndTransientRulesPointAt() async throws {
+        let store = makeStore()
+
+        let persistedBody = store.storeBody(Data("persisted".utf8))
+        var persisted = makeRule("persisted")
+        persisted.action = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: persistedBody, delay: 0))
+        store.add(persisted)
+
+        let transientBody = store.storeBody(Data("transient".utf8))
+        var transient = makeRule("transient")
+        transient.action = .mock(MockResponse(statusCode: 200, headers: [:], bodyID: transientBody, delay: 0))
+        store.addTransient(transient)
+
+        let orphan = store.storeBody(Data("orphan".utf8))
+        for id in [persistedBody, transientBody, orphan] {
+            try age(store.bodyURL(for: id))
+        }
+
+        store.sweepOrphanedBodies()
+
+        // The sweep runs off the main actor, so poll rather than assuming it has landed.
+        for _ in 0..<200 where store.bodyData(for: orphan) != nil {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        XCTAssertNil(store.bodyData(for: orphan))
+        XCTAssertEqual(store.bodyData(for: persistedBody), Data("persisted".utf8))
+        XCTAssertEqual(store.bodyData(for: transientBody), Data("transient".utf8),
+                       "a transient rule's body is still in use, even though the rule is not persisted")
+    }
+
+    /// `Application Support` is backed up by default, and a colleague's 40 MB capture has no
+    /// business inflating the host app's iCloud backup.
+    func testTheBodyDirectoryIsExcludedFromBackup() throws {
+        let store = makeStore()
+        store.storeBody(Data("body".utf8))
+
+        let values = try bodyDirectory.resourceValues(forKeys: [.isExcludedFromBackupKey])
+        XCTAssertEqual(values.isExcludedFromBackup, true)
+    }
+
     // MARK: - Upsert
 
     func testAddingARuleWithAStoredIdentifierReplacesItInPlace() {

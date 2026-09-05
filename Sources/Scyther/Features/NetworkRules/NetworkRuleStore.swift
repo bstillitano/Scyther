@@ -26,7 +26,8 @@ import Foundation
 ///
 /// A mock response's body is too large to live comfortably in `UserDefaults`, so ``storeBody(_:)``
 /// writes the bytes to a file named after a fresh identifier and the rule stores only that
-/// identifier. Deleting a rule deletes the file with it.
+/// identifier. Deleting a rule deletes the file with it, and ``sweepOrphanedBodies()`` reclaims
+/// the ones no surviving rule points at. The directory is excluded from the host app's backup.
 ///
 /// ## Topics
 ///
@@ -56,6 +57,7 @@ import Foundation
 /// - ``bodyURL(for:)``
 /// - ``bodyData(for:)``
 /// - ``bodyDataOffMainActor(for:)``
+/// - ``sweepOrphanedBodies()``
 @MainActor
 internal final class NetworkRuleStore: ObservableObject {
     /// The `UserDefaults` keys the store writes.
@@ -258,9 +260,25 @@ internal final class NetworkRuleStore: ObservableObject {
     @discardableResult
     func storeBody(_ data: Data) -> UUID {
         let id = UUID()
-        try? FileManager.default.createDirectory(at: bodyDirectory, withIntermediateDirectories: true)
+        createBodyDirectory()
         try? data.write(to: bodyURL(for: id), options: .atomic)
         return id
+    }
+
+    /// Creates the body directory if it is not there, and keeps it out of the host app's backup.
+    ///
+    /// `Application Support` is backed up to iCloud by default. A colleague's 40 MB HAR import is
+    /// a debugging artefact, not the user's data, and inflating someone's backup by the size of
+    /// it is not a thing a debugging tool should do.
+    private func createBodyDirectory() {
+        let fileManager = FileManager.default
+        guard !fileManager.fileExists(atPath: bodyDirectory.path) else { return }
+        try? fileManager.createDirectory(at: bodyDirectory, withIntermediateDirectories: true)
+
+        var directory = bodyDirectory
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? directory.setResourceValues(values)
     }
 
     /// The file a stored body lives at.
@@ -296,6 +314,67 @@ internal final class NetworkRuleStore: ObservableObject {
         let url = NetworkRuleSnapshot.current.bodyDirectory
             .appendingPathComponent(id.uuidString, isDirectory: false)
         return try? Data(contentsOf: url)
+    }
+
+    /// Deletes body files that no rule points at any more.
+    ///
+    /// Four call sites write a body — the editor, a HAR import, save-as-mock, and
+    /// ``MockResponse/json(_:status:delay:)`` — and only deleting a rule deletes one. A rule
+    /// abandoned in the editor, a rule dropped on decode because a newer Scyther wrote it, and
+    /// every body a transient rule ever pointed at therefore strand their bytes on disk forever.
+    /// This is the sweep that reclaims them, called from ``Scyther/start()`` beside
+    /// `NetworkLogCleaner.shared.cleanupOldLogs()`.
+    ///
+    /// The referenced identifiers are collected here, on the main actor; the file enumeration and
+    /// the deletions happen off it, because a directory holding a HAR import's worth of bodies is
+    /// not something to walk while a host app is trying to draw its first frame.
+    func sweepOrphanedBodies() {
+        let referenced = Set((rules + transientRules).compactMap { rule -> UUID? in
+            guard case .mock(let mock) = rule.action else { return nil }
+            return mock.bodyID
+        })
+        let directory = bodyDirectory
+        Task.detached(priority: .utility) {
+            Self.sweepBodies(in: directory, keeping: referenced, ignoringFilesNewerThan: Self.bodySweepGracePeriod)
+        }
+    }
+
+    /// How recently a body may have been written and still survive a sweep, in seconds.
+    ///
+    /// A body is written before the rule that points at it is stored — ``MockResponse/json(_:status:delay:)``
+    /// writes when the value is *constructed* — so a host app calling `Scyther.start()` and then
+    /// registering an override is briefly holding bytes nothing references yet. Without a grace
+    /// period the sweep could delete a mock's body seconds before it was first used.
+    nonisolated static let bodySweepGracePeriod: TimeInterval = 60
+
+    /// Deletes every file in `directory` whose name is not a referenced identifier.
+    ///
+    /// Deliberately conservative: a file whose name is not a UUID at all is left alone, because
+    /// this walks a directory inside the host app's container and deleting something it did not
+    /// write would be far worse than leaving a stray file behind.
+    ///
+    /// - Parameters:
+    ///   - directory: The body directory to sweep.
+    ///   - referenced: The identifiers rules still point at.
+    ///   - ignoringFilesNewerThan: Files modified more recently than this many seconds ago are
+    ///     left alone — see ``bodySweepGracePeriod``.
+    nonisolated static func sweepBodies(in directory: URL,
+                                        keeping referenced: Set<UUID>,
+                                        ignoringFilesNewerThan grace: TimeInterval) {
+        let fileManager = FileManager.default
+        guard let files = try? fileManager.contentsOfDirectory(at: directory,
+                                                               includingPropertiesForKeys: [.contentModificationDateKey],
+                                                               options: .skipsHiddenFiles) else {
+            return
+        }
+
+        let cutoff = Date().addingTimeInterval(-grace)
+        for file in files {
+            guard let id = UUID(uuidString: file.lastPathComponent), !referenced.contains(id) else { continue }
+            let modified = (try? file.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+            guard let modified, modified < cutoff else { continue }
+            try? fileManager.removeItem(at: file)
+        }
     }
 
     /// Deletes the body file a rule owns, if it owns one.

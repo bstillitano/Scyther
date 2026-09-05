@@ -19,11 +19,26 @@ public struct RuleOutcome: Sendable, Equatable {
     public var condition: NetworkCondition?
     /// A response to synthesise instead of performing the request.
     public var stub: RuleStub?
-    /// Names of every rule that contributed, in evaluation order.
-    public var appliedRuleNames: [String]
+    /// The name of the rule that supplied ``stub``, or `nil` when nothing is stubbed.
+    ///
+    /// Separate from ``networkRuleNames`` because a stub short-circuits the request: the header
+    /// rewrite is never applied and the condition is never honoured, so crediting them in the
+    /// log would name overrides that did nothing.
+    public var stubRuleName: String?
+    /// Names of the rules that shape a request which actually reaches the network, in evaluation
+    /// order: every matching header rewrite, then the first matching condition.
+    ///
+    /// Empty when nothing else matched. Only meaningful when ``stub`` is `nil`, or when a stub
+    /// could not be produced — a map-local file that no longer exists, say — and the request
+    /// therefore falls through to the network.
+    public var networkRuleNames: [String]
 
     /// An outcome that changes nothing.
-    public static let empty = RuleOutcome(headerRewrite: nil, condition: nil, stub: nil, appliedRuleNames: [])
+    public static let empty = RuleOutcome(headerRewrite: nil,
+                                          condition: nil,
+                                          stub: nil,
+                                          stubRuleName: nil,
+                                          networkRuleNames: [])
 }
 
 /// What to serve instead of performing the request.
@@ -42,6 +57,11 @@ public enum NetworkRuleEngine {
     /// matching condition wins; stacking latency from several rules would be surprising. The
     /// first matching mock or map-local wins and short-circuits the network.
     ///
+    /// The names of the matching rules are reported in two groups rather than one, because a
+    /// request takes one path or the other: the caller credits ``RuleOutcome/stubRuleName`` when
+    /// it serves the stub and ``RuleOutcome/networkRuleNames`` when the request goes out. A
+    /// single list would have the log naming a rewrite that a mock had already short-circuited.
+    ///
     /// - Parameters:
     ///   - request: The outgoing request.
     ///   - rules: The rules to evaluate, in precedence order.
@@ -51,7 +71,8 @@ public enum NetworkRuleEngine {
         var sawRewrite = false
         var condition: NetworkCondition?
         var stub: RuleStub?
-        var names: [String] = []
+        var stubName: String?
+        var networkNames: [String] = []
 
         for rule in rules where rule.isEnabled {
             guard rule.match.matches(request) else { continue }
@@ -60,19 +81,19 @@ public enum NetworkRuleEngine {
                 sawRewrite = true
                 rewrite.set.forEach { setHeaders[$0.key] = $0.value }
                 removeHeaders.append(contentsOf: rewrite.remove)
-                names.append(rule.name)
+                networkNames.append(rule.name)
             case .condition(let value):
                 guard condition == nil else { continue }
                 condition = value
-                names.append(rule.name)
+                networkNames.append(rule.name)
             case .mock(let mock):
                 guard stub == nil else { continue }
                 stub = .mock(mock)
-                names.append(rule.name)
+                stubName = rule.name
             case .mapLocal(let file):
                 guard stub == nil else { continue }
                 stub = .mapLocal(file)
-                names.append(rule.name)
+                stubName = rule.name
             }
         }
 
@@ -80,7 +101,8 @@ public enum NetworkRuleEngine {
             headerRewrite: sawRewrite ? NetworkHeaderRewrite(set: setHeaders, remove: removeHeaders) : nil,
             condition: condition,
             stub: stub,
-            appliedRuleNames: names
+            stubRuleName: stubName,
+            networkRuleNames: networkNames
         )
     }
 }
