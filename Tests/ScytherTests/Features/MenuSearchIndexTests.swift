@@ -128,8 +128,9 @@ final class MenuSearchIndexTests: XCTestCase {
         XCTAssertEqual(
             Set(subpageEntries.map(\.target)),
             [
-                .networkRules, .networkConditioning, .gridOverlay, .fpsCounter, .touchVisualiser,
-                .appearance, .locationSpoofer, .notificationTester, .deepLinkTester, .language
+                .networkRules, .networkBreakpoints, .networkConditioning, .gridOverlay,
+                .fpsCounter, .touchVisualiser, .appearance, .locationSpoofer, .notificationTester,
+                .deepLinkTester, .language
             ],
             "A curated sub-page target is missing from the index — its rows were silently dropped"
         )

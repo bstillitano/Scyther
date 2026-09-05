@@ -80,7 +80,7 @@ struct MenuSection: Identifiable {
 
         sections.append(contentsOf: [
             MenuSection(id: MenuSectionID.networking, title: localized("Networking"), items: [
-                .ipAddress, .networkLogs, .networkConditioning, .networkRules,
+                .ipAddress, .networkLogs, .networkConditioning, .networkRules, .networkBreakpoints,
                 .serverConfiguration, .environmentVariables
             ]),
             MenuSection(id: MenuSectionID.data, title: localized("Data"), items: [

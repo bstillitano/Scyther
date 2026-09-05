@@ -45,6 +45,7 @@ struct HTTPRequestView: View {
                             }
                             mockedBadge
                             replayBadge
+                            heldBadge
                         }
                         HighlightingText(viewModel.url, substring: searchTerm)
                             .font(.caption)
@@ -57,6 +58,7 @@ struct HTTPRequestView: View {
                         HStack(spacing: 6) {
                             mockedBadge
                             replayBadge
+                            heldBadge
                         }
                         HighlightingText(viewModel.url, substring: searchTerm)
                             .font(.caption)
@@ -98,6 +100,22 @@ struct HTTPRequestView: View {
     private var replayBadge: some View {
         if viewModel.isReplay {
             lozenge(localized("REPLAY"), colour: .teal)
+        }
+    }
+
+    /// The badge marking a row a breakpoint held on its way through.
+    ///
+    /// Renders nothing for traffic that was never held, so both branches of `body` can place it
+    /// unconditionally.
+    ///
+    /// Indigo, for the reason pink marks a mock and teal marks a replay: it is a colour nothing
+    /// else in this list wears, and all three can appear on the same row. A held request is a row
+    /// the developer had their hands on, which is exactly as misleading as a mocked one if the log
+    /// does not say so.
+    @ViewBuilder
+    private var heldBadge: some View {
+        if viewModel.wasHeld {
+            lozenge(localized("HELD"), colour: .indigo)
         }
     }
 
@@ -184,6 +202,11 @@ class HTTPRequestViewModel: ObservableObject {
     /// Drives the `REPLAY` badge on the row.
     var isReplay: Bool {
         request.replayOfID != nil
+    }
+
+    /// Whether a breakpoint held this exchange on its way through. Drives the `HELD` badge.
+    var wasHeld: Bool {
+        !request.breakpointNames.isEmpty
     }
 
     /// The lozenge colour for the operation type.

@@ -123,7 +123,7 @@ final class MenuItemTests: XCTestCase {
     }
 
     func testStaticCaseCountIsStable() {
-        XCTAssertEqual(MenuItem.allStaticCases.count, 42)
+        XCTAssertEqual(MenuItem.allStaticCases.count, 43)
     }
 }
 #endif

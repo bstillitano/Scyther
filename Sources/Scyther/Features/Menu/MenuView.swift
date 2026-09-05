@@ -353,6 +353,7 @@ public struct MenuView: View {
         case .networkLogs: NetworkLogsView()
         case .networkConditioning: NetworkConditioningView()
         case .networkRules: NetworkRulesView()
+        case .networkBreakpoints: BreakpointsView()
         case .serverConfiguration: ServerConfigurationView()
         case .environmentVariables: EnvironmentVariablesView()
         case .featureFlags: FeatureFlagsView()
@@ -492,6 +493,15 @@ public struct MenuView: View {
             navigationRow(for: item,
                           description: viewModel.enabledOverrideCount > 0
                           ? "\(viewModel.enabledOverrideCount)"
+                          : nil)
+        case .networkBreakpoints:
+            // The count of breakpoints being applied, for the reason the override count is shown:
+            // this is the one feature that stops the app, and a developer must be able to see from
+            // the menu's first screen that something is about to. Nil below one, since a nought
+            // would read as a count that means nothing.
+            navigationRow(for: item,
+                          description: viewModel.enabledBreakpointCount > 0
+                          ? "\(viewModel.enabledBreakpointCount)"
                           : nil)
         case .serverConfiguration:
             navigationRow(for: item)

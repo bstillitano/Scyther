@@ -212,6 +212,11 @@ public enum Scyther {
         // screen happens to be opened.
         NetworkConditioningStore.shared.activate()
 
+        // Publish the persisted breakpoints, and start watching for a held request so the editor
+        // can be put in front of the developer wherever they are in the app.
+        BreakpointStore.shared.activate()
+        BreakpointPresenter.shared.start()
+
         Console.shared.startCapturing()
         Network.shared.startIntercepting()
         Interface.shared.setup()
@@ -251,7 +256,12 @@ public enum Scyther {
 
     // MARK: - Private
 
-    private static var topViewController: UIViewController? {
+    /// The view controller anything Scyther presents is anchored to.
+    ///
+    /// - Note: Internal rather than private so ``BreakpointPresenter`` can put a held request in
+    ///   front of the app through the same path ``showMenu(from:)`` uses. Presenting from a second
+    ///   place of its own would be a second answer to "what is on top right now".
+    internal static var topViewController: UIViewController? {
         guard var top = keyWindow?.rootViewController else {
             #if DEBUG
             logMessage("Could not find a keyWindow to anchor to.")

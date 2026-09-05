@@ -25,6 +25,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Traffic Stats](#traffic-stats)
   - [Request Overrides](#request-overrides)
   - [Request Replay](#request-replay)
+  - [Breakpoints](#breakpoints)
   - [Network Conditioning](#network-conditioning)
   - [Console Logging](#console-logging)
   - [Crash Logging](#crash-logging)
@@ -61,6 +62,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests — combined on one override — from the menu or from code
 - **Save as Mock**: Turn any captured response into a disabled mock override in one tap, and import a HAR file as a whole set of them
 - **Request Replay**: Reopen any captured request in an editor, change its method, URL, headers or body, and send it again — the resent request is logged with a `REPLAY` badge and listed on the original with its status, duration and size deltas
+- **Breakpoints**: Hold a matching request before it is sent, or a matching response before the app sees it, edit method, URL, headers, status or body in place, then continue or fail it with an error of your choosing — every hold has a timeout, and none of it ever runs during a test
 - **Network Conditioning**: Degrade every intercepted request at once — latency, a bandwidth ceiling and a failure rate, with the presets Network Link Conditioner made familiar
 - **Server Configuration**: Switch between development, staging, and production environments
 - **IP Address**: Display the device's public IP address
@@ -874,6 +876,62 @@ has since been cleared.
 
 Both sections track the log as it changes, so a replay that lands seconds after the editor
 dismissed appears without leaving the page.
+
+### Breakpoints
+
+**Networking → Breakpoints** is the feature people reach for Charles or Proxyman to get: a
+matching request stops before it is sent, or a matching response stops before the app sees any of
+it, and the editor appears over whatever is on screen so it can be read and changed in place.
+
+It is the one thing in the toolkit that deliberately holds the app up, so the master switch
+**defaults to off** and the menu row shows how many breakpoints are being applied.
+
+#### Setting one
+
+A breakpoint is matching plus a stage. Matching is the same `NetworkRuleMatch` a request override
+uses — methods, host, path, query, with the same wildcard and percent-encoding semantics — so a
+match copied from an override behaves identically here.
+
+| Field | What it does |
+| --- | --- |
+| **Stage** | `Request` holds it on the way out, `Response` on the way back, `Both` holds twice. |
+| **Timeout** | 5 to 300 seconds, 60 by default. It cannot be switched off. |
+
+The editor refuses to save a breakpoint with no name, or one whose match names no endpoint — a
+match that applies to everything would hold every request the app makes, one after another, for
+the timeout each.
+
+#### When one fires
+
+The editor is presented over the key window, wherever the developer is in the app. One held
+exchange opens straight into its own page; several are listed and can be worked through in any
+order. Each page shows which breakpoint holds it, a live countdown to the automatic continue, and
+the exchange itself: method, URL, headers and body for a request; status, headers and body for a
+response.
+
+There are four ways out, and doing nothing is one of them:
+
+- the **confirm button** continues with whatever has been edited;
+- **Continue Without Changes** passes the exchange on exactly as it arrived;
+- **Abort** fails it with a `URLError` you pick, exactly as though the network had produced it;
+- the **timeout** continues it unchanged, so a forgotten breakpoint cannot leave the app hanging.
+
+A log entry that was held carries an indigo `HELD` badge, beside `MOCKED` and `REPLAY`, and the
+log records what the app actually sent and received — the edit, not the original.
+
+#### What it does not do
+
+- **Nothing blocks.** A held request does not occupy the thread it was intercepted on. The pause
+  is a stored continuation, so a breakpoint left open costs a suspended request and nothing else,
+  and cancelling the request cancels the pause.
+- **A held response buffers.** Bytes cannot be un-forwarded, so a response breakpoint withholds
+  the whole body and hands it over once. Above 10 MB the pause is skipped and logged. The editor
+  says so when the stage is chosen.
+- **It never fires during tests.** Breakpoints report as off inside an XCTest process, so one left
+  enabled cannot hang CI, and they are off on App Store builds along with the rest of Scyther.
+- **A stubbed request is not held.** An override answers it without anything going in flight.
+- **A pause taken while the app is in the background is skipped** and logged: a held request the
+  developer cannot see is indistinguishable from a hang.
 
 ### Network Conditioning
 

@@ -387,6 +387,54 @@ appears without leaving the page.
 - Note: Provenance is stamped per request and stripped from redirects, so the entry a redirect
   produces is a request in its own right rather than a second replay of the same original.
 
+## Breakpoints
+
+**Networking → Breakpoints** holds a matching request before it is sent, or a matching response
+before the app sees any of it, and puts an editor in front of the developer so the exchange can be
+read and changed in place.
+
+This is the only feature in the toolkit that deliberately holds the app up, so its master switch
+defaults to off and the menu row carries the count of breakpoints being applied.
+
+### Setting one
+
+A breakpoint is a ``NetworkRuleMatch`` — shared verbatim with request overrides — plus a stage and
+a timeout.
+
+- **Stage** — `Request`, `Response`, or `Both`, which holds twice.
+- **Timeout** — 5 to 300 seconds, 60 by default, and not switchable off.
+
+The editor refuses an unnamed breakpoint and one whose match names no endpoint: a match that
+applies to everything would hold every request the app makes for the timeout each.
+
+### When one fires
+
+The editor is presented over the key window. One held exchange opens straight into its page;
+several are listed. Each page shows the breakpoint's name, a countdown to the automatic continue,
+and the exchange — method, URL, headers and body for a request, status, headers and body for a
+response.
+
+- **Continue** applies the edits.
+- **Continue Without Changes** passes the exchange on exactly as it arrived.
+- **Abort** fails it with a chosen `URLError`, as though the network had produced it.
+- **The timeout** continues it unchanged.
+
+A held entry wears an indigo `HELD` badge in the log, and the log records what the app actually
+saw — the edited exchange, not the original.
+
+### What it does not do
+
+- Nothing blocks. `startLoading()` returns while the request is held: the pause is a stored
+  continuation on the coordinator's own queue, not a wait. Cancelling the request cancels the
+  pause, and a cancelled pause delivers no client callbacks.
+- A response breakpoint buffers the whole body, because a chunk already forwarded to the client
+  cannot be recalled. Above 10 MB the pause is skipped and logged.
+- Breakpoints report as off inside an XCTest process, so one left enabled can never hang CI, and
+  are disabled on App Store builds with the rest of Scyther.
+- A stubbed request is never held: the override answers it, so nothing goes in flight.
+- A pause taken while the app is backgrounded is skipped and logged, because a held request the
+  developer cannot see looks exactly like a hang.
+
 ## Exporting cURL Commands
 
 Every request can be exported as a cURL command from the request details page. Tap the

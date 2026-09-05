@@ -109,6 +109,9 @@ class MenuViewModel: ViewModel {
     /// The conditioning store the Network Conditioning row's detail text describes.
     private let conditioningStore: NetworkConditioningStore
 
+    /// The breakpoint store this view model mirrors.
+    private let breakpointStore: BreakpointStore
+
     /// Keeps the override store's publishers alive for the lifetime of the menu.
     private var cancellables: Set<AnyCancellable> = []
 
@@ -124,6 +127,16 @@ class MenuViewModel: ViewModel {
     /// applied, not what is configured; with the switch off nothing is, and a count there would
     /// send that developer looking for an override that is not running.
     @Published private(set) var enabledOverrideCount: Int = 0
+
+    /// How many breakpoints are currently being applied.
+    ///
+    /// Shown as a badge on the Breakpoints row, for a sharper version of the reason the override
+    /// count is shown: an override changes a response, while a breakpoint stops the app until
+    /// somebody decides what to do. A developer whose app has just frozen needs to be able to see
+    /// why from the menu's first screen.
+    ///
+    /// Zero while the master switch is off, however many breakpoints are enabled behind it.
+    @Published private(set) var enabledBreakpointCount: Int = 0
 
     /// What the Network Conditioning row shows as its detail text: the active preset, `Custom`,
     /// or `Off`.
@@ -198,7 +211,8 @@ class MenuViewModel: ViewModel {
         assistants: [any MenuSearchAssistant] = MenuSearchAssistants.available(),
         assistedSearchDelay: Duration = .milliseconds(300),
         networkRuleStore: NetworkRuleStore = .shared,
-        conditioningStore: NetworkConditioningStore = .shared
+        conditioningStore: NetworkConditioningStore = .shared,
+        breakpointStore: BreakpointStore = .shared
     ) {
         self.defaults = defaults
         self.developerOptions = Scyther.developerOptions
@@ -207,6 +221,7 @@ class MenuViewModel: ViewModel {
         self.assistedSearchDelay = assistedSearchDelay
         self.networkRuleStore = networkRuleStore
         self.conditioningStore = conditioningStore
+        self.breakpointStore = breakpointStore
         super.init()
     }
 
@@ -237,6 +252,12 @@ class MenuViewModel: ViewModel {
             .sink { [weak self] isEnabled, condition in
                 self?.conditioningSummary = NetworkConditioningPreset.summary(isEnabled: isEnabled,
                                                                                condition: condition)
+            }
+            .store(in: &cancellables)
+        breakpointStore.$breakpoints
+            .combineLatest(breakpointStore.$isEnabled)
+            .sink { [weak self] breakpoints, isEnabled in
+                self?.enabledBreakpointCount = isEnabled ? breakpoints.filter(\.isEnabled).count : 0
             }
             .store(in: &cancellables)
     }
