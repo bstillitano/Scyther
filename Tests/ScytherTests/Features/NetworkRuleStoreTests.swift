@@ -24,6 +24,7 @@ final class NetworkRuleStoreTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [])
         defaults.removePersistentDomain(forName: suiteName)
         try? FileManager.default.removeItem(at: bodyDirectory)
     }
@@ -749,13 +750,33 @@ final class NetworkRuleStoreTests: XCTestCase {
         XCTAssertEqual(store.transientRules.first?.isEnabled, false)
     }
 
+    /// Asserting the count alone would pass if every constructor returned the same kind, which is
+    /// the mistake worth catching: the four are one-line wrappers that differ only in the action
+    /// they fill in.
     func testEveryRuleKindCanBeBuiltThroughThePublicAPI() {
         let store = makeStore()
         store.add(.mock(name: "m", matching: .path("/a"), returning: .json("{}")))
         store.add(.headers(name: "h", matching: .path("/b"), set: ["X": "1"], remove: []))
         store.add(.condition(name: "c", matching: .path("/c"), NetworkCondition(latency: 1)))
         store.add(.mapLocal(name: "l", matching: .path("/d"), serving: MapLocalFile(relativePath: "/tmp/x.json")))
-        XCTAssertEqual(store.rules.count, 4)
+
+        XCTAssertEqual(store.rules.map(\.name), ["m", "h", "c", "l"])
+
+        guard case .mock = store.rules[0].actions.stub else { return XCTFail("mock built the wrong action") }
+        XCTAssertNil(store.rules[0].actions.rewriteHeaders)
+        XCTAssertNil(store.rules[0].actions.condition)
+
+        XCTAssertEqual(store.rules[1].actions.rewriteHeaders?.set, ["X": "1"])
+        XCTAssertNil(store.rules[1].actions.stub)
+
+        XCTAssertEqual(store.rules[2].actions.condition?.latency, 1)
+        XCTAssertNil(store.rules[2].actions.stub)
+
+        guard case .mapLocal(let file) = store.rules[3].actions.stub else {
+            return XCTFail("mapLocal built the wrong action")
+        }
+        XCTAssertEqual(file.relativePath, "/tmp/x.json")
+        XCTAssertNil(store.rules[3].actions.condition)
     }
 }
 
@@ -779,6 +800,7 @@ final class NetworkRulesFacadeTests: XCTestCase {
     }
 
     override func tearDown() async throws {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [])
         Scyther._started = wasStarted
     }
 

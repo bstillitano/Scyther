@@ -14,6 +14,16 @@ import XCTest
 /// before actions could compose.
 final class NetworkRuleCodingTests: XCTestCase {
 
+    /// Restores the process-global snapshot this suite published to.
+    ///
+    /// Constructing a `NetworkRuleStore` publishes its rules and its body directory to
+    /// `NetworkRuleSnapshot`, which the interceptor tests read. Leaving a legacy decoding
+    /// fixture's rules — and a body directory under `/tmp` that nothing wrote to — standing there
+    /// makes those tests depend on what ran before them.
+    override func tearDown() {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [])
+    }
+
     private let identifier = UUID(uuidString: "6F0B0C3E-4C1E-4E3D-9C0B-0F5E7A9D2B41")!
 
     /// One rule persisted in the shape that preceded composable actions.

@@ -220,6 +220,10 @@ final class NetworkRuleInterceptorTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(logged.requestCurl).contains("Bearer rewritten"))
     }
 
+    /// Deliberately **not** `.notConnectedToInternet`, which is what the default is and also what a
+    /// real attempt to reach `unreachable.invalid` produces on a machine with no network — so the
+    /// old assertion passed with the whole feature removed. `.badServerResponse` can only have
+    /// come from the condition: nothing answered, so nothing could have answered badly.
     func testAFailureConditionSurfacesTheConfiguredError() async throws {
         let store = try makeStore()
         store.add(NetworkRule(
@@ -231,7 +235,7 @@ final class NetworkRuleInterceptorTests: XCTestCase {
                 latency: 0,
                 bandwidthKBps: nil,
                 failureRate: 1,
-                failureCode: URLError.Code.notConnectedToInternet.rawValue
+                failureCode: URLError.Code.badServerResponse.rawValue
             ))
         ))
 
@@ -239,7 +243,8 @@ final class NetworkRuleInterceptorTests: XCTestCase {
             _ = try await perform("https://unreachable.invalid/x")
             XCTFail("expected the rule to fail the request")
         } catch {
-            XCTAssertEqual((error as? URLError)?.code, .notConnectedToInternet)
+            XCTAssertEqual((error as? URLError)?.code, .badServerResponse,
+                           "the configured code, not whatever the network would have said")
         }
     }
 

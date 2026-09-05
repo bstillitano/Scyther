@@ -24,6 +24,7 @@ final class LogDetailsViewModelTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [])
         defaults.removePersistentDomain(forName: suiteName)
         try? FileManager.default.removeItem(at: bodyDirectory)
     }

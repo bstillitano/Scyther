@@ -85,6 +85,69 @@ final class LocalizableCatalogTests: XCTestCase {
         }
     }
 
+    /// Every literal key `localized(_:)` is called with in the source has an entry in the catalog.
+    ///
+    /// The unlocalised-literal lint catches a string that never reached `localized(_:)`. Nothing
+    /// caught the other direction — a key that *is* localised in source but has no translation
+    /// behind it — which fails soundlessly at runtime, because `String(localized:)` falls back to
+    /// the key and the English reader sees the right words in every language.
+    ///
+    /// Keys built with string interpolation are skipped. Their catalog key is the format the
+    /// compiler derives — `%lld bytes` for `localized("\(count) bytes")` — and reconstructing that
+    /// from source text would mean inferring each interpolation's type, which this cannot do
+    /// honestly. Those keys are covered by the suite's other checks once they are in the catalog.
+    func testEveryLocalisedKeyInSourceIsInTheCatalog() throws {
+        let catalog = try loadCatalog()
+        var missing: [String] = []
+        var checked = 0
+
+        let enumerator = try XCTUnwrap(FileManager.default.enumerator(at: sourcesRoot, includingPropertiesForKeys: nil))
+        for case let file as URL in enumerator where file.pathExtension == "swift" {
+            let text = try String(contentsOf: file, encoding: .utf8)
+            for (index, line) in text.components(separatedBy: "\n").enumerated() {
+                guard !line.trimmingCharacters(in: .whitespaces).hasPrefix("//") else { continue }
+                for key in Self.localisedKeys(in: line) {
+                    checked += 1
+                    guard catalog.strings[key] == nil else { continue }
+                    missing.append("\(file.lastPathComponent):\(index + 1): \(key)")
+                }
+            }
+        }
+
+        XCTAssertGreaterThan(checked, 100, "the scanner found almost nothing, so it is not scanning")
+        XCTAssertTrue(missing.isEmpty, "localized() keys with no catalog entry:\n" + missing.joined(separator: "\n"))
+    }
+
+    /// The literal keys a line passes to `localized(_:)`, with interpolated ones left out.
+    ///
+    /// - Parameter line: One line of Swift source.
+    /// - Returns: The keys, unescaped.
+    static func localisedKeys(in line: String) -> [String] {
+        let range = NSRange(location: 0, length: (line as NSString).length)
+        return localisedCall.matches(in: line, range: range).compactMap { match in
+            let key = (line as NSString).substring(with: match.range(at: 1))
+            guard !key.contains("\\(") else { return nil }
+            return key.replacingOccurrences(of: "\\\"", with: "\"")
+        }
+    }
+
+    /// Matches `localized("…")`, capturing the literal between the quotes.
+    private static let localisedCall = try! NSRegularExpression(pattern: #"localized\(\s*"((?:[^"\\]|\\.)*)""#)
+
+    /// The directory the source scan walks.
+    private var sourcesRoot: URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Sources/Scyther")
+    }
+
+    func testTheKeyScannerReadsLiteralsAndSkipsInterpolations() {
+        XCTAssertEqual(Self.localisedKeys(in: #"Text(localized("Network logs"))"#), ["Network logs"])
+        XCTAssertEqual(Self.localisedKeys(in: #"localized("A"), localized("B")"#), ["A", "B"])
+        XCTAssertEqual(Self.localisedKeys(in: ###"localized("\(count) bytes")"###), [])
+        XCTAssertEqual(Self.localisedKeys(in: #"Text("not localised")"#), [])
+    }
+
     func testCompiledTablesMatchSource() throws {
         let catalog = try loadCatalog()
         let key = try XCTUnwrap(catalog.strings.keys.first { catalog.strings[$0]?.localizations["fr"]?.stringUnit != nil })
