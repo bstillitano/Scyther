@@ -2056,5 +2056,20 @@
     "ko": "보내기",
     "ru": "Отправить",
     "ar": "إرسال"
+  },
+  "OVERRIDDEN": {
+    "comment": "Badge on a network log row an override shaped without answering it — a header rewrite or a network condition",
+    "fr": "MODIFIÉ",
+    "de": "GEÄNDERT",
+    "es": "MODIFICADA",
+    "it": "MODIFICATA",
+    "pt-BR": "MODIFICADA",
+    "nl": "AANGEPAST",
+    "ja": "上書き適用",
+    "zh-Hans": "已覆盖",
+    "zh-Hant": "已覆寫",
+    "ko": "재정의됨",
+    "ru": "ИЗМЕНЁН",
+    "ar": "معدَّل"
   }
 }

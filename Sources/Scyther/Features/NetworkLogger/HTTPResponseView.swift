@@ -44,6 +44,7 @@ struct HTTPRequestView: View {
                                 lozenge(badge, colour: viewModel.operationBadgeColor)
                             }
                             mockedBadge
+                            overriddenBadge
                             replayBadge
                             heldBadge
                         }
@@ -57,6 +58,7 @@ struct HTTPRequestView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
                             mockedBadge
+                            overriddenBadge
                             replayBadge
                             heldBadge
                         }
@@ -116,6 +118,17 @@ struct HTTPRequestView: View {
     private var heldBadge: some View {
         if viewModel.wasHeld {
             lozenge(localized("HELD"), colour: .indigo)
+        }
+    }
+
+    /// The badge marking a row an override shaped without answering.
+    ///
+    /// Brown, on the same reasoning as the other three: a colour nothing else in this list wears,
+    /// so all four can sit on one row without any of them being mistaken for another.
+    @ViewBuilder
+    private var overriddenBadge: some View {
+        if viewModel.wasOverridden {
+            lozenge(localized("OVERRIDDEN"), colour: .brown)
         }
     }
 
@@ -207,6 +220,17 @@ class HTTPRequestViewModel: ObservableObject {
     /// Whether a breakpoint held this exchange on its way through. Drives the `HELD` badge.
     var wasHeld: Bool {
         !request.breakpointNames.isEmpty
+    }
+
+    /// Whether an override shaped this request without answering it. Drives the `OVERRIDDEN` badge.
+    ///
+    /// A stub already says so with `MOCKED`, so this is the other case: a header rewrite or a
+    /// network condition applied to a request that still went out to the network. Without it, a
+    /// request whose `Authorization` header we swapped, or which a condition made slow or made
+    /// fail, is indistinguishable in the list from traffic nobody touched — which is the same lie
+    /// the other three badges exist to prevent.
+    var wasOverridden: Bool {
+        !request.wasStubbed && !request.appliedRuleNames.isEmpty
     }
 
     /// The lozenge colour for the operation type.

@@ -40,6 +40,28 @@ final class HTTPRequestViewModelTests: XCTestCase {
         XCTAssertFalse(HTTPRequestViewModel(request: HTTPRequest()).wasStubbed)
     }
 
+    /// A header rewrite or a condition shapes a request that still goes out, so without a badge of
+    /// its own the row is indistinguishable from traffic nobody touched.
+    func testARewrittenRequestIsMarkedOverridden() {
+        let rewritten = HTTPRequest()
+        rewritten.appliedRuleNames = ["Swap the auth token"]
+        XCTAssertTrue(HTTPRequestViewModel(request: rewritten).wasOverridden)
+    }
+
+    /// A stub already says so with its own badge, so it does not also wear this one.
+    func testAStubbedRequestIsNotAlsoMarkedOverridden() {
+        let stubbed = HTTPRequest()
+        stubbed.wasStubbed = true
+        stubbed.appliedRuleNames = ["Empty cart"]
+        let viewModel = HTTPRequestViewModel(request: stubbed)
+        XCTAssertTrue(viewModel.wasStubbed)
+        XCTAssertFalse(viewModel.wasOverridden, "MOCKED already says what happened")
+    }
+
+    func testUntouchedTrafficIsNotMarkedOverridden() {
+        XCTAssertFalse(HTTPRequestViewModel(request: HTTPRequest()).wasOverridden)
+    }
+
     func testIsReplayMirrorsTheCapturedProvenance() {
         let replay = HTTPRequest()
         replay.replayOfID = "original-hash"
