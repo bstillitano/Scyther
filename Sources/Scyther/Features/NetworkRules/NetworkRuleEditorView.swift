@@ -37,6 +37,19 @@ struct NetworkRuleEditorView: View {
         _viewModel = StateObject(wrappedValue: NetworkRuleEditorViewModel(rule: rule, store: store))
     }
 
+    /// Creates the editor on an override that has been built elsewhere but not yet saved.
+    ///
+    /// Used by **Save as mock** on the request details page, which fills in the whole override
+    /// from a captured response. Saving *adds* it, unlike ``init(rule:store:)``, which updates an
+    /// override the store already holds.
+    ///
+    /// - Parameters:
+    ///   - rule: The pre-filled override. Nothing is written until **Save** is tapped.
+    ///   - store: Where the override is written on save. Defaults to the shared store.
+    init(prefilled rule: NetworkRule, store: NetworkRuleStore = .shared) {
+        _viewModel = StateObject(wrappedValue: NetworkRuleEditorViewModel(prefilled: rule, store: store))
+    }
+
     var body: some View {
         List {
             Section {

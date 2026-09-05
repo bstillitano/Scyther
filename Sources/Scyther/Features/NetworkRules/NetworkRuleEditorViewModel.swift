@@ -34,6 +34,7 @@ import Foundation
 ///
 /// ### Creating an Editor
 /// - ``init(rule:store:)``
+/// - ``init(prefilled:store:)``
 ///
 /// ### The Rule Being Edited
 /// - ``draft``
@@ -132,16 +133,39 @@ final class NetworkRuleEditorViewModel: ViewModel {
     /// - Parameters:
     ///   - rule: The rule to edit, or `nil` to create one.
     ///   - store: Where the rule is written on ``save()``. Defaults to the shared store.
-    init(rule: NetworkRule?, store: NetworkRuleStore = .shared) {
-        self.store = store
-        self.isNewRule = rule == nil
-
+    convenience init(rule: NetworkRule?, store: NetworkRuleStore = .shared) {
         let draft = rule ?? NetworkRule(
             name: "",
             isEnabled: true,
             match: NetworkRuleMatch(methods: ["GET"]),
             action: .mock(MockResponse())
         )
+        self.init(draft: draft, isNewRule: rule == nil, store: store)
+    }
+
+    /// Creates an editor for a rule that does not exist yet but is already filled in.
+    ///
+    /// Saving a captured request as a mock builds a whole rule up front — matcher, status,
+    /// headers and body — and then opens the editor on it. That rule carries an identifier the
+    /// store has never seen, so it must be *added* on ``save()``; routing it through
+    /// ``init(rule:store:)`` would treat it as an edit and update nothing at all.
+    ///
+    /// - Parameters:
+    ///   - rule: The pre-filled rule. It is not added to `store` until ``save()`` is called.
+    ///   - store: Where the rule is written on ``save()``. Defaults to the shared store.
+    convenience init(prefilled rule: NetworkRule, store: NetworkRuleStore = .shared) {
+        self.init(draft: rule, isNewRule: true, store: store)
+    }
+
+    /// The designated initialiser both entry points funnel through.
+    ///
+    /// - Parameters:
+    ///   - draft: The rule the form edits.
+    ///   - isNewRule: Whether ``save()`` adds the rule or updates one already in the store.
+    ///   - store: Where the rule is written on ``save()``.
+    private init(draft: NetworkRule, isNewRule: Bool, store: NetworkRuleStore) {
+        self.store = store
+        self.isNewRule = isNewRule
         self.draft = draft
         self.rememberedActions = [draft.action.kind: draft.action]
 

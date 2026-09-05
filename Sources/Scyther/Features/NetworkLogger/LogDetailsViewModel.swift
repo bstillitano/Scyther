@@ -34,7 +34,7 @@ import SwiftUI
 /// ## Topics
 ///
 /// ### Creating a View Model
-/// - ``init(httpRequest:)``
+/// - ``init(httpRequest:store:)``
 ///
 /// ### Request Overview
 /// - ``requestURL``
@@ -64,11 +64,33 @@ import SwiftUI
 /// - ``timeout``
 /// - ``curlRequest``
 ///
+/// ### Request Overrides
+/// - ``appliedRuleNames``
+/// - ``wasStubbed``
+/// - ``canSaveAsMock``
+/// - ``ruleStore``
+/// - ``makeMockRule()``
+///
 /// ### Lifecycle
 /// - ``onFirstAppear()``
 class LogDetailsViewModel: ViewModel {
+    /// Response headers that describe how the body travelled rather than what it holds.
+    ///
+    /// The logger stores the body `URLSession` already decoded and re-framed, so copying these
+    /// into a mock would advertise a length and an encoding the mock's bytes do not have. They
+    /// are dropped when a capture is saved as a mock; every other header is carried over.
+    private static let wireEncodingHeaders: Set<String> = [
+        "content-encoding", "content-length", "transfer-encoding"
+    ]
+
     /// The HTTP request being displayed.
     private let httpRequest: HTTPRequest
+
+    /// The override store a mock built from this capture is written to.
+    ///
+    /// Exposed so the view can hand the same store to the editor it presents; a test passes a
+    /// throwaway one so saving a mock never touches the developer's real overrides.
+    let ruleStore: NetworkRuleStore
 
     /// The formatted request URL.
     @Published var requestURL: String = ""
@@ -139,11 +161,43 @@ class LogDetailsViewModel: ViewModel {
     /// The cURL command equivalent of this request.
     @Published var curlRequest: String = ""
 
+    /// The names of the request overrides that shaped this request, in the order they applied.
+    ///
+    /// Empty when no override matched, which is the case for every request captured while the
+    /// master switch is off.
+    @Published var appliedRuleNames: [String] = []
+
+    /// Whether the response was synthesised by a mock or map-local override rather than received
+    /// from the network.
+    @Published var wasStubbed: Bool = false
+
+    /// Whether a response was ever recorded for this request.
+    ///
+    /// A request that is still in flight, or that failed before any response arrived, has nothing
+    /// worth turning into a mock.
+    @Published var hasResponse: Bool = false
+
+    /// Whether the "Save as mock" button is offered.
+    ///
+    /// There must be a response to copy, and it must have come off the wire: offering to mock a
+    /// response an override already synthesised would only duplicate the override that made it.
+    var canSaveAsMock: Bool {
+        hasResponse && !wasStubbed
+    }
+
     /// Creates a new log details view model.
     ///
-    /// - Parameter httpRequest: The HTTP request to display details for
-    init(httpRequest: HTTPRequest) {
+    /// - Parameters:
+    ///   - httpRequest: The HTTP request to display details for
+    ///   - store: The override store a mock built from this capture is written to. Defaults to
+    ///     the shared store; a test passes a throwaway one.
+    ///
+    /// - Note: Isolated to the main actor because the default store is, and because the view that
+    ///   builds this view model is itself main-actor isolated.
+    @MainActor
+    init(httpRequest: HTTPRequest, store: NetworkRuleStore = .shared) {
         self.httpRequest = httpRequest
+        self.ruleStore = store
         super.init()
     }
 
@@ -201,5 +255,57 @@ class LogDetailsViewModel: ViewModel {
         cachePolicy = httpRequest.requestCachePolicy ?? "-"
         timeout = httpRequest.requestTimeout ?? "-"
         curlRequest = httpRequest.requestCurl ?? ""
+
+        appliedRuleNames = httpRequest.appliedRuleNames
+        wasStubbed = httpRequest.wasStubbed
+        hasResponse = httpRequest.responseCode != nil
+    }
+
+    /// Builds a disabled mock override pre-filled from this capture.
+    ///
+    /// The override matches the captured method, host and path exactly, and answers with the
+    /// captured status code, headers and body, so enabling it replays the response the app
+    /// actually received. The query string is deliberately left unconstrained — pinning a mock to
+    /// the page number that happened to be captured is almost never what was meant.
+    ///
+    /// It starts disabled: creating it from the log should never change the behaviour of the app
+    /// until the developer says so in the editor.
+    ///
+    /// - Returns: The pre-filled override, not yet added to ``ruleStore``. The response body is
+    ///   written to the store as a side effect, so abandoning the editor leaves one unreferenced
+    ///   body file behind.
+    @MainActor
+    func makeMockRule() -> NetworkRule {
+        let components = httpRequest.requestURL.flatMap { URLComponents(string: $0) }
+        let method = (httpRequest.requestMethod ?? "GET").uppercased()
+        let path = (components?.path).flatMap { $0.isEmpty ? nil : $0 } ?? "/"
+
+        let match = NetworkRuleMatch(
+            methods: [method],
+            host: components?.host.map { NetworkRulePattern(kind: .exact, value: $0) },
+            path: NetworkRulePattern(kind: .exact, value: path)
+        )
+
+        var headers: [String: String] = [:]
+        for (key, value) in httpRequest.responseHeaders ?? [:] {
+            guard let key = key as? String, let value = value as? String,
+                  !Self.wireEncodingHeaders.contains(key.lowercased()) else { continue }
+            headers[key] = value
+        }
+
+        let body = httpRequest.readRawData(httpRequest.getResponseBodyFilepath())
+        let bodyID = (body?.isEmpty == false) ? ruleStore.storeBody(body ?? Data()) : nil
+
+        return NetworkRule(
+            name: "\(method) \(path)",
+            isEnabled: false,
+            match: match,
+            action: .mock(MockResponse(
+                statusCode: httpRequest.responseCode ?? 200,
+                headers: headers,
+                bodyID: bodyID,
+                delay: 0
+            ))
+        )
     }
 }

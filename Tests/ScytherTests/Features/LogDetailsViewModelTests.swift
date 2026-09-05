@@ -9,6 +9,53 @@ import XCTest
 @MainActor
 final class LogDetailsViewModelTests: XCTestCase {
 
+    /// Declared `nonisolated(unsafe)` because `setUpWithError()` and `tearDownWithError()` are
+    /// inherited as nonisolated. XCTest runs them on the same thread as the test body, so the
+    /// access is serialised even though the compiler cannot prove it.
+    nonisolated(unsafe) private var suiteName: String!
+    nonisolated(unsafe) private var defaults: UserDefaults!
+    nonisolated(unsafe) private var bodyDirectory: URL!
+
+    override func setUpWithError() throws {
+        suiteName = "LogDetailsViewModelTests.\(UUID().uuidString)"
+        defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        bodyDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NetworkRuleBodies.\(UUID().uuidString)", isDirectory: true)
+    }
+
+    override func tearDownWithError() throws {
+        defaults.removePersistentDomain(forName: suiteName)
+        try? FileManager.default.removeItem(at: bodyDirectory)
+    }
+
+    private func makeStore() -> NetworkRuleStore {
+        NetworkRuleStore(defaults: defaults, bodyDirectory: bodyDirectory)
+    }
+
+    /// A capture of a real `GET` that returned JSON, with its response body written to disk.
+    private func makeCapture(
+        url: String = "https://api.example.com/v1/users?page=2",
+        method: String = "GET",
+        statusCode: Int = 201,
+        headers: [String: String] = ["Content-Type": "application/json"],
+        body: String = #"{"id":1}"#
+    ) throws -> HTTPRequest {
+        let request = HTTPRequest()
+        request.requestURL = url
+        request.requestMethod = method
+        request.requestTime = "10:00:00.000"
+        let response = try XCTUnwrap(HTTPURLResponse(
+            url: try XCTUnwrap(URL(string: url)),
+            statusCode: statusCode,
+            httpVersion: "HTTP/1.1",
+            headerFields: headers
+        ))
+        request.saveResponse(response, data: Data(body.utf8))
+        return request
+    }
+
+    // MARK: - Existing behaviour
+
     func testGraphQLFieldsPopulatedOnFirstAppear() async {
         let request = HTTPRequest()
         request.isGraphQL = true
@@ -45,5 +92,180 @@ final class LogDetailsViewModelTests: XCTestCase {
         let viewModel = LogDetailsViewModel(httpRequest: request)
         await viewModel.onFirstAppear()
         XCTAssertFalse(viewModel.hasGraphQL)
+    }
+
+    // MARK: - Applied overrides
+
+    func testAppliedRuleNamesPopulatedOnFirstAppear() async {
+        let request = HTTPRequest()
+        request.appliedRuleNames = ["Empty cart", "Slow network"]
+
+        let viewModel = LogDetailsViewModel(httpRequest: request)
+        await viewModel.onFirstAppear()
+
+        XCTAssertEqual(viewModel.appliedRuleNames, ["Empty cart", "Slow network"])
+    }
+
+    func testAppliedRuleNamesEmptyWhenNoOverrideApplied() async {
+        let viewModel = LogDetailsViewModel(httpRequest: HTTPRequest())
+        await viewModel.onFirstAppear()
+        XCTAssertTrue(viewModel.appliedRuleNames.isEmpty)
+    }
+
+    func testWasStubbedPopulatedOnFirstAppear() async {
+        let request = HTTPRequest()
+        request.wasStubbed = true
+
+        let viewModel = LogDetailsViewModel(httpRequest: request)
+        await viewModel.onFirstAppear()
+
+        XCTAssertTrue(viewModel.wasStubbed)
+    }
+
+    // MARK: - Save as mock availability
+
+    func testCanSaveAsMockOnceAResponseArrived() async throws {
+        let viewModel = LogDetailsViewModel(httpRequest: try makeCapture())
+        await viewModel.onFirstAppear()
+        XCTAssertTrue(viewModel.canSaveAsMock)
+    }
+
+    func testCannotSaveAsMockBeforeLoading() throws {
+        let viewModel = LogDetailsViewModel(httpRequest: try makeCapture())
+        XCTAssertFalse(viewModel.canSaveAsMock)
+    }
+
+    func testCannotSaveAsMockWithoutAResponse() async {
+        let request = HTTPRequest()
+        request.requestURL = "https://api.example.com/v1/users"
+        request.requestMethod = "GET"
+
+        let viewModel = LogDetailsViewModel(httpRequest: request)
+        await viewModel.onFirstAppear()
+
+        XCTAssertFalse(viewModel.canSaveAsMock)
+    }
+
+    func testCannotSaveAStubbedResponseAsMock() async throws {
+        let request = try makeCapture()
+        request.wasStubbed = true
+
+        let viewModel = LogDetailsViewModel(httpRequest: request)
+        await viewModel.onFirstAppear()
+
+        XCTAssertFalse(viewModel.canSaveAsMock)
+    }
+
+    // MARK: - Building the mock
+
+    func testMakeMockRuleStartsDisabledAndNamedAfterTheCapture() async throws {
+        let viewModel = LogDetailsViewModel(httpRequest: try makeCapture(), store: makeStore())
+        await viewModel.onFirstAppear()
+
+        let rule = viewModel.makeMockRule()
+
+        XCTAssertFalse(rule.isEnabled)
+        XCTAssertEqual(rule.name, "GET /v1/users")
+    }
+
+    func testMakeMockRuleMatchesTheCapturedMethodHostAndPath() async throws {
+        let capture = try makeCapture(url: "https://api.example.com/v1/users?page=2", method: "post")
+        let viewModel = LogDetailsViewModel(httpRequest: capture, store: makeStore())
+        await viewModel.onFirstAppear()
+
+        let match = viewModel.makeMockRule().match
+
+        XCTAssertEqual(match.methods, ["POST"])
+        XCTAssertEqual(match.host, NetworkRulePattern(kind: .exact, value: "api.example.com"))
+        XCTAssertEqual(match.path, NetworkRulePattern(kind: .exact, value: "/v1/users"))
+        XCTAssertTrue(match.query.isEmpty, "the query is left unconstrained so the mock is not pinned to one page")
+    }
+
+    func testMakeMockRuleCarriesTheCapturedStatusHeadersAndBody() async throws {
+        let store = makeStore()
+        let capture = try makeCapture(
+            statusCode: 201,
+            headers: ["Content-Type": "application/json", "X-Request-Id": "abc"],
+            body: #"{"id":1}"#
+        )
+        let viewModel = LogDetailsViewModel(httpRequest: capture, store: store)
+        await viewModel.onFirstAppear()
+
+        guard case .mock(let mock) = viewModel.makeMockRule().action else {
+            return XCTFail("expected a mock action")
+        }
+        XCTAssertEqual(mock.statusCode, 201)
+        XCTAssertEqual(mock.headers["Content-Type"], "application/json")
+        XCTAssertEqual(mock.headers["X-Request-Id"], "abc")
+        XCTAssertEqual(mock.delay, 0)
+
+        let bodyID = try XCTUnwrap(mock.bodyID)
+        XCTAssertEqual(store.bodyData(for: bodyID), Data(#"{"id":1}"#.utf8))
+    }
+
+    func testMakeMockRuleDropsHeadersDescribingTheWireEncoding() async throws {
+        let capture = try makeCapture(headers: [
+            "Content-Type": "application/json",
+            "Content-Encoding": "gzip",
+            "Content-Length": "1234",
+            "Transfer-Encoding": "chunked"
+        ])
+        let viewModel = LogDetailsViewModel(httpRequest: capture, store: makeStore())
+        await viewModel.onFirstAppear()
+
+        guard case .mock(let mock) = viewModel.makeMockRule().action else {
+            return XCTFail("expected a mock action")
+        }
+        XCTAssertEqual(mock.headers, ["Content-Type": "application/json"])
+    }
+
+    func testMakeMockRuleWithoutABodyStoresNothing() async throws {
+        let store = makeStore()
+        let capture = try makeCapture(statusCode: 204, headers: [:], body: "")
+        let viewModel = LogDetailsViewModel(httpRequest: capture, store: store)
+        await viewModel.onFirstAppear()
+
+        guard case .mock(let mock) = viewModel.makeMockRule().action else {
+            return XCTFail("expected a mock action")
+        }
+        XCTAssertNil(mock.bodyID)
+        XCTAssertEqual(mock.statusCode, 204)
+    }
+
+    func testMakeMockRuleFallsBackToRootWhenTheURLIsUnusable() async throws {
+        let request = HTTPRequest()
+        request.requestMethod = "GET"
+        request.requestTime = "10:00:00.000"
+        request.responseCode = 200
+
+        let viewModel = LogDetailsViewModel(httpRequest: request, store: makeStore())
+        await viewModel.onFirstAppear()
+
+        let rule = viewModel.makeMockRule()
+        XCTAssertEqual(rule.name, "GET /")
+        XCTAssertNil(rule.match.host)
+        XCTAssertEqual(rule.match.path, NetworkRulePattern(kind: .exact, value: "/"))
+        XCTAssertEqual(rule.match.methods, ["GET"])
+    }
+
+    func testMakeMockRuleIsValidInTheEditor() async throws {
+        let store = makeStore()
+        let viewModel = LogDetailsViewModel(httpRequest: try makeCapture(), store: store)
+        await viewModel.onFirstAppear()
+
+        let editor = NetworkRuleEditorViewModel(prefilled: viewModel.makeMockRule(), store: store)
+        XCTAssertTrue(editor.isValid)
+    }
+
+    func testSavingTheMockAddsItRatherThanSilentlyDoingNothing() async throws {
+        let store = makeStore()
+        let viewModel = LogDetailsViewModel(httpRequest: try makeCapture(), store: store)
+        await viewModel.onFirstAppear()
+
+        let editor = NetworkRuleEditorViewModel(prefilled: viewModel.makeMockRule(), store: store)
+        editor.save()
+
+        XCTAssertEqual(store.rules.map(\.name), ["GET /v1/users"])
+        XCTAssertEqual(store.rules.first?.isEnabled, false)
     }
 }

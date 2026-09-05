@@ -12,6 +12,13 @@ struct LogDetailsView: View {
 
     @StateObject private var viewModel: LogDetailsViewModel
 
+    /// The override **Save as mock** built from this capture, while its editor is presented.
+    ///
+    /// Held as the sheet's item rather than behind a `Bool` so the override is built exactly
+    /// once, when the button is tapped. Building it inside the sheet's content closure would
+    /// write a fresh copy of the response body to disk on every evaluation.
+    @State private var mockDraft: NetworkRule?
+
     init(httpRequest: HTTPRequest) {
         self.httpRequest = httpRequest
         _viewModel = StateObject(wrappedValue: LogDetailsViewModel(httpRequest: httpRequest))
@@ -35,6 +42,11 @@ struct LogDetailsView: View {
         }
         .onFirstAppear {
             await viewModel.onFirstAppear()
+        }
+        .sheet(item: $mockDraft) { rule in
+            NavigationStack {
+                NetworkRuleEditorView(prefilled: rule, store: viewModel.ruleStore)
+            }
         }
     }
 
@@ -175,8 +187,18 @@ struct LogDetailsView: View {
             LabeledContent(localized("Cache Policy"), value: viewModel.cachePolicy)
             LabeledContent(localized("Timeout"), value: viewModel.timeout)
 
+            if !viewModel.appliedRuleNames.isEmpty {
+                LabeledContent(localized("Overrides"), value: viewModel.appliedRuleNames.joined(separator: ", "))
+            }
+
             ShareLink(item: viewModel.curlRequest) {
                 Text(localized("Export cURL request"))
+            }
+
+            if viewModel.canSaveAsMock {
+                Button(localized("Save as mock")) {
+                    mockDraft = viewModel.makeMockRule()
+                }
             }
         }
     }

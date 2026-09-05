@@ -766,5 +766,24 @@
     "ko":      { "other": "%lld바이트" },
     "ru":      { "one": "%lld байт", "few": "%lld байта", "many": "%lld байт", "other": "%lld байта" },
     "ar":      { "zero": "%lld بايت", "one": "%lld بايت", "two": "%lld بايت", "few": "%lld بايت", "many": "%lld بايت", "other": "%lld بايت" }
+  },
+  "MOCKED": {
+    "comment": "Badge on a network log row whose response was synthesised by a request override rather than received from the network",
+    "fr": "SIMULÉ", "de": "MOCK", "es": "SIMULADA", "it": "SIMULATA",
+    "pt-BR": "SIMULADA", "nl": "GESIMULEERD", "ja": "モック",
+    "zh-Hans": "模拟", "zh-Hant": "模擬", "ko": "모의", "ru": "ПОДМЕНА", "ar": "محاكاة"
+  },
+  "Overrides": {
+    "comment": "Developer info row listing the request overrides that shaped a captured request",
+    "fr": "Remplacements", "de": "Overrides", "es": "Anulaciones", "it": "Override",
+    "pt-BR": "Substituições", "nl": "Overschrijvingen", "ja": "上書き",
+    "zh-Hans": "覆盖", "zh-Hant": "覆寫", "ko": "재정의", "ru": "Переопределения", "ar": "التجاوزات"
+  },
+  "Save as mock": {
+    "comment": "Button on the request details page that opens the override editor pre-filled with the captured response",
+    "fr": "Enregistrer comme réponse simulée", "de": "Als Mock sichern", "es": "Guardar como simulación",
+    "it": "Salva come simulazione", "pt-BR": "Salvar como simulação", "nl": "Bewaar als simulatie",
+    "ja": "モックとして保存", "zh-Hans": "存储为模拟响应", "zh-Hant": "儲存為模擬回應",
+    "ko": "모의 응답으로 저장", "ru": "Сохранить как подмену", "ar": "حفظ كمحاكاة"
   }
 }

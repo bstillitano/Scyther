@@ -30,6 +30,16 @@ final class HTTPRequestViewModelTests: XCTestCase {
         XCTAssertEqual(HTTPRequestViewModel(request: request).operationBadgeColor, .orange)
     }
 
+    func testWasStubbedMirrorsTheCapture() {
+        let stubbed = HTTPRequest()
+        stubbed.wasStubbed = true
+        XCTAssertTrue(HTTPRequestViewModel(request: stubbed).wasStubbed)
+    }
+
+    func testWasStubbedIsFalseForANetworkResponse() {
+        XCTAssertFalse(HTTPRequestViewModel(request: HTTPRequest()).wasStubbed)
+    }
+
     func testNonGraphQLFallback() {
         let request = HTTPRequest()
         let viewModel = HTTPRequestViewModel(request: request)

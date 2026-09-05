@@ -41,13 +41,9 @@ struct HTTPRequestView: View {
                                 .fontWeight(.semibold)
                                 .multilineTextAlignment(.leading)
                             if let badge = viewModel.operationBadgeText {
-                                Text(badge)
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 1)
-                                    .background(viewModel.operationBadgeColor, in: RoundedRectangle(cornerRadius: 4))
+                                lozenge(badge, colour: viewModel.operationBadgeColor)
                             }
+                            mockedBadge
                         }
                         HighlightingText(viewModel.url, substring: searchTerm)
                             .font(.caption)
@@ -56,14 +52,43 @@ struct HTTPRequestView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    HighlightingText(viewModel.url, substring: searchTerm)
-                        .font(.caption)
-                        .multilineTextAlignment(.leading)
-                        .frame(alignment: .leading)
+                    VStack(alignment: .leading, spacing: 3) {
+                        mockedBadge
+                        HighlightingText(viewModel.url, substring: searchTerm)
+                            .font(.caption)
+                            .multilineTextAlignment(.leading)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .padding(.vertical, 8)
         }
+    }
+
+    /// The badge marking a row whose response an override synthesised instead of the network.
+    ///
+    /// Renders nothing when the response came off the wire, so both branches of `body` can place
+    /// it unconditionally rather than each repeating the same `if`.
+    @ViewBuilder
+    private var mockedBadge: some View {
+        if viewModel.wasStubbed {
+            lozenge(localized("MOCKED"), colour: .orange)
+        }
+    }
+
+    /// The small uppercase lozenge used for both the GraphQL operation type and the mocked badge.
+    ///
+    /// - Parameters:
+    ///   - text: The badge text, already uppercased by its source.
+    ///   - colour: The lozenge fill.
+    /// - Returns: The badge.
+    private func lozenge(_ text: String, colour: Color) -> some View {
+        Text(text)
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 1)
+            .background(colour, in: RoundedRectangle(cornerRadius: 4))
     }
 }
 
@@ -122,6 +147,12 @@ class HTTPRequestViewModel: ObservableObject {
     /// The uppercased badge text for the operation type, or `nil` (e.g. batched requests).
     var operationBadgeText: String? {
         request.graphQLOperationType?.badgeText
+    }
+
+    /// Whether the response was synthesised by a request override rather than received from the
+    /// network. Drives the `MOCKED` badge on the row.
+    var wasStubbed: Bool {
+        request.wasStubbed
     }
 
     /// The lozenge colour for the operation type.
