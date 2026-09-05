@@ -51,14 +51,18 @@ enum HARRuleImporter {
 
     /// Builds one disabled mock rule from a single HAR entry, or `nil` if its URL cannot be
     /// parsed.
+    ///
+    /// The method is uppercased once and reused for both the rule's name and its match, and an
+    /// empty path (a URL with no trailing slash, e.g. `https://api.example.com`) is normalised to
+    /// `"/"` so the rule is never named with a trailing space or matched against an empty path.
     private static func rule(for entry: HAREntry, storeBody: (Data) -> UUID) -> NetworkRule? {
         guard let url = URL(string: entry.request.url),
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let host = components.host else {
             return nil
         }
-        let method = entry.request.method
-        let path = components.path
+        let method = entry.request.method.uppercased()
+        let path = components.path.isEmpty ? "/" : components.path
 
         let bodyID = bodyID(for: entry.response.content, storeBody: storeBody)
         let mock = MockResponse(

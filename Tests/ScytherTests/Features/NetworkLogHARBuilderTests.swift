@@ -90,6 +90,31 @@ final class NetworkLogHARBuilderTests: XCTestCase {
         )
     }
 
+    /// An image response body containing bytes that are not valid UTF-8 must still emit
+    /// `content.text` as genuine base64 that decodes back to the exact original bytes, since a
+    /// consumer of the HAR (or ``HARRuleImporter`` re-importing it) treats `encoding: "base64"`
+    /// as a promise that `content.text` really is base64.
+    func testImageBodyWithInvalidUTF8BytesRoundTripsThroughBase64() throws {
+        let bytes = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x80, 0x81, 0x82, 0xC3])
+        let request = makeRequest(responseBody: bytes, contentType: "image/jpeg")
+        let entry = try XCTUnwrap(NetworkLogHARBuilder.build(from: [request]).log.entries.first)
+        let text = try XCTUnwrap(entry.response.content.text)
+        let decoded = try XCTUnwrap(Data(base64Encoded: text), "expected content.text to be valid base64")
+        XCTAssertEqual(decoded, bytes)
+    }
+
+    /// Exporting an image response to HAR and feeding the result straight back through
+    /// ``HARRuleImporter`` must hand `storeBody` the original bytes, unchanged.
+    func testImageBodyRoundTripsThroughHARExportAndImport() throws {
+        let bytes = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x80, 0x81, 0x82, 0xC3])
+        let request = makeRequest(responseBody: bytes, contentType: "image/jpeg")
+        let har = NetworkLogHARBuilder.build(from: [request])
+        let data = try NetworkLogHARBuilder.encode(har)
+        var stored: [Data] = []
+        _ = try HARRuleImporter.rules(from: data) { body in stored.append(body); return UUID() }
+        XCTAssertEqual(stored, [bytes])
+    }
+
     func testRequestWithoutBodyHasNoPostData() throws {
         let request = makeRequest(method: "GET", requestBody: nil)
         let entry = try XCTUnwrap(NetworkLogHARBuilder.build(from: [request]).log.entries.first)
