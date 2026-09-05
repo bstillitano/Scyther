@@ -107,3 +107,98 @@ final class NetworkRuleMatchTests: XCTestCase {
         XCTAssertFalse(match.matches(request), "a host constraint cannot be satisfied without a URL")
     }
 }
+
+final class NetworkRuleEngineTests: XCTestCase {
+
+    private func request(_ url: String = "https://api.example.com/v1/users", method: String = "GET") -> URLRequest {
+        var request = URLRequest(url: URL(string: url)!)
+        request.httpMethod = method
+        return request
+    }
+
+    private func rule(
+        _ name: String,
+        enabled: Bool = true,
+        path: String? = nil,
+        action: NetworkRuleAction
+    ) -> NetworkRule {
+        NetworkRule(
+            id: UUID(),
+            name: name,
+            isEnabled: enabled,
+            match: NetworkRuleMatch(
+                methods: [],
+                host: nil,
+                path: path.map { NetworkRulePattern(kind: .wildcard, value: $0) },
+                query: [:]
+            ),
+            action: action
+        )
+    }
+
+    private var anyMock: NetworkRuleAction {
+        .mock(MockResponse(statusCode: 200, headers: [:], bodyID: nil, delay: 0))
+    }
+
+    func testNoRulesProducesAnEmptyOutcome() {
+        XCTAssertEqual(NetworkRuleEngine.outcome(for: request(), rules: []), .empty)
+    }
+
+    func testDisabledRulesAreSkipped() {
+        let rules = [rule("off", enabled: false, action: anyMock)]
+        XCTAssertEqual(NetworkRuleEngine.outcome(for: request(), rules: rules), .empty)
+    }
+
+    func testNonMatchingRulesAreSkipped() {
+        let rules = [rule("other", path: "/v2/*", action: anyMock)]
+        XCTAssertEqual(NetworkRuleEngine.outcome(for: request(), rules: rules), .empty)
+    }
+
+    func testFirstMatchingStubWinsAndShortCircuits() {
+        let first = MockResponse(statusCode: 201, headers: [:], bodyID: nil, delay: 0)
+        let second = MockResponse(statusCode: 500, headers: [:], bodyID: nil, delay: 0)
+        let rules = [rule("first", action: .mock(first)), rule("second", action: .mock(second))]
+        let outcome = NetworkRuleEngine.outcome(for: request(), rules: rules)
+        XCTAssertEqual(outcome.stub, .mock(first))
+        XCTAssertEqual(outcome.appliedRuleNames, ["first"])
+    }
+
+    func testFirstMatchingConditionWins() {
+        let slow = NetworkCondition(latency: 5, bandwidthKBps: nil, failureRate: 0, failureCode: -1009)
+        let slower = NetworkCondition(latency: 10, bandwidthKBps: nil, failureRate: 0, failureCode: -1009)
+        let rules = [rule("slow", action: .condition(slow)), rule("slower", action: .condition(slower))]
+        XCTAssertEqual(NetworkRuleEngine.outcome(for: request(), rules: rules).condition, slow)
+    }
+
+    func testEveryMatchingHeaderRewriteApplies() {
+        let rules = [
+            rule("a", action: .rewriteHeaders(NetworkHeaderRewrite(set: ["A": "1", "Shared": "first"], remove: []))),
+            rule("b", action: .rewriteHeaders(NetworkHeaderRewrite(set: ["B": "2", "Shared": "second"], remove: ["Drop"]))),
+        ]
+        let rewrite = NetworkRuleEngine.outcome(for: request(), rules: rules).headerRewrite
+        XCTAssertEqual(rewrite?.set["A"], "1")
+        XCTAssertEqual(rewrite?.set["B"], "2")
+        XCTAssertEqual(rewrite?.set["Shared"], "second", "the later rule wins a key collision")
+        XCTAssertEqual(rewrite?.remove, ["Drop"])
+    }
+
+    func testActionsOfDifferentKindsCompose() {
+        let condition = NetworkCondition(latency: 1, bandwidthKBps: nil, failureRate: 0, failureCode: -1009)
+        let rules = [
+            rule("headers", action: .rewriteHeaders(NetworkHeaderRewrite(set: ["A": "1"], remove: []))),
+            rule("condition", action: .condition(condition)),
+            rule("mock", action: anyMock),
+        ]
+        let outcome = NetworkRuleEngine.outcome(for: request(), rules: rules)
+        XCTAssertEqual(outcome.headerRewrite?.set["A"], "1")
+        XCTAssertEqual(outcome.condition, condition)
+        XCTAssertNotNil(outcome.stub)
+        XCTAssertEqual(outcome.appliedRuleNames, ["headers", "condition", "mock"])
+    }
+
+    func testMapLocalIsAlsoAStub() {
+        let file = MapLocalFile(relativePath: "fixtures/users.json", statusCode: 200, contentType: "application/json", delay: 0)
+        let outcome = NetworkRuleEngine.outcome(for: request(), rules: [rule("file", action: .mapLocal(file))])
+        XCTAssertEqual(outcome.stub, .mapLocal(file))
+    }
+}
