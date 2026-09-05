@@ -93,6 +93,7 @@ enum MenuSearchIndex {
         .releaseType: ["configuration", "testflight", "app store", "debug"],
         .ipAddress: ["ip", "network address"],
         .networkLogs: ["http", "requests", "responses", "traffic", "api", "charles", "proxy"],
+        .networkRules: ["mock", "stub", "map local", "throttle", "latency", "offline", "rewrite", "charles", "proxyman"],
         .serverConfiguration: ["backend", "staging", "production", "base url", "endpoint"],
         .environmentVariables: ["env", "env var", "env vars", "environment"],
         .featureFlags: ["remote config", "experiments", "toggles", "flags", "ab test", "launch darkly"],
@@ -131,6 +132,7 @@ enum MenuSearchIndex {
     /// effective *now*: a stored property would cache whatever language was active the first
     /// time search ran, and results would stay in that language after the user switched.
     private static var subpageTitles: [(target: MenuItem, titles: [String])] {[
+        (.networkRules, [localized("New rule"), localized("Import from HAR")]),
         (.gridOverlay, [localized("Enable Grid"), localized("Grid Size"), localized("Grid Opacity"), localized("Grid Color")]),
         (.fpsCounter, [localized("Enable FPS Counter"), localized("FPS Counter Position")]),
         (.touchVisualiser, [

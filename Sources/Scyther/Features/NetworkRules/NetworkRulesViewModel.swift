@@ -1,0 +1,205 @@
+//
+//  NetworkRulesViewModel.swift
+//  Scyther
+//
+//  Created by Brandon Stillitano on 5/9/2026.
+//
+
+import Combine
+import Foundation
+
+/// Backs ``NetworkRulesView``, the list of configured rules.
+///
+/// The view model is a thin front for ``NetworkRuleStore``: the store stays the single writer of
+/// rule state, and this republishes its rules so the list redraws when a rule is added from the
+/// editor, from `Scyther.network.rules`, or from a HAR import.
+///
+/// ## Deletion
+///
+/// A swipe records the rule in ``pendingDeletion`` rather than deleting it, so the view can put an
+/// alert in front of it. Deleting a rule also deletes the mock body it owns, which is not
+/// recoverable — worth one tap of confirmation.
+///
+/// ## Topics
+///
+/// ### Creating the List
+/// - ``init(store:)``
+///
+/// ### Reading Rules
+/// - ``rules``
+/// - ``isEnabled``
+///
+/// ### Mutating Rules
+/// - ``setEnabled(_:to:)``
+/// - ``move(from:to:)``
+/// - ``delete(at:)``
+///
+/// ### Confirming a Deletion
+/// - ``pendingDeletion``
+/// - ``requestDeletion(at:)``
+/// - ``confirmDeletion()``
+/// - ``cancelDeletion()``
+///
+/// ### Importing
+/// - ``importHAR(from:)``
+/// - ``reportImportFailure()``
+/// - ``importOutcome``
+final class NetworkRulesViewModel: ViewModel {
+    /// The persisted rules, in precedence order, mirrored from the store.
+    @Published private(set) var rules: [NetworkRule] = []
+
+    /// The rule a swipe has proposed deleting, awaiting confirmation. `nil` hides the alert.
+    @Published var pendingDeletion: NetworkRule?
+
+    /// The result of the most recent HAR import, awaiting acknowledgement. `nil` hides the alert.
+    @Published var importOutcome: NetworkRuleImportOutcome?
+
+    /// The store this list reads and writes.
+    private let store: NetworkRuleStore
+
+    /// Keeps the store's publishers alive for the lifetime of the list.
+    private var cancellables: Set<AnyCancellable> = []
+
+    /// Creates the list.
+    ///
+    /// - Parameter store: The store to mirror. Defaults to the shared store; tests pass their own.
+    init(store: NetworkRuleStore = .shared) {
+        self.store = store
+        super.init()
+    }
+
+    override func setup() {
+        super.setup()
+        // No `receive(on:)`: the store is main-actor isolated and so is this view model, so the
+        // values already arrive on the main thread. Hopping would leave the list showing stale
+        // rules for a frame after every edit.
+        store.$rules
+            .sink { [weak self] rules in self?.rules = rules }
+            .store(in: &cancellables)
+        store.$isEnabled
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+    }
+
+    /// The master switch. Turning it off leaves every rule intact but stops the interceptor
+    /// applying any of them.
+    ///
+    /// Reads through to the store rather than mirroring it, so the menu and
+    /// `Scyther.network.rules.isEnabled` can never disagree about which is authoritative.
+    var isEnabled: Bool {
+        get { store.isEnabled }
+        set { store.isEnabled = newValue }
+    }
+
+    /// Whether the list has nothing to show.
+    var isEmpty: Bool { rules.isEmpty }
+
+    /// Enables or disables a single rule.
+    ///
+    /// - Parameters:
+    ///   - rule: The rule to change.
+    ///   - isEnabled: Whether the engine should evaluate it.
+    func setEnabled(_ rule: NetworkRule, to isEnabled: Bool) {
+        var updated = rule
+        updated.isEnabled = isEnabled
+        store.update(updated)
+    }
+
+    /// Reorders the rules, which is what changes their precedence.
+    ///
+    /// - Parameters:
+    ///   - source: The offsets being moved, as supplied by SwiftUI's `onMove`.
+    ///   - destination: The offset to move them to.
+    func move(from source: IndexSet, to destination: Int) {
+        store.move(from: source, to: destination)
+    }
+
+    /// Deletes the rules at these offsets, along with any mock bodies they own.
+    ///
+    /// - Parameter offsets: The offsets to delete, as supplied by SwiftUI's `onDelete`.
+    func delete(at offsets: IndexSet) {
+        for id in offsets.compactMap({ rules.indices.contains($0) ? rules[$0].id : nil }) {
+            store.remove(id: id)
+        }
+    }
+
+    /// Records a swiped rule so the view can confirm before anything is deleted.
+    ///
+    /// - Parameter offsets: The offsets SwiftUI's `onDelete` reported.
+    func requestDeletion(at offsets: IndexSet) {
+        pendingDeletion = offsets.first.flatMap { rules.indices.contains($0) ? rules[$0] : nil }
+    }
+
+    /// Deletes the rule recorded by ``requestDeletion(at:)`` and dismisses the alert.
+    func confirmDeletion() {
+        if let pendingDeletion {
+            store.remove(id: pendingDeletion.id)
+        }
+        pendingDeletion = nil
+    }
+
+    /// Dismisses the deletion alert, leaving the rule alone.
+    func cancelDeletion() {
+        pendingDeletion = nil
+    }
+
+    /// Imports every entry of a HAR document as a disabled mock rule.
+    ///
+    /// The file is opened inside a security-scoped access pair, because the URL the system file
+    /// importer hands back points outside the app's own container.
+    ///
+    /// - Parameter url: The file the developer picked.
+    func importHAR(from url: URL) {
+        let isAccessing = url.startAccessingSecurityScopedResource()
+        defer { if isAccessing { url.stopAccessingSecurityScopedResource() } }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let imported = try HARRuleImporter.rules(from: data) { store.storeBody($0) }
+            imported.forEach { store.add($0) }
+            importOutcome = .imported(count: imported.count)
+        } catch {
+            importOutcome = .failed
+        }
+    }
+
+    /// Reports a failure the file importer itself raised, before any bytes were read.
+    func reportImportFailure() {
+        importOutcome = .failed
+    }
+}
+
+/// The outcome of a HAR import, as the list's alert presents it.
+enum NetworkRuleImportOutcome: Identifiable, Equatable {
+    /// The document was read and produced this many rules, every one of them disabled.
+    case imported(count: Int)
+
+    /// The file could not be read, or was not a HAR document.
+    case failed
+
+    /// A stable identity, so the alert redraws when one outcome replaces another.
+    var id: String {
+        switch self {
+        case .imported(let count): return "imported.\(count)"
+        case .failed: return "failed"
+        }
+    }
+
+    /// The alert's title.
+    var title: String {
+        switch self {
+        case .imported: return localized("Import Complete")
+        case .failed: return localized("Import Failed")
+        }
+    }
+
+    /// The alert's body copy.
+    var message: String {
+        switch self {
+        case .imported(let count):
+            return localized("Imported \(count) rules. Every imported rule starts disabled.")
+        case .failed:
+            return localized("The selected file could not be read as a HAR document.")
+        }
+    }
+}

@@ -351,6 +351,7 @@ public struct MenuView: View {
     private func destination(for item: MenuItem) -> some View {
         switch item {
         case .networkLogs: NetworkLogsView()
+        case .networkRules: NetworkRulesView()
         case .serverConfiguration: ServerConfigurationView()
         case .environmentVariables: EnvironmentVariablesView()
         case .featureFlags: FeatureFlagsView()
@@ -473,6 +474,8 @@ public struct MenuView: View {
                 andLoadingState: viewModel.isLoadingIPAddress
             )
         case .networkLogs:
+            navigationRow(for: item)
+        case .networkRules:
             navigationRow(for: item)
         case .serverConfiguration:
             navigationRow(for: item)
