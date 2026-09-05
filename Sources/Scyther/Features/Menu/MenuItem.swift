@@ -263,7 +263,7 @@ enum MenuItem: Hashable, Identifiable {
         case .releaseType: return "checkmark.seal"
         case .ipAddress: return "network"
         case .networkLogs: return "text.page.badge.magnifyingglass"
-        case .networkConditioning: return "tortoise"
+        case .networkConditioning: return "exclamationmark.icloud"
         case .networkRules: return "arrow.triangle.branch"
         case .serverConfiguration: return "server.rack"
         case .environmentVariables: return "x.squareroot"
