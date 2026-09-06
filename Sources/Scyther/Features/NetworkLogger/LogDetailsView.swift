@@ -294,11 +294,14 @@ struct LogDetailsView: View {
                     // row: it supplies the secondary font and colour, so nothing here picks them
                     // by hand. `EmptyView` because the row has no trailing value — the
                     // `NavigationLink`'s chevron is the accessory.
-                    LabeledContent {
-                        EmptyView()
-                    } label: {
+                    // Title over subtitle, the shape `MenuView.searchResultLabel` uses for every
+                    // two-line row in the menu. A bare two-`Text` label inside `LabeledContent`
+                    // renders both lines at almost the same weight, which reads as two titles.
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(rule.name)
                         Text(rule.actions.summary)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
                 }
             } else {

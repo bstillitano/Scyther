@@ -58,11 +58,14 @@ struct HeldRequestsView: View {
     /// One held exchange's row: the breakpoint's name over what it is holding.
     private func row(for pause: PendingBreakpoint) -> some View {
         // The same stock title-over-subtitle row the overrides and breakpoints lists use.
-        LabeledContent {
-            EmptyView()
-        } label: {
+        // Title over subtitle, the shape `MenuView.searchResultLabel` uses for every
+        // two-line row in the menu. A bare two-`Text` label inside `LabeledContent`
+        // renders both lines at almost the same weight, which reads as two titles.
+        VStack(alignment: .leading, spacing: 2) {
             Text(pause.breakpointName)
             Text(pause.draft.url ?? pause.stage.title)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
     }
 }

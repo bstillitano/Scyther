@@ -93,11 +93,14 @@ struct NetworkRulesView: View {
                         // The same stock title-over-subtitle row the editable rows use, so the
                         // two sections read as one list. Trailing rather than beneath truncated
                         // the summary of an override carrying more than one action.
-                        LabeledContent {
-                            EmptyView()
-                        } label: {
+                        // Title over subtitle, the shape `MenuView.searchResultLabel` uses for every
+                        // two-line row in the menu. A bare two-`Text` label inside `LabeledContent`
+                        // renders both lines at almost the same weight, which reads as two titles.
+                        VStack(alignment: .leading, spacing: 2) {
                             Text(rule.name)
                             Text(viewModel.subtitle(for: rule))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
                         }
                         .foregroundStyle(rule.isEnabled ? .primary : .secondary)
                     }
@@ -207,11 +210,14 @@ struct NetworkRulesView: View {
             // and is how every such row in this feature is built: it supplies the secondary font
             // and colour rather than each row picking them by hand. `EmptyView` because the row
             // has no trailing value — the `NavigationLink`'s chevron is the accessory.
-            LabeledContent {
-                EmptyView()
-            } label: {
+            // Title over subtitle, the shape `MenuView.searchResultLabel` uses for every
+            // two-line row in the menu. A bare two-`Text` label inside `LabeledContent`
+            // renders both lines at almost the same weight, which reads as two titles.
+            VStack(alignment: .leading, spacing: 2) {
                 Text(rule.name)
                 Text(viewModel.subtitle(for: rule))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
             // A disabled override reads as disabled rather than announcing it in words. The
             // hierarchy is the system's own — the same one the subtitle below already uses — not a

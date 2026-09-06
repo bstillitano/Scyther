@@ -112,11 +112,14 @@ struct BreakpointsView: View {
             // The same stock title-over-subtitle row the overrides list uses: `LabeledContent`
             // supplies the secondary font and colour, and `EmptyView` because the row's accessory
             // is the `NavigationLink`'s own chevron.
-            LabeledContent {
-                EmptyView()
-            } label: {
+            // Title over subtitle, the shape `MenuView.searchResultLabel` uses for every
+            // two-line row in the menu. A bare two-`Text` label inside `LabeledContent`
+            // renders both lines at almost the same weight, which reads as two titles.
+            VStack(alignment: .leading, spacing: 2) {
                 Text(breakpoint.name)
                 Text(viewModel.subtitle(for: breakpoint))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
             .foregroundStyle(breakpoint.isEnabled ? .primary : .secondary)
         }
