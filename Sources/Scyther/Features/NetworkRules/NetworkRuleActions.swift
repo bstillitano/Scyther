@@ -15,8 +15,9 @@ import Foundation
 /// same request at once.
 ///
 /// The one combination that has no meaning — a mock *and* a local file answering the same
-/// request — is ruled out structurally rather than by validation, because ``stub`` holds either
-/// one or the other and cannot hold both.
+/// request — is ruled out structurally in memory, because ``stub`` holds either one or the other
+/// and cannot hold both. Persisted JSON has no such structure, so ``NetworkRuleStub/init(from:)``
+/// rules it out there by refusing a stub that carries both keys.
 ///
 /// ## What composes with what
 ///
@@ -59,6 +60,55 @@ public struct NetworkRuleActions: Codable, Sendable, Equatable {
         case condition
     }
 
+    /// Decodes a set of actions, refusing one that names no facet this version can act on.
+    ///
+    /// Hand-written because the synthesised initialiser reads every property with
+    /// `decodeIfPresent`, which made **any** JSON object decode successfully — including one
+    /// carrying only keys a later release added. An override written by a newer Scyther with a
+    /// fourth facet would have decoded here as an override that matches live traffic and then does
+    /// nothing at all, which is worse than not loading it: it is invisible in the list's subtitle,
+    /// it cannot be explained, and it silently discards whatever the newer release actually meant.
+    ///
+    /// Refusing instead makes ``NetworkRuleStore`` drop that one override and keep its neighbours,
+    /// which is the behaviour the store is built around, and lets ``NetworkRule`` fall back to a
+    /// legacy `action` key standing beside an `actions` object it cannot read.
+    ///
+    /// An object with no keys at all is refused for the same reason and not as a special case: an
+    /// override that does nothing is never written — the editor will not save one — so `{}` on
+    /// disk is a rule whose facets this build does not recognise, or one that has been corrupted.
+    ///
+    /// - Parameter decoder: The decoder positioned at a set of actions.
+    /// - Throws: `DecodingError.dataCorrupted` when none of the three known keys is present, or
+    ///   whatever decoding a facet that *is* present throws.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        stub = try container.decodeIfPresent(NetworkRuleStub.self, forKey: .stub)
+        rewriteHeaders = try container.decodeIfPresent(NetworkHeaderRewrite.self, forKey: .rewriteHeaders)
+        condition = try container.decodeIfPresent(NetworkCondition.self, forKey: .condition)
+
+        guard !isEmpty else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "A set of actions must carry a stub, a header rewrite or a condition."
+                )
+            )
+        }
+    }
+
+    /// Writes the facets this set of actions carries, and only those.
+    ///
+    /// Spelled out alongside ``init(from:)``: a hand-written decoder beside a synthesised encoder
+    /// is exactly the asymmetry that let an unreadable object decode in the first place.
+    ///
+    /// - Parameter encoder: The encoder to write to.
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(stub, forKey: .stub)
+        try container.encodeIfPresent(rewriteHeaders, forKey: .rewriteHeaders)
+        try container.encodeIfPresent(condition, forKey: .condition)
+    }
+
     /// Creates a set of actions. Every facet is optional; an omitted one does nothing.
     ///
     /// - Parameters:
@@ -85,7 +135,9 @@ public struct NetworkRuleActions: Codable, Sendable, Equatable {
 /// A response served in place of performing the request.
 ///
 /// Mock and map local are mutually exclusive by construction — an override holds one or the
-/// other — because a canned response and a local file cannot both answer the same request.
+/// other — because a canned response and a local file cannot both answer the same request. In
+/// memory that exclusivity is structural; on disk it is not, since JSON has no idea it is looking
+/// at an enum, so ``init(from:)`` enforces it there instead.
 public enum NetworkRuleStub: Codable, Sendable, Equatable {
     /// A canned response synthesised in place of a real network call.
     case mock(MockResponse)
@@ -105,20 +157,35 @@ public enum NetworkRuleStub: Codable, Sendable, Equatable {
         case mapLocal
     }
 
-    /// Decodes a stub written under either of ``CodingKeys``.
+    /// Decodes a stub written under exactly one of ``CodingKeys``.
+    ///
+    /// Carrying both keys is refused rather than resolved. The type's whole claim is that a canned
+    /// response and a local file cannot both answer one request, and quietly keeping whichever the
+    /// decoder happened to look at first would make that claim false on disk while leaving it true
+    /// in memory — an override that answers from a file after a relaunch and from a mock before
+    /// one. Refusing costs that override alone: ``NetworkRuleStore`` drops it and keeps its
+    /// neighbours.
     ///
     /// - Parameter decoder: The decoder positioned at a stub.
-    /// - Throws: `DecodingError.dataCorrupted` when neither key is present.
+    /// - Throws: `DecodingError.dataCorrupted` when neither key is present, or when both are.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let mock = try container.decodeIfPresent(MockResponse.self, forKey: .mock) {
+        let mock = try container.decodeIfPresent(MockResponse.self, forKey: .mock)
+        let file = try container.decodeIfPresent(MapLocalFile.self, forKey: .mapLocal)
+        switch (mock, file) {
+        case (let mock?, nil):
             self = .mock(mock)
-        } else if let file = try container.decodeIfPresent(MapLocalFile.self, forKey: .mapLocal) {
+        case (nil, let file?):
             self = .mapLocal(file)
-        } else {
+        case (nil, nil):
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(codingPath: decoder.codingPath,
                                       debugDescription: "A stub must carry either a mock or a map local file.")
+            )
+        case (.some, .some):
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(codingPath: decoder.codingPath,
+                                      debugDescription: "A stub must carry a mock or a map local file, not both.")
             )
         }
     }

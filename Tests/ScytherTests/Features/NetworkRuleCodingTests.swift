@@ -242,12 +242,61 @@ final class NetworkRuleCodingTests: XCTestCase {
         XCTAssertNil(rule.actions.stub, "the legacy key is a fallback, never a supplement")
     }
 
-    func testAnEmptyActionsObjectDecodes() throws {
+    /// The sibling of ``testARuleCarryingNeitherShapeFailsToDecode()``, and it has to agree with
+    /// it: an override that does nothing is dropped rather than stored, whichever shape it arrives
+    /// in. The synthesised initialiser used to decode this happily, which is how a rule that
+    /// matched live traffic and left it alone got onto the list.
+    func testAnEmptyActionsObjectFailsToDecode() {
         let json = """
         { "id": "\(identifier)", "name": "x", "isEnabled": true,
           "match": { "methods": [], "query": {} }, "actions": {} }
         """
-        XCTAssertTrue(try decode(json).actions.isEmpty)
+        XCTAssertThrowsError(try decode(json), "a rule that does nothing must be dropped, not stored")
+    }
+
+    /// The case the defect was actually about: every property went through `decodeIfPresent`, so
+    /// an `actions` object naming only a facet a later release added decoded as an empty one — an
+    /// override that matches live traffic, does nothing, and cannot be explained.
+    func testActionsCarryingOnlyUnrecognisedKeysFailToDecode() {
+        let json = """
+        { "id": "\(identifier)", "name": "x", "isEnabled": true,
+          "match": { "methods": [], "query": {} },
+          "actions": { "throttleProfile": { "shape": "burst" } } }
+        """
+        XCTAssertThrowsError(try decode(json), "a facet this version has no case for is not nothing")
+    }
+
+    /// A newer release writing a fourth facet keeps the legacy key beside it for exactly this
+    /// reason. Dropping a valid action because the object above it was unreadable would cost the
+    /// override that the compatibility key was written to save.
+    func testAnUnreadableActionsObjectFallsBackToTheLegacyKey() throws {
+        let json = """
+        {
+          "id": "\(identifier)", "name": "from the future", "isEnabled": true,
+          "match": { "methods": [], "query": {} },
+          "actions": { "throttleProfile": { "shape": "burst" } },
+          "action": { "mock": { "_0": { "statusCode": 204, "headers": {}, "delay": 0 } } }
+        }
+        """
+        guard case .mock(let mock) = try XCTUnwrap(try decode(json).actions.stub) else {
+            return XCTFail("expected the legacy mock to be recovered")
+        }
+        XCTAssertEqual(mock.statusCode, 204)
+    }
+
+    /// JSON has no idea it is looking at an enum, so the exclusivity ``NetworkRuleStub`` claims
+    /// structurally has to be enforced on the way in. Keeping whichever key was read first would
+    /// mean an override answering from a mock this launch and from a file the next.
+    func testAStubCarryingBothAMockAndAMapLocalFailsToDecode() {
+        let json = """
+        { "id": "\(identifier)", "name": "x", "isEnabled": true,
+          "match": { "methods": [], "query": {} },
+          "actions": { "stub": {
+            "mock": { "statusCode": 200, "headers": {}, "delay": 0 },
+            "mapLocal": { "relativePath": "/tmp/x.json", "statusCode": 200, "delay": 0 }
+          } } }
+        """
+        XCTAssertThrowsError(try decode(json), "a stub answers from one place or the other")
     }
 
     // MARK: - Through the store

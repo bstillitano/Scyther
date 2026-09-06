@@ -86,20 +86,42 @@ public struct NetworkRule: Identifiable, Codable, Sendable, Equatable {
     /// | `rewriteHeaders` | ``NetworkRuleActions/rewriteHeaders`` |
     /// | `condition` | ``NetworkRuleActions/condition`` |
     ///
+    /// An `actions` object this version cannot read is not the end of the attempt. A rule written
+    /// by a newer Scyther can carry a facet this build has no case for *and* the legacy `action`
+    /// key beside it, and taking the legacy action in that case recovers an override the developer
+    /// can still see and still edit. The legacy key remains a fallback rather than a supplement:
+    /// an `actions` object that reads cleanly wins outright.
+    ///
     /// - Parameter decoder: The decoder positioned at one rule.
-    /// - Throws: A decoding error when the rule carries neither shape, or when a facet either
-    ///   shape names cannot be read.
+    /// - Throws: A decoding error when the rule carries neither shape, or when neither shape it
+    ///   carries can be read. The error reported is the one raised by `actions`, since that is the
+    ///   shape a rule written now is in.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         isEnabled = try container.decode(Bool.self, forKey: .isEnabled)
         match = try container.decode(NetworkRuleMatch.self, forKey: .match)
+        actions = try Self.decodeActions(from: container)
+    }
 
-        if let actions = try container.decodeIfPresent(NetworkRuleActions.self, forKey: .actions) {
-            self.actions = actions
-        } else {
-            self.actions = try Self.legacyActions(from: container)
+    /// Reads a rule's actions out of whichever shape it was written in.
+    ///
+    /// - Parameter container: The rule's own keyed container.
+    /// - Returns: The actions to apply.
+    /// - Throws: The `actions` object's own error when there is no legacy action to fall back to,
+    ///   and `DecodingError.keyNotFound` when the rule carries no readable shape at all.
+    private static func decodeActions(
+        from container: KeyedDecodingContainer<CodingKeys>
+    ) throws -> NetworkRuleActions {
+        guard container.contains(.actions) else {
+            return try legacyActions(from: container)
+        }
+        do {
+            return try container.decode(NetworkRuleActions.self, forKey: .actions)
+        } catch {
+            guard container.contains(.action) else { throw error }
+            return try legacyActions(from: container)
         }
     }
 
@@ -136,7 +158,7 @@ public struct NetworkRule: Identifiable, Codable, Sendable, Equatable {
     /// Lifts a rule persisted with one `action` into the composable shape.
     ///
     /// - Parameter container: The rule's own keyed container, positioned at a rule with no
-    ///   `actions` key.
+    ///   `actions` key or with one this version cannot read.
     /// - Returns: The equivalent actions.
     /// - Throws: `DecodingError.keyNotFound` when the rule carries no recognisable action at all,
     ///   which is what tells ``NetworkRuleStore`` to drop it rather than store a rule that does
