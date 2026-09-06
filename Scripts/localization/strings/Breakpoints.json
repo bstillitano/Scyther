@@ -418,5 +418,35 @@
     "ru": "Какую ошибку должно получить приложение?",
     "zh-Hans": "应用应看到哪个错误？",
     "zh-Hant": "App 應該看到哪個錯誤？"
+  },
+  "Nothing Held": {
+    "comment": "Title of the empty state on the held requests screen, shown when every hold has been decided",
+    "fr": "Rien en attente",
+    "de": "Nichts angehalten",
+    "es": "Nada retenido",
+    "it": "Nulla in attesa",
+    "pt-BR": "Nada retido",
+    "nl": "Niets vastgehouden",
+    "ja": "保留なし",
+    "zh-Hans": "无暂停请求",
+    "zh-Hant": "無暫停請求",
+    "ko": "보류 없음",
+    "ru": "Ничего не удерживается",
+    "ar": "لا شيء محتجز"
+  },
+  "Every held request has been decided. The app is no longer waiting.": {
+    "comment": "Description of the empty state on the held requests screen",
+    "fr": "Chaque requête retenue a été traitée. L’application n’attend plus.",
+    "de": "Jede angehaltene Anfrage wurde entschieden. Die App wartet nicht mehr.",
+    "es": "Se ha resuelto cada solicitud retenida. La app ya no está esperando.",
+    "it": "Ogni richiesta in attesa è stata decisa. L’app non sta più aspettando.",
+    "pt-BR": "Todas as requisições retidas foram decididas. O app não está mais esperando.",
+    "nl": "Elk vastgehouden verzoek is afgehandeld. De app wacht niet meer.",
+    "ja": "保留中のリクエストはすべて処理されました。アプリはもう待機していません。",
+    "zh-Hans": "所有暂停的请求都已处理，应用不再等待。",
+    "zh-Hant": "所有暫停的請求都已處理，應用程式不再等待。",
+    "ko": "보류된 요청이 모두 처리되었습니다. 앱은 더 이상 기다리지 않습니다.",
+    "ru": "Все удержанные запросы обработаны. Приложение больше не ждёт.",
+    "ar": "تمت معالجة كل طلب محتجز. لم يعد التطبيق ينتظر."
   }
 }

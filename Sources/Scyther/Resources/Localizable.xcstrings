@@ -20820,6 +20820,83 @@
         }
       }
     },
+    "Every held request has been decided. The app is no longer waiting.": {
+      "comment": "Description of the empty state on the held requests screen",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تمت معالجة كل طلب محتجز. لم يعد التطبيق ينتظر."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Jede angehaltene Anfrage wurde entschieden. Die App wartet nicht mehr."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Se ha resuelto cada solicitud retenida. La app ya no está esperando."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Chaque requête retenue a été traitée. L’application n’attend plus."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ogni richiesta in attesa è stata decisa. L’app non sta più aspettando."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "保留中のリクエストはすべて処理されました。アプリはもう待機していません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "보류된 요청이 모두 처리되었습니다. 앱은 더 이상 기다리지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Elk vastgehouden verzoek is afgehandeld. De app wacht niet meer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Todas as requisições retidas foram decididas. O app não está mais esperando."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Все удержанные запросы обработаны. Приложение больше не ждёт."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "所有暂停的请求都已处理，应用不再等待。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "所有暫停的請求都已處理，應用程式不再等待。"
+          }
+        }
+      }
+    },
     "Exact": {
       "comment": "Pattern comparison that requires the whole value to be equal",
       "localizations": {
@@ -34542,6 +34619,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "未設定"
+          }
+        }
+      }
+    },
+    "Nothing Held": {
+      "comment": "Title of the empty state on the held requests screen, shown when every hold has been decided",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لا شيء محتجز"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nichts angehalten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nada retenido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rien en attente"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nulla in attesa"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "保留なし"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "보류 없음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Niets vastgehouden"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nada retido"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ничего не удерживается"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "无暂停请求"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "無暫停請求"
           }
         }
       }

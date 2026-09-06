@@ -14,9 +14,14 @@ import SwiftUI
 /// immediately; several are listed, so a burst of matching requests can be worked through in any
 /// order.
 ///
-/// There is no way to dismiss it by hand. Every held exchange has to be continued, aborted, or
-/// left to its timeout, and a sheet that could be swiped away while an app sat paused behind it
-/// would be a way to lose the request without deciding anything.
+/// While anything is held there is no way to dismiss it by hand. Every held exchange has to be
+/// continued, aborted, or left to its timeout, and a sheet that could be swiped away while an app
+/// sat paused behind it would be a way to lose the request without deciding anything.
+///
+/// Once nothing is held the opposite is true. The presenter takes the screen away on its own, but
+/// if it ever fails to — its controller and UIKit having disagreed about what is on screen — a
+/// modal listing nothing, over an app that is waiting for nothing, is a dead end. So an empty list
+/// says so and offers a way out.
 struct HeldRequestsView: View {
     /// The presenter holding the live list of paused exchanges.
     @ObservedObject var presenter: BreakpointPresenter
@@ -37,7 +42,21 @@ struct HeldRequestsView: View {
                     Text(localized("The app is waiting on these. Each one continues unchanged when its timeout runs out."))
                 }
             }
+            .overlay {
+                if presenter.pending.isEmpty {
+                    emptyState
+                }
+            }
             .navigationTitle(localized("Held Requests"))
+            .toolbar {
+                // Only ever offered with nothing held: closing while an exchange waits would lose
+                // it without a decision, which is the thing this screen exists to prevent.
+                if presenter.pending.isEmpty {
+                    ToolbarItem(placement: .confirmationAction) {
+                        ConfirmButton { presenter.dismiss() }
+                    }
+                }
+            }
             .navigationDestination(for: UUID.self) { id in
                 if let pause = presenter.pending.first(where: { $0.id == id }) {
                     HeldRequestEditorView(pending: pause, coordinator: presenter.coordinator)
@@ -52,6 +71,32 @@ struct HeldRequestsView: View {
         /// the developer is left on a blank screen with the app still paused behind it.
         .onChange(of: presenter.pending.map(\.id)) { _ in
             viewModel.pendingChanged(presenter.pending)
+        }
+    }
+
+    /// Shown when nothing is held, which should only ever be the moment before the presenter takes
+    /// the screen away.
+    @ViewBuilder
+    private var emptyState: some View {
+        if #available(iOS 17.0, *) {
+            ContentUnavailableView(
+                localized("Nothing Held"),
+                systemImage: "pause.circle",
+                description: Text(localized("Every held request has been decided. The app is no longer waiting."))
+            )
+        } else {
+            VStack(spacing: 16) {
+                Image(systemName: "pause.circle")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.secondary)
+                Text(localized("Nothing Held"))
+                    .font(.headline)
+                Text(localized("Every held request has been decided. The app is no longer waiting."))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding()
         }
     }
 

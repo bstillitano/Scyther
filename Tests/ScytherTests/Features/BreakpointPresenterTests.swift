@@ -150,6 +150,33 @@ final class BreakpointPresenterTests: XCTestCase {
         XCTAssertEqual(log.dismissed, 1)
     }
 
+    /// The screen has no manual exit while anything is held, so if the presenter's belief about
+    /// what is on screen ever diverges from UIKit's, an empty modal over an app that is waiting
+    /// for nothing is a dead end. Dismissal therefore keys on there being a controller, not on
+    /// the flag.
+    func testTheEditorIsDismissedEvenIfThePresenterNoLongerBelievesItPresented() throws {
+        hold()
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
+
+        presenter.forgetPresentationForTesting()
+
+        let id = try XCTUnwrap(presenter.pending.first?.id)
+        coordinator.resolve(id: id, with: .timedOut)
+
+        XCTAssertTrue(waitUntil { self.presenter.pending.isEmpty })
+        XCTAssertEqual(log.dismissed, 1, "the screen has to come down even when the flag says it is not up")
+    }
+
+    /// The escape hatch behind the empty list's confirm button.
+    func testDismissingByHandTakesTheScreenDown() {
+        hold()
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
+
+        presenter.dismiss()
+
+        XCTAssertEqual(log.dismissed, 1)
+    }
+
     /// A held request the developer cannot see is indistinguishable from a hang, and the developer
     /// is by definition not looking at an app that is not on screen.
     func testAPauseTakenWhileBackgroundedIsSkippedAndResumedUnchanged() throws {

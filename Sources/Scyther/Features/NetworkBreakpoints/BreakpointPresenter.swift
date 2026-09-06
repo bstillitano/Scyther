@@ -125,9 +125,15 @@ internal final class BreakpointPresenter: ObservableObject {
         revalidatePresentation()
 
         guard !items.isEmpty else {
+            // Anything that suggests a screen is up is enough to ask for it to come down. The
+            // flag alone was not: it says only whether this presenter believes it presented, and
+            // when that belief and UIKit disagree what is left is a modal listing nothing, over
+            // an app waiting for nothing, with no way out — this screen offers no manual exit
+            // while something is held. Dismissing when nothing is up is harmless.
+            let wasHolding = !pending.isEmpty
             pending = []
-            if isPresenting {
-                isPresenting = false
+            isPresenting = false
+            if wasHolding || hasPresentedController {
                 dismissEditor(self)
             }
             return
@@ -196,6 +202,32 @@ internal final class BreakpointPresenter: ObservableObject {
     ///
     /// Does nothing when the editor was put up by an injected ``presentEditor``, which is what a
     /// test does: there is no hosting controller to ask.
+    /// Drops this presenter's belief that it presented, without touching what is on screen.
+    ///
+    /// Exists so a test can reproduce the one state that turns this screen into a dead end: a
+    /// controller UIKit is still showing that the presenter no longer counts as presented.
+    func forgetPresentationForTesting() {
+        isPresenting = false
+    }
+
+    /// Takes the screen down, whatever this presenter believed about it.
+    ///
+    /// The escape hatch behind the empty list's confirm button. Nothing is held, so there is
+    /// nothing to lose by closing, and a modal with no rows and no exit is worse than any state
+    /// this can leave behind.
+    func dismiss() {
+        isPresenting = false
+        dismissEditor(self)
+    }
+
+    /// Whether this presenter still has a controller it put on screen.
+    ///
+    /// The one question UIKit can answer honestly, and the only safe basis for deciding to
+    /// dismiss.
+    private var hasPresentedController: Bool {
+        hostingController != nil
+    }
+
     private func revalidatePresentation() {
         guard isPresenting, let controller = hostingController else { return }
         guard controller.presentingViewController == nil else { return }
