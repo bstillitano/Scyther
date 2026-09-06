@@ -534,6 +534,42 @@ public struct NetworkCondition: Codable, Sendable, Equatable {
     }
 }
 
+internal extension NetworkCondition {
+    /// Whether this condition would do anything at all to a request it was applied to.
+    ///
+    /// A condition with no latency, no ceiling and no failure rate changes nothing: the delay
+    /// guard skips a wait of zero, ``BandwidthThrottle/init(bandwidthKBps:maximumTotalSleep:)``
+    /// declines to build a throttle for a ceiling that is absent or non-positive, and a failure
+    /// rate of zero never fires. ``failureCode`` alone does nothing, because nothing fails.
+    ///
+    /// ``NetworkRuleEngine`` needs this for the same reason its header merge reports whether a
+    /// rewrite asked for a change. The condition facet is first-match-wins, so a do-nothing
+    /// condition that was allowed to win would be credited on the log for shaping a request it
+    /// left alone *and* would shadow the real condition below it — and it is one tap away, since
+    /// switching conditioning on in the editor with nothing remembered assigns exactly this value.
+    var shapesTheRequest: Bool {
+        latency > 0 || (bandwidthKBps ?? 0) > 0 || failureRate > 0
+    }
+
+    /// A copy of this condition with every number JSON cannot express replaced by the one that
+    /// does nothing.
+    ///
+    /// `.infinity` and `.nan` are both reachable from the public API and from a text field —
+    /// pasting `1e400` into a latency parses to `inf` — and both are poison twice over.
+    /// `JSONEncoder` throws on them, so a condition carrying one cannot be persisted; and `NaN`
+    /// compares false against everything, so `min(.nan, cap)` is `NaN` and the interceptor's
+    /// `delay > 0` guard then fails, silently erasing a mock's own delay along with the latency.
+    ///
+    /// A non-finite latency or failure rate becomes `0` — the value that does nothing — rather
+    /// than a guess at what the developer meant by infinity.
+    var sanitised: NetworkCondition {
+        var copy = self
+        copy.latency = copy.latency.finiteOrZero
+        copy.failureRate = copy.failureRate.finiteOrZero
+        return copy
+    }
+}
+
 internal extension NetworkRule {
     /// A copy of this rule with every number JSON cannot express replaced by the one that does
     /// nothing.
@@ -559,16 +595,12 @@ internal extension NetworkRule {
         case nil:
             break
         }
-        if var condition = copy.actions.condition {
-            condition.latency = condition.latency.finiteOrZero
-            condition.failureRate = condition.failureRate.finiteOrZero
-            copy.actions.condition = condition
-        }
+        copy.actions.condition = copy.actions.condition?.sanitised
         return copy
     }
 }
 
-private extension Double {
+internal extension Double {
     /// This value when JSON can express it, and `0` when it cannot.
     ///
     /// Infinity and NaN are the two values `JSONEncoder` refuses outright.

@@ -502,6 +502,52 @@ final class NetworkRuleEngineTests: XCTestCase {
         XCTAssertEqual(outcome, .empty)
     }
 
+    /// The condition facet had no equivalent of the rewrite facet's no-op guard, so a default
+    /// `NetworkCondition` — no latency, no ceiling, no failure rate — was reported and credited
+    /// for shaping a request it left entirely alone.
+    func testADoNothingConditionIsNeitherReportedNorCredited() {
+        let outcome = NetworkRuleEngine.outcome(
+            for: request(),
+            rules: [rule("switched on, never filled in", actions: NetworkRuleActions(condition: NetworkCondition()))]
+        )
+        XCTAssertNil(outcome.condition)
+        XCTAssertEqual(outcome.networkRuleNames, [])
+    }
+
+    /// The damage the missing guard actually did. The condition facet is first-match-wins, so a
+    /// do-nothing condition above a real one disabled it — and it is one tap away, since switching
+    /// conditioning on in the editor with nothing remembered assigns exactly that value.
+    func testADoNothingConditionDoesNotShadowARealOneBelowIt() {
+        let outcome = NetworkRuleEngine.outcome(for: request(), rules: [
+            rule("empty", actions: NetworkRuleActions(condition: NetworkCondition())),
+            rule("slow", actions: NetworkRuleActions(condition: NetworkCondition(latency: 3))),
+        ])
+        XCTAssertEqual(outcome.condition?.latency, 3)
+        XCTAssertEqual(outcome.networkRuleNames, ["slow"], "only the override that shaped it is credited")
+    }
+
+    /// Each of the three fields on its own is enough to make a condition real, so the guard cannot
+    /// be spelled as "has latency".
+    func testAConditionCarryingAnyOneFieldStillCounts() {
+        for condition in [NetworkCondition(latency: 0.5),
+                          NetworkCondition(bandwidthKBps: 100),
+                          NetworkCondition(failureRate: 0.5)] {
+            let outcome = NetworkRuleEngine.outcome(for: request(),
+                                                    rules: [rule("real", actions: NetworkRuleActions(condition: condition))])
+            XCTAssertEqual(outcome.condition, condition)
+            XCTAssertEqual(outcome.networkRuleNames, ["real"])
+        }
+    }
+
+    /// A failure code with nothing to fail is not a condition either: nothing reads it unless the
+    /// failure rate fires.
+    func testAFailureCodeAloneIsStillADoNothingCondition() {
+        let condition = NetworkCondition(failureCode: URLError.Code.timedOut.rawValue)
+        let outcome = NetworkRuleEngine.outcome(for: request(),
+                                                rules: [rule("code only", actions: NetworkRuleActions(condition: condition))])
+        XCTAssertNil(outcome.condition)
+    }
+
     /// The mirror image of ``testALaterRemoveBeatsAnEarlierSet()``: a later override that sets a
     /// header an earlier one removed wins, so re-ordering the list really does change the
     /// outcome. This is the assertion the two of them used to lack — both merely checked that the

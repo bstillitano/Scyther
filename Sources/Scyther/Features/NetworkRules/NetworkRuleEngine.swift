@@ -16,7 +16,10 @@ struct NetworkRuleOutcome: Sendable, Equatable {
     /// collections in either order and gets the same request. `nil` when nothing matched, or when
     /// everything that matched asked for no change at all.
     var headerRewrite: NetworkHeaderRewrite?
-    /// Conditioning from the first matching condition.
+    /// Conditioning from the first matching condition that would actually change something.
+    ///
+    /// A condition with no latency, no ceiling and no failure rate is skipped rather than taking
+    /// the slot — see ``NetworkRuleEngine/outcome(for:rules:)``.
     var condition: NetworkCondition?
     /// A response to synthesise instead of performing the request.
     var stub: NetworkRuleStub?
@@ -84,7 +87,7 @@ enum NetworkRuleEngine {
     /// |---|---|
     /// | Stub | The first matching stub wins and short-circuits the network. |
     /// | Header rewrite | Every matching rewrite merges; the **last** override to name a header wins. |
-    /// | Condition | The first matching condition wins. |
+    /// | Condition | The first matching condition that changes something wins. |
     ///
     /// A merged rewrite settles each header once, so precedence for a header is the same rule
     /// order the list shows: a later override that sets a header an earlier one removed wins, and
@@ -96,9 +99,14 @@ enum NetworkRuleEngine {
     /// them: `Authorization` and `authorization` are one header, and the winner is carried under
     /// the spelling the winning override used.
     ///
-    /// A rewrite that sets and removes nothing is not a rewrite. It is neither reported nor
-    /// credited, so an override that has been emptied out cannot make the log record a second,
-    /// identical copy of an untouched request.
+    /// A facet that would change nothing is not a facet. A rewrite that sets and removes nothing,
+    /// and a condition with no latency, no ceiling and no failure rate, are both skipped: neither
+    /// is reported, neither is credited, and neither takes a first-match-wins slot. An override
+    /// that has been emptied out therefore cannot make the log record a second, identical copy of
+    /// an untouched request, and cannot shadow the real condition below it — which matters because
+    /// switching conditioning on in the editor with nothing remembered assigns exactly that
+    /// do-nothing condition. A skipped condition also leaves the global conditioning floor in
+    /// place, since the request has no condition of its own.
     ///
     /// A stub deliberately does **not** suppress the other two. Stacking latency from several
     /// rules would be surprising, which is why the condition is first-match-wins; suppressing a
@@ -132,7 +140,7 @@ enum NetworkRuleEngine {
             if let rewrite = rule.actions.rewriteHeaders, headers.merge(rewrite) {
                 shapesTheRequest = true
             }
-            if let value = rule.actions.condition, condition == nil {
+            if let value = rule.actions.condition, value.shapesTheRequest, condition == nil {
                 condition = value
                 shapesTheRequest = true
             }
