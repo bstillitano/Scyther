@@ -57,20 +57,20 @@ final class BreakpointPresenterTests: XCTestCase {
         func recordDismissal() { lock.withLock { dismissals += 1 } }
     }
 
-    /// Holds the "the editor has finished appearing" callbacks, so a test can decide when — or
-    /// whether — the presentation animation ends.
+    /// Holds the "that animation has finished" callbacks, so a test can decide when — or whether —
+    /// a presentation or a dismissal completes.
     ///
     /// Main-actor isolated, like everything it stands in for: the presenter hands these callbacks
     /// out and calls them back on the main actor, so no lock is needed here.
     @MainActor
-    private final class Appearances {
-        /// Whether callbacks are held rather than run as they arrive. `false` presents instantly,
-        /// which is what every test that is not about the animation wants.
+    private final class Animations {
+        /// Whether callbacks are held rather than run as they arrive. `false` animates instantly,
+        /// which is what every test that is not about the animations wants.
         var isDeferring = false
 
         private var held: [() -> Void] = []
 
-        /// Takes one presentation's callback.
+        /// Takes one animation's callback.
         func record(_ completion: @escaping () -> Void) {
             guard isDeferring else { return completion() }
             held.append(completion)
@@ -92,7 +92,8 @@ final class BreakpointPresenterTests: XCTestCase {
         let coordinator: BreakpointCoordinator
         let presenter: BreakpointPresenter
         let log: PresentationLog
-        let appearances: Appearances
+        let appearances: Animations
+        let dismissals: Animations
     }
 
     /// Builds and starts a presenter. Static, so nothing about the test case is captured.
@@ -101,16 +102,26 @@ final class BreakpointPresenterTests: XCTestCase {
         let coordinator = BreakpointCoordinator()
         let presenter = BreakpointPresenter(coordinator: coordinator)
         let log = PresentationLog()
-        let appearances = Appearances()
+        let appearances = Animations()
+        let dismissals = Animations()
         presenter.presentEditor = { _, appeared in
             let didPresent = log.recordPresentation()
             if didPresent { appearances.record(appeared) }
             return didPresent
         }
-        presenter.dismissEditor = { _ in log.recordDismissal() }
+        presenter.dismissEditor = { _, gone in
+            log.recordDismissal()
+            dismissals.record(gone)
+        }
         presenter.applicationState = { .active }
         presenter.start()
-        return Fixture(coordinator: coordinator, presenter: presenter, log: log, appearances: appearances)
+        return Fixture(
+            coordinator: coordinator,
+            presenter: presenter,
+            log: log,
+            appearances: appearances,
+            dismissals: dismissals
+        )
     }
 
     /// Declared `nonisolated(unsafe)` because `setUp()` and `tearDown()` are inherited
@@ -122,7 +133,8 @@ final class BreakpointPresenterTests: XCTestCase {
     private var coordinator: BreakpointCoordinator { fixture.coordinator }
     private var presenter: BreakpointPresenter { fixture.presenter }
     private var log: PresentationLog { fixture.log }
-    private var appearances: Appearances { fixture.appearances }
+    private var appearances: Animations { fixture.appearances }
+    private var dismissals: Animations { fixture.dismissals }
 
     /// Builds the fixture on the main actor, which is where XCTest runs a synchronous test body
     /// of a `@MainActor` suite. `makeFixture()` is static, so no part of the test case crosses
@@ -236,6 +248,27 @@ final class BreakpointPresenterTests: XCTestCase {
 
         XCTAssertEqual(log.dismissed, 0, "the app is waiting on something again")
         XCTAssertEqual(log.presented, 1, "and the screen it is waiting behind never left")
+    }
+
+    /// UIKit accepts a presentation over a controller that is still leaving, and then shows
+    /// nothing at all. An exchange held in that moment — the developer continues one request and
+    /// makes the next straight away — sat behind a screen nobody could see while the app waited
+    /// out the whole timeout.
+    func testAnExchangeHeldWhileTheScreenIsLeavingIsShownOnceItHasGone() throws {
+        dismissals.isDeferring = true
+        hold(name: "cart")
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
+        let id = try XCTUnwrap(presenter.pending.first?.id)
+        coordinator.resolve(id: id, with: .timedOut)
+        XCTAssertTrue(waitUntil { self.log.dismissed == 1 })
+
+        hold(name: "checkout")
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
+        XCTAssertEqual(log.presented, 1, "nothing is presented over a screen that is on its way out")
+
+        dismissals.finish()
+
+        XCTAssertEqual(log.presented, 2, "and the wait ends when it has gone")
     }
 
     /// The escape hatch behind the empty list's close button.
