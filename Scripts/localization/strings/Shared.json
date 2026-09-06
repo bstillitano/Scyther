@@ -88,5 +88,20 @@
     "ko": "%lld번째 / 전체 %lld개",
     "ru": "%lld из %lld",
     "ar": "%lld من %lld"
+  },
+  "Close": {
+    "comment": "Accessibility label of the button that closes a screen without deciding anything",
+    "fr": "Fermer",
+    "de": "Schließen",
+    "es": "Cerrar",
+    "it": "Chiudi",
+    "pt-BR": "Fechar",
+    "nl": "Sluiten",
+    "ja": "閉じる",
+    "zh-Hans": "关闭",
+    "zh-Hant": "關閉",
+    "ko": "닫기",
+    "ru": "Закрыть",
+    "ar": "إغلاق"
   }
 }

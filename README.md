@@ -968,6 +968,20 @@ There are four ways out, and doing nothing is one of them:
 A log entry that was held carries an indigo `HELD` badge, beside `MOCKED` and `REPLAY`, and the
 log records what the app actually sent and received — the edit, not the original.
 
+#### Breaking on a Captured Request
+
+The request details page carries a **Break on requests like this** button, beside **Save as mock**
+and **Replay this request**. It opens the breakpoint editor pre-filled from the capture: the same
+matcher a mock built from that page uses — its method, host and path exactly, with the query left
+unconstrained — holding the request stage, for the default minute.
+
+Unlike a mock, it arrives **enabled**: a breakpoint announces itself by stopping the request and
+putting a screen in front of you, so there is nothing to switch on afterwards and nothing hidden
+if you forget to. Nothing is written until the editor is confirmed either way.
+
+It is offered wherever the entry has a URL, including one an override answered — seeing what the
+app *sent* to a stubbed endpoint is one of the things a breakpoint is for.
+
 #### What it does not do
 
 - **Nothing blocks.** A held request does not occupy the thread it was intercepted on. The pause

@@ -22,6 +22,13 @@ struct LogDetailsView: View {
     /// Whether the replay editor is presented.
     @State private var isReplaying: Bool = false
 
+    /// The breakpoint **Break on requests like this** built from this capture, while its editor is
+    /// presented.
+    ///
+    /// Held as the sheet's item, like ``mockDraft``, so the breakpoint is built once when the
+    /// button is tapped rather than on every evaluation of the sheet's content.
+    @State private var breakpointDraft: NetworkBreakpoint?
+
     init(httpRequest: HTTPRequest) {
         self.httpRequest = httpRequest
         _viewModel = StateObject(wrappedValue: LogDetailsViewModel(httpRequest: httpRequest))
@@ -57,6 +64,11 @@ struct LogDetailsView: View {
         .sheet(isPresented: $isReplaying) {
             NavigationStack {
                 ReplayEditorView(capture: httpRequest)
+            }
+        }
+        .sheet(item: $breakpointDraft) { breakpoint in
+            NavigationStack {
+                BreakpointEditorView(prefilled: breakpoint, store: viewModel.breakpointStore)
             }
         }
     }
@@ -330,6 +342,12 @@ struct LogDetailsView: View {
             if viewModel.canReplay {
                 Button(localized("Replay this request")) {
                     isReplaying = true
+                }
+            }
+
+            if viewModel.canAddBreakpoint {
+                Button(localized("Break on requests like this")) {
+                    breakpointDraft = viewModel.makeBreakpoint()
                 }
             }
         }

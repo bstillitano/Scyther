@@ -44,13 +44,8 @@ struct NetworkLogExportSheet: View {
             .navigationTitle(localized("Export Network Log"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                    .accessibilityLabel(localized("Close"))
+                ToolbarItem(placement: .cancellationAction) {
+                    CloseButton { dismiss() }
                 }
             }
             .alert(localized("Export Sensitive Data?"), isPresented: $showingWarning) {

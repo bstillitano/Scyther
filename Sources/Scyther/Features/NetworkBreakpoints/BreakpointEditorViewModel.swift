@@ -24,6 +24,7 @@ import Foundation
 ///
 /// ### Creating an Editor
 /// - ``init(breakpoint:store:)``
+/// - ``init(prefilled:store:)``
 ///
 /// ### The Breakpoint Being Edited
 /// - ``draft``
@@ -75,12 +76,38 @@ final class BreakpointEditorViewModel: ViewModel {
     /// - Parameters:
     ///   - breakpoint: The breakpoint to edit, or `nil` to create one.
     ///   - store: Where the breakpoint is written on save. Defaults to the shared store.
-    init(breakpoint: NetworkBreakpoint?, store: BreakpointStore = .shared) {
+    convenience init(breakpoint: NetworkBreakpoint?, store: BreakpointStore = .shared) {
+        self.init(draft: breakpoint ?? NetworkBreakpoint(name: "", match: NetworkRuleMatch()),
+                  isCreating: breakpoint == nil,
+                  store: store)
+    }
+
+    /// Creates an editor for a breakpoint that does not exist yet but is already filled in.
+    ///
+    /// Breaking on a captured request builds the whole breakpoint up front — name, methods, host
+    /// and path — and then opens the editor on it. That breakpoint carries an identifier the store
+    /// has never seen, so it must be *added* on ``save()``; routing it through
+    /// ``init(breakpoint:store:)`` would treat it as an edit and update nothing at all.
+    ///
+    /// - Parameters:
+    ///   - breakpoint: The pre-filled breakpoint. Nothing is written until ``save()`` is called.
+    ///   - store: Where the breakpoint is written on save. Defaults to the shared store.
+    convenience init(prefilled breakpoint: NetworkBreakpoint, store: BreakpointStore = .shared) {
+        self.init(draft: breakpoint, isCreating: true, store: store)
+    }
+
+    /// The designated initialiser both entry points funnel through.
+    ///
+    /// - Parameters:
+    ///   - draft: The breakpoint the form edits.
+    ///   - isCreating: Whether ``save()`` adds the breakpoint or updates one already in the store.
+    ///   - store: Where the breakpoint is written on save.
+    private init(draft: NetworkBreakpoint, isCreating: Bool, store: BreakpointStore) {
         self.store = store
-        self.isCreating = breakpoint == nil
-        self.draft = breakpoint ?? NetworkBreakpoint(name: "", match: NetworkRuleMatch())
-        if let host = breakpoint?.match.host { rememberedHostKind = host.kind }
-        if let path = breakpoint?.match.path { rememberedPathKind = path.kind }
+        self.isCreating = isCreating
+        self.draft = draft
+        if let host = draft.match.host { rememberedHostKind = host.kind }
+        if let path = draft.match.path { rememberedPathKind = path.kind }
         super.init()
     }
 
