@@ -95,6 +95,43 @@ final class LogDetailsViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.hasGraphQL)
     }
 
+    // MARK: - Replay rows
+
+    /// The defect W23 named, at the surface it reaches the developer through.
+    func testAReplayRowNamesWhatShapedEitherSide() throws {
+        let original = HTTPRequest()
+        original.responseCode = 200
+        original.requestMethod = "GET"
+        let replay = HTTPRequest()
+        replay.responseCode = 200
+        replay.requestMethod = "GET"
+        replay.wasStubbed = true
+
+        let link = ReplayLink(replay: replay, original: original)
+
+        XCTAssertEqual(link.note, "Replay: MOCKED")
+        XCTAssertFalse(link.comparison.isLikeForLike)
+    }
+
+    func testAReplayRowOfUntouchedTrafficHasNoNote() {
+        let original = HTTPRequest()
+        original.responseCode = 200
+        let replay = HTTPRequest()
+        replay.responseCode = 200
+        XCTAssertNil(ReplayLink(replay: replay, original: original).note)
+    }
+
+    func testAReplayRowNamesBothSidesWhenBothWereShaped() {
+        let original = HTTPRequest()
+        original.responseCode = 200
+        original.breakpointNames = ["cart"]
+        let replay = HTTPRequest()
+        replay.responseCode = 200
+        replay.appliedRuleNames = ["Slow cart"]
+        XCTAssertEqual(ReplayLink(replay: replay, original: original).note,
+                       "Original: HELD · Replay: OVERRIDDEN")
+    }
+
     // MARK: - Applied overrides
 
     func testAppliedRuleNamesPopulatedOnFirstAppear() async {

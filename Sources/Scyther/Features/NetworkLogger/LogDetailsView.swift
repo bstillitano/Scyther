@@ -94,13 +94,26 @@ struct LogDetailsView: View {
                     NavigationLink {
                         LogDetailsView(httpRequest: link.replay)
                     } label: {
-                        LabeledContent(link.title, value: link.detail)
+                        LabeledContent {
+                            Text(link.detail)
+                        } label: {
+                            Text(link.title)
+                            if let note = link.note {
+                                Text(note)
+                            }
+                        }
                     }
                 }
             } header: {
                 Text(localized("Replays"))
             } footer: {
-                Text(localized("Times and sizes are the replay minus the original."))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(localized("Times and sizes are the replay minus the original."))
+                    if viewModel.hasShapedReplay {
+                        Text(localized("A request an override, a breakpoint or an edit shaped is marked. Its figures measure Scyther rather than the server."))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

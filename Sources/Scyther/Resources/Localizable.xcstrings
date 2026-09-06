@@ -4205,6 +4205,83 @@
         }
       }
     },
+    "A request an override, a breakpoint or an edit shaped is marked. Its figures measure Scyther rather than the server.": {
+      "comment": "Second footer line of the Replays section, shown when a row describes a shaped exchange",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يُوضَع علامة على الطلب الذي شكّله تجاوز أو نقطة توقّف أو تعديل. أرقامه تقيس Scyther لا الخادم."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Eine Anfrage, die von einer Überschreibung, einem Haltepunkt oder einer Bearbeitung geformt wurde, ist markiert. Ihre Zahlen messen Scyther statt des Servers."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Una solicitud moldeada por una anulación, un punto de interrupción o una edición aparece marcada. Sus cifras miden a Scyther, no al servidor."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Une requête façonnée par une surcharge, un point d'arrêt ou une modification est marquée. Ses chiffres mesurent Scyther plutôt que le serveur."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Una richiesta modellata da un override, da un breakpoint o da una modifica è contrassegnata. Le sue cifre misurano Scyther anziché il server."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "オーバーライド、ブレークポイント、または編集の影響を受けたリクエストには印が付きます。その数値はサーバーではなく Scyther を測っています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "재정의, 중단점 또는 편집의 영향을 받은 요청은 표시됩니다. 그 수치는 서버가 아니라 Scyther를 측정한 것입니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Een verzoek dat door een override, een breakpoint of een bewerking is gevormd, is gemarkeerd. De cijfers ervan meten Scyther in plaats van de server."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Uma requisição moldada por uma substituição, um ponto de interrupção ou uma edição fica marcada. Seus números medem o Scyther, não o servidor."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Запрос, изменённый переопределением, точкой останова или правкой, отмечен. Его цифры измеряют Scyther, а не сервер."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "受覆盖规则、断点或编辑影响的请求会被标记。其数字衡量的是 Scyther 而非服务器。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "受覆寫規則、中斷點或編輯影響的請求會被標記。其數字衡量的是 Scyther 而非伺服器。"
+          }
+        }
+      }
+    },
     "A stubbed request is answered without leaving the device.": {
       "comment": "Footer under the stub picker in the override editor",
       "localizations": {
@@ -18198,6 +18275,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "動態字體"
+          }
+        }
+      }
+    },
+    "EDITED": {
+      "comment": "Badge word for an exchange the developer changed while a breakpoint held it",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "مُعدَّل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "BEARBEITET"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "EDITADO"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "MODIFIÉ"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "MODIFICATO"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "編集済み"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "편집됨"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "BEWERKT"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "EDITADO"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ИЗМЕНЕНО"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "已编辑"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "已編輯"
           }
         }
       }
@@ -35470,6 +35624,83 @@
         }
       }
     },
+    "Original: %@": {
+      "comment": "Prefix in a replay row naming what shaped the original request; %@ is a list of badge words",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "الأصل: %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Original: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Original: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Original : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Originale: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "元のリクエスト: %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "원본: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Origineel: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Original: %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Оригинал: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "原始请求：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "原始請求：%@"
+          }
+        }
+      }
+    },
     "Oslo, Norway": {
       "comment": "Location preset name",
       "localizations": {
@@ -41569,6 +41800,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "重送此請求"
+          }
+        }
+      }
+    },
+    "Replay: %@": {
+      "comment": "Prefix in a replay row naming what shaped the replay; %@ is a list of badge words",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "التكرار: %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Wiederholung: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Repetición: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rejeu : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Riproduzione: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "再送: %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "재전송: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Herhaling: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Reenvio: %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Повтор: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "重放：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "重送：%@"
           }
         }
       }

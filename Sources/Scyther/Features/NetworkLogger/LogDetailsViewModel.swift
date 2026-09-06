@@ -202,6 +202,11 @@ class LogDetailsViewModel: ViewModel {
     /// Empty on a request nothing has been replayed from, which is the common case.
     @Published var replayLinks: [ReplayLink] = []
 
+    /// Whether any row in the Replays section describes an exchange Scyther shaped.
+    ///
+    /// Drives the extra footer line explaining what such a row's figures do and do not measure.
+    var hasShapedReplay: Bool { replayLinks.contains { !$0.comparison.isLikeForLike } }
+
     /// The request this one replays, when it is a replay and the original is still in the log.
     @Published var originalRequest: HTTPRequest?
 
@@ -460,6 +465,14 @@ struct ReplayLink: Identifiable {
     /// would add nothing.
     let detail: String
 
+    /// The row's subtitle: what Scyther did to either side, or `nil` when it did nothing.
+    ///
+    /// Uses the same words as the log's own badges. Without it the section reported a duration
+    /// and a size delta across a mocked, conditioned, held or edited exchange with nothing said —
+    /// in the one place on the page built for comparison, and against the reason the replay
+    /// editor's own footer exists.
+    let note: String?
+
     /// A stable identity for `ForEach`, taken from the capture itself.
     var id: ObjectIdentifier { ObjectIdentifier(replay) }
 
@@ -476,5 +489,35 @@ struct ReplayLink: Identifiable {
         self.detail = [comparison.durationDeltaText, comparison.sizeDeltaText]
             .compactMap { $0 }
             .joined(separator: " · ")
+        self.note = Self.note(for: comparison)
+    }
+
+    /// Names what shaped each side, in the log's own badge words.
+    ///
+    /// - Parameter comparison: The comparison to describe.
+    /// - Returns: For example `Original: MOCKED · Replay: HELD`, or `nil` when neither side was
+    ///   shaped and the figures are the server's alone.
+    private static func note(for comparison: ReplayComparison) -> String? {
+        var parts: [String] = []
+        if let words = words(for: comparison.originalShaping) {
+            parts.append(localized("Original: \(words)"))
+        }
+        if let words = words(for: comparison.replayShaping) {
+            parts.append(localized("Replay: \(words)"))
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ") // scyther:unlocalised separator
+    }
+
+    /// The badge words one shaping reads as.
+    ///
+    /// - Parameter shaping: What Scyther did to one side.
+    /// - Returns: The words, joined, or `nil` when it did nothing.
+    private static func words(for shaping: ReplayComparison.Shaping) -> String? {
+        var words: [String] = []
+        if shaping.contains(.stubbed) { words.append(localized("MOCKED")) }
+        if shaping.contains(.overridden) { words.append(localized("OVERRIDDEN")) }
+        if shaping.contains(.held) { words.append(localized("HELD")) }
+        if shaping.contains(.edited) { words.append(localized("EDITED")) }
+        return words.isEmpty ? nil : words.joined(separator: " ") // scyther:unlocalised separator
     }
 }
