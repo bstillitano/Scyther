@@ -28,6 +28,7 @@ import Foundation
 /// ### State
 /// - ``isEnabled``
 /// - ``preset``
+/// - ``offeredPresets``
 /// - ``latency``
 /// - ``bandwidthKBps``
 /// - ``failureRate``
@@ -69,11 +70,24 @@ final class NetworkConditioningViewModel: ViewModel {
         set { store.isEnabled = newValue }
     }
 
+    /// The presets the picker offers.
+    ///
+    /// ``NetworkConditioningPreset/custom`` is not a choice a developer makes — it is what the
+    /// three fields read as when they match no named link — so it is listed only while it is the
+    /// current value, which is what lets the picker render that selection at all. Offering it as
+    /// a choice made picking it a no-op that the picker then silently undid on the next redraw:
+    /// the row snapped back to whatever it said before, with no explanation.
+    var offeredPresets: [NetworkConditioningPreset] {
+        let named = NetworkConditioningPreset.allCases.filter { $0 != .custom }
+        return preset == .custom ? [.custom] + named : named
+    }
+
     /// The named link the three fields currently describe.
     ///
     /// Setting it fills the fields in. Setting ``NetworkConditioningPreset/custom`` deliberately
     /// leaves them alone: "custom" is the *absence* of a preset, and having it clear the fields
-    /// would make picking it a destructive act.
+    /// would make picking it a destructive act. ``offeredPresets`` is why that is not a silent
+    /// no-op on screen — the picker never offers Custom as something to move *to*.
     ///
     /// The configured failure code is carried across, because no preset sets one and
     /// ``NetworkConditioningPreset/matching(_:)`` deliberately ignores it when deciding which

@@ -15025,6 +15025,83 @@
         }
       }
     },
+    "Custom is what the three numbers below read as when they match no named link.": {
+      "comment": "Footer under the network conditioning preset picker, explaining what Custom means",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "«مخصّص» هو ما تقرأه الأرقام الثلاثة أدناه عندما لا تطابق أي رابط مسمّى."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "„Benutzerdefiniert“ ist das, was die drei Werte unten ergeben, wenn sie zu keiner benannten Verbindung passen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Personalizado es lo que indican los tres números de abajo cuando no coinciden con ningún enlace con nombre."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Custom est ce que lisent les trois nombres ci-dessous lorsqu'ils ne correspondent à aucun lien nommé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Personalizzato è ciò che indicano i tre numeri qui sotto quando non corrispondono a nessun collegamento con nome."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "「カスタム」は、下の 3 つの数値がどの名前付きリンクにも一致しないときの表示です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "'사용자 지정'은 아래 세 값이 이름 있는 링크와 일치하지 않을 때 표시되는 상태입니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aangepast is wat de drie getallen hieronder aangeven wanneer ze bij geen enkele benoemde verbinding passen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Personalizado é o que os três números abaixo indicam quando não correspondem a nenhum link nomeado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "«Другое» — это то, что показывают три значения ниже, когда они не совпадают ни с одним именованным каналом."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "当下面三个数值与任何命名链接都不匹配时，即显示为“自定义”。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "當下方三個數值與任何具名連線都不相符時，即顯示為「自訂」。"
+          }
+        }
+      }
+    },
     "Custom method": {
       "comment": "Placeholder of the free-text HTTP method field in the replay editor",
       "localizations": {

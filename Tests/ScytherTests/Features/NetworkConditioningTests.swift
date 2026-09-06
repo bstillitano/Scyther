@@ -282,6 +282,42 @@ final class NetworkConditioningViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.bandwidthKBps, 100, "and the preset is still applied")
     }
 
+    // MARK: - What the picker offers
+
+    /// The defect W26 named: the picker listed Custom, the setter refused it, and the row snapped
+    /// back to whatever it said before with no explanation.
+    func testThePickerDoesNotOfferCustomAsAChoice() {
+        let viewModel = NetworkConditioningViewModel(store: store)
+        viewModel.preset = .threeG
+
+        XCTAssertEqual(viewModel.preset, .threeG)
+        XCTAssertFalse(viewModel.offeredPresets.contains(.custom),
+                       "there is nothing to move to: picking it would change nothing")
+        XCTAssertEqual(viewModel.offeredPresets.count, NetworkConditioningPreset.allCases.count - 1)
+    }
+
+    /// A picker cannot render a selection it does not list, so Custom is offered while it is what
+    /// the fields read as — and only then.
+    func testThePickerListsCustomWhileItIsTheCurrentValue() {
+        let viewModel = NetworkConditioningViewModel(store: store)
+        viewModel.latency = 1.234
+        viewModel.bandwidthKBps = 77
+
+        XCTAssertEqual(viewModel.preset, .custom)
+        XCTAssertEqual(viewModel.offeredPresets.first, .custom, "and it is offered, first")
+        XCTAssertEqual(viewModel.offeredPresets.count, NetworkConditioningPreset.allCases.count)
+    }
+
+    func testEveryOfferedPresetCanActuallyBeSelected() {
+        let viewModel = NetworkConditioningViewModel(store: store)
+        viewModel.preset = .threeG
+
+        for offered in viewModel.offeredPresets {
+            viewModel.preset = offered
+            XCTAssertEqual(viewModel.preset, offered, "\(offered.rawValue) must stick when picked")
+        }
+    }
+
     func testTheSwitchReadsAndWritesTheStore() {
         let store = self.store
         let viewModel = NetworkConditioningViewModel(store: store)

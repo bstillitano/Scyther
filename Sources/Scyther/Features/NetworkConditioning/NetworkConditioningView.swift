@@ -44,10 +44,12 @@ struct NetworkConditioningView: View {
 
             Section {
                 Picker(localized("Preset"), selection: $viewModel.preset) {
-                    ForEach(NetworkConditioningPreset.allCases) { preset in
+                    ForEach(viewModel.offeredPresets) { preset in
                         Text(preset.title).tag(preset)
                     }
                 }
+            } footer: {
+                Text(localized("Custom is what the three numbers below read as when they match no named link."))
             }
 
             Section {
