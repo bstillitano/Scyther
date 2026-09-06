@@ -113,6 +113,53 @@ struct HomeView: View {
                 }
 
                 Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Deliberate: icon-only button with no accessibility label, for the Missing Labels check.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button {
+                        } label: {
+                            Image(systemName: "info.circle.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 44, height: 44)
+                        }
+                        // Suppressing the label SF Symbols provide automatically (e.g. "trash"
+                        // reads as "Bin") is the point here: without this, VoiceOver would
+                        // still name the button and the audit would find nothing to flag.
+                        .accessibilityLabel("")
+                    }
+                    .padding(.vertical, 4)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Deliberate: 30 × 30pt button, under the 44pt minimum, for the Touch Targets check.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button {
+                        } label: {
+                            Circle()
+                                .fill(Color.accentColor)
+                                .frame(width: 30, height: 30)
+                        }
+                        .accessibilityLabel("Small Button")
+                    }
+                    .padding(.vertical, 4)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Deliberate: low-contrast text, for the Contrast check.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("Hard to read text")
+                            .foregroundStyle(Color(white: 0.72))
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("Accessibility Audit Demo")
+                } footer: {
+                    Text("These three controls are deliberately broken so Scyther's accessibility audit has something to find. Open Scyther → UI/UX → Accessibility Audit, or turn on Live Mode, to see them flagged.")
+                }
+
+                Section {
                     Button("Add More Records") {
                         addDemoRecords()
                     }
