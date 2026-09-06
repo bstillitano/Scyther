@@ -336,18 +336,32 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
             return false
         }
 
-        /// Verify that the URL is an `http` and/or `https` URL
-        guard let url = request.url, url.absoluteString.hasPrefix("http") || url.absoluteString.hasPrefix("https") else {
-            return false
-        }
-
-        /// Confirm that the URL is not a URL that should be ignored by the `NetworkHelper` utility class.
-        let absoluteString = url.absoluteString
-        guard !NetworkHelper.instance.ignoredURLs.contains(where: { absoluteString.hasPrefix($0) }) else {
+        /// Verify the URL is one Scyther intercepts at all.
+        guard let url = request.url, isInterceptable(url) else {
             return false
         }
 
         return true
+    }
+
+    /// Whether a URL is one Scyther intercepts: an HTTP URL that the host app has not asked it to
+    /// leave alone.
+    ///
+    /// Split out of ``canInit(with:)-(URLRequest)`` so the replay editor can ask the same question
+    /// before it sends. A replay retargeted at an ignored host, or at a scheme that is not HTTP,
+    /// goes out perfectly well and is never captured — so without this the editor promised in a
+    /// footer that replays are logged like app traffic and then produced no log entry, no error
+    /// and no explanation.
+    ///
+    /// The two conditions this leaves out of ``canServeRequest(_:)`` are about the process rather
+    /// than the URL: whether Scyther has started, and whether the request is Scyther's own.
+    ///
+    /// - Parameter url: The URL to test.
+    /// - Returns: Whether the interceptor would capture a request sent to it.
+    static func isInterceptable(_ url: URL) -> Bool {
+        let absoluteString = url.absoluteString
+        guard absoluteString.hasPrefix("http") else { return false }
+        return !NetworkHelper.instance.ignoredURLs.contains(where: { absoluteString.hasPrefix($0) })
     }
 
     override open func startLoading() {

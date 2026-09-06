@@ -1967,6 +1967,21 @@
     "ru": "Исходное тело не было текстом, поэтому журнал его не сохранил. Этот повтор отправляется без тела.",
     "ar": "لم يكن المحتوى الأصلي نصًا، لذا لم يحتفظ به السجل. يُرسل هذا التكرار دون محتوى."
   },
+  "Scyther does not intercept this URL, so the replay will be sent but will not appear in the log.": {
+    "comment": "Warning shown in the replay editor, and in its confirmation alert, when the target URL is one Scyther does not intercept",
+    "fr": "Scyther n'intercepte pas cette URL : le rejeu sera envoyé mais n'apparaîtra pas dans le journal.",
+    "de": "Scyther fängt diese URL nicht ab. Die Wiederholung wird gesendet, erscheint aber nicht im Protokoll.",
+    "es": "Scyther no intercepta esta URL, así que la repetición se enviará pero no aparecerá en el registro.",
+    "it": "Scyther non intercetta questo URL: la riproduzione verrà inviata ma non comparirà nel log.",
+    "pt-BR": "O Scyther não intercepta esta URL, então o reenvio será feito mas não aparecerá no log.",
+    "nl": "Scyther onderschept deze URL niet, dus de herhaling wordt verzonden maar verschijnt niet in het logboek.",
+    "ja": "Scyther はこの URL を捕捉しないため、再送は送信されますがログには表示されません。",
+    "zh-Hans": "Scyther 不会拦截此 URL，因此重放会被发送但不会出现在日志中。",
+    "zh-Hant": "Scyther 不會攔截此 URL，因此重送會送出但不會出現在記錄中。",
+    "ko": "Scyther는 이 URL을 가로채지 않으므로 재전송은 되지만 로그에는 나타나지 않습니다.",
+    "ru": "Scyther не перехватывает этот URL, поэтому повтор будет отправлен, но не появится в журнале.",
+    "ar": "لا يعترض Scyther عنوان URL هذا، لذا سيُرسل التكرار لكنه لن يظهر في السجل."
+  },
   "Replays are sent like app traffic, so any enabled override applies to them too.": {
     "comment": "Footer in the replay editor explaining that request overrides match replays as well",
     "fr": "Les requêtes rejouées sont envoyées comme le trafic de l’app : tout remplacement activé s’y applique aussi.",

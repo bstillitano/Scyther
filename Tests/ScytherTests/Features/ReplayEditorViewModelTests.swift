@@ -198,6 +198,41 @@ final class ReplayEditorViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.warnings.isEmpty)
     }
 
+    // MARK: - A target Scyther does not intercept
+
+    /// The defect W24 named: a replay retargeted at an ignored host or a non-HTTP scheme is sent
+    /// and never seen again — no log entry, no error, nothing — seconds after a footer promising
+    /// that replays are sent like app traffic.
+    func testARetargetedReplayOnAnIgnoredHostSaysItWillNotBeLogged() {
+        let previous = NetworkHelper.instance.ignoredURLs
+        defer { NetworkHelper.instance.ignoredURLs = previous }
+        NetworkHelper.instance.ignoredURLs = ["https://analytics.example.com"]
+
+        let viewModel = viewModel(capture())
+        XCTAssertTrue(viewModel.isLogged)
+
+        viewModel.draft.url = "https://analytics.example.com/v1/track"
+
+        XCTAssertFalse(viewModel.isLogged)
+        XCTAssertTrue(viewModel.requiresConfirmation)
+        XCTAssertTrue(viewModel.warnings.contains { $0.contains("will not appear in the log") })
+    }
+
+    func testANonHTTPSchemeSaysItWillNotBeLogged() {
+        let viewModel = viewModel(capture())
+        viewModel.draft.url = "ftp://files.example.com/users.json"
+        XCTAssertTrue(viewModel.hasValidURL, "it parses, and URLSession would try to send it")
+        XCTAssertFalse(viewModel.isLogged)
+        XCTAssertTrue(viewModel.warnings.contains { $0.contains("will not appear in the log") })
+    }
+
+    func testAURLThatCannotBeSentDoesNotAlsoWarnAboutLogging() {
+        let viewModel = viewModel(capture())
+        viewModel.draft.url = "not a url"
+        XCTAssertFalse(viewModel.warnings.contains { $0.contains("will not appear in the log") },
+                       "the invalid-URL line already covers it")
+    }
+
     // MARK: - Sending
 
     func testSendStampsProvenanceAndDispatchesOnce() throws {

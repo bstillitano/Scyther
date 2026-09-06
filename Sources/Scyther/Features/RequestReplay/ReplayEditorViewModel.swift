@@ -31,6 +31,7 @@ import Foundation
 /// - ``canSend``
 /// - ``hasValidURL``
 /// - ``changesServerState``
+/// - ``isLogged``
 /// - ``warnings``
 /// - ``requiresConfirmation``
 ///
@@ -145,7 +146,24 @@ final class ReplayEditorViewModel: ViewModel {
         if draft.hasUncapturedBody {
             lines.append(localized("The original body was not text, so the log did not keep it. This replay is sent without a body."))
         }
+        if hasValidURL, !isLogged {
+            lines.append(localized("Scyther does not intercept this URL, so the replay will be sent but will not appear in the log."))
+        }
         return lines
+    }
+
+    /// Whether the interceptor will capture this replay, so it lands in the log beside the
+    /// original.
+    ///
+    /// A replay retargeted at an ignored host, or at a scheme that is not HTTP, is sent and never
+    /// seen again: no entry, no error, nothing. The editor's footer promises the opposite, so
+    /// this is what lets it withdraw the promise for the one URL it does not hold for.
+    ///
+    /// `true` for a URL that cannot be sent at all, which ``hasValidURL`` reports separately —
+    /// two warnings about the same empty field help nobody.
+    var isLogged: Bool {
+        guard let url = draft.parsedURL else { return true }
+        return HTTPInterceptorURLProtocol.isInterceptable(url)
     }
 
     /// Whether sending asks for confirmation first.

@@ -45115,6 +45115,83 @@
         }
       }
     },
+    "Scyther does not intercept this URL, so the replay will be sent but will not appear in the log.": {
+      "comment": "Warning shown in the replay editor, and in its confirmation alert, when the target URL is one Scyther does not intercept",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لا يعترض Scyther عنوان URL هذا، لذا سيُرسل التكرار لكنه لن يظهر في السجل."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther fängt diese URL nicht ab. Die Wiederholung wird gesendet, erscheint aber nicht im Protokoll."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther no intercepta esta URL, así que la repetición se enviará pero no aparecerá en el registro."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther n'intercepte pas cette URL : le rejeu sera envoyé mais n'apparaîtra pas dans le journal."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther non intercetta questo URL: la riproduzione verrà inviata ma non comparirà nel log."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther はこの URL を捕捉しないため、再送は送信されますがログには表示されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther는 이 URL을 가로채지 않으므로 재전송은 되지만 로그에는 나타나지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther onderschept deze URL niet, dus de herhaling wordt verzonden maar verschijnt niet in het logboek."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "O Scyther não intercepta esta URL, então o reenvio será feito mas não aparecerá no log."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther не перехватывает этот URL, поэтому повтор будет отправлен, но не появится в журнале."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther 不会拦截此 URL，因此重放会被发送但不会出现在日志中。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther 不會攔截此 URL，因此重送會送出但不會出現在記錄中。"
+          }
+        }
+      }
+    },
     "Search": {
       "comment": "Placeholder in a search field",
       "localizations": {
