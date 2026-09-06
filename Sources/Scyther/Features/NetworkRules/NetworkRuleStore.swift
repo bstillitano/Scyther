@@ -524,6 +524,17 @@ internal final class NetworkRuleStore: ObservableObject {
     /// The read is wrapped in a security-scoped access pair, because the URL the system file
     /// importer hands back points outside the app's own container.
     ///
+    /// The copy's modification date is stamped to now afterwards, because `copyItem` preserves the
+    /// source's. Without the stamp the sweep's grace period protected nothing: a copy of any
+    /// document last edited more than ``bodySweepGracePeriod`` ago — which is nearly every
+    /// document anyone picks — was an orphan candidate the instant it was written, in the window
+    /// before the override naming it is stored. The mirror case leaked instead: a document dated
+    /// in the future produced a copy no sweep would ever reclaim.
+    ///
+    /// A copy that cannot be stamped is removed and reported as a failure rather than left in
+    /// place, because a file that may be swept out from under a working override at any moment is
+    /// worse than an import the developer is told did not happen.
+    ///
     /// - Parameter url: The file the developer picked.
     /// - Returns: The absolute path of the copy, or `nil` when the file could not be read or the
     ///   copy could not be written.
@@ -535,6 +546,13 @@ internal final class NetworkRuleStore: ObservableObject {
             try createBodyDirectory()
             try FileManager.default.copyItem(at: url, to: destination)
         } catch {
+            return nil
+        }
+        do {
+            try FileManager.default.setAttributes([.modificationDate: Date()],
+                                                  ofItemAtPath: destination.path)
+        } catch {
+            try? FileManager.default.removeItem(at: destination)
             return nil
         }
         return destination.path

@@ -338,6 +338,47 @@ final class NetworkRuleStoreTests: XCTestCase {
         XCTAssertNil(store.storeFile(at: missing))
     }
 
+    /// `copyItem` preserves the source's modification date, so the grace period protected nothing:
+    /// a copy of any document left alone for a minute — which is nearly every document anyone
+    /// picks — was an orphan candidate the instant it was written, in the window before the
+    /// override naming it is stored.
+    func testACopyOfAnOldDocumentIsNotImmediatelyASweepCandidate() throws {
+        let store = makeStore()
+        let picked = try pickedFile(named: "users.json", contents: "[]")
+        try age(picked)
+
+        let path = try XCTUnwrap(store.storeFile(at: picked))
+
+        let candidates = NetworkRuleStore.orphanCandidates(
+            in: bodyDirectory,
+            ignoringFilesNewerThan: NetworkRuleStore.bodySweepGracePeriod
+        )
+        XCTAssertFalse(candidates.contains { $0.url.lastPathComponent == URL(fileURLWithPath: path).lastPathComponent },
+                       "the copy is as new as the copying, whatever the document's own date said")
+    }
+
+    /// The mirror case, which leaked rather than over-deleted: a document dated in the future
+    /// produced a copy dated in the future, and `modified < cutoff` is never true of one — so that
+    /// copy would never be reclaimed, however long it went unreferenced.
+    ///
+    /// Asserted on the date rather than on a sweep, because the defect is that no sweep at any
+    /// future time would ever reach it, which no single sweep can demonstrate.
+    func testACopyIsDatedWhenItWasCopiedAndNotWhenTheDocumentWas() throws {
+        let store = makeStore()
+        let picked = try pickedFile(named: "users.json", contents: "[]")
+        try FileManager.default.setAttributes([.modificationDate: Date().addingTimeInterval(60 * 60 * 24)],
+                                              ofItemAtPath: picked.path)
+
+        let path = try XCTUnwrap(store.storeFile(at: picked))
+
+        let copied = try XCTUnwrap(
+            try URL(fileURLWithPath: path).resourceValues(forKeys: [.contentModificationDateKey])
+                .contentModificationDate
+        )
+        XCTAssertLessThanOrEqual(copied, Date().addingTimeInterval(1),
+                                 "a copy dated in the future is one no sweep can ever reclaim")
+    }
+
     func testRemovingAMapLocalRuleDeletesItsCopy() throws {
         let store = makeStore()
         let path = try XCTUnwrap(store.storeFile(at: try pickedFile(named: "users.json", contents: "[]")))
