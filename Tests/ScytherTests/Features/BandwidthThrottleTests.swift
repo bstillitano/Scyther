@@ -53,21 +53,30 @@ final class BandwidthThrottleTests: XCTestCase {
 
     /// Idle time used to accrue credit without limit, so a response that arrived late arrived all
     /// at once: headers early, a slow backend, then a burst, and the ceiling stopped applying.
+    ///
+    /// The two deliveries are what makes this an assertion about the *bound* rather than about
+    /// the arithmetic in general. The first is small enough to be covered by the idle outright;
+    /// the second is charged against a clock that has been wound back to one second of credit, so
+    /// it owes three seconds rather than the two it would owe if the whole three-second think had
+    /// been banked.
     func testIdleTimeAccruesOnlyABoundedBurstCredit() throws {
         var throttle = try XCTUnwrap(BandwidthThrottle(bandwidthKBps: 100, maximumTotalSleep: 30))
 
-        // Headers arrive, the backend thinks for three seconds, then sends 300 KB in one go.
-        // 300 KB at 100 KB/s is three seconds of transfer; one second of the think is forgiven,
-        // so two seconds of it are still owed.
-        let wait = throttle.delay(forwarding: 300 * 1024, elapsed: 3)
-
-        XCTAssertEqual(wait, 2, accuracy: 0.001)
+        // Headers arrive and the backend thinks for three seconds, then sends 500 KB in two goes.
+        XCTAssertEqual(throttle.delay(forwarding: 100 * 1024, elapsed: 3), 0,
+                       "one second of the think covers the first 100 KB outright")
+        XCTAssertEqual(throttle.delay(forwarding: 400 * 1024, elapsed: 3), 3, accuracy: 0.001,
+                       "the other two seconds of the think are written off rather than banked")
     }
 
     /// The long-poll and server-sent-events shape: mostly idle, in bursts. Every idle period used
     /// to bank credit, so the ceiling never applied to any of them.
+    ///
+    /// Each burst is twice the ceiling's worth of the think that preceded it, so the response as a
+    /// whole has to be slowed to half speed: 900 KB at 50 KB/s is eighteen seconds, the source
+    /// supplies nine of them, and the throttle owes the other nine.
     func testCreditDoesNotAccumulateAcrossSuccessiveIdlePeriods() throws {
-        var throttle = try XCTUnwrap(BandwidthThrottle(bandwidthKBps: 100, maximumTotalSleep: 30))
+        var throttle = try XCTUnwrap(BandwidthThrottle(bandwidthKBps: 50, maximumTotalSleep: 30))
 
         var elapsed: TimeInterval = 0
         var total: TimeInterval = 0
@@ -78,7 +87,44 @@ final class BandwidthThrottleTests: XCTestCase {
             elapsed += wait // and the caller honours the delay
         }
 
-        XCTAssertEqual(total, 6, accuracy: 0.01, "each 300 KB burst is paced, not just the first")
+        XCTAssertEqual(total, 9, accuracy: 0.01, "each 300 KB burst is paced, not just the first")
+        XCTAssertEqual(elapsed, 18, accuracy: 0.01, "the whole response converges on the ceiling")
+    }
+
+    /// The burst bound used to be applied to the credit standing *before* the bytes in hand were
+    /// charged, which made the debt `count / rate − burstWindow` after any idle longer than the
+    /// window — a constant, with the elapsed time cancelled out of it entirely.
+    ///
+    /// On the shipped EDGE ceiling that charged 1.13 seconds for every 64 KB chunk of a source
+    /// running at a third of that ceiling, which is the case the type's own documentation
+    /// promises is free.
+    func testASourceDeliveringUnderItsCeilingIsNeverDelayed() throws {
+        var throttle = try XCTUnwrap(BandwidthThrottle(bandwidthKBps: 30, maximumTotalSleep: 30))
+
+        var elapsed: TimeInterval = 0
+        for _ in 0..<20 {
+            elapsed += 6.5 // 64 KB every 6.5 seconds is about 10 KB/s, a third of the ceiling
+            XCTAssertEqual(throttle.delay(forwarding: 64 * 1024, elapsed: elapsed), 0,
+                           "a transfer inside its ceiling owes nothing, whatever the chunking")
+        }
+    }
+
+    /// The consequence of charging debt that was never owed: ``BandwidthThrottle/maximumTotalSleep``
+    /// ran out — roughly 1.7 MB into an EDGE response — and pacing then stopped for the rest of it,
+    /// so the ceiling silently lifted on exactly the traffic it was meant to shape.
+    func testAnUnderCeilingTransferLeavesThePacingBudgetIntact() throws {
+        var throttle = try XCTUnwrap(BandwidthThrottle(bandwidthKBps: 30, maximumTotalSleep: 30))
+
+        var elapsed: TimeInterval = 0
+        for _ in 0..<20 {
+            elapsed += 6.5
+            _ = throttle.delay(forwarding: 64 * 1024, elapsed: elapsed)
+        }
+
+        // The source now dumps two megabytes at once, which is far over the ceiling.
+        XCTAssertEqual(throttle.delay(forwarding: 2 * 1024 * 1024, elapsed: elapsed), 30,
+                       accuracy: 0.001,
+                       "the whole budget is still there for the burst that actually needs it")
     }
 
     /// The other side of the bound: a pause shorter than the burst window is forgiven, so an

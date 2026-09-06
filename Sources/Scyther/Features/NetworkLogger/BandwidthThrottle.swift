@@ -47,9 +47,18 @@ struct BandwidthThrottle {
     /// The pacing compares the time a transfer *should* have taken against the time it actually
     /// has taken, and forwards for free whenever it is running behind. Left unbounded that credit
     /// accrues while nothing is arriving at all, so a response whose headers came early and whose
-    /// body came late is forwarded in one unpaced burst — 300 KB after a three-second think under
-    /// a 100 KB/s ceiling used to ask for no delay whatsoever. Long-poll and server-sent events
-    /// are mostly idle by design, so they were effectively unthrottled.
+    /// body came late is forwarded in one unpaced burst, however far over the ceiling that burst
+    /// is. Long-poll and server-sent events are mostly idle by design, so they were effectively
+    /// unthrottled.
+    ///
+    /// The bound is applied to the credit a call *leaves behind*, never to the credit it spends:
+    /// the clock may end a call at most this far ahead of where the ceiling says the transfer
+    /// should have got to, and the bytes in hand are charged against the credit that was standing
+    /// when they arrived. Bounding the credit before the charge instead made the debt
+    /// `count / rate − burstWindow` after any idle longer than the window — a constant,
+    /// independent of how long the source had actually taken — so a source delivering at a third
+    /// of its ceiling in 64 KB chunks was still delayed, and spent the whole of
+    /// ``maximumTotalSleep`` on debt it never owed.
     ///
     /// One second is large enough that a response already comfortably under its ceiling is never
     /// delayed by it, and small enough that a burst after a think is still paced.
@@ -70,12 +79,13 @@ struct BandwidthThrottle {
     /// Seconds this throttle has already asked the caller to wait.
     private var sleepUsed: TimeInterval = 0
 
-    /// Elapsed time written off because it exceeded ``burstWindow``.
+    /// Elapsed time written off because it left the clock more than ``burstWindow`` ahead of
+    /// schedule.
     ///
     /// `elapsed` is measured from the start of the response and only ever grows, so idle time
     /// cannot simply be ignored at the call that sees it — the same idle seconds would still be
-    /// there at the next call. Subtracting them once, here, holds the accrued credit at
-    /// ``burstWindow`` for the rest of the response.
+    /// there at the next call. Subtracting them once, here, holds the credit carried into the
+    /// next call at ``burstWindow`` for the rest of the response.
     private var discardedIdle: TimeInterval = 0
 
     /// Creates a throttle for a ceiling, or `nil` when there is nothing to throttle.
@@ -94,8 +104,14 @@ struct BandwidthThrottle {
     ///
     /// Because `elapsed` is measured from the start of the response, time already spent waiting is
     /// counted automatically: a caller that honours every returned delay converges on the ceiling
-    /// rather than overshooting it. Time in which *nothing arrived* counts too, but only up to
-    /// ``burstWindow`` — see that property for why.
+    /// rather than overshooting it. Time in which *nothing arrived* counts too, but the clock is
+    /// never left more than ``burstWindow`` ahead of schedule — see that property for why.
+    ///
+    /// The bytes in hand are charged **before** the credit is bounded, so a response whose bytes
+    /// have averaged out at or under the ceiling is never delayed, however the source chose to
+    /// chunk them. Bounding first charged the whole of a chunk's transmit time against a clock
+    /// that had just been wound back to the burst window, which delayed transfers that were
+    /// comfortably inside their ceiling and burned ``maximumTotalSleep`` doing it.
     ///
     /// - Parameters:
     ///   - count: The number of bytes about to be forwarded.
@@ -104,19 +120,23 @@ struct BandwidthThrottle {
     /// - Returns: Seconds to wait, `0` when the transfer is already at or under the ceiling or
     ///   when ``maximumTotalSleep`` is exhausted.
     mutating func delay(forwarding count: Int, elapsed: TimeInterval) -> TimeInterval {
-        /// Where the ceiling says the transfer should have got to by now, and how far ahead of
-        /// that the clock actually is. Anything beyond ``burstWindow`` is written off rather than
-        /// spent all at once on the bytes in hand.
+        /// Where the ceiling says the transfer should have got to once these bytes are counted,
+        /// and where the clock stands against it. Charging the bytes first is what makes a
+        /// transfer already under its ceiling free rather than merely cheaper.
+        bytesForwarded += count
         let scheduled = Double(bytesForwarded) / bytesPerSecond
         var effectiveElapsed = elapsed - discardedIdle
+
+        /// Whatever credit is left over once the bytes are paid for is bounded, so the next call
+        /// starts at most ``burstWindow`` ahead of schedule rather than banking an idle stretch
+        /// in full.
         let credit = effectiveElapsed - scheduled
         if credit > Self.burstWindow {
             discardedIdle += credit - Self.burstWindow
             effectiveElapsed = scheduled + Self.burstWindow
         }
 
-        bytesForwarded += count
-        let owed = Double(bytesForwarded) / bytesPerSecond - effectiveElapsed
+        let owed = scheduled - effectiveElapsed
         guard owed > 0 else { return 0 }
         let remaining = maximumTotalSleep - sleepUsed
         guard remaining > 0 else { return 0 }
