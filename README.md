@@ -646,7 +646,7 @@ actions is named once.
 | Action | What it does |
 | --- | --- |
 | **Mock Response** | Answers with a status code, headers and a body typed into the editor, after an optional delay. Headers are a dictionary, so a mock cannot repeat a header name — a HAR import keeps the last of a repeated `Set-Cookie`. |
-| **Map Local File** | Answers with the contents of a file, with a status code and `Content-Type`. The file is chosen with the system file importer and **copied into Scyther's rules directory**, so the override keeps working after the document moves or goes away and no security-scoped bookmark is needed. A path supplied from code is used as given; an unreadable path falls through to the real network. |
+| **Map Local File** | Answers with the contents of a file, with a status code and `Content-Type`. The file is chosen with the system file importer and **copied into Scyther's rules directory**, so the override keeps working after the document moves or goes away and no security-scoped bookmark is needed. A path supplied from code is used as given; an unreadable path, or one over 10 MB, falls through to the real network. |
 | **Rewrite Headers** | Sets and removes headers on the outgoing request. |
 | **Network Condition** | Adds latency, caps bandwidth in KB/s, and fails a fraction of matching requests with a `URLError`. Latency and a stub's delay are capped at 30 seconds together, and are waited out without holding a thread. The latency is applied first and the failure rolled after it, so "slow and flaky" is slow before it is flaky, and a rate of `1` never lets a request through. |
 
@@ -654,9 +654,10 @@ A bandwidth ceiling is likewise honoured for at most 30 seconds of added delay p
 that a debug tool cannot appear to have hung. A body larger than `30 × bandwidthKBps` kilobytes
 stops being paced part-way through and the rest is forwarded as fast as it arrives, which makes
 the effective rate a function of body size: 1 MB at 10 KB/s takes about 30 seconds, not the 100
-the ceiling implies. A response that has been idle may forward one second's worth of data at the
-ceiling before pacing resumes, so a long-poll or an SSE stream is throttled rather than released
-in bursts.
+the ceiling implies. Pacing is measured across the whole response rather than per delivery, so a
+response whose bytes have averaged out under the ceiling is never delayed, however the source
+chose to chunk them; a response that has been idle banks at most one second of that idle as
+credit, so a long-poll or an SSE stream is throttled rather than released in bursts.
 
 #### In the Editor
 
@@ -792,9 +793,13 @@ not there would answer with the right status code and an empty body.
 
 Overrides are persisted as JSON, which cannot express an infinite or NaN number. A latency, delay
 or failure rate that is not finite — `1e400` typed into the editor parses to `inf` — is replaced
-with `0` on the way in, rather than being allowed to fail the write for every override at once. If
-a write does fail, or if the saved overrides cannot be read at launch, the overrides screen says
-so; an unreadable blob is set aside under its own preferences key rather than overwritten.
+with `0` on the way in, rather than being allowed to fail the write for every override at once.
+Global conditioning is sanitised the same way. If a write does fail, or if the saved overrides
+cannot be read at launch, the overrides screen says so; an unreadable blob is set aside under its
+own preferences key rather than overwritten, and a second one is added beside the first rather
+than replacing it. While anything is set aside the orphan sweep stands down, so the bodies those
+overrides point at are kept along with them. `Scyther.network.rules.removeAll()` discards the
+set-aside configurations too, and is what lets the sweep start reclaiming again.
 
 #### Stubbing a UI Test
 
@@ -952,7 +957,7 @@ The screen carries a master switch, a preset picker, and the three numbers under
 
 | Preset | Latency | Ceiling | Failures |
 | --- | --- | --- | --- |
-| **Wi-Fi** | 0.01 s | 5,000 KB/s | none |
+| **Wi-Fi** | 0.01 s | none | none |
 | **4G** | 0.05 s | 1,500 KB/s | none |
 | **3G** | 0.1 s | 100 KB/s | none |
 | **EDGE** | 0.4 s | 30 KB/s | none |
