@@ -175,7 +175,7 @@ internal final class NetworkRuleStore: ObservableObject {
     ///
     /// Loading the persisted rules and publishing them is something only *constructing* the store
     /// does, and nothing outside this folder constructs it. Without a call from
-    /// ``Scyther/start()`` an override a developer enabled yesterday would sit dormant after a
+    /// ``Scyther/start(allowProductionBuilds:)`` an override a developer enabled yesterday would sit dormant after a
     /// relaunch and then switch itself on mid-session, the moment the overrides screen happened
     /// to be opened.
     ///
@@ -658,7 +658,7 @@ internal final class NetworkRuleStore: ObservableObject {
     /// ``MockResponse/json(_:status:delay:)`` — and only deleting a rule deletes one. A rule
     /// abandoned in the editor, a rule dropped on decode because a newer Scyther wrote it, and
     /// every body a transient rule ever pointed at therefore strand their bytes on disk forever.
-    /// This is the sweep that reclaims them, called from ``Scyther/start()`` beside
+    /// This is the sweep that reclaims them, called from ``Scyther/start(allowProductionBuilds:)`` beside
     /// `NetworkLogCleaner.shared.cleanupOldLogs()`.
     ///
     /// The referenced identifiers are collected here, on the main actor; the file enumeration and

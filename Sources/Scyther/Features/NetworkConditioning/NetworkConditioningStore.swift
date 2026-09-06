@@ -108,7 +108,7 @@ internal final class NetworkConditioningStore: ObservableObject {
 
     /// Publishes the persisted conditioning so it applies from the launch's first request.
     ///
-    /// Called from ``Scyther/start()`` for the same reason the overrides are activated there:
+    /// Called from ``Scyther/start(allowProductionBuilds:)`` for the same reason the overrides are activated there:
     /// without it, conditioning a developer switched on yesterday would sit dormant after a
     /// relaunch and then take effect the moment its screen happened to be opened.
     ///

@@ -69,7 +69,7 @@ import Foundation
 ///
 /// ## Production safety
 ///
-/// Every member here is inert until ``Scyther/start()`` has run, which it does not do on an App
+/// Every member here is inert until ``Scyther/start(allowProductionBuilds:)`` has run, which it does not do on an App
 /// Store build unless the host app explicitly asks for it. A reader hands back nothing and a
 /// mutator writes nothing — not to `UserDefaults`, not to disk. The usage above is exactly what
 /// the documentation suggests putting in `didFinishLaunching`, and a debugging tool has no
@@ -85,7 +85,7 @@ public final class NetworkRules: Sendable {
 
     /// Every rule that survives relaunch, in precedence order.
     ///
-    /// Empty until ``Scyther/start()`` has run, because until then no rule is being applied.
+    /// Empty until ``Scyther/start(allowProductionBuilds:)`` has run, because until then no rule is being applied.
     public var all: [NetworkRule] {
         guard Scyther.isStarted else { return [] }
         return NetworkRuleStore.shared.rules
@@ -93,7 +93,7 @@ public final class NetworkRules: Sendable {
 
     /// Every rule registered for this launch only, evaluated after ``all``.
     ///
-    /// Empty until ``Scyther/start()`` has run, because until then no rule is being applied.
+    /// Empty until ``Scyther/start(allowProductionBuilds:)`` has run, because until then no rule is being applied.
     public var transient: [NetworkRule] {
         guard Scyther.isStarted else { return [] }
         return NetworkRuleStore.shared.transientRules
@@ -101,7 +101,7 @@ public final class NetworkRules: Sendable {
 
     /// The master switch. When `false` no rule is applied, but none is deleted either.
     ///
-    /// Reads as `false` and ignores writes until ``Scyther/start()`` has run: the interceptor is
+    /// Reads as `false` and ignores writes until ``Scyther/start(allowProductionBuilds:)`` has run: the interceptor is
     /// not installed, so nothing is being applied whatever this said.
     public var isEnabled: Bool {
         get { Scyther.isStarted && NetworkRuleStore.shared.isEnabled }
@@ -135,7 +135,7 @@ public final class NetworkRules: Sendable {
     ///
     /// - Parameter rule: The rule to add, or the replacement for a rule already stored under the
     ///   same identifier.
-    /// - Returns: `false` when nothing was stored — because ``Scyther/start()`` has not run, or
+    /// - Returns: `false` when nothing was stored — because ``Scyther/start(allowProductionBuilds:)`` has not run, or
     ///   because a mock body the rule carried could not be written to disk. `true` otherwise.
     @discardableResult
     public func add(_ rule: NetworkRule) -> Bool {
@@ -156,7 +156,7 @@ public final class NetworkRules: Sendable {
     ///
     /// - Parameter rule: The rule to add, or the replacement for a rule already registered under
     ///   the same identifier.
-    /// - Returns: `false` when nothing was stored — because ``Scyther/start()`` has not run, or
+    /// - Returns: `false` when nothing was stored — because ``Scyther/start(allowProductionBuilds:)`` has not run, or
     ///   because a mock body the rule carried could not be written to disk. `true` otherwise.
     @discardableResult
     public func addTransient(_ rule: NetworkRule) -> Bool {
@@ -167,7 +167,7 @@ public final class NetworkRules: Sendable {
     /// Replaces the rule carrying the same identifier, leaving its position alone.
     ///
     /// - Parameter rule: The edited rule.
-    /// - Returns: `false` when the edit was not applied — because ``Scyther/start()`` has not run,
+    /// - Returns: `false` when the edit was not applied — because ``Scyther/start(allowProductionBuilds:)`` has not run,
     ///   or because a mock body the rule carried could not be written to disk. `true` otherwise,
     ///   including when no rule carries this identifier and there is nothing to update.
     @discardableResult

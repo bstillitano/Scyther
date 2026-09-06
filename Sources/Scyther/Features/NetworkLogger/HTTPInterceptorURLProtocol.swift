@@ -927,7 +927,7 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
 
     /// Marks the request cancelled and cancels the data task, if one ever started.
     ///
-    /// The flag and the task are read together under ``stateLock`` so that a delay block running
+    /// The flag and the task are read together under `stateLock` so that a delay block running
     /// concurrently either starts its task before this reads the state — in which case the task is
     /// here to cancel — or finds the request already cancelled and starts nothing. The
     /// cancellation itself happens after the lock is released, because it calls into `URLSession`.
@@ -940,7 +940,7 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     ///
     /// Invalidating is what releases the session's strong reference to this instance as its
     /// delegate. Without it every intercepted request leaked the protocol instance, the session,
-    /// its operation queue, the logged ``HTTPRequest`` and the whole response body.
+    /// its operation queue, the logged `HTTPRequest` and the whole response body.
     /// A pause is cancelled in the same breath, and for the same reason: a held exchange whose
     /// client has gone away must deliver nothing and must stop occupying a row in the editor.
     /// Because nothing blocks, the cancellation reaches the pause immediately — a blocked wait
@@ -968,7 +968,7 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
     /// Forwards received bytes to the client, honouring any bandwidth ceiling a condition rule set.
     ///
     /// Without a ceiling the bytes go straight to the client on this thread, exactly as they did
-    /// before rules existed. With one, they are handed to ``deliveryQueue`` and this returns at
+    /// before rules existed. With one, they are handed to `deliveryQueue` and this returns at
     /// once: the wait is scheduled, not slept for, so the session's delegate queue stays free and
     /// a `stopLoading()` can never queue behind the pacing.
     ///
@@ -989,7 +989,7 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
 
     /// Announces a response — or the next part of one — to the client.
     ///
-    /// A paced response announces its parts through ``deliveryQueue`` alongside its bytes, so that
+    /// A paced response announces its parts through `deliveryQueue` alongside its bytes, so that
     /// a second part of a `multipart/x-mixed-replace` response cannot be announced while the first
     /// part's body is still being forwarded. The disposition is answered here regardless, because
     /// the session waits on it before delivering anything more.
@@ -1122,13 +1122,13 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
     ///
     /// The invalidation is the point at which the session releases its strong reference to this
     /// instance as its delegate. Skipping it leaked, per intercepted request, the protocol
-    /// instance, the session, its operation queue, the logged ``HTTPRequest`` and an
+    /// instance, the session, its operation queue, the logged `HTTPRequest` and an
     /// `NSMutableData` holding the entire response body. It goes last, after the client has been
     /// told how the load ended, and `finishTasksAndInvalidate()` rather than
     /// `invalidateAndCancel()` so that a callback still in flight on the delegate queue is allowed
     /// to finish.
     ///
-    /// A paced response reports both through ``deliveryQueue`` instead. The task finishes as soon
+    /// A paced response reports both through `deliveryQueue` instead. The task finishes as soon
     /// as the last bytes are off the socket, which is well before the ceiling has finished handing
     /// them to the client, and telling the client the load had finished at that point would have
     /// it believe a body it had not yet received was complete.

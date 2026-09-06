@@ -79,7 +79,7 @@ public struct NetworkRule: Identifiable, Codable, Sendable, Equatable {
     /// Decodes a rule written in either the current shape or the one that preceded it.
     ///
     /// A rule used to hold one `action`; it now holds an `actions` object. A decode failure costs
-    /// the developer **every** override they have configured — ``NetworkRuleStore`` drops what it
+    /// the developer **every** override they have configured — `NetworkRuleStore` drops what it
     /// cannot read — so the old key is still understood and lifted into the equivalent
     /// ``NetworkRuleActions``.
     ///

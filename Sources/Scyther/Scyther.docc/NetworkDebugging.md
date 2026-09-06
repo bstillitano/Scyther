@@ -50,7 +50,7 @@ print("Device IP: \(ip)")
 
 ### Streaming Requests
 
-The ``NetworkLogger`` uses `AsyncStream` for real-time request updates:
+The `NetworkLogger` actor uses `AsyncStream` for real-time request updates:
 
 ```swift
 // In your debug view
@@ -114,16 +114,23 @@ the session.
   rather than a number interpolated between two of them.
 - **Below five completed requests there are no percentiles.** A median of three samples is noise,
   so the summary shows the fastest and slowest round trips instead.
-- **A request that never came back is counted as pending and as a failure**, never as a
-  zero-duration completion, which would flatter every latency figure.
+- **Pending and failed are exclusive.** A load carries a response date whether or not a response
+  arrived, so a request that ended in an error is a *failure* and a request that has not come back
+  yet is *pending*. Neither is counted as a zero-duration completion, which would flatter every
+  latency figure.
+- **Elapsed leaves stubs out too.** A stub answered an hour after the last real request would
+  otherwise report an hour of network activity that never happened.
 
 The **waterfall** draws the most recent forty requests as bars on a shared seconds axis, labelled
 with their durations and coloured by outcome. Bars that overlap were in flight at the same time; a
-staircase means the calls were serialised. A pending request runs to the end of the axis, because
-its real end is not yet known.
+staircase means the calls were serialised. A request still in flight runs to the end of the axis,
+which is the moment the chart was computed, because its real end is not yet known. A request that
+failed is drawn for as long as it actually ran, in red, not as one still running.
 
 **Slowest Endpoints** groups by `METHOD host/path`, dropping the query string and collapsing any
-numeric or UUID path segment to `:id`, so `/users/1` and `/users/2` aggregate. **By Host** puts the
+numeric or UUID path segment to `:id`, so `/users/1` and `/users/2` aggregate. A GraphQL operation
+carries its name — `POST api.example.com/graphql (GetUser)` — because every operation in a GraphQL
+API is posted to the same path and the name is what identifies the call. **By Host** puts the
 worst offender first: most failures, then slowest median.
 
 Stats describe the current session only — the log is an in-memory FIFO, so nothing persists across
@@ -225,11 +232,12 @@ The override arrives **disabled**. Nothing about the app's behaviour changes unt
 on, from the editor or with a swipe on the list.
 
 A response an override synthesised cannot itself be saved as a mock — there would be nothing to
-learn from the copy. An override that shapes a request without answering it — a header rewrite or
-a network condition — wears a brown **OVERRIDDEN** badge instead, so it is never mistaken for
-traffic nobody touched. Those rows are marked instead: the log list shows a pink **MOCKED** badge,
-and the details page lists every override that shaped the request in an **Overrides** row of the
-Developer Info section.
+learn from the copy. Those rows are marked instead: the log list shows a pink **MOCKED** badge, and
+the details page lists every override that shaped the request in an **Overrides** row — each one
+tappable into its editor, and each one named even after the override behind it has been deleted. An override
+that shapes a request without answering it — a header rewrite or a network condition — wears a
+brown **OVERRIDDEN** badge instead. The two are exclusive: a mocked row never also reads as
+overridden, because the mock is the stronger statement about what the app received.
 
 ### Importing a HAR file
 
@@ -257,7 +265,7 @@ override's. It is persisted, so it survives relaunch.
 ### Registering overrides from code
 
 ``Scyther/Network/rules`` is the programmatic entry point. It is `@MainActor`, like every other
-Scyther singleton, and every member of it is inert until ``Scyther/start()`` has run — which it
+Scyther singleton, and every member of it is inert until ``Scyther/start(allowProductionBuilds:)`` has run — which it
 does not do on an App Store build. The code below can sit unguarded in `didFinishLaunching`: on a
 release build it reads back nothing, writes nothing to preferences, and puts no file in the user's
 container.
@@ -348,10 +356,11 @@ cannot quietly break the next one.
 Network Link Conditioner does without needing a Mac or a provisioning profile. The menu row shows
 the active preset, or `Off`, so conditioning is never quietly on.
 
-The screen carries a master switch, a preset picker — Wi-Fi, 4G, 3G, EDGE and a very bad network,
-plus Custom — and the three numbers underneath it: a latency in seconds, a ceiling in KB/s, and a
-failure rate. Picking a preset fills the three in; editing any of them makes the picker read
-Custom again, because that is what it now is.
+The screen carries a master switch, a preset picker — Wi-Fi, 4G, 3G, EDGE and a very bad network —
+and the three numbers underneath it: a latency in seconds, a ceiling in KB/s, and a failure rate.
+Picking a preset fills the three in; editing any of them makes the picker read Custom, because that
+is what it now is. Custom is not something you pick: it is what the numbers read as when they match
+no named link, so the picker lists it only while it is what they say.
 
 The global condition is a **floor**, not an addition. A request override whose own condition
 matches replaces it outright, so one endpoint can be conditioned differently — or barely at all —
@@ -363,7 +372,8 @@ Overrides** does not reach it, and neither does turning every override off.
 
 - Note: A request the global condition slowed or failed carries the same brown `OVERRIDDEN` badge
   a per-override condition produces, so the log never shows a conditioned request as ordinary
-  traffic.
+  traffic. It is credited as **Network Conditioning** in the details page's **Overrides** row,
+  which names it without offering a link — it is a screen rather than an override.
 
 ## Request Replay
 
@@ -379,9 +389,11 @@ from the capture and sends whatever is left there when the confirm button is tap
   `URLSession` owns (`Content-Length`, `Host`, `Connection`) are shown but disabled and are
   dropped rather than sent. A duplicated header name travels as the comma-joined field HTTP
   defines rather than one row winning.
-- **Body** — opens the same text editor the rest of the toolkit uses. A body that is not valid
-  UTF-8 is marked as such and sent unchanged; the logger only writes UTF-8 request bodies to
-  disk, so a binary body cannot be recovered from the capture at all.
+- **Body** — opens the same text editor the rest of the toolkit uses. The logger only writes a
+  request body to disk when it decodes as UTF-8, so a binary body — a protobuf, a multipart
+  upload — cannot be recovered from the capture. The editor says so on the row, in the section's
+  footer and in a confirmation before sending, rather than quietly sending a request with no body;
+  typing a body of your own retires the warning.
 
 ### What sending does
 
@@ -397,7 +409,10 @@ A response an override synthesised offers no replay button — the override woul
 it again.
 
 Any method outside `GET`, `HEAD` and `OPTIONS` warns in the editor and asks for confirmation in
-an alert naming the method, because resending it can repeat whatever it changed.
+an alert naming the method, because resending it can repeat whatever it changed. So does a replay
+whose body could not be captured, and one aimed at a URL Scyther does not intercept — an ignored
+host, or a scheme that is not HTTP — which would be sent and never appear in the log. The editor's
+footer and the confirmation show the same list of warnings, so they cannot disagree.
 
 ### Comparing a replay to its original
 
@@ -408,6 +423,10 @@ minus original — and each row links to that replay. The replay's own page link
 
 Both sections follow the log as it changes, so a replay landing after the editor dismissed
 appears without leaving the page.
+
+A row whose exchange Scyther shaped says so, in the log's own badge words — `Original: MOCKED`,
+`Replay: HELD OVERRIDDEN` — because a delta across a mocked, conditioned, held or edited exchange
+measures the toolkit rather than the server.
 
 - Note: Provenance is stamped per request and stripped from redirects, so the entry a redirect
   produces is a request in its own right rather than a second replay of the same original.
@@ -439,7 +458,8 @@ several are listed. Each page shows the breakpoint's name, a countdown to the au
 and the exchange — method, URL, headers and body for a request, status, headers and body for a
 response.
 
-- **Continue** applies the edits.
+- **The confirm button** in the navigation bar — the icon-only checkmark Scyther uses to commit
+  every editor — applies the edits and continues.
 - **Continue Without Changes** passes the exchange on exactly as it arrived.
 - **Abort** fails it with a chosen `URLError`, as though the network had produced it.
 - **The timeout** continues it unchanged.
@@ -517,10 +537,6 @@ If you're using a custom `URLSessionConfiguration`, Scyther's protocol may not b
 
 ## See Also
 
-- ``TrafficStatistics``
-- ``WaterfallSeries``
-- ``NetworkLogger``
-- ``NetworkLoggerRequest``
 - ``Network``
 - ``NetworkRules``
 - ``NetworkRule``

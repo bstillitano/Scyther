@@ -69,7 +69,7 @@ public struct NetworkRuleActions: Codable, Sendable, Equatable {
     /// nothing at all, which is worse than not loading it: it is invisible in the list's subtitle,
     /// it cannot be explained, and it silently discards whatever the newer release actually meant.
     ///
-    /// Refusing instead makes ``NetworkRuleStore`` drop that one override and keep its neighbours,
+    /// Refusing instead makes `NetworkRuleStore` drop that one override and keep its neighbours,
     /// which is the behaviour the store is built around, and lets ``NetworkRule`` fall back to a
     /// legacy `action` key standing beside an `actions` object it cannot read.
     ///
@@ -157,13 +157,13 @@ public enum NetworkRuleStub: Codable, Sendable, Equatable {
         case mapLocal
     }
 
-    /// Decodes a stub written under exactly one of ``CodingKeys``.
+    /// Decodes a stub written under exactly one of `CodingKeys`.
     ///
     /// Carrying both keys is refused rather than resolved. The type's whole claim is that a canned
     /// response and a local file cannot both answer one request, and quietly keeping whichever the
     /// decoder happened to look at first would make that claim false on disk while leaving it true
     /// in memory — an override that answers from a file after a relaunch and from a mock before
-    /// one. Refusing costs that override alone: ``NetworkRuleStore`` drops it and keeps its
+    /// one. Refusing costs that override alone: `NetworkRuleStore` drops it and keeps its
     /// neighbours.
     ///
     /// - Parameter decoder: The decoder positioned at a stub.
