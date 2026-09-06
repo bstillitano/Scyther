@@ -128,8 +128,9 @@ final class MenuSearchIndexTests: XCTestCase {
         XCTAssertEqual(
             Set(subpageEntries.map(\.target)),
             [
-                .gridOverlay, .fpsCounter, .touchVisualiser, .appearance,
-                .locationSpoofer, .notificationTester, .deepLinkTester, .language
+                .networkRules, .networkBreakpoints, .networkConditioning, .gridOverlay,
+                .fpsCounter, .touchVisualiser, .appearance, .locationSpoofer, .notificationTester,
+                .deepLinkTester, .language
             ],
             "A curated sub-page target is missing from the index — its rows were silently dropped"
         )
@@ -151,6 +152,18 @@ final class MenuSearchIndexTests: XCTestCase {
 
     func testTitleMatchIsCaseInsensitive() {
         XCTAssertTrue(results(for: "GRID COLOR").contains { $0.title == "Grid Color" })
+    }
+
+    func testRequestOverridesIsFoundByItsOwnName() {
+        XCTAssertTrue(results(for: "override").contains { $0.target == .networkRules })
+    }
+
+    func testRequestOverridesIsStillFoundByItsFormerName() {
+        XCTAssertTrue(
+            results(for: "network rules").contains { $0.target == .networkRules },
+            "a developer who read the old name must still land on the screen"
+        )
+        XCTAssertTrue(results(for: "rules").contains { $0.target == .networkRules })
     }
 
     func testTitleMatchIsDiacriticInsensitive() {

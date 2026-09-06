@@ -69,8 +69,13 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
     /// The timeout of the response
     var requestTimeout: String?
 
-    /// The length of the body that was sent with the request
-    private var requestBodyLength: Int?
+    /// The length of the body that was sent with the request, in bytes.
+    ///
+    /// Recorded whatever the bytes are, while the body itself is only written to disk when it
+    /// decodes as UTF-8. The two together are what let the replay editor tell "this request had
+    /// no body" apart from "this request had a body the log could not keep" — see
+    /// ``ReplayableRequest/uncapturedBodyByteCount``.
+    private(set) var requestBodyLength: Int?
 
     /// The type of the request that was made eg: `application/x-protobuf`
     var requestType: String?
@@ -129,6 +134,41 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
     /// The GraphQL operation type, if known. `nil` for non-GraphQL or batched requests.
     var graphQLOperationType: GraphQLOperationType?
 
+    /// Names of the rules that shaped this request, if any.
+    var appliedRuleNames: [String] = []
+
+    /// Identifiers of the overrides named by ``appliedRuleNames``, in the same order and always
+    /// the same length.
+    ///
+    /// Lets the request details page link back to the override that shaped this request. An entry
+    /// is `nil` when the credit has no override behind it to open — the global network
+    /// conditioning, which is a screen rather than a rule — in which case the name is still shown
+    /// but is not tappable. Empty for a capture recorded before the identifiers were carried, and
+    /// for one nothing shaped.
+    var appliedRuleIDs: [UUID?] = []
+
+    /// Whether the response was synthesised by a rule rather than received from the network.
+    var wasStubbed: Bool = false
+
+    /// Names of the breakpoints that held this exchange, if any.
+    ///
+    /// A request held on the way out and again on the way back carries the same name twice, which
+    /// is what happened: it was stopped twice.
+    var breakpointNames: [String] = []
+
+    /// Whether the developer changed anything while the exchange was held.
+    ///
+    /// The log shows what the app actually sent and received, so a held-and-edited entry describes
+    /// the edit rather than the original. This is what says so.
+    var wasEdited: Bool = false
+
+    /// The `getRandomHash()` value of the request this one replays, if it is a replay.
+    ///
+    /// `nil` for traffic the app itself made. Set from the `Scyther_Replay_Of_Request` property
+    /// the replay editor stamps on its outgoing request, which is what lets the log tell a resent
+    /// request apart from a captured one and link the two together.
+    var replayOfID: String?
+
     // MARK: - Methods
 
     /// Saves the details of the given URL request to the model.
@@ -145,6 +185,15 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
         requestHeaders = request.headers
         requestType = requestHeaders?["Content-Type"] as? String
         requestCurl = request.curlString
+
+        /// Assigned only when the property is present, never cleared. A request an override
+        /// rewrites is saved twice — once as it arrived and once from the rewritten copy — and
+        /// overwriting here would drop the provenance if the copy did not carry the property
+        /// with it. Provenance is a fact about where the request came from; nothing later in the
+        /// request's life can make it untrue.
+        if let replayID = URLProtocol.property(forKey: replayOfRequestKey, in: request) as? String {
+            replayOfID = replayID
+        }
     }
 
     /// Saves the HTTP body of the given URL request to disk and caches any GraphQL metadata.
@@ -481,6 +530,12 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
 
     // MARK: - Private Methods
 
+    /// Records how big a request body was, and stores it when it can be stored as text.
+    ///
+    /// A body that is not valid UTF-8 — a protobuf, a multipart upload — is measured but not
+    /// written, so ``requestBodyLength`` is the only record that it existed at all.
+    ///
+    /// - Parameter data: The request body, or `nil` when the request carried none.
     private func saveRequestBodyData(_ data: Data?) {
         guard let data = data else {
             return
@@ -492,6 +547,15 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
         }
     }
 
+    /// Records how big a response body was, and stores it when it can be stored as text.
+    ///
+    /// The length is recorded whatever the bytes are. It used to be recorded only alongside a
+    /// successful write, so every response that was neither an image nor valid UTF-8 — a
+    /// protobuf, a zip, a font — reported no length at all, and the traffic stats' byte total,
+    /// the details page's response size and the HAR export's `bodySize` silently left it out. How
+    /// many bytes arrived is a fact about the wire; whether they can be shown as text is not.
+    ///
+    /// - Parameter data: The response body as it arrived.
     private func saveResponseBodyData(_ data: Data) {
         var bodyString: NSString?
 
@@ -503,8 +567,8 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
             }
         }
 
+        responseBodyLength = data.count
         if let bodyString = bodyString {
-            responseBodyLength = data.count
             saveData(bodyString, toFile: getResponseBodyFilepath())
         }
     }

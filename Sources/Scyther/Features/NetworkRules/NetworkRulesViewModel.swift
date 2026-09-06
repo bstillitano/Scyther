@@ -1,0 +1,405 @@
+//
+//  NetworkRulesViewModel.swift
+//  Scyther
+//
+//  Created by Brandon Stillitano on 5/9/2026.
+//
+
+import Combine
+import Foundation
+
+/// Backs ``NetworkRulesView``, the list of configured request overrides.
+///
+/// The view model is a thin front for ``NetworkRuleStore``: the store stays the single writer of
+/// rule state, and this republishes its rules so the list redraws when a rule is added from the
+/// editor, from `Scyther.network.rules`, or from a HAR import.
+///
+/// ## Deletion
+///
+/// A swipe records the rules in ``pendingDeletions`` rather than deleting them, so the view can
+/// put an alert in front of them. Deleting a rule also deletes the mock body it owns, which is
+/// not recoverable — worth one tap of confirmation.
+///
+/// ## Topics
+///
+/// ### Creating the List
+/// - ``init(store:)``
+///
+/// ### Reading Rules
+/// - ``rules``
+/// - ``transientRules``
+/// - ``isEnabled``
+/// - ``subtitle(for:)``
+///
+/// ### Mutating Rules
+/// - ``setEnabled(_:to:)``
+/// - ``move(from:to:)``
+///
+/// ### Confirming a Deletion
+/// - ``pendingDeletions``
+/// - ``deletionTitle``
+/// - ``requestDeletion(at:)``
+/// - ``requestDeletion(of:)``
+/// - ``confirmDeletion()``
+/// - ``cancelDeletion()``
+///
+/// ### Importing
+/// - ``importHAR(from:)``
+/// - ``reportImportFailure()``
+/// - ``importOutcome``
+/// - ``storeFailure``
+///
+/// ### Alerts
+/// - ``NetworkRulesAlert``
+/// - ``alert``
+/// - ``dismissAlert()``
+/// - ``deleteAllOverrides()``
+final class NetworkRulesViewModel: ViewModel {
+    /// The persisted rules, in precedence order, mirrored from the store.
+    @Published private(set) var rules: [NetworkRule] = []
+
+    /// The rules the host app registered from code for this launch, mirrored from the store.
+    ///
+    /// The engine evaluates these against live traffic exactly as it does the persisted ones, so
+    /// leaving them off the screen would let a developer stare at an empty list while their
+    /// requests were being mocked. They are shown read-only: the app owns them, not the menu.
+    @Published private(set) var transientRules: [NetworkRule] = []
+
+    /// The rules a swipe has proposed deleting, awaiting confirmation. Empty hides the alert.
+    ///
+    /// A list rather than one rule because `onDelete` reports an `IndexSet`: in edit mode a
+    /// developer can select several rows and delete them in one gesture, and taking only the
+    /// first offset would silently keep the rest.
+    @Published var pendingDeletions: [NetworkRule] = []
+
+    /// The result of the most recent HAR import, awaiting acknowledgement. `nil` hides the alert.
+    @Published var importOutcome: NetworkRuleImportOutcome?
+
+    /// The store this list reads and writes.
+    private let store: NetworkRuleStore
+
+    /// Keeps the store's publishers alive for the lifetime of the list.
+    private var cancellables: Set<AnyCancellable> = []
+
+    /// Creates the list.
+    ///
+    /// - Parameter store: The store to mirror. Defaults to the shared store; tests pass their own.
+    init(store: NetworkRuleStore = .shared) {
+        self.store = store
+        super.init()
+    }
+
+    override func setup() {
+        super.setup()
+        // No `receive(on:)`: the store is main-actor isolated and so is this view model, so the
+        // values already arrive on the main thread. Hopping would leave the list showing stale
+        // rules for a frame after every edit.
+        store.$rules
+            .sink { [weak self] rules in self?.rules = rules }
+            .store(in: &cancellables)
+        store.$transientRules
+            .sink { [weak self] rules in self?.transientRules = rules }
+            .store(in: &cancellables)
+        store.$isEnabled
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        store.$lastFailure
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+    }
+
+    /// The master switch. Turning it off leaves every rule intact but stops the interceptor
+    /// applying any of them.
+    ///
+    /// Reads through to the store rather than mirroring it, so the menu and
+    /// `Scyther.network.rules.isEnabled` can never disagree about which is authoritative.
+    var isEnabled: Bool {
+        get { store.isEnabled }
+        set { store.isEnabled = newValue }
+    }
+
+    /// The most recent thing the store could not do, awaiting acknowledgement. `nil` hides the
+    /// alert.
+    ///
+    /// Reads through to the store exactly as ``isEnabled`` does, so the alert cannot show a
+    /// failure the store has already forgotten. Setting it to `nil` acknowledges the failure.
+    var storeFailure: NetworkRuleStoreFailure? {
+        get { store.lastFailure }
+        set {
+            guard newValue == nil else { return }
+            store.acknowledgeFailure()
+        }
+    }
+
+    /// The one alert the list is showing, or `nil` when it is showing none.
+    ///
+    /// SwiftUI presents one alert per view, so the three `.alert` modifiers this screen used to
+    /// carry were three claims on one slot — and a HAR import that the store then refused made
+    /// two of them true at once, leaving the developer with a condition reported and nothing on
+    /// screen to report it. Every source is persistent state, so making this a computed
+    /// precedence turns the collision into a queue: dismissing the import outcome reveals the
+    /// store failure behind it.
+    ///
+    /// A pending deletion comes first because it is a gesture waiting for an answer. The import
+    /// outcome comes next, because it is the answer to what the developer just did, and the store
+    /// failure last, because it usually explains part of that answer.
+    var alert: NetworkRulesAlert? {
+        if !pendingDeletions.isEmpty { return .deletion(title: deletionTitle) }
+        if let importOutcome { return .importOutcome(importOutcome) }
+        if let storeFailure { return .storeFailure(storeFailure) }
+        return nil
+    }
+
+    /// Dismisses whichever alert is showing, leaving anything queued behind it.
+    func dismissAlert() {
+        switch alert {
+        case .deletion: cancelDeletion()
+        case .importOutcome: importOutcome = nil
+        case .storeFailure: storeFailure = nil
+        case nil: break
+        }
+    }
+
+    /// Deletes every override, persisted and transient, and every file they own.
+    ///
+    /// Offered from the ``NetworkRuleStoreFailure/rulesNotLoaded`` alert, which is the only place
+    /// it is needed: a configuration the store could not read is set aside rather than deleted,
+    /// and while one is set aside the body sweep stands down entirely, so orphaned bodies
+    /// accumulate on disk with nothing able to reclaim them. Discarding every override discards
+    /// the quarantine too, which is what lets the sweep start reclaiming again — and it was
+    /// reachable only from the public facade until now.
+    func deleteAllOverrides() {
+        store.removeAll()
+        storeFailure = nil
+    }
+
+    /// Whether the list has nothing to show.
+    ///
+    /// Both lists have to be empty: an override registered in code is being applied to live
+    /// traffic, so an empty state in front of one would be a lie.
+    var isEmpty: Bool { rules.isEmpty && transientRules.isEmpty }
+
+    /// The subtitle for one override's row, naming everything it does.
+    ///
+    /// An override carries a stub, a rewrite and a condition independently, so the subtitle lists
+    /// what is actually switched on rather than naming a single behaviour. It no longer says
+    /// whether the override is enabled: the row shows that by reading as disabled, which is
+    /// something a developer takes in without reading at all.
+    ///
+    /// - Parameter rule: The override the row shows.
+    /// - Returns: For example `Mock Response · Network Condition`, or `No actions` for an
+    ///   override that does nothing — which the editor refuses to save, but which an override
+    ///   registered from code may still be.
+    func subtitle(for rule: NetworkRule) -> String {
+        rule.actions.summary
+    }
+
+    /// Enables or disables a single rule.
+    ///
+    /// - Parameters:
+    ///   - rule: The rule to change.
+    ///   - isEnabled: Whether the engine should evaluate it.
+    func setEnabled(_ rule: NetworkRule, to isEnabled: Bool) {
+        var updated = rule
+        updated.isEnabled = isEnabled
+        store.update(updated)
+    }
+
+    /// Reorders the rules, which is what changes their precedence.
+    ///
+    /// - Parameters:
+    ///   - source: The offsets being moved, as supplied by SwiftUI's `onMove`.
+    ///   - destination: The offset to move them to.
+    func move(from source: IndexSet, to destination: Int) {
+        store.move(from: source, to: destination)
+    }
+
+    /// Records the swiped rules so the view can confirm before anything is deleted.
+    ///
+    /// Every offset is kept, not just the first: `onDelete` reports a set, and in edit mode that
+    /// set can hold several rows.
+    ///
+    /// - Parameter offsets: The offsets SwiftUI's `onDelete` reported.
+    func requestDeletion(at offsets: IndexSet) {
+        pendingDeletions = offsets.sorted().compactMap { rules.indices.contains($0) ? rules[$0] : nil }
+    }
+
+    /// Records a rule the row's own delete button named, so the view can confirm first.
+    ///
+    /// The trailing swipe declares its delete button explicitly — declaring any trailing swipe
+    /// action replaces the one `onDelete` would have drawn — so it hands over the rule rather
+    /// than an offset.
+    ///
+    /// - Parameter rule: The override the row offered to delete.
+    func requestDeletion(of rule: NetworkRule) {
+        pendingDeletions = [rule]
+    }
+
+    /// The deletion alert's title, naming the single override or counting the several.
+    var deletionTitle: String {
+        guard pendingDeletions.count != 1 else {
+            return localized("Delete \(pendingDeletions[0].name)?")
+        }
+        return localized("Delete \(pendingDeletions.count) overrides?")
+    }
+
+    /// Deletes every rule recorded by ``requestDeletion(at:)`` and dismisses the alert.
+    func confirmDeletion() {
+        for rule in pendingDeletions {
+            store.remove(id: rule.id)
+        }
+        pendingDeletions = []
+    }
+
+    /// Dismisses the deletion alert, leaving the rules alone.
+    func cancelDeletion() {
+        pendingDeletions = []
+    }
+
+    /// Imports every entry of a HAR document as a disabled mock rule.
+    ///
+    /// HAR files are routinely multi-megabyte, so the bytes are read off the main actor and the
+    /// rules are handed to the store in one batch. Reading on the main actor would freeze the
+    /// menu for the length of the read, and adding the rules one at a time would JSON-encode the
+    /// whole rules array into `UserDefaults` once per entry.
+    ///
+    /// Nothing is written by the importer: a decoded response body travels on the rule that
+    /// answers with it, and the store writes it into its own body directory when it takes the
+    /// rules — so an import the store refuses leaves nothing behind.
+    ///
+    /// The reported outcome counts both sides of a partial import. An entry can be lost on the
+    /// way in, when it cannot be decoded or its URL cannot be parsed, and an override can be lost
+    /// on the way out, when the store cannot write the body it carries; a developer who hands
+    /// over 300 entries and gets 297 overrides is told which number is which.
+    ///
+    /// - Parameter url: The file the developer picked.
+    func importHAR(from url: URL) async {
+        guard let data = await Self.contents(of: url) else {
+            importOutcome = .failed
+            return
+        }
+
+        do {
+            let result = try HARRuleImporter.result(from: data)
+            let stored = store.add(contentsOf: result.rules)
+            let notStored = result.rules.count - stored
+            importOutcome = .imported(count: stored, skipped: result.skippedEntries + notStored)
+        } catch {
+            importOutcome = .failed
+        }
+    }
+
+    /// Reads a picked file's bytes without blocking the main actor.
+    ///
+    /// The read happens inside a security-scoped access pair, because the URL the system file
+    /// importer hands back points outside the app's own container.
+    ///
+    /// - Parameter url: The file the developer picked.
+    /// - Returns: The bytes, or `nil` when the file could not be opened or read.
+    private static func contents(of url: URL) async -> Data? {
+        await Task.detached(priority: .userInitiated) {
+            let isAccessing = url.startAccessingSecurityScopedResource()
+            defer { if isAccessing { url.stopAccessingSecurityScopedResource() } }
+            return try? Data(contentsOf: url)
+        }.value
+    }
+
+    /// Reports a failure the file importer itself raised, before any bytes were read.
+    func reportImportFailure() {
+        importOutcome = .failed
+    }
+}
+
+/// The outcome of a HAR import, as the list's alert presents it.
+enum NetworkRuleImportOutcome: Identifiable, Equatable {
+    /// The document was read and produced `count` overrides, every one of them disabled, while
+    /// `skipped` of its entries produced none.
+    ///
+    /// An entry is skipped when it cannot be decoded, when its URL cannot be parsed, or when the
+    /// store will not write the body it carries. Reporting only the overrides added would leave a
+    /// developer to notice for themselves that three of their three hundred entries had gone.
+    case imported(count: Int, skipped: Int)
+
+    /// The file could not be read, or was not a HAR document.
+    case failed
+
+    /// A stable identity, so the alert redraws when one outcome replaces another.
+    var id: String {
+        switch self {
+        case .imported(let count, let skipped): return "imported.\(count).\(skipped)"
+        case .failed: return "failed"
+        }
+    }
+
+    /// The alert's title.
+    var title: String {
+        switch self {
+        case .imported: return localized("Import Complete")
+        case .failed: return localized("Import Failed")
+        }
+    }
+
+    /// The alert's body copy, naming the skipped entries only when there were any.
+    var message: String {
+        switch self {
+        case .imported(let count, let skipped):
+            let imported = localized("Imported \(count) overrides. Every imported override starts disabled.")
+            guard skipped > 0 else { return imported }
+            return imported + " " + localized("\(skipped) entries could not be read.")
+        case .failed:
+            return localized("The selected file could not be read as a HAR document.")
+        }
+    }
+}
+
+/// The one alert ``NetworkRulesView`` shows at a time.
+///
+/// Three separate `.alert` modifiers on one view are three claims on a single slot, and a HAR
+/// import the store then refuses makes two of them true together. Gathering them here means the
+/// view declares one alert and the view model decides, in one place, which of them it is.
+enum NetworkRulesAlert: Equatable, Identifiable {
+    /// A swipe is waiting to be confirmed. Carries the title, which names or counts the rules.
+    case deletion(title: String)
+
+    /// A HAR import has finished and is waiting to be acknowledged.
+    case importOutcome(NetworkRuleImportOutcome)
+
+    /// The store could not do something and is waiting to be acknowledged.
+    case storeFailure(NetworkRuleStoreFailure)
+
+    /// A stable identity, so SwiftUI redraws when one alert replaces another.
+    var id: String {
+        switch self {
+        case .deletion(let title): return "deletion.\(title)"
+        case .importOutcome(let outcome): return "import.\(outcome.id)"
+        case .storeFailure(let failure): return "failure.\(failure.id)"
+        }
+    }
+
+    /// The alert's title.
+    var title: String {
+        switch self {
+        case .deletion(let title): return title
+        case .importOutcome(let outcome): return outcome.title
+        case .storeFailure(let failure): return failure.title
+        }
+    }
+
+    /// The alert's body copy.
+    var message: String {
+        switch self {
+        case .deletion: return localized("This action cannot be undone.")
+        case .importOutcome(let outcome): return outcome.message
+        case .storeFailure(let failure): return failure.message
+        }
+    }
+
+    /// Whether this alert offers to throw every override away.
+    ///
+    /// Only the "overrides not loaded" failure does. A configuration the store could not read is
+    /// set aside rather than deleted, and while one is set aside the body sweep stands down —
+    /// so this is the developer's way back to a store that reclaims disk again.
+    var offersDeleteAll: Bool {
+        self == .storeFailure(.rulesNotLoaded)
+    }
+}

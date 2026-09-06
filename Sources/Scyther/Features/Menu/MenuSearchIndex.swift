@@ -93,6 +93,18 @@ enum MenuSearchIndex {
         .releaseType: ["configuration", "testflight", "app store", "debug"],
         .ipAddress: ["ip", "network address"],
         .networkLogs: ["http", "requests", "responses", "traffic", "api", "charles", "proxy"],
+        .networkConditioning: [
+            "conditioning", "link conditioner", "network link conditioner", "throttle", "throttling",
+            "latency", "slow", "bandwidth", "offline", "flaky", "3g", "edge", "packet loss"
+        ],
+        .networkRules: [
+            "mock", "stub", "map local", "throttle", "latency", "offline", "rewrite", "charles",
+            "proxyman", "rules", "network rules", "override", "overrides", "request overrides"
+        ],
+        .networkBreakpoints: [
+            "breakpoint", "breakpoints", "pause", "hold", "intercept", "edit request",
+            "edit response", "charles", "proxyman", "debug request"
+        ],
         .serverConfiguration: ["backend", "staging", "production", "base url", "endpoint"],
         .environmentVariables: ["env", "env var", "env vars", "environment"],
         .featureFlags: ["remote config", "experiments", "toggles", "flags", "ab test", "launch darkly"],
@@ -131,6 +143,9 @@ enum MenuSearchIndex {
     /// effective *now*: a stored property would cache whatever language was active the first
     /// time search ran, and results would stay in that language after the user switched.
     private static var subpageTitles: [(target: MenuItem, titles: [String])] {[
+        (.networkRules, [localized("New Override"), localized("Import from HAR")]),
+        (.networkBreakpoints, [localized("Enable Breakpoints"), localized("New Breakpoint")]),
+        (.networkConditioning, [localized("Enable Network Conditioning"), localized("Preset")]),
         (.gridOverlay, [localized("Enable Grid"), localized("Grid Size"), localized("Grid Opacity"), localized("Grid Color")]),
         (.fpsCounter, [localized("Enable FPS Counter"), localized("FPS Counter Position")]),
         (.touchVisualiser, [

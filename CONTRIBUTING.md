@@ -53,8 +53,14 @@ than assert against mocks.
 **Documentation.** Every new type, property and method gets DocC comments matching the density
 of the surrounding code. Update the README for anything user-visible.
 
-**UI.** Use SwiftUI's `ShareLink` rather than building a share sheet. Use alerts, never
-`.confirmationDialog`.
+**UI.** Reach for the stock SwiftUI component before building anything by hand. Rows are
+`LabeledContent`, `Toggle`, `NavigationLink` and `TextField` inside a `List`; a choice between
+fixed values is a `Picker`; deletion is `.swipeActions`, search is `.searchable`, file import
+is `.fileImporter`. Use `ShareLink` rather than building a share sheet, and alerts rather than
+`.confirmationDialog`. Match the surrounding menu — consistency beats novelty, and a
+hand-rolled row is a bug waiting to happen. A `.secondary` foreground inside a `Button` label
+resolves against the button tint and renders blue; when a stock control looks wrong the fix is
+usually the right container or role, not a manual colour.
 
 ## Localised strings
 

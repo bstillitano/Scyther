@@ -105,7 +105,14 @@ public enum Scyther {
 
     // MARK: - State
 
-    private nonisolated(unsafe) static var _started = false
+    /// Backing storage for ``isStarted``.
+    ///
+    /// - Note: Internal rather than private so a test that has to call ``start(allowProductionBuilds:)``
+    ///   can put the flag back afterwards. `start()` has no counterpart, and leaving the process
+    ///   started changes what every later test in the run sees — `HTTPInterceptorURLProtocol`
+    ///   refuses every request while this is `false`. Nothing in production writes it but
+    ///   ``start(allowProductionBuilds:)``.
+    internal nonisolated(unsafe) static var _started = false
     private static var _presented = false
 
     /// Whether Scyther has been started.
@@ -193,6 +200,23 @@ public enum Scyther {
         // Clean up old network logs (files older than 7 days)
         NetworkLogCleaner.shared.cleanupOldLogs()
 
+        // Publish the persisted request overrides so they apply from the launch's first request
+        // rather than from the first time the overrides screen happens to be opened.
+        NetworkRuleStore.shared.activate()
+
+        // Reclaim mock response bodies no override points at any more
+        NetworkRuleStore.shared.sweepOrphanedBodies()
+
+        // Publish any global network conditioning, for the same reason: conditioning switched on
+        // yesterday must apply from this launch's first request, not from the first time its
+        // screen happens to be opened.
+        NetworkConditioningStore.shared.activate()
+
+        // Publish the persisted breakpoints, and start watching for a held request so the editor
+        // can be put in front of the developer wherever they are in the app.
+        BreakpointStore.shared.activate()
+        BreakpointPresenter.shared.start()
+
         Console.shared.startCapturing()
         Network.shared.startIntercepting()
         Interface.shared.setup()
@@ -232,7 +256,12 @@ public enum Scyther {
 
     // MARK: - Private
 
-    private static var topViewController: UIViewController? {
+    /// The view controller anything Scyther presents is anchored to.
+    ///
+    /// - Note: Internal rather than private so ``BreakpointPresenter`` can put a held request in
+    ///   front of the app through the same path ``showMenu(from:)`` uses. Presenting from a second
+    ///   place of its own would be a second answer to "what is on top right now".
+    internal static var topViewController: UIViewController? {
         guard var top = keyWindow?.rootViewController else {
             #if DEBUG
             logMessage("Could not find a keyWindow to anchor to.")
@@ -569,6 +598,15 @@ public final class Network: Sendable {
     public var ipAddress: String {
         get async { await NetworkHelper.instance.ipAddress }
     }
+
+    /// Rules that mock, condition or rewrite matching requests.
+    ///
+    /// ```swift
+    /// Scyther.network.rules.add(
+    ///     .mock(name: "Empty cart", matching: .path("/api/cart"), returning: .json("{}"))
+    /// )
+    /// ```
+    public var rules: NetworkRules { .shared }
 }
 
 /// Provides push notification testing capabilities.

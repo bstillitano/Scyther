@@ -21,6 +21,7 @@ import SwiftUI
 ///   chip that edits every dimension from one Filters sheet
 /// - Export of the requests currently shown as a zip archive (HAR plus raw bodies), with optional
 ///   redaction and a sensitivity alert before sharing
+/// - A chart button opening ``TrafficStatsView``, which describes the requests currently shown
 /// - Color-coded status indicators
 /// - Navigation to detailed request view
 ///
@@ -96,6 +97,15 @@ struct NetworkLogsView: View {
             )
         }
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    TrafficStatsView(logs: viewModel)
+                } label: {
+                    Image(systemName: "chart.bar.xaxis")
+                }
+                .accessibilityLabel(localized("Traffic Stats"))
+                .disabled(viewModel.requests.isEmpty)
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button(localized("Export"), systemImage: "square.and.arrow.up") {
                     exportRequests = viewModel.requests

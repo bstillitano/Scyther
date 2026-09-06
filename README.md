@@ -22,6 +22,11 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Feature Flags](#feature-flags)
   - [Server Configuration](#server-configuration)
   - [Network Logging](#network-logging)
+  - [Traffic Stats](#traffic-stats)
+  - [Request Overrides](#request-overrides)
+  - [Request Replay](#request-replay)
+  - [Breakpoints](#breakpoints)
+  - [Network Conditioning](#network-conditioning)
   - [Console Logging](#console-logging)
   - [Crash Logging](#crash-logging)
   - [Database Browser](#database-browser)
@@ -53,6 +58,12 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **cURL Export**: Generate cURL commands for any captured request
 - **Log Export**: Share the captured requests as a zip containing a HAR 1.2 file, raw bodies, and a cURL command per request, with best-effort redaction and a sensitivity warning
 - **Filter Chips**: Narrow the network log by method, status class, host, content type, API kind, GraphQL operation, duration, exact status code, or recency from glass chips pinned above the list, or edit every filter at once from the all-filters sheet
+- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall of the recent requests on a shared axis
+- **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests — combined on one override — from the menu or from code
+- **Save as Mock**: Turn any captured response into a disabled mock override in one tap, and import a HAR file as a whole set of them
+- **Request Replay**: Reopen any captured request in an editor, change its method, URL, headers or body, and send it again — the resent request is logged with a `REPLAY` badge and listed on the original with its status, duration and size deltas
+- **Breakpoints**: Hold a matching request before it is sent, or a matching response before the app sees it, edit method, URL, headers, status or body in place, then continue or fail it with an error of your choosing — every hold has a timeout, and none of it ever runs during a test
+- **Network Conditioning**: Degrade every intercepted request at once — latency, a bandwidth ceiling and a failure rate, with the presets Network Link Conditioner made familiar
 - **Server Configuration**: Switch between development, staging, and production environments
 - **IP Address**: Display the device's public IP address
 
@@ -515,6 +526,498 @@ Network logs are automatically cleaned up to prevent disk bloat:
 - **7-day retention**: Log files older than 7 days are automatically deleted on app startup
 - **Manual cleanup**: Clearing logs via the UI also deletes all associated files from disk
 - **Files managed**: `SessionLog.log`, request body files, and response body files
+
+---
+
+### Traffic Stats
+
+The chart button in the **Network Logs** toolbar opens **Traffic Stats**: what is slow, what is
+failing, and what was happening at the same time as what. Everything is computed from the requests
+already in memory, so it adds no capture, no storage and no cost to the request path.
+
+The screen describes **the list you were looking at**. The log's search field and filter chips
+narrow the requests before the figures are computed, so filtering to one host turns the summary
+into that host's summary. The caption under the title says which it is — `8 requests`, or
+`21 of 340 requests` when a filter is on.
+
+#### What the figures mean
+
+| Row | Meaning |
+| --- | --- |
+| Requests | Every request in the filtered set, stubbed or not |
+| Stubbed | How many of them a request override answered without touching the network |
+| Failures | Requests that came back at 400 or above, plus loads that ended with no response at all |
+| Failure rate | Failures over the requests that actually went to the network |
+| Pending | Requests still in flight |
+| Median / 95th Percentile | Round-trip duration, nearest rank |
+| Fastest / Slowest | Shown instead of the percentiles below five completed requests |
+| Bytes Received | Total response body length received over the network, whatever the bytes are |
+| Elapsed | Wall-clock time from the first measured request starting to the last one finishing |
+
+**Pending and failed are exclusive.** A load carries a response date whether or not a response
+arrived, so a request that ended in an error is a *failure* and one that has not come back yet is
+*pending*. Neither is counted as a zero-duration completion, which would flatter every latency
+figure.
+
+**Stubbed responses are counted but never measured.** A response a request override synthesised
+never left the device: its duration measures Scyther rather than the server, and its status code
+was authored rather than returned. Averaging it into "slowest endpoints" or an error rate would
+make both lie, so a stub is counted in *Requests* and *Stubbed* and left out of every duration,
+failure and byte total, and out of the host and endpoint breakdowns entirely — *Elapsed*
+included, so a stub answered an hour after the last real request does not report an hour of
+network activity that never happened.
+
+**Percentiles use the nearest rank**, not interpolation, so every duration reported is one a
+request actually took. **Below five completed requests there are no percentiles at all** — a
+median of three samples is noise — and the summary shows the fastest and slowest round trips
+instead.
+
+#### The waterfall
+
+One bar per request, the most recent forty, on a shared seconds axis: bars that overlap were in
+flight at the same time, and a staircase means the calls were serialised. Each bar is labelled
+with its duration and coloured by outcome — succeeded, failed, pending or stubbed. A request that
+has not come back yet runs to the end of the axis, which is the moment the chart was computed,
+because its real end is not known. A request that failed is drawn for as long as it actually ran,
+not as one still running.
+
+#### The breakdowns
+
+**Slowest Endpoints** groups requests by `METHOD host/path` with the query string dropped and any
+numeric or UUID path segment collapsed to `:id`, so `/users/1` and `/users/2` aggregate rather
+than producing one endpoint per record. A GraphQL operation carries its name —
+`POST api.example.com/graphql (GetUser)` — because every operation in a GraphQL API is posted to
+the same path and the name is what identifies the call. Each row shows the request count, the
+median, and — as the figure beside it — the slowest round trip.
+
+**By Host** puts the worst offender first: most failures, then slowest median. Each row shows the
+request count, how many failed, and the host's median round trip.
+
+Stats describe the current session only. The log is an in-memory FIFO, so nothing is persisted
+across launches and there are no trends over time.
+
+---
+
+### Request Overrides
+
+Network logging shows what the app asked for and what came back. **Request Overrides**, under
+**Networking → Request Overrides**, changes it — mocking endpoints, serving local files, rewriting
+headers and degrading the connection without touching the app's networking code. The API type is
+called `NetworkRule`, so an override in the menu is a rule in code.
+
+Each override matches on HTTP method, host, path and query. An omitted facet places no
+constraint, and host and path accept `*` as a wildcard. Overrides are evaluated top to bottom, and
+dragging a row is what changes precedence:
+
+- The **first** matching stub — a mock or a map local — wins and short-circuits the network.
+- The **first** matching condition supplies the latency, bandwidth ceiling and failure rate;
+  conditions are not stacked.
+- **Every** matching header rewrite applies, and the **last** override to name a header decides
+  what happens to it — a later `set` beats an earlier `remove` exactly as it beats an earlier
+  `set`, and a later `remove` beats an earlier `set`. Header names are compared
+  case-insensitively, so `Authorization` and `authorization` are one header. Within one rewrite
+  there is no order to appeal to, so headers are set before any are removed and a header named in
+  both ends up removed.
+
+#### What Matching Compares
+
+- Method, host and path are compared **case-insensitively**. Query names are compared
+  **case-sensitively**, because a query name is data rather than protocol.
+- The path is compared **percent-encoded**, exactly as it travels. `%2F` is therefore not a
+  separator — `/v1/a%2Fb` is one segment and does not satisfy a rule for `/v1/a/b` — and a path
+  copied out of the log, out of a HAR or off an address bar matches the request it came from. A
+  path typed with a literal space will not.
+- A **trailing slash is part of the path**: `/v1/users` and `/v1/users/` are different paths, and
+  `/v1/users*` matches both. A URL with no path at all, `https://api.example.com`, is matched
+  as `/`.
+- Every query pair listed must be present. A repeated key is satisfied by **any** of its
+  occurrences, so `page=2` matches `?page=1&page=2`, and a key present with no value — `?flag` —
+  reads as an empty value. Values are compared percent-decoded.
+- A pattern left **blank** places no constraint at all, exactly as leaving the facet out does.
+
+#### Actions Compose
+
+An override carries a stub, a header rewrite and a condition **independently**, each with its own
+switch in the editor. Mock and map local are the one pair that cannot both apply, because they
+would both be answering the same request; everything else combines, so "mock this endpoint and
+make it slow" is one override rather than an impossibility.
+
+A stub no longer suppresses the rest:
+
+- **A condition applies to a stubbed response.** Its latency delays the synthesised answer — added
+  to the stub's own delay, then clamped once — its failure rate can fail it, and its bandwidth
+  ceiling paces the synthetic body.
+- **A header rewrite is recorded on the logged request but has no wire effect** when the request
+  is stubbed, because nothing is sent. The log still shows the request as it would have gone out.
+
+The log's **Overrides** row credits everything that actually contributed, which for a stubbed
+request is the stub first and then whatever else applied to it. An override carrying several
+actions is named once. Each credit is its own row: one the store still holds pushes its editor
+and follows a rename made through it, and one whose override has since been deleted — or that has
+none, like the global conditioning — is named but inert.
+
+| Action | What it does |
+| --- | --- |
+| **Mock Response** | Answers with a status code, headers and a body typed into the editor, after an optional delay. Headers are a dictionary, so a mock cannot repeat a header name — a HAR import keeps the last of a repeated `Set-Cookie`. |
+| **Map Local File** | Answers with the contents of a file, with a status code and `Content-Type`. The file is chosen with the system file importer and **copied into Scyther's rules directory**, so the override keeps working after the document moves or goes away and no security-scoped bookmark is needed. A path supplied from code is used as given; an unreadable path, or one over 10 MB, falls through to the real network. |
+| **Rewrite Headers** | Sets and removes headers on the outgoing request. |
+| **Network Condition** | Adds latency, caps bandwidth in KB/s, and fails a fraction of matching requests with a `URLError`. Latency and a stub's delay are capped at 30 seconds together, and are waited out without holding a thread. The latency is applied first and the failure rolled after it, so "slow and flaky" is slow before it is flaky, and a rate of `1` never lets a request through. |
+
+A bandwidth ceiling is likewise honoured for at most 30 seconds of added delay per response, so
+that a debug tool cannot appear to have hung. A body larger than `30 × bandwidthKBps` kilobytes
+stops being paced part-way through and the rest is forwarded as fast as it arrives, which makes
+the effective rate a function of body size: 1 MB at 10 KB/s takes about 30 seconds, not the 100
+the ceiling implies. Pacing is measured across the whole response rather than per delivery, so a
+response whose bytes have averaged out under the ceiling is never delayed, however the source
+chose to chunk them; a response that has been idle banks at most one second of that idle as
+credit, so a long-poll or an SSE stream is throttled rather than released in bursts.
+
+#### In the Editor
+
+- **An override has to name an endpoint.** It is not savable until it is named, given a host, path
+  or query, and given something to do. A facet that matches everything however it is spelled — a
+  path of `*` set to Wildcard, or `/` set to Contains — does not count, because an override
+  applied to every request in the app is the hazard the guard exists to prevent. A method on its
+  own does not count either.
+- **A mock body that is not text is left alone.** A body holding bytes that are not valid UTF-8 —
+  a captured image, most often — is shown as a size rather than opened in the text editor, because
+  editing it as text would write every one of those bytes back as a replacement character. So is
+  a body larger than a megabyte, which is more than anyone edits by hand.
+- **The map local file is one row.** It reads *Choose File* until something is chosen and then
+  shows the name of the document that was picked, not the name of the copy Scyther keeps. Tapping
+  it opens the picker either way, so replacing a file is the same gesture as choosing one.
+- **The `Content-Type` is picked, not typed.** The types a developer actually mocks are offered in
+  a picker, with **Custom** revealing a free-text field for anything else. Picking a file fills it
+  in from the document's type, so `response.json` arrives as `application/json`.
+- Status codes are stored inside `100...599`, and a negative or non-numeric delay is stored as
+  zero.
+
+#### Saving a Captured Request as a Mock
+
+The request details page carries a **Save as mock** button whenever the response came off the
+wire. It opens the override editor pre-filled from the capture: matching that request's method,
+host and path exactly, answering with its status code, headers and body. The query string is left
+unconstrained, and headers describing the wire encoding (`Content-Encoding`, `Content-Length`,
+`Transfer-Encoding`) are dropped, because the stored body is the one `URLSession` already decoded.
+
+The override arrives **disabled** — nothing changes until it is switched on, from the editor or
+with a swipe on the list.
+
+A response an override already synthesised cannot be saved as a mock. Those rows are marked
+instead: a pink **MOCKED** badge in the log list, and an **Overrides** row in the details
+page's Developer Info section naming every override that shaped the request.
+
+An override that shapes a request **without answering it** — a header rewrite, or a network
+condition — leaves the row looking like ordinary traffic otherwise, so it carries a brown
+**OVERRIDDEN** badge instead. The four badges use four colours nothing else in the log wears, so
+`MOCKED`, `OVERRIDDEN`, `REPLAY` and `HELD` can appear together on one row and still be read
+apart. A stubbed row never wears `OVERRIDDEN`, because `MOCKED` already says what happened.
+
+#### Importing a HAR File
+
+**Import from HAR**, in the add menu of the overrides list, reads a HAR 1.2 document — one
+exported by Scyther, or captured in Charles, Proxyman or Chrome DevTools — and turns each entry
+into a mock override named `<METHOD> <path>` matching that method, host and path. Every imported
+override arrives disabled.
+
+Entries are read one at a time, so the things a real capture contains — an aborted request with no
+`response` object, a multipart upload whose `postData` carries `params` and no `text`, an entry
+whose URL cannot be parsed — cost those entries and nothing else rather than discarding the whole
+import. The alert reports both numbers: how many overrides were added, and how many entries
+produced none.
+
+A response body labelled `encoding: "base64"` is decoded even when it is wrapped across lines, the
+way Charles and other MIME-style encoders write it. Text that plainly is not base64 is taken as
+the literal body it is rather than decoded into bytes that came from nowhere.
+
+#### The Master Switch
+
+**Enable Request Overrides**, at the top of the list, suspends every override at once without
+deleting any of them — the quickest way to tell whether a behaviour belongs to the app or to an
+override. It is persisted across launches.
+
+The count badge on the menu's **Request Overrides** row follows this switch: it reports how many
+overrides are *being applied*, so turning the switch off empties it however many overrides are
+enabled behind it.
+
+#### Registering Overrides in Code
+
+`Scyther.network.rules` is the programmatic entry point. Like every other Scyther singleton it is
+`@MainActor`-isolated, and every member of it is inert until `Scyther.start()` has run — which it
+does not do on an App Store build. The calls below can sit unguarded in `didFinishLaunching`: on a
+release build they read back nothing, write nothing to preferences, and put no file in the user's
+container.
+
+```swift
+// Persisted: written to UserDefaults, listed in the menu, survives relaunch. The
+// identifier is a constant, so relaunching updates this override instead of adding
+// another copy of it beside the first.
+let emptyCart = UUID(uuidString: "6F0B0C3E-4C1E-4E3D-9C0B-0F5E7A9D2B41")!
+Scyther.network.rules.add(
+    .mock(id: emptyCart,
+          name: "Empty cart",
+          matching: .path("/api/cart"),
+          returning: .json(#"{"items": []}"#))
+)
+
+// This launch only: never written to disk, listed read-only under "Registered in Code".
+Scyther.network.rules.addTransient(
+    .headers(name: "Staging auth",
+             matching: .host("*.staging.example.com"),
+             set: ["Authorization": "Bearer test-token"])
+)
+
+// Several actions at once: build the rule directly rather than through the
+// single-action conveniences above.
+Scyther.network.rules.add(
+    NetworkRule(name: "Slow cart",
+                match: .path("/api/cart"),
+                actions: NetworkRuleActions(stub: .mock(.json("{}")),
+                                            condition: NetworkCondition(latency: 3)))
+)
+
+// Read, edit and clear.
+let overrides = Scyther.network.rules.all
+Scyther.network.rules.remove(id: overrides[0].id)
+Scyther.network.rules.isEnabled = false   // suspend everything, delete nothing
+```
+
+`add(_:)` **persists** the override and shows it in the menu, where it can be edited, reordered or
+deleted. `addTransient(_:)` does **not**: transient overrides live only for the launch that
+registered them, appear read-only under "Registered in Code", and are evaluated after every
+persisted override. Use the transient form for anything the app registers for itself.
+
+Both are an **upsert** on `NetworkRule.id`: an override whose identifier is already known replaces
+that override in place, and whatever body file the replaced override owned is reclaimed unless
+another override still points at it. Code that runs on every launch should therefore pass a
+constant `id`, as the example above does — an override built without one gets a fresh identifier
+each time, so a call in `didFinishLaunching` would store another copy of the same override on every
+launch.
+
+An identifier lives in **exactly one** of the two lists. Registering a transient override under an
+identifier the persisted list holds moves it across, and vice versa: the last registration wins
+outright, rather than leaving two copies that `remove(id:)` can only half delete.
+
+`MockResponse.json(_:)` writes nothing when it is built. The bytes travel with the value and are
+written when the override holding it is added or updated, so a response that is never stored leaves
+nothing on disk. If those bytes cannot be written the override is **not** stored — `add(_:)` and
+`update(_:)` return `false` and the menu says so — because an override pointing at a body that is
+not there would answer with the right status code and an empty body.
+
+Overrides are persisted as JSON, which cannot express an infinite or NaN number. A latency, delay
+or failure rate that is not finite — `1e400` typed into the editor parses to `inf` — is replaced
+with `0` on the way in, rather than being allowed to fail the write for every override at once.
+Global conditioning is sanitised the same way. If a write does fail, or if the saved overrides
+cannot be read at launch, the overrides screen says so; an unreadable blob is set aside under its
+own preferences key rather than overwritten, and a second one is added beside the first rather
+than replacing it. While anything is set aside the orphan sweep stands down, so the bodies those
+overrides point at are kept along with them. Discarding every override discards the set-aside
+configurations too, and is what lets the sweep start reclaiming again — from the alert itself,
+which offers **Delete All Overrides**, or from `Scyther.network.rules.removeAll()`.
+
+#### Stubbing a UI Test
+
+Transient overrides make a UI test hermetic without running a stub server.
+
+> **Register after `Scyther.start()`, not before.** Every member of `Scyther.network.rules` is
+> inert until `start()` has run, and `add(_:)`, `addTransient(_:)` and `update(_:)` are all
+> `@discardableResult` — so a block placed *above* `start()` compiles, runs, warns about nothing,
+> and registers nothing. Since the block below sits behind a launch argument it reads as though it
+> could go anywhere in `didFinishLaunching`; it cannot. If you want the compiler's help, read the
+> `Bool` these return: `false` means nothing was stored.
+
+```swift
+// In the app, in didFinishLaunching, *after* Scyther.start().
+Scyther.start()
+
+if ProcessInfo.processInfo.arguments.contains("-UITestStubs") {
+    Scyther.network.rules.isEnabled = true
+    let registered = Scyther.network.rules.addTransient(
+        .mock(name: "Profile",
+              matching: .host("api.example.com", path: "/v1/profile", methods: ["GET"]),
+              returning: .json(#"{"name": "Ada"}"#))
+    )
+    assert(registered, "Scyther.start() must run before any override is registered")
+
+    Scyther.network.rules.addTransient(
+        .condition(name: "Slow uploads",
+                   matching: .path("/v1/upload", methods: ["POST"]),
+                   NetworkCondition(latency: 2, failureRate: 0.5))
+    )
+}
+```
+
+```swift
+// In the test.
+let app = XCUIApplication()
+app.launchArguments += ["-UITestStubs"]
+app.launch()
+```
+
+Because they are transient, the *overrides* do not survive the launch that registered them: a stub
+left behind by a failing run cannot quietly break the next one. The master switch is a different
+matter — `isEnabled` is persisted, so setting it here leaves it on for the developer's next
+ordinary launch as well. That is usually what you want, since it is on by default; if a run may
+have turned it off, set it explicitly as the snippet does rather than assuming.
+
+> **Note**: Overrides apply only to traffic Scyther intercepts — `URLSession` traffic through a
+> standard configuration. A custom `URLSessionConfiguration` that does not carry Scyther's
+> `URLProtocol` bypasses overrides exactly as it bypasses logging.
+
+---
+
+### Request Replay
+
+The request details page carries a **Replay this request** button. It opens an editor pre-filled
+from the capture — method, URL, headers and body — and sends whatever is left there when the
+confirm button is tapped.
+
+#### The Editor
+
+- **Method** — a picker of the common verbs, plus **Other** for anything the server invented.
+- **URL** — a single-line field. The confirm button is disabled, and a warning appears, while what
+  has been typed will not parse into an absolute HTTP URL.
+- **Headers** — one row per captured header, editable, swipe-deletable, with an add row. Headers
+  `URLSession` owns — `Content-Length`, `Host` and `Connection` — are shown but disabled, and are
+  dropped rather than sent, because editing them has no effect. A duplicated header name travels
+  as the one comma-joined field HTTP defines rather than one row silently winning.
+- **Body** — a row opening the same text editor the rest of the toolkit uses, showing a byte
+  count. The logger only ever writes a UTF-8 request body to disk, so a binary body — a protobuf,
+  a multipart upload — is not recoverable from the capture and the replay goes out without one.
+  The editor says so on the row, in the section's footer, and in a confirmation before sending,
+  rather than quietly sending a request the developer did not ask for; typing a body of your own
+  retires the warning.
+
+#### What Happens on Send
+
+A replay goes out on an ordinary `URLSession` and is captured by the interceptor exactly as
+traffic the app makes is. That has two consequences worth stating plainly:
+
+- **A replay is its own entry in the log**, marked with a teal `REPLAY` badge — the same treatment
+  the pink `MOCKED` badge gets, in the one other colour nothing in the log competes for.
+- **Enabled overrides apply to a replay**, because nothing about it is special-cased. Replay a
+  request that a mock matches and you get the mock, with both badges on the row. The editor says
+  so in a footer, so a developer comparing a replay against an original knows whether they are
+  looking at the network or at their own override.
+
+A request whose response an override synthesised has no **Replay this request** button: the
+override would simply synthesise the same response again.
+
+Because resending a `POST`, `PATCH` or `DELETE` can repeat whatever it changed, any method
+outside `GET`, `HEAD` and `OPTIONS` warns in the editor and asks for confirmation in an alert
+naming the method before anything is sent. So does a replay whose body could not be captured, and
+one aimed at a URL Scyther does not intercept — an ignored host, or a scheme that is not HTTP —
+which would be sent and never appear in the log. The editor's footer and the confirmation show the
+same list of warnings, so they cannot tell you different things.
+
+#### Comparing
+
+The original's details page grows a **Replays** section listing every replay of it currently in
+the log, each row naming the replay's method and status and carrying the signed duration and size
+deltas — replay minus original — and linking to that replay's own page. A replay's page carries a
+**Replayed from** row linking the other way, or says the original is no longer in the log if it
+has since been cleared.
+
+Both sections track the log as it changes, so a replay that lands seconds after the editor
+dismissed appears without leaving the page.
+
+A row whose exchange Scyther shaped says so, in the log's own badge words — `Original: MOCKED`,
+`Replay: HELD OVERRIDDEN`. A mocked response never left the device and a held one waited for a
+developer to press a button, so a delta across either measures Scyther rather than the server, and
+the section that exists for comparison should not report it as though it did not.
+
+### Breakpoints
+
+**Networking → Breakpoints** is the feature people reach for Charles or Proxyman to get: a
+matching request stops before it is sent, or a matching response stops before the app sees any of
+it, and the editor appears over whatever is on screen so it can be read and changed in place.
+
+It is the one thing in the toolkit that deliberately holds the app up, so the master switch
+**defaults to off** and the menu row shows how many breakpoints are being applied.
+
+#### Setting one
+
+A breakpoint is matching plus a stage. Matching is the same `NetworkRuleMatch` a request override
+uses — methods, host, path, query, with the same wildcard and percent-encoding semantics — so a
+match copied from an override behaves identically here.
+
+| Field | What it does |
+| --- | --- |
+| **Stage** | `Request` holds it on the way out, `Response` on the way back, `Both` holds twice. |
+| **Timeout** | 5 to 300 seconds, 60 by default. It cannot be switched off. |
+
+The editor refuses to save a breakpoint with no name, or one whose match names no endpoint — a
+match that applies to everything would hold every request the app makes, one after another, for
+the timeout each.
+
+#### When one fires
+
+The editor is presented over the key window, wherever the developer is in the app. One held
+exchange opens straight into its own page; several are listed and can be worked through in any
+order. Each page shows which breakpoint holds it, a live countdown to the automatic continue, and
+the exchange itself: method, URL, headers and body for a request; status, headers and body for a
+response.
+
+There are four ways out, and doing nothing is one of them:
+
+- the **confirm button** continues with whatever has been edited;
+- **Continue Without Changes** passes the exchange on exactly as it arrived;
+- **Abort** fails it with a `URLError` you pick, exactly as though the network had produced it;
+- the **timeout** continues it unchanged, so a forgotten breakpoint cannot leave the app hanging.
+
+A log entry that was held carries an indigo `HELD` badge, beside `MOCKED` and `REPLAY`, and the
+log records what the app actually sent and received — the edit, not the original.
+
+#### What it does not do
+
+- **Nothing blocks.** A held request does not occupy the thread it was intercepted on. The pause
+  is a stored continuation, so a breakpoint left open costs a suspended request and nothing else,
+  and cancelling the request cancels the pause.
+- **A held response buffers.** Bytes cannot be un-forwarded, so a response breakpoint withholds
+  the whole body and hands it over once. Above 10 MB the pause is skipped and logged. The editor
+  says so when the stage is chosen.
+- **It never fires during tests.** Breakpoints report as off inside an XCTest process, so one left
+  enabled cannot hang CI, and they are off on App Store builds along with the rest of Scyther.
+- **A stubbed request is not held.** An override answers it without anything going in flight.
+- **A pause taken while the app is not active is skipped** and logged: a held request the
+  developer cannot see is indistinguishable from a hang. Only that one pause is skipped — an
+  exchange already open in the editor survives a glance at Control Centre or the app switcher.
+  Anything still held when the app actually goes to the background is continued unchanged there
+  and then, rather than waiting out its timeout somewhere nobody can see it.
+
+### Network Conditioning
+
+**Networking → Network Conditioning** degrades **every** request Scyther intercepts, which is what
+Network Link Conditioner does without needing a Mac or a provisioning profile. The menu row shows
+the active preset, or `Off`, so conditioning is never quietly on.
+
+The screen carries a master switch, a preset picker, and the three numbers underneath it:
+
+| Preset | Latency | Ceiling | Failures |
+| --- | --- | --- | --- |
+| **Wi-Fi** | 0.01 s | none | none |
+| **4G** | 0.05 s | 1,500 KB/s | none |
+| **3G** | 0.1 s | 100 KB/s | none |
+| **EDGE** | 0.4 s | 30 KB/s | none |
+| **Very bad network** | 0.5 s | 125 KB/s | 10% |
+
+Picking a preset fills the three fields in; editing any of them makes the picker read **Custom**
+again, because that is what it now is. Custom is not something you pick — it is the *absence* of a
+preset — so the picker lists it only while it is what the numbers say, rather than offering a
+choice that would change nothing and then snap back.
+
+A request the global condition slowed or failed carries the brown `OVERRIDDEN` badge in the log,
+credited as **Network Conditioning** in the details page's **Overrides** row. It names it without
+offering a link, because it is a screen rather than an override — but the log never shows a
+conditioned request as ordinary traffic.
+
+The global condition is a **floor**, not an addition. A request override whose own condition
+matches replaces it outright, so one endpoint can still be conditioned differently — or barely at
+all — while the rest of the app is on EDGE. An override that matches but carries no condition
+leaves the global one in place.
+
+It is off by default, persisted across launches, and has its own switch: **Enable Request
+Overrides** does not reach it, and neither does turning every override off.
 
 ---
 
@@ -1145,6 +1648,7 @@ in one, use **UI/UX → Language**. See [Localisation](#localisation).
 | `Scyther.featureFlags` | `FeatureFlags` | Feature flag management |
 | `Scyther.servers` | `Servers` | Server configuration |
 | `Scyther.network` | `Network` | Network logging |
+| `Scyther.network.rules` | `NetworkRules` | Request overrides — mocks, map local, header rewrites and per-endpoint conditioning, composed on one override |
 | `Scyther.console` | `Console` | Console output capture |
 | `Scyther.crashes` | `Crashes` | Crash logging and viewing |
 | `Scyther.database` | `DatabaseBrowsing` | Database browser and adapter registration |

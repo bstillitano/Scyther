@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 16/6/2025.
 //
 
+import Combine
 import Foundation
 import SwiftUI
 
@@ -74,6 +75,14 @@ import SwiftUI
 /// - ``ipAddress``
 /// - ``isLoadingIPAddress``
 ///
+/// ### Request Overrides
+///
+/// - ``enabledOverrideCount``
+///
+/// ### Network Conditioning
+///
+/// - ``conditioningSummary``
+///
 /// ### UI Debugging Controls
 ///
 /// - ``slowAnimationsEnabled``
@@ -93,6 +102,49 @@ class MenuViewModel: ViewModel {
 
     /// The store pinned item identifiers are read from and written to.
     private let defaults: UserDefaults
+
+    /// The override store the Request Overrides row's badge counts.
+    private let networkRuleStore: NetworkRuleStore
+
+    /// The conditioning store the Network Conditioning row's detail text describes.
+    private let conditioningStore: NetworkConditioningStore
+
+    /// The breakpoint store this view model mirrors.
+    private let breakpointStore: BreakpointStore
+
+    /// Keeps the override store's publishers alive for the lifetime of the menu.
+    private var cancellables: Set<AnyCancellable> = []
+
+    /// How many request overrides are currently being applied, persisted and transient together.
+    ///
+    /// Shown as a badge on the Request Overrides row so overrides are never silently on. A
+    /// developer chasing a response that will not change has to be able to see, from the menu's
+    /// first screen, that something is rewriting their traffic — the MOCKED badge is only visible
+    /// inside the network log, and the master switch only on the overrides screen itself.
+    ///
+    /// Zero when nothing is enabled, which is what hides the badge — and zero while the master
+    /// switch is off, however many overrides are enabled behind it. The badge says what is being
+    /// applied, not what is configured; with the switch off nothing is, and a count there would
+    /// send that developer looking for an override that is not running.
+    @Published private(set) var enabledOverrideCount: Int = 0
+
+    /// How many breakpoints are currently being applied.
+    ///
+    /// Shown as a badge on the Breakpoints row, for a sharper version of the reason the override
+    /// count is shown: an override changes a response, while a breakpoint stops the app until
+    /// somebody decides what to do. A developer whose app has just frozen needs to be able to see
+    /// why from the menu's first screen.
+    ///
+    /// Zero while the master switch is off, however many breakpoints are enabled behind it.
+    @Published private(set) var enabledBreakpointCount: Int = 0
+
+    /// What the Network Conditioning row shows as its detail text: the active preset, `Custom`,
+    /// or `Off`.
+    ///
+    /// Conditioning applies to every request the app makes, so it has to be visible from the
+    /// menu's first screen for the same reason the override count is — a developer who has
+    /// forgotten it is on will otherwise spend an afternoon blaming their backend.
+    @Published private(set) var conditioningSummary: String = localized("Off")
 
     /// The identifiers of pinned rows, in the order they were pinned.
     ///
@@ -157,14 +209,57 @@ class MenuViewModel: ViewModel {
     init(
         defaults: UserDefaults = .scyther,
         assistants: [any MenuSearchAssistant] = MenuSearchAssistants.available(),
-        assistedSearchDelay: Duration = .milliseconds(300)
+        assistedSearchDelay: Duration = .milliseconds(300),
+        networkRuleStore: NetworkRuleStore = .shared,
+        conditioningStore: NetworkConditioningStore = .shared,
+        breakpointStore: BreakpointStore = .shared
     ) {
         self.defaults = defaults
         self.developerOptions = Scyther.developerOptions
         self.pinnedItemIDs = defaults.stringArray(forKey: Self.pinnedItemsKey) ?? []
         self.assistants = assistants
         self.assistedSearchDelay = assistedSearchDelay
+        self.networkRuleStore = networkRuleStore
+        self.conditioningStore = conditioningStore
+        self.breakpointStore = breakpointStore
         super.init()
+    }
+
+    /// Mirrors both networking stores so ``enabledOverrideCount`` and ``conditioningSummary``
+    /// are live.
+    ///
+    /// Subscribing rather than reading once on appearance: an override can be enabled from the
+    /// overrides screen, from a swipe on its row, or from `Scyther.network.rules` while the menu
+    /// is on screen, and the badge has to follow all three. The master switch is a fourth: it
+    /// stops every override being applied without changing one of them, so it has to be joined
+    /// here or the badge keeps reading a count for overrides that are standing down. No
+    /// `receive(on:)` — the store and this view model are both main-actor isolated, so the values
+    /// already arrive on the main thread.
+    override func setup() {
+        super.setup()
+        networkRuleStore.$rules
+            .combineLatest(networkRuleStore.$transientRules, networkRuleStore.$isEnabled)
+            .sink { [weak self] rules, transient, isEnabled in
+                guard isEnabled else {
+                    self?.enabledOverrideCount = 0
+                    return
+                }
+                self?.enabledOverrideCount = (rules + transient).filter(\.isEnabled).count
+            }
+            .store(in: &cancellables)
+        conditioningStore.$isEnabled
+            .combineLatest(conditioningStore.$condition)
+            .sink { [weak self] isEnabled, condition in
+                self?.conditioningSummary = NetworkConditioningPreset.summary(isEnabled: isEnabled,
+                                                                               condition: condition)
+            }
+            .store(in: &cancellables)
+        breakpointStore.$breakpoints
+            .combineLatest(breakpointStore.$isEnabled)
+            .sink { [weak self] breakpoints, isEnabled in
+                self?.enabledBreakpointCount = isEnabled ? breakpoints.filter(\.isEnabled).count : 0
+            }
+            .store(in: &cancellables)
     }
 
     /// Whether the given row is pinned.

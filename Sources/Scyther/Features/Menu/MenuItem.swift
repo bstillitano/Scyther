@@ -70,7 +70,8 @@ enum MenuItem: Hashable, Identifiable {
     case developerOption(name: String)
 
     // Networking
-    case ipAddress, networkLogs, serverConfiguration, environmentVariables
+    case ipAddress, networkLogs, networkConditioning, networkRules, networkBreakpoints
+    case serverConfiguration, environmentVariables
 
     // Data
     case featureFlags, userDefaults, cookies, fileBrowser, databaseBrowser
@@ -100,7 +101,8 @@ enum MenuItem: Hashable, Identifiable {
         .osVersion, .hardware, .releaseYear, .uuid,
         .appIdPrefix, .displayName, .bundleId, .processId,
         .version, .buildNumber, .buildDate, .releaseType,
-        .ipAddress, .networkLogs, .serverConfiguration, .environmentVariables,
+        .ipAddress, .networkLogs, .networkConditioning, .networkRules, .networkBreakpoints,
+        .serverConfiguration, .environmentVariables,
         .featureFlags, .userDefaults, .cookies, .fileBrowser, .databaseBrowser,
         .keychainBrowser,
         .locationSpoofer, .consoleLogs, .deepLinkTester, .crashLogs,
@@ -128,6 +130,9 @@ enum MenuItem: Hashable, Identifiable {
         case .developerOption(let name): return Self.developerOptionPrefix + name
         case .ipAddress: return "ipAddress"
         case .networkLogs: return "networkLogs"
+        case .networkConditioning: return "networkConditioning"
+        case .networkRules: return "networkRules"
+        case .networkBreakpoints: return "networkBreakpoints"
         case .serverConfiguration: return "serverConfiguration"
         case .environmentVariables: return "environmentVariables"
         case .featureFlags: return "featureFlags"
@@ -206,6 +211,9 @@ enum MenuItem: Hashable, Identifiable {
         case .developerOption(let name): return name
         case .ipAddress: return localized("IP Address")
         case .networkLogs: return localized("Network Logs")
+        case .networkConditioning: return localized("Network Conditioning")
+        case .networkRules: return localized("Request Overrides")
+        case .networkBreakpoints: return localized("Breakpoints")
         case .serverConfiguration: return localized("Server Configuration")
         case .environmentVariables: return localized("Environment Variables")
         case .featureFlags: return localized("Feature Flags")
@@ -259,6 +267,9 @@ enum MenuItem: Hashable, Identifiable {
         case .releaseType: return "checkmark.seal"
         case .ipAddress: return "network"
         case .networkLogs: return "text.page.badge.magnifyingglass"
+        case .networkConditioning: return "exclamationmark.icloud"
+        case .networkRules: return "arrow.triangle.branch"
+        case .networkBreakpoints: return "pause.circle"
         case .serverConfiguration: return "server.rack"
         case .environmentVariables: return "x.squareroot"
         case .featureFlags: return "flag"

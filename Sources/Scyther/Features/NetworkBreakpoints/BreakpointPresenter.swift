@@ -1,0 +1,246 @@
+//
+//  BreakpointPresenter.swift
+//  Scyther
+//
+//  Created by Brandon Stillitano on 6/9/2026.
+//
+
+import SwiftUI
+import UIKit
+
+/// Puts the held-request editor in front of the developer, wherever they are in the app.
+///
+/// A breakpoint is no use if the developer has to find it. The presenter is the single subscriber
+/// to ``BreakpointCoordinator/onPendingChanged``, and it does two things with what arrives: it
+/// republishes the list for ``HeldRequestsView`` to render, and it presents that view over the key
+/// window the first time something is held, dismissing it once nothing is.
+///
+/// ## Backgrounded apps
+///
+/// A pause **taken** while the app is not active is skipped: that one exchange is resumed
+/// unchanged and the skip is logged. A held request the developer cannot see is indistinguishable
+/// from a hang, and the developer is by definition not looking at an app that is not on screen.
+/// This is the one place the check can honestly be made, because `UIApplication.applicationState`
+/// can only be read on the main actor and the pause is taken on a thread the URL loading system
+/// owns.
+///
+/// Only the newly taken pause is skipped, never the whole list. `.inactive` covers Control Centre,
+/// the app switcher, a system alert and iPad multitasking, all of which the developer comes
+/// straight back from — and resolving every pause on the way past would discard the exchange they
+/// were part-way through editing along with their edits.
+///
+/// Exchanges *already* held are let go when the app actually enters the background, which
+/// ``applicationDidEnterBackground()`` observes. Sampling the state only when the list changes
+/// would leave a single hold taken a moment before the developer switched away sitting there,
+/// invisible, for the whole of its timeout.
+///
+/// ## Topics
+///
+/// ### Shared Instance
+/// - ``shared``
+///
+/// ### Lifecycle
+/// - ``start()``
+/// - ``pending``
+/// - ``applicationDidEnterBackground()``
+///
+/// ### Injection Points
+/// - ``applicationState``
+/// - ``presentEditor``
+/// - ``dismissEditor``
+@MainActor
+internal final class BreakpointPresenter: ObservableObject {
+    /// The presenter `Scyther.start()` wires up.
+    static let shared = BreakpointPresenter()
+
+    /// The exchanges currently held, oldest first.
+    @Published private(set) var pending: [PendingBreakpoint] = []
+
+    /// The coordinator this presenter watches, and that its editors resolve against.
+    let coordinator: BreakpointCoordinator
+
+    /// How the app's state is read. Replaced by a test.
+    var applicationState: @MainActor () -> UIApplication.State = { UIApplication.shared.applicationState }
+
+    /// How the editor is put on screen. Replaced by a test.
+    ///
+    /// Returns whether the editor actually reached the screen. A presentation that did not happen
+    /// must say so: believing one did leaves the app paused behind nothing at all.
+    var presentEditor: @MainActor (BreakpointPresenter) -> Bool = { $0.presentOverKeyWindow() }
+
+    /// How the editor is taken off screen. Replaced by a test.
+    var dismissEditor: @MainActor (BreakpointPresenter) -> Void = { $0.dismissFromKeyWindow() }
+
+    /// The controller currently presented, or `nil` when nothing is on screen.
+    private var hostingController: UIViewController?
+
+    /// Whether the editor reached the screen and is still expected to be on it.
+    ///
+    /// Set from the outcome of the presentation rather than from the intention to present, so a
+    /// refused presentation is retried the next time an exchange is held rather than swallowing
+    /// every one of them. Tracked here rather than read back off UIKit on every pass, so a
+    /// presentation that is still animating cannot be asked for a second time; what UIKit *can*
+    /// answer — whether the controller this presenter put up is still presented — is checked by
+    /// ``revalidatePresentation()``.
+    private var isPresenting: Bool = false
+
+    /// The registration for the notification ``applicationDidEnterBackground()`` answers.
+    ///
+    /// Held so that ``start()`` stays idempotent: `Scyther.start()` may be called more than once,
+    /// and a second observer would release every held exchange twice over.
+    private var backgroundObserver: NSObjectProtocol?
+
+    /// Creates a presenter.
+    ///
+    /// - Parameter coordinator: The coordinator to watch. Defaults to the shared one; a test
+    ///   passes its own.
+    init(coordinator: BreakpointCoordinator = .shared) {
+        self.coordinator = coordinator
+    }
+
+    /// Starts watching the coordinator, and the app's lifecycle. Called once, from
+    /// `Scyther.start()`.
+    ///
+    /// Idempotent: it replaces the handler it set last time rather than adding a second one, and
+    /// registers for the background notification only once.
+    func start() {
+        coordinator.onPendingChanged = { [weak self] items in
+            self?.pendingChanged(items)
+        }
+
+        guard backgroundObserver == nil else { return }
+        backgroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.applicationDidEnterBackground() }
+        }
+    }
+
+    /// Reacts to the coordinator's list changing.
+    ///
+    /// - Parameter items: The exchanges currently held.
+    func pendingChanged(_ items: [PendingBreakpoint]) {
+        revalidatePresentation()
+
+        guard !items.isEmpty else {
+            pending = []
+            if isPresenting {
+                isPresenting = false
+                dismissEditor(self)
+            }
+            return
+        }
+
+        guard applicationState() == .active else {
+            /// Only what this call brought with it is skipped. Everything already held stays held:
+            /// the app is behind Control Centre or the app switcher, the developer is coming
+            /// straight back, and resolving the exchange they are editing would take their edits
+            /// with it. What is genuinely out of sight is released by
+            /// ``applicationDidEnterBackground()`` instead.
+            let taken = items.filter { item in !pending.contains { $0.id == item.id } }
+
+            /// Published before anything is resolved, because `resolve(id:with:)` calls straight
+            /// back into this method on the same turn: the re-entrant call has to find these
+            /// pauses already known, or it skips and logs each of them a second time.
+            pending = items
+            guard !taken.isEmpty else { return }
+
+            logMessage("Breakpoint skipped: the app is not active, where a held request is indistinguishable from a hang.")
+            taken.forEach { coordinator.resolve(id: $0.id, with: .continue($0.draft)) }
+            return
+        }
+
+        pending = items
+        guard !isPresenting else { return }
+        isPresenting = presentEditor(self)
+    }
+
+    /// Lets go of everything still held, because the app has left the screen.
+    ///
+    /// ``pendingChanged(_:)`` can only sample the app's state when the coordinator's list changes,
+    /// so one exchange held a moment before the developer switched away would otherwise sit there,
+    /// invisible, until its timeout. Observing the lifecycle is what closes that.
+    ///
+    /// Backgrounding, rather than merely resigning active: an inactive app is still on screen
+    /// behind Control Centre or the app switcher, and discarding a half-typed edit for a glance at
+    /// either would be worse than holding on a moment longer.
+    ///
+    /// - Note: Internal rather than private so a test can drive it without posting a notification
+    ///   and hoping. `Scyther.start()` wires it to
+    ///   `UIApplication.didEnterBackgroundNotification`.
+    func applicationDidEnterBackground() {
+        let held = pending
+        guard !held.isEmpty else { return }
+
+        logMessage("Breakpoints skipped: the app has been backgrounded, where a held request is indistinguishable from a hang.")
+
+        /// `pending` is deliberately left as it stands. `resolve(id:with:)` calls back into
+        /// ``pendingChanged(_:)`` on the same turn, which treats anything already in `pending` as
+        /// known and so does not skip it a second time; each resolution trims the list on its own
+        /// way through.
+        held.forEach { coordinator.resolve(id: $0.id, with: .continue($0.draft)) }
+    }
+
+    // MARK: - Presentation
+
+    /// Forgets a presentation the app has taken down from under the presenter.
+    ///
+    /// A host that swaps its root view controller, or a window that goes away, takes the editor
+    /// with it without any of this running — leaving ``isPresenting`` claiming an editor is up
+    /// that is not, after which every later hold is published to a screen nobody can see and the
+    /// app sits paused for the whole of its timeout. There is no one notification for "the
+    /// controller I presented is no longer presented", so it is checked here, on the one path that
+    /// reacts to a hold.
+    ///
+    /// Does nothing when the editor was put up by an injected ``presentEditor``, which is what a
+    /// test does: there is no hosting controller to ask.
+    private func revalidatePresentation() {
+        guard isPresenting, let controller = hostingController else { return }
+        guard controller.presentingViewController == nil else { return }
+
+        hostingController = nil
+        isPresenting = false
+    }
+
+    /// Presents the editor over the topmost view controller, and reports whether it got there.
+    ///
+    /// The same `UIHostingController` path `Scyther.showMenu(from:)` uses, over the same key
+    /// window, so a held request appears in front of the app whether or not Scyther's menu is
+    /// already open. It refuses interactive dismissal: an exchange has to be decided, not swiped
+    /// away.
+    ///
+    /// Two things stop the presentation happening at all, and UIKit reports neither as an error:
+    /// there may be no key window to anchor to, and the anchor may already be presenting something
+    /// — which is what a hold taken while the previous editor is still animating away runs into.
+    /// The outcome is therefore read back off the controller, because a presentation UIKit accepts
+    /// has a presenting view controller from the moment it is accepted, and one it refuses never
+    /// does.
+    ///
+    /// - Returns: Whether the editor is now on screen.
+    private func presentOverKeyWindow() -> Bool {
+        guard let presenter = Scyther.topViewController else {
+            logMessage("Breakpoint editor could not be presented: no key window to anchor to. It will be offered again the next time an exchange is held.")
+            return false
+        }
+
+        let controller = UIHostingController(rootView: HeldRequestsView(presenter: self))
+        controller.isModalInPresentation = true
+        presenter.present(controller, animated: true)
+
+        guard controller.presentingViewController != nil else {
+            logMessage("Breakpoint editor could not be presented: the anchor is already presenting something. It will be offered again the next time an exchange is held.")
+            return false
+        }
+
+        hostingController = controller
+        return true
+    }
+
+    /// Dismisses the editor, if it is on screen.
+    private func dismissFromKeyWindow() {
+        hostingController?.dismiss(animated: true)
+        hostingController = nil
+    }
+}

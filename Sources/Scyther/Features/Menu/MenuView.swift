@@ -334,11 +334,11 @@ public struct MenuView: View {
     ///
     /// The label is derived entirely from the item, so every navigation row in the
     /// menu is laid out identically and only the destination varies.
-    private func navigationRow(for item: MenuItem) -> some View {
+    private func navigationRow(for item: MenuItem, description: String? = nil) -> some View {
         NavigationLink {
             destination(for: item)
         } label: {
-            row(withLabel: item.title, icon: item.icon, tint: item.tint)
+            row(withLabel: item.title, description: description, icon: item.icon, tint: item.tint)
         }
     }
 
@@ -351,6 +351,9 @@ public struct MenuView: View {
     private func destination(for item: MenuItem) -> some View {
         switch item {
         case .networkLogs: NetworkLogsView()
+        case .networkConditioning: NetworkConditioningView()
+        case .networkRules: NetworkRulesView()
+        case .networkBreakpoints: BreakpointsView()
         case .serverConfiguration: ServerConfigurationView()
         case .environmentVariables: EnvironmentVariablesView()
         case .featureFlags: FeatureFlagsView()
@@ -474,6 +477,32 @@ public struct MenuView: View {
             )
         case .networkLogs:
             navigationRow(for: item)
+        case .networkConditioning:
+            // The active preset, or Off. Conditioning the whole app is a large hammer, and a
+            // developer who has forgotten it is on will spend an afternoon blaming their backend;
+            // the row says so before the screen has to be opened.
+            navigationRow(for: item, description: viewModel.conditioningSummary)
+        case .networkRules:
+            // The count of enabled overrides, so overrides are never silently on. Carried as the
+            // row's trailing detail text rather than through `.badge(_:)`, which on a
+            // `NavigationLink` renders *after* the disclosure chevron and reads as "> 1". Passing
+            // it as a description keeps the count inside the link's own label, so it sits before
+            // the chevron the way a trailing value does everywhere else in this menu — and it is
+            // the same `row(withLabel:description:...)` builder every other detail row uses.
+            // Nil below one, since a nought would read as a count that means nothing.
+            navigationRow(for: item,
+                          description: viewModel.enabledOverrideCount > 0
+                          ? "\(viewModel.enabledOverrideCount)"
+                          : nil)
+        case .networkBreakpoints:
+            // The count of breakpoints being applied, for the reason the override count is shown:
+            // this is the one feature that stops the app, and a developer must be able to see from
+            // the menu's first screen that something is about to. Nil below one, since a nought
+            // would read as a count that means nothing.
+            navigationRow(for: item,
+                          description: viewModel.enabledBreakpointCount > 0
+                          ? "\(viewModel.enabledBreakpointCount)"
+                          : nil)
         case .serverConfiguration:
             navigationRow(for: item)
         case .environmentVariables:
@@ -539,14 +568,22 @@ public struct MenuView: View {
 
     func row(withLabel label: String, description: String? = nil, icon: String? = nil, tint: Color = .accentColor, andLoadingState loading: Bool = false) -> some View {
         HStack {
-            if let icon {
-                HStack(spacing: 12) {
-                    iconTile(icon, tint: tint)
+            Group {
+                if let icon {
+                    HStack(spacing: 12) {
+                        iconTile(icon, tint: tint)
+                        Text(label)
+                    }
+                } else {
                     Text(label)
                 }
-            } else {
-                Text(label)
             }
+            // The trailing value below is greedy (`maxWidth: .infinity`) so a long one truncates in
+            // its own middle rather than pushing the row wider. Without a priority here the title
+            // and the value split the row evenly, so a short value like a count still took half the
+            // width and wrapped a two-word title onto a second line. The title gets its ideal width
+            // first; the value keeps whatever is left, and still truncates when that is not enough.
+            .layoutPriority(1)
             if loading {
                 ProgressView()
             } else if let description {

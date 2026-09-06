@@ -57,7 +57,7 @@ struct NetworkLogAllFiltersSheet: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    NetworkLogFilterConfirmButton { dismiss() }
+                    ConfirmButton { dismiss() }
                 }
             }
         }
