@@ -1,0 +1,47 @@
+{
+  "Missing Labels": {
+    "comment": "Name of the accessibility audit check for elements VoiceOver cannot name, shown in the report and the settings screen",
+    "ar": "التسميات المفقودة",
+    "de": "Fehlende Beschriftungen",
+    "es": "Etiquetas faltantes",
+    "fr": "Libellés manquants",
+    "it": "Etichette mancanti",
+    "ja": "ラベルの欠落",
+    "ko": "누락된 라벨",
+    "nl": "Ontbrekende labels",
+    "pt-BR": "Rótulos ausentes",
+    "ru": "Отсутствующие подписи",
+    "zh-Hans": "缺少标签",
+    "zh-Hant": "缺少標籤"
+  },
+  "Touch Targets": {
+    "comment": "Name of the accessibility audit check for controls smaller than a finger, shown in the report and the settings screen",
+    "ar": "مناطق اللمس",
+    "de": "Berührungsziele",
+    "es": "Áreas táctiles",
+    "fr": "Zones tactiles",
+    "it": "Aree di tocco",
+    "ja": "タップ領域",
+    "ko": "터치 영역",
+    "nl": "Aanraakdoelen",
+    "pt-BR": "Áreas de toque",
+    "ru": "Области нажатия",
+    "zh-Hans": "触控区域",
+    "zh-Hant": "觸控區域"
+  },
+  "Contrast": {
+    "comment": "Name of the accessibility audit check for text too close in colour to what is behind it, shown in the report and the settings screen",
+    "ar": "التباين",
+    "de": "Kontrast",
+    "es": "Contraste",
+    "fr": "Contraste",
+    "it": "Contrasto",
+    "ja": "コントラスト",
+    "ko": "대비",
+    "nl": "Contrast",
+    "pt-BR": "Contraste",
+    "ru": "Контраст",
+    "zh-Hans": "对比度",
+    "zh-Hant": "對比度"
+  }
+}
