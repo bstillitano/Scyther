@@ -71,6 +71,19 @@ final class TrafficStatsViewModel: ViewModel {
     /// How many requests the log holds before its search and filters narrow it.
     private(set) var totalCount: Int
 
+    /// How many requests the published figures were computed from.
+    ///
+    /// Not ``requests``: that array is replaced the moment the log changes, while the figures
+    /// below it lag by the debounce. Reading the caption from one and the rows from the other
+    /// left the header saying "41 requests" above a table describing forty, for up to half a
+    /// second at a time, whenever traffic was flowing.
+    @Published private(set) var captionCount: Int
+
+    /// How many requests the log held, unfiltered, when the published figures were computed.
+    ///
+    /// Snapshotted with ``captionCount`` for the same reason.
+    @Published private(set) var captionTotal: Int
+
     /// Coalesces bursts of log updates into one recomputation.
     private let updateSubject = PassthroughSubject<Void, Never>()
 
@@ -104,6 +117,8 @@ final class TrafficStatsViewModel: ViewModel {
     init(requests: [HTTPRequest], totalCount: Int) {
         self.requests = requests
         self.totalCount = totalCount
+        self.captionCount = requests.count
+        self.captionTotal = totalCount
         super.init()
     }
 
@@ -144,16 +159,20 @@ final class TrafficStatsViewModel: ViewModel {
 
     /// Recomputes both value types from the current requests, off the main actor.
     ///
-    /// Safe to call at any time; the results are assigned back on the main actor together, so the
-    /// summary and the chart are never drawn from different snapshots.
+    /// Safe to call at any time; the results are assigned back on the main actor together — the
+    /// caption's counts among them — so no two parts of the screen are ever drawn from different
+    /// snapshots.
     func recompute() async {
         let snapshot = requests
+        let snapshotTotal = totalCount
         let computed = await Task.detached(priority: .userInitiated) {
             (statistics: TrafficStatistics.compute(from: snapshot), waterfall: WaterfallSeries.build(from: snapshot))
         }.value
         guard !Task.isCancelled else { return }
         statistics = computed.statistics
         waterfall = computed.waterfall
+        captionCount = snapshot.count
+        captionTotal = snapshotTotal
         chartRows = computed.waterfall.entries.enumerated().map { index, entry in
             ChartRow(id: "\(index + 1). \(entry.label)", entry: entry)
         }
@@ -161,19 +180,16 @@ final class TrafficStatsViewModel: ViewModel {
 
     // MARK: - Caption
 
-    /// How many requests the figures cover.
-    var captionCount: Int { requests.count }
-
     /// Whether the log's search or filters are narrowing what the figures cover.
-    var isFiltered: Bool { requests.count != totalCount }
+    var isFiltered: Bool { captionCount != captionTotal }
 
     /// Whether there is nothing to describe.
-    var isEmpty: Bool { requests.isEmpty }
+    var isEmpty: Bool { captionCount == 0 }
 
     /// The line under the title saying what the figures cover.
     var caption: String {
         isFiltered
-            ? localized("\(captionCount) of \(totalCount) requests")
+            ? localized("\(captionCount) of \(captionTotal) requests")
             : localized("\(captionCount) requests")
     }
 
@@ -230,12 +246,19 @@ final class TrafficStatsViewModel: ViewModel {
 
     /// What one bar's outcome is called, which is also its key in the chart's colour scale.
     ///
+    /// A stub is named as one whatever its authored status code says, because the code was
+    /// written rather than returned. Beyond that,
+    /// ``WaterfallEntry/isPending`` and ``WaterfallEntry/isFailure`` are mutually exclusive, so
+    /// the remaining order decides nothing — it reads failure first regardless, because when the
+    /// two could both be set this test ran second and every failure in the log was drawn as
+    /// pending.
+    ///
     /// - Parameter entry: The bar.
     /// - Returns: The localised outcome name.
     func outcomeTitle(for entry: WaterfallEntry) -> String {
-        if entry.isPending { return localized("Pending") }
         if entry.isStubbed { return localized("Stubbed") }
-        return entry.isFailure ? localized("Failed") : localized("Succeeded")
+        if entry.isFailure { return localized("Failed") }
+        return entry.isPending ? localized("Pending") : localized("Succeeded")
     }
 
     /// The value label drawn at the end of one bar.

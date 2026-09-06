@@ -25,10 +25,20 @@ struct WaterfallEntry: Identifiable, Equatable, Sendable {
     /// span to run into.
     var duration: TimeInterval
 
-    /// Whether the request failed: a status of 400 or above, or no response at all.
+    /// Whether the request finished and finished badly: a status of 400 or above, or a load that
+    /// ended without a response at all.
+    ///
+    /// Mutually exclusive with ``isPending``. A request that has not come back has not failed
+    /// yet, and one that has come back is not in flight, so exactly one of the two can be true.
     let isFailure: Bool
 
     /// Whether the request is still in flight.
+    ///
+    /// Derived from the absence of a response *date*, not from
+    /// ``HTTPRequest/noResponse``: a load that ended in an error carries a response date and no
+    /// response, so `noResponse` means "finished badly" rather than "still running". Deriving
+    /// pending from it painted every failure in the log as in flight and stretched its bar to the
+    /// end of the chart.
     ///
     /// A pending bar is drawn to the end of the series rather than stopping short, because its
     /// real end is not known yet.
@@ -57,7 +67,12 @@ struct WaterfallSeries: Equatable, Sendable {
     /// The wall-clock time the axis starts at.
     let origin: Date
 
-    /// The seconds from ``origin`` to the last request finishing. Never negative.
+    /// The seconds from ``origin`` to the far end of the chart. Never negative.
+    ///
+    /// The later of the last request finishing and, when anything is still in flight, the moment
+    /// the series was built — because a request that has not come back is still running now, and
+    /// an axis that stopped at the last *finish* would give the newest pending bar no width at
+    /// all.
     let span: TimeInterval
 
     /// The bars, oldest first.
@@ -81,12 +96,21 @@ struct WaterfallSeries: Equatable, Sendable {
     /// negative duration — a clock that moved while the request was in flight — is drawn as zero
     /// rather than as a bar that runs backwards.
     ///
+    /// The axis is sized before the pending tails are filled in, and takes `now` into account
+    /// when anything is still in flight. Sizing it from the finished bars alone left every entry
+    /// that started at or after the last finish — the newest request, the common case — with a
+    /// zero-width bar reading `0 ms`.
+    ///
     /// - Parameters:
     ///   - requests: The requests to lay out, in any order.
     ///   - limit: How many of the most recent requests to keep. Defaults to ``defaultLimit``.
+    ///   - now: The moment the series describes, which is where a still-running bar ends.
+    ///     Defaults to the current time; a test passes its own so the arithmetic is deterministic.
     /// - Returns: The series, oldest entry first. Empty when there is nothing to place.
-    static func build(from requests: [HTTPRequest], limit: Int = defaultLimit) -> WaterfallSeries {
-        guard limit > 0 else { return WaterfallSeries(origin: Date(), span: 0, entries: []) }
+    static func build(from requests: [HTTPRequest],
+                      limit: Int = defaultLimit,
+                      now: Date = Date()) -> WaterfallSeries {
+        guard limit > 0 else { return WaterfallSeries(origin: now, span: 0, entries: []) }
 
         let dated = requests
             .compactMap { request -> (request: HTTPRequest, date: Date)? in
@@ -97,29 +121,53 @@ struct WaterfallSeries: Equatable, Sendable {
             .suffix(limit)
 
         guard let origin = dated.first?.date else {
-            return WaterfallSeries(origin: Date(), span: 0, entries: [])
+            return WaterfallSeries(origin: now, span: 0, entries: [])
         }
 
         var entries = dated.map { pair -> WaterfallEntry in
             let request = pair.request
-            let duration = max(0, Double(request.requestDuration ?? 0) / 1_000)
+            let didFinish = request.responseDate != nil
             return WaterfallEntry(
                 id: request.getRandomHash() as String,
                 label: label(for: request),
                 start: max(0, pair.date.timeIntervalSince(origin)),
-                duration: duration.isFinite ? duration : 0,
-                isFailure: request.noResponse || (request.responseCode ?? 0) >= failureStatusFloor,
-                isPending: request.noResponse,
+                duration: duration(of: request, startedAt: pair.date),
+                isFailure: didFinish
+                    && (request.noResponse || (request.responseCode ?? 0) >= failureStatusFloor),
+                isPending: !didFinish,
                 isStubbed: request.wasStubbed
             )
         }
 
-        let span = entries.reduce(0) { max($0, $1.start + $1.duration) }
+        let finished = entries.reduce(0) { max($0, $1.start + $1.duration) }
+        let stillRunning = entries.contains(where: \.isPending) ? max(0, now.timeIntervalSince(origin)) : 0
+        let span = max(finished, stillRunning)
         for index in entries.indices where entries[index].isPending {
             entries[index].duration = max(0, span - entries[index].start)
         }
 
         return WaterfallSeries(origin: origin, span: span, entries: entries)
+    }
+
+    /// How long one request's bar runs, in seconds.
+    ///
+    /// ``HTTPRequest/requestDuration`` is only filled in when a response arrived, so a request
+    /// that failed carries none and used to be drawn with no width at all. The response date is
+    /// stamped either way, so the time between the two dates is the honest length of a failed
+    /// bar: a request that failed twenty milliseconds in is twenty milliseconds long.
+    ///
+    /// - Parameters:
+    ///   - request: The request to measure.
+    ///   - start: The request's own start date, already unwrapped by the caller.
+    /// - Returns: The bar's length in seconds. Zero for a request still in flight, which is
+    ///   filled in from the series' span afterwards, and zero for any figure that is not finite.
+    private static func duration(of request: HTTPRequest, startedAt start: Date) -> TimeInterval {
+        if let raw = request.requestDuration, raw.isFinite, raw > 0 {
+            return Double(raw) / 1_000
+        }
+        guard let finish = request.responseDate else { return 0 }
+        let measured = finish.timeIntervalSince(start)
+        return measured.isFinite ? max(0, measured) : 0
     }
 
     /// What a request's bar is called.

@@ -17,13 +17,19 @@ final class WaterfallSeriesTests: XCTestCase {
 
     /// Builds a captured request that started `offset` seconds after ``base``.
     ///
+    /// A finished load is stamped with a response date whether or not a response arrived, exactly
+    /// as `HTTPRequest` does: `saveResponse(_:data:)` sets one and so does `saveErrorResponse()`.
+    /// That date, not `noResponse`, is what separates a request still in flight from one that
+    /// finished badly.
+    ///
     /// - Parameters:
     ///   - offset: Seconds after ``base`` that the request started.
-    ///   - duration: The round trip in milliseconds, or `nil` for a request still in flight.
-    ///   - status: The response status code, or `nil` for a request still in flight.
+    ///   - duration: The round trip in milliseconds, or `nil` for a load that recorded none.
+    ///   - status: The response status code, or `nil` for a load that came back with no response.
     ///   - url: The request URL.
     ///   - graphQL: The GraphQL operation name, if this is a GraphQL request.
     ///   - stubbed: Whether a rule synthesised the response.
+    ///   - finished: Whether the load ended. `false` is a request still in flight.
     /// - Returns: The request.
     private func request(
         offset: TimeInterval,
@@ -31,7 +37,8 @@ final class WaterfallSeriesTests: XCTestCase {
         status: Int? = 200,
         url: String = "https://api.example.com/v1/users",
         graphQL: String? = nil,
-        stubbed: Bool = false
+        stubbed: Bool = false,
+        finished: Bool = true
     ) -> HTTPRequest {
         var urlRequest = URLRequest(url: URL(string: url)!)
         urlRequest.httpMethod = "GET"
@@ -41,6 +48,9 @@ final class WaterfallSeriesTests: XCTestCase {
         model.requestDuration = duration
         model.responseCode = status
         model.noResponse = status == nil
+        if finished {
+            model.responseDate = base.addingTimeInterval(offset + Double(duration ?? 0) / 1_000)
+        }
         model.wasStubbed = stubbed
         if let graphQL {
             model.isGraphQL = true
@@ -87,20 +97,69 @@ final class WaterfallSeriesTests: XCTestCase {
     }
 
     func testAPendingRequestRunsToTheEndOfTheSpan() {
-        let series = WaterfallSeries.build(from: [
-            request(offset: 0, duration: 2_000),
-            request(offset: 1, duration: nil, status: nil),
-        ])
+        let series = WaterfallSeries.build(
+            from: [
+                request(offset: 0, duration: 2_000),
+                request(offset: 1, duration: nil, status: nil, finished: false),
+            ],
+            now: base.addingTimeInterval(2)
+        )
         let pending = series.entries.first { $0.isPending }
         XCTAssertEqual(pending?.start ?? -1, 1, accuracy: 0.0001)
         XCTAssertEqual((pending?.start ?? 0) + (pending?.duration ?? 0), series.span, accuracy: 0.0001)
     }
 
-    func testAPendingRequestAloneHasNoSpanToRunInto() {
-        let series = WaterfallSeries.build(from: [request(offset: 0, duration: nil, status: nil)])
+    /// The defect W20 named: a request still in flight that started after everything else had
+    /// finished used to be given a zero-width bar, because the axis was sized from the finished
+    /// bars alone. That is the request a developer opens the screen to look at.
+    func testTheNewestPendingRequestStillHasABar() {
+        let series = WaterfallSeries.build(
+            from: [
+                request(offset: 0, duration: 1_000),
+                request(offset: 4, duration: nil, status: nil, finished: false),
+            ],
+            now: base.addingTimeInterval(9)
+        )
+        let pending = try? XCTUnwrap(series.entries.first { $0.isPending })
+        XCTAssertEqual(pending?.duration ?? -1, 5, accuracy: 0.0001,
+                       "it started five seconds ago and has not come back, so its bar is five seconds long")
+        XCTAssertEqual(series.span, 9, accuracy: 0.0001, "the axis runs to now, not to the last finish")
+    }
+
+    func testAPendingRequestAloneRunsFromItsStartToNow() {
+        let series = WaterfallSeries.build(
+            from: [request(offset: 0, duration: nil, status: nil, finished: false)],
+            now: base.addingTimeInterval(3)
+        )
         XCTAssertEqual(series.entries.count, 1)
-        XCTAssertEqual(series.entries.first?.duration ?? -1, 0, accuracy: 0.0001)
-        XCTAssertEqual(series.span, 0, accuracy: 0.0001)
+        XCTAssertEqual(series.entries.first?.duration ?? -1, 3, accuracy: 0.0001)
+        XCTAssertEqual(series.span, 3, accuracy: 0.0001)
+    }
+
+    func testNothingInFlightLeavesTheAxisAtTheLastFinish() {
+        let series = WaterfallSeries.build(
+            from: [request(offset: 0, duration: 1_000)],
+            now: base.addingTimeInterval(600)
+        )
+        XCTAssertEqual(series.span, 1, accuracy: 0.0001,
+                       "a series with nothing running does not stretch to the present")
+    }
+
+    /// The defect W19 named: a load that ended in an error carries a response date and no
+    /// response, so deriving pending from `noResponse` drew every failure in the log as still
+    /// running and stretched its bar to the end of the chart.
+    func testARequestThatFailedIsDrawnForAsLongAsItRan() {
+        let failed = request(offset: 0, duration: nil, status: nil)
+        failed.responseDate = base.addingTimeInterval(0.02)
+        let series = WaterfallSeries.build(
+            from: [failed, request(offset: 1, duration: 5_000)],
+            now: base.addingTimeInterval(60)
+        )
+        let entry = try? XCTUnwrap(series.entries.first)
+        XCTAssertFalse(entry?.isPending ?? true, "it finished; it just finished badly")
+        XCTAssertTrue(entry?.isFailure ?? false)
+        XCTAssertEqual(entry?.duration ?? -1, 0.02, accuracy: 0.0001,
+                       "twenty milliseconds, not the whole timeline")
     }
 
     func testTwoOverlappingRequestsShareTheAxis() {
@@ -167,10 +226,19 @@ final class WaterfallSeriesTests: XCTestCase {
         XCTAssertFalse(series.entries.first?.isFailure ?? true)
     }
 
-    func testAPendingRequestIsAFailureAndPending() {
+    func testAPendingRequestHasNotFailedYet() {
+        let series = WaterfallSeries.build(
+            from: [request(offset: 0, duration: nil, status: nil, finished: false)],
+            now: base.addingTimeInterval(1)
+        )
+        XCTAssertTrue(series.entries.first?.isPending ?? false)
+        XCTAssertFalse(series.entries.first?.isFailure ?? true, "nothing has gone wrong yet")
+    }
+
+    func testALoadThatEndedWithNoResponseIsAFailureAndNotPending() {
         let series = WaterfallSeries.build(from: [request(offset: 0, duration: nil, status: nil)])
         XCTAssertTrue(series.entries.first?.isFailure ?? false)
-        XCTAssertTrue(series.entries.first?.isPending ?? false)
+        XCTAssertFalse(series.entries.first?.isPending ?? true)
     }
 
     func testAStubbedRequestKeepsItsPlaceOnTheTimelineAndIsFlagged() {
