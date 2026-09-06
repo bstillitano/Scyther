@@ -37,6 +37,10 @@ final class BreakpointInterceptorTests: XCTestCase {
         /// The error the load failed with, if it failed.
         var failureCode: URLError.Code? { lock.withLock { failure } }
 
+        /// Called from inside `urlProtocol(_:didReceive:cacheStoragePolicy:)`, on whichever thread
+        /// forwarded the response.
+        var onResponse: (@Sendable () -> Void)?
+
         func urlProtocol(_ protocol: URLProtocol, didLoad data: Data) {
             lock.withLock {
                 events.append("data")
@@ -49,6 +53,7 @@ final class BreakpointInterceptorTests: XCTestCase {
                 events.append("response")
                 status = (response as? HTTPURLResponse)?.statusCode
             }
+            onResponse?()
         }
 
         func urlProtocolDidFinishLoading(_ protocol: URLProtocol) {
@@ -126,6 +131,11 @@ final class BreakpointInterceptorTests: XCTestCase {
     private func heldPause() -> PendingBreakpoint? {
         waitUntil { !coordinator.pending.isEmpty }
         return coordinator.pending.first
+    }
+
+    /// A draft standing in for an unrelated exchange held on the same coordinator.
+    private func draft() -> BreakpointDraft {
+        BreakpointDraft(request: URLRequest(url: URL(string: "https://elsewhere.invalid/v1/cart")!))
     }
 
     // MARK: - The request stage
@@ -396,6 +406,76 @@ final class BreakpointInterceptorTests: XCTestCase {
         XCTAssertTrue(waitUntil { harness.client.received == ["response", "data", "finished"] })
         XCTAssertEqual(harness.client.body.count, 128, "every byte still arrives")
         XCTAssertTrue(coordinator.pending.isEmpty, "nothing was held")
+    }
+
+    /// A load that failed is not held, so the non-holdable branch runs — and it used to tell a
+    /// client that had already been cancelled how its load ended, which the `URLProtocol` contract
+    /// forbids. The withholding helpers had the guard; the terminal callback did not.
+    @MainActor
+    func testACancelledRequestIsToldNothingEvenWithAResponseBreakpointConfigured() throws {
+        let harness = try responseHarness()
+        harness.interceptor.stopLoading()
+
+        deliver(harness, body: Data(), error: URLError(.timedOut))
+
+        XCTAssertFalse(waitUntil(1) { !harness.client.received.isEmpty },
+                       "a client that has been told to stop is handed nothing, terminal callback included")
+        XCTAssertTrue(coordinator.pending.isEmpty)
+    }
+
+    /// The same for the branch that skips the hold because the body is too large to be worth
+    /// stalling for.
+    @MainActor
+    func testACancelledRequestOverTheBufferCapIsToldNothing() throws {
+        let harness = try responseHarness(status: 200)
+        harness.interceptor.maximumHeldResponseBytes = 64
+        harness.interceptor.stopLoading()
+
+        deliver(harness, body: Data(repeating: UInt8(ascii: "x"), count: 128))
+
+        XCTAssertFalse(waitUntil(1) { !harness.client.received.isEmpty })
+    }
+
+    // MARK: - The coordinator's queue
+
+    /// The continuation the interceptor hands the coordinator runs on a serial queue that every
+    /// live pause in the process shares, and what it goes on to do — hand a response to the
+    /// client, write both bodies to the log — is neither quick nor bounded. Doing that work on
+    /// that queue put one hold's disk I/O in front of every other hold's cancellation, defeating
+    /// the immediacy `cancel(id:)` is documented to have.
+    ///
+    /// Written without a timing margin: the resolved exchange is held inside its own delivery for
+    /// as long as the test likes, and the unrelated pause's cancellation either lands while it is
+    /// held or it never lands at all.
+    @MainActor
+    func testResolvingOneHoldDoesNotStallAnotherPausesCancellation() throws {
+        let harness = try responseHarness(status: 200)
+        let release = DispatchSemaphore(value: 0)
+        let occupied = expectation(description: "the resolved exchange is inside its delivery")
+        harness.client.onResponse = {
+            occupied.fulfill()
+            release.wait()
+        }
+
+        deliver(harness, body: Data("{}".utf8))
+        let held = try XCTUnwrap(heldPause())
+
+        /// An unrelated exchange, held on the same coordinator by something that is not this
+        /// interceptor.
+        let unrelated = coordinator.pause(draft(), name: "elsewhere", stage: .request, timeout: 60) { _ in }
+        XCTAssertTrue(waitUntil { self.coordinator.pending.count == 2 })
+
+        coordinator.resolve(id: held.id, with: .timedOut)
+        wait(for: [occupied], timeout: 5)
+        defer { release.signal() }
+
+        coordinator.cancel(id: unrelated)
+
+        /// The unrelated pause specifically: `resolve(id:with:)` takes its own row away on the
+        /// main actor before the continuation runs at all, so counting rows would pass whether or
+        /// not the cancellation ever landed.
+        XCTAssertTrue(waitUntil(5) { !self.coordinator.pending.contains { $0.id == unrelated } },
+                      "a cancellation must not queue behind another hold's delivery")
     }
 
     // MARK: - Provenance

@@ -799,8 +799,17 @@ final class NetworkRuleDelayTests: XCTestCase {
         /// The callbacks received so far, in order.
         var received: [String] { lock.withLock { events } }
 
+        /// How many callbacks arrived on the main thread, which is the thread these tests call
+        /// `startLoading()` from.
+        var mainThreadCallbacks: Int { lock.withLock { onMainThread } }
+
+        private var onMainThread = 0
+
         private func record(_ event: String) {
-            lock.withLock { events.append(event) }
+            lock.withLock {
+                events.append(event)
+                if Thread.isMainThread { onMainThread += 1 }
+            }
         }
 
         func urlProtocol(_ protocol: URLProtocol, didReceive response: URLResponse, cacheStoragePolicy policy: URLCache.StoragePolicy) {
@@ -891,14 +900,27 @@ final class NetworkRuleDelayTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(Date().timeIntervalSince(start), 1)
     }
 
-    /// The common path — nothing delayed — keeps the ordering it has always had.
-    func testAnUndelayedMockIsStillServedInline() {
+    /// Zero is a mock's default delay, so this is the common stub path — and it used to run
+    /// inline. Serving a stub reads the body off disk, hands the client three callbacks and writes
+    /// both bodies to the log; doing all of that on the thread the URL loading system gave
+    /// `startLoading()` is exactly the hazard the delay queue exists to avoid, and that thread may
+    /// be shared with traffic matching no override at all.
+    ///
+    /// The thread is the assertion rather than the timing: these tests call `startLoading()` from
+    /// the main thread, so a callback arriving on it is a callback taken on the caller's thread.
+    func testAnUndelayedMockIsNotServedOnTheCallersThread() {
         let client = RecordingClient()
+        let delivered = expectation(description: "the stub is delivered")
+        client.onFinish = { delivered.fulfill() }
         let interceptor = interceptor(mockDelay: 0, client: client)
 
         interceptor.startLoading()
 
-        XCTAssertEqual(client.received, ["response", "data", "finished"])
+        wait(for: [delivered], timeout: 10)
+        XCTAssertEqual(client.received, ["response", "data", "finished"],
+                       "the ordering is exactly what it has always been")
+        XCTAssertEqual(client.mainThreadCallbacks, 0,
+                       "and none of it was taken on the thread startLoading was called on")
     }
 
     func testCancellingDuringTheDelayDeliversNothing() {
@@ -989,9 +1011,20 @@ final class NetworkRuleDelayTests: XCTestCase {
     func testCancellingFromInsideTheResponseCallbackStopsTheStub() {
         let client = RecordingClient()
         let interceptor = interceptor(mockDelay: 0, client: client)
-        client.onResponse = { [weak interceptor] in interceptor?.stopLoading() }
+        let responded = expectation(description: "the response reached the client")
+        client.onResponse = { [weak interceptor] in
+            interceptor?.stopLoading()
+            responded.fulfill()
+        }
 
         interceptor.startLoading()
+        wait(for: [responded], timeout: 10)
+
+        /// The stub is served off the caller's thread, so give the rest of it every chance to
+        /// arrive before concluding that it did not.
+        let settled = expectation(description: "the rest of the stub had its chance")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { settled.fulfill() }
+        wait(for: [settled], timeout: 5)
 
         XCTAssertEqual(client.received, ["response"],
                        "nothing is delivered to a client that has been told to stop")

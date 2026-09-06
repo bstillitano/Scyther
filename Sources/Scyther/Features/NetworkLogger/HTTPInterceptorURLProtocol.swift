@@ -39,14 +39,16 @@ internal let replayOfRequestKey = "Scyther_Replay_Of_Request"
 ///
 /// - Note: This protocol is automatically registered by `NetworkHelper.start()`.
 open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
-    /// Guards ``isCancelled``, ``didStartTask``, ``session`` and ``startedTask``.
+    /// Guards ``isCancelled``, ``didStartTask``, ``session``, ``startedTask``,
+    /// ``pendingBreakpointID``, ``holdCount`` and ``resolvedHold``.
     ///
-    /// Three threads reach that state: `stopLoading()`, on a thread the URL loading system owns;
-    /// the block scheduled on ``delayQueue``; and the private session's delegate queue. The
-    /// grouping matters more than any single field does — `stopLoading()` has to decide whether a
-    /// task exists *and* take hold of it to cancel it as one indivisible act, because a check that
-    /// raced the delay block would see `didStartTask == false`, cancel nothing, and let a request
-    /// the app had already abandoned go out with nothing left able to stop it.
+    /// Four threads reach that state: `stopLoading()`, on a thread the URL loading system owns;
+    /// the block scheduled on ``delayQueue``; the coordinator's queue, when a held exchange is
+    /// let go; and the private session's delegate queue. The grouping matters more than any single
+    /// field does — `stopLoading()` has to observe the cancellation *and* take hold of everything
+    /// there is to cancel, the data task and the pause alike, as one indivisible act, because a
+    /// check that raced ``beginTask(with:)`` would find no task recorded, cancel nothing, and let
+    /// a request the app had already abandoned go out with nothing left able to stop it.
     private let stateLock = NSLock()
 
     /// The private session the real data task runs on, or `nil` while no task has been started.
@@ -111,11 +113,29 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     ///   hold of it to cancel the pause.
     private var pendingBreakpointID: UUID?
 
-    /// The most a held response may buffer before the pause is skipped, in bytes.
+    /// How many exchanges this request has held so far, which is what identifies a hold to
+    /// ``recordPendingBreakpoint(_:for:)``.
     ///
-    /// A breakpoint on a large download would hold every byte of it in memory in order to show a
-    /// body nobody is going to read. Above this the response is forwarded as it stands and the
-    /// skip is logged.
+    /// At most two: the request, then its response.
+    ///
+    /// - Note: Only ever read or written under ``stateLock``.
+    private var holdCount: Int = 0
+
+    /// The token of the most recent hold whose continuation has already run, or zero while none
+    /// has.
+    ///
+    /// - Note: Only ever read or written under ``stateLock``.
+    private var resolvedHold: Int = 0
+
+    /// The largest response a breakpoint will hold, in bytes.
+    ///
+    /// This bounds how long a large body is **held**, not the memory it takes. Every byte is
+    /// buffered into ``responseData`` on the way through whether or not a breakpoint matched —
+    /// that is what the log is written from — so a response over the cap has already been
+    /// accumulated by the time it is measured here. What the cap buys is that a download nobody
+    /// is going to read in an editor is forwarded on as it stands, rather than sitting in the app
+    /// for up to ``NetworkBreakpoint/timeoutRange``'s upper bound while an editor offers a body
+    /// no one wants. The skip is logged.
     ///
     /// - Note: Internal and settable so a test can shrink it rather than allocate ten megabytes.
     ///   Nothing in production changes it.
@@ -128,8 +148,13 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     ///   Nothing in production sets it.
     internal var breakpointTimeoutOverride: TimeInterval?
 
-    /// Whether a real data task was started. A stubbed or rule-failed request never creates one,
-    /// so `stopLoading()` must not spin up a session just to cancel nothing.
+    /// Whether a real data task was started. A stubbed or rule-failed request never creates one.
+    ///
+    /// Nothing in production reads it: `stopLoading()` cancels ``startedTask`` directly, and a
+    /// request that started no task simply has none recorded to cancel. It is kept because it is
+    /// the only way a test can ask whether a request reached the network at all — see
+    /// ``hasStartedTask`` — for which asking the session would be both asynchronous and, once the
+    /// session has been invalidated, too late.
     ///
     /// - Note: Only ever read or written under ``stateLock``.
     private var didStartTask: Bool = false
@@ -166,7 +191,7 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         (condition?.bandwidthKBps ?? 0) > 0
     }
 
-    /// The queue a paced response is delivered on, private to this request.
+    /// The queue this request's own callbacks are delivered on, private to it.
     ///
     /// Serial, and the sole owner of every piece of pacing state below — nothing here is touched
     /// from two threads. The wait used to be a `Thread.sleep` on the session's own delegate queue,
@@ -174,6 +199,12 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// could sit behind up to 30 seconds of pacing while the socket kept transferring. Nothing
     /// sleeps now: each chunk is scheduled for the moment the ceiling says its bytes are due, and
     /// no thread is held in the meantime.
+    ///
+    /// A breakpoint's continuation lands here too, for the mirror reason. It arrives on
+    /// ``BreakpointCoordinator``'s serial queue, which every live pause in the process shares, and
+    /// what it goes on to do — start a task, hand a response to the client, write both bodies to
+    /// the log — is neither quick nor bounded. Because this queue belongs to one request, nothing
+    /// but this request ever waits behind that work.
     private let deliveryQueue = DispatchQueue(label: "com.scyther.networkRules.delivery",
                                               qos: .userInitiated)
 
@@ -336,40 +367,86 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         let condition = outcome.condition ?? snapshot.globalCondition
         self.condition = condition
 
+        guard let stub = outcome.stub, let url = request.url else {
+            beginNetworkPath(outcome: outcome, condition: condition)
+            return
+        }
+
         /// A stub short-circuits the network, but no longer suppresses the other two actions. The
         /// condition applies to the synthesised response — it delays, paces and can fail it — and
         /// the rewrite is applied to the request the *log* describes, so the log shows what would
         /// have gone out even though nothing does. Both are credited accordingly.
-        if let stub = outcome.stub, let url = request.url {
-            let bodies = { NetworkRuleStore.bodyDataOffMainActor(for: $0) }
-            if let (response, body) = NetworkRuleStubResponder.response(for: stub, url: url, bodyProvider: bodies) {
-                /// Names and ids are parallel: same length, same order, one entry per override
-                /// credited. The details page looks the override up by id and shows the name, so
-                /// the two are always assigned together and must never be allowed to drift.
-                let credits = outcome.stubbedCredits
-                model.appliedRuleNames = credits.names
-                model.appliedRuleIDs = credits.ids
-                _ = rewrittenRequest(applying: outcome.headerRewrite)
+        ///
+        /// The stub's own delay and the condition's latency are both "wait before this answers",
+        /// so they add rather than one silently winning — then the pair is clamped once, so two
+        /// reasonable numbers cannot combine into an apparent hang.
+        let delay = min(stub.delay + (condition?.latency ?? 0), Self.maximumDelay)
 
-                /// The stub's own delay and the condition's latency are both "wait before this
-                /// answers", so they add rather than one silently winning — then the pair is
-                /// clamped once, so two reasonable numbers cannot combine into an apparent hang.
-                let delay = min(stub.delay + (condition?.latency ?? 0), Self.maximumDelay)
-                perform(after: delay) { interceptor in
-                    if let condition, interceptor.shouldFail(condition) {
-                        interceptor.failRequest(with: condition)
-                        return
-                    }
-                    interceptor.serve(response, body: body)
-                }
-                return
-            }
+        /// Producing the stub reads a mock body or a mapped file off disk, and neither read is
+        /// bounded — a mock body is whatever the developer stored and a mapped file is whatever is
+        /// on the device. Both are taken on ``delayQueue`` rather than on the thread the URL
+        /// loading system gave us, for the same reason the delay itself is scheduled rather than
+        /// slept for: that thread may be shared with traffic matching no override at all. A stub
+        /// that cannot be produced falls through to the network from there too, so neither branch
+        /// of the decision touches disk on the caller's thread.
+        Self.delayQueue.async { [weak self] in
+            guard let self, !self.hasBeenCancelled else { return }
+            self.serveStub(stub, url: url, outcome: outcome, condition: condition, delay: delay)
+        }
+    }
+
+    /// Produces the stub an override asked for and serves it, or falls through to the network.
+    ///
+    /// - Parameters:
+    ///   - stub: The mock or map-local action that matched.
+    ///   - url: The request's URL, which the synthesised response is built against.
+    ///   - outcome: Everything the rules resolved to, for the credits and the rewrite.
+    ///   - condition: The conditioning that applies to the synthesised response, if any.
+    ///   - delay: Seconds to wait before answering, already clamped to ``maximumDelay``.
+    /// - Note: Only ever called on ``delayQueue``, because it reads a body off disk.
+    private func serveStub(_ stub: NetworkRuleStub,
+                           url: URL,
+                           outcome: NetworkRuleOutcome,
+                           condition: NetworkCondition?,
+                           delay: TimeInterval) {
+        let bodies = { NetworkRuleStore.bodyDataOffMainActor(for: $0) }
+        guard let (response, body) = NetworkRuleStubResponder.response(for: stub, url: url, bodyProvider: bodies) else {
+            beginNetworkPath(outcome: outcome, condition: condition)
+            return
         }
 
-        /// Either nothing stubbed this request or the stub could not be produced — a map-local
-        /// file that has been deleted, say — so it goes to the network. The stub is not credited,
-        /// because it served nothing; everything else that matched is. Names and ids stay
-        /// parallel, as on the stub path above: same length, same order, assigned together.
+        /// Names and ids are parallel: same length, same order, one entry per override credited.
+        /// The details page looks the override up by id and shows the name, so the two are always
+        /// assigned together and must never be allowed to drift.
+        let credits = outcome.stubbedCredits
+        model.appliedRuleNames = credits.names
+        model.appliedRuleIDs = credits.ids
+        _ = rewrittenRequest(applying: outcome.headerRewrite)
+
+        perform(after: delay) { interceptor in
+            if let condition, interceptor.shouldFail(condition) {
+                interceptor.failRequest(with: condition)
+                return
+            }
+            interceptor.serve(response, body: body)
+        }
+    }
+
+    /// Sends the request to the network, through any rewrite and any breakpoint that matched it.
+    ///
+    /// Reached either because nothing stubbed this request or because the stub could not be
+    /// produced — a map-local file that has been deleted, say. The stub is not credited in either
+    /// case, because it served nothing; everything else that matched is.
+    ///
+    /// - Parameters:
+    ///   - outcome: Everything the rules resolved to, for the credits and the rewrite.
+    ///   - condition: The conditioning that applies to the request, if any.
+    /// - Note: Runs on the thread `startLoading()` was called on when nothing stubbed the request,
+    ///   which is what keeps an unmatched request's threading exactly as it was before rules
+    ///   existed; and on ``delayQueue`` when a stub matched but could not be produced.
+    private func beginNetworkPath(outcome: NetworkRuleOutcome, condition: NetworkCondition?) {
+        /// Names and ids stay parallel, as on the stubbed path: same length, same order, assigned
+        /// together.
         model.appliedRuleNames = outcome.networkRuleNames
         model.appliedRuleIDs = outcome.networkRuleIDs
 
@@ -403,7 +480,12 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     ///
     /// Nothing waits here. `startLoading()` runs on a thread the URL loading system owns, and the
     /// request is in flight as far as that system is concerned; the continuation runs later, on
-    /// the coordinator's own queue, and starts the load from there.
+    /// the coordinator's own queue, and hands the work to ``deliveryQueue`` from there.
+    ///
+    /// That hop is not a detail. The coordinator's queue is serial and shared by every live pause
+    /// in the process, and resuming an exchange writes bodies to the log — so doing the work on it
+    /// would put this request's disk I/O in front of another pause's registration, cancellation
+    /// and timeout. ``deliveryQueue`` is private to this request, so nothing else waits on it.
     ///
     /// The continuation captures `self` strongly, which is deliberate: while an exchange is held,
     /// the pause is what owns it. Every path out of the pause — a decision, the timeout, a
@@ -422,38 +504,42 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         let draft = BreakpointDraft(request: request)
         model.breakpointNames.append(breakpoint.name)
 
+        let token = beginHold()
         let id = breakpoints.pause(draft,
                                    name: breakpoint.name,
                                    stage: .request,
                                    timeout: breakpointTimeoutOverride ?? breakpoint.timeout) { [self] resolution in
-            clearPendingBreakpoint()
+            endHold(token)
 
-            /// A client that has gone away is handed nothing at all, which is what the
-            /// `URLProtocol` contract requires. The coordinator drops a cancelled pause before it
-            /// gets here; this covers a cancellation that lands while the decision is in flight.
-            guard !hasBeenCancelled else { return }
+            deliveryQueue.async { [self] in
+                /// A client that has gone away is handed nothing at all, which is what the
+                /// `URLProtocol` contract requires. The coordinator drops a cancelled pause before
+                /// it gets here; this covers a cancellation that lands while the decision is in
+                /// flight, or while it is queued behind this hop.
+                guard !hasBeenCancelled else { return }
 
-            switch resolution {
-            case .continue(let edited):
-                model.wasEdited = model.wasEdited || edited != draft
-                let rebuilt = Self.marked(edited.makeURLRequest(basedOn: request))
+                switch resolution {
+                case .continue(let edited):
+                    model.wasEdited = model.wasEdited || edited != draft
+                    let rebuilt = Self.marked(edited.makeURLRequest(basedOn: request))
 
-                /// The log has to describe the request as actually sent, exactly as it does for a
-                /// header rewrite — otherwise a developer checking whether their edit went out
-                /// would see the request they edited away from.
-                model.saveRequest(rebuilt)
-                startNetworkLoad(with: rebuilt, condition: condition, latency: latency)
+                    /// The log has to describe the request as actually sent, exactly as it does
+                    /// for a header rewrite — otherwise a developer checking whether their edit
+                    /// went out would see the request they edited away from.
+                    model.saveRequest(rebuilt)
+                    startNetworkLoad(with: rebuilt, condition: condition, latency: latency)
 
-            case .timedOut:
-                startNetworkLoad(with: request, condition: condition, latency: latency)
+                case .timedOut:
+                    startNetworkLoad(with: request, condition: condition, latency: latency)
 
-            case .abort(let code):
-                model.saveErrorResponse()
-                finishWithFailure(URLError(code))
+                case .abort(let code):
+                    model.saveErrorResponse()
+                    finishWithFailure(URLError(code))
+                }
             }
         }
 
-        recordPendingBreakpoint(id)
+        recordPendingBreakpoint(id, for: token)
     }
 
     /// Starts the load, after a condition's latency and its failure roll.
@@ -498,25 +584,52 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         return mutable as URLRequest
     }
 
+    /// Claims a token for an exchange about to be held.
+    ///
+    /// Taken *before* the pause is registered, so that a decision arriving immediately afterwards
+    /// can be matched to a hold this thread has not finished setting up yet.
+    ///
+    /// - Returns: The hold's token.
+    private func beginHold() -> Int {
+        stateLock.withLock {
+            holdCount += 1
+            return holdCount
+        }
+    }
+
+    /// Marks a hold resolved and forgets the pause it was registered under.
+    ///
+    /// - Parameter token: The token ``beginHold()`` gave this hold.
+    private func endHold(_ token: Int) {
+        stateLock.withLock {
+            resolvedHold = max(resolvedHold, token)
+            pendingBreakpointID = nil
+        }
+    }
+
     /// Remembers the pause this exchange is held at, so `stopLoading()` can cancel it.
     ///
-    /// Reads the cancellation flag in the same critical section that records the identifier: a
-    /// `stopLoading()` that landed while the pause was being registered would otherwise leave a
-    /// row on screen for a request the app has already abandoned.
+    /// The cancellation flag and the hold's own token are read in the same critical section that
+    /// records the identifier, because both can be settled before this runs.
+    /// A `stopLoading()` that landed while the pause was being registered would otherwise leave a
+    /// row on screen for a request the app has already abandoned. And
+    /// ``BreakpointCoordinator/pause(_:name:stage:timeout:resume:)`` registers its continuation on
+    /// a queue of its own, so the developer can decide — and the continuation run to completion —
+    /// before the thread that took the pause gets here; recording the identifier then would leave
+    /// a resolved pause on record and have `stopLoading()` report an exchange as held that was let
+    /// go some time ago.
     ///
-    /// - Parameter id: The pause's identifier.
-    private func recordPendingBreakpoint(_ id: UUID) {
+    /// - Parameters:
+    ///   - id: The pause's identifier.
+    ///   - token: The token ``beginHold()`` gave this hold.
+    private func recordPendingBreakpoint(_ id: UUID, for token: Int) {
         stateLock.lock()
         let cancelled = isCancelled
-        if !cancelled { pendingBreakpointID = id }
+        let resolved = resolvedHold >= token
+        if !cancelled && !resolved { pendingBreakpointID = id }
         stateLock.unlock()
 
         if cancelled { breakpoints.cancel(id: id) }
-    }
-
-    /// Forgets the pause, once it has resolved.
-    private func clearPendingBreakpoint() {
-        stateLock.withLock { pendingBreakpointID = nil }
     }
 
     /// A mutable copy of the request with any header rewrite applied, and the log brought up to
@@ -564,9 +677,13 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
 
     /// Finishes starting the load, after a rule's delay if it asked for one.
     ///
-    /// A delay of zero runs `work` inline, so a request no condition or mock delay touches keeps
-    /// exactly the threading and ordering it had before rules existed. Anything above zero is
-    /// scheduled on ``delayQueue`` instead of slept for — see that queue's note.
+    /// A delay of zero runs `work` on the caller's own thread, so a request no condition or mock
+    /// delay touches keeps exactly the threading and ordering it had before rules existed. That is
+    /// safe on both paths that reach here: the network path calls this from the thread
+    /// `startLoading()` was given, where all `work` does is start a data task, and the stubbed
+    /// path calls it from ``delayQueue``, having already left that thread to read the body. A
+    /// delay above zero is scheduled on ``delayQueue`` instead of slept for — see that queue's
+    /// note.
     ///
     /// - Parameters:
     ///   - delay: Seconds to wait, already clamped to ``maximumDelay``.
@@ -730,9 +847,21 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
 
     /// Fails the request with the error a condition rule asked for, and logs the attempt.
     ///
+    /// The client is told only while it is still listening, exactly as ``serve(_:body:)`` and
+    /// ``forwardWithheld(_:body:)`` are: a `stopLoading()` can land between the check its callers
+    /// made and this call, and messaging a client that has been told to stop is something the
+    /// `URLProtocol` contract forbids.
+    ///
+    /// The log entry is written either way. Unlike a stub, a failure entry is not a claim that the
+    /// app received anything, and a request that was attempted and then cancelled is one the
+    /// developer should still be able to see — which is what the ordinary cancelled path records
+    /// too.
+    ///
     /// - Parameter error: The error to surface to the caller.
     private func finishWithFailure(_ error: URLError) {
-        client?.urlProtocol(self, didFailWithError: error)
+        if !hasBeenCancelled {
+            client?.urlProtocol(self, didFailWithError: error)
+        }
 
         model.saveRequestBody(request)
         model.logRequest(request)
@@ -918,8 +1047,18 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
 
     /// Tells the client how the load ended.
     ///
+    /// Cancellation is re-checked here, as ``serve(_:body:)``, ``forwardWithheld(_:body:)`` and
+    /// ``drain()`` re-check it between their own callbacks. Every caller reaches this after having
+    /// already handed the client something — a response, or a body, either of which the client is
+    /// entitled to cancel from inside — and one caller, the non-holdable branch of
+    /// ``finishHeldResponse(error:request:)``, can be reached with nothing forwarded at all
+    /// because the request was cancelled before the load completed. Messaging a client that has
+    /// been told to stop is something the `URLProtocol` contract forbids.
+    ///
     /// - Parameter error: The failure, or `nil` when the load succeeded.
     private func deliverTerminal(_ error: Error?) {
+        guard !hasBeenCancelled else { return }
+
         if let error {
             client?.urlProtocol(self, didFailWithError: error)
         } else {
@@ -943,7 +1082,7 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
     /// it believe a body it had not yet received was complete.
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         /// Only the request is carried into the held path, never the task or the session: the
-        /// continuation runs on the coordinator's queue and takes only values with it.
+        /// continuation runs on another queue entirely and takes only values with it.
         let originalRequest = task.originalRequest
 
         if heldBreakpoint != nil {
@@ -1007,7 +1146,9 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
     ///
     /// The response and every byte of its body have been withheld up to this point, so the app has
     /// received nothing and the whole exchange is still editable. The resolved response is emitted
-    /// from the coordinator's queue when the decision arrives.
+    /// from ``deliveryQueue`` when the decision arrives: the coordinator's queue is shared by every
+    /// live pause and forwarding a body writes it to the log, which would put this request's disk
+    /// I/O in front of another pause's cancellation.
     ///
     /// Three things are not held, because there is nothing to edit or nothing worth stalling for:
     /// a load that failed, a response that is not HTTP, and a body over
@@ -1043,42 +1184,47 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
         let draft = BreakpointDraft(response: httpResponse, body: buffered)
         model.breakpointNames.append(held.name)
 
+        let token = beginHold()
         let id = breakpoints.pause(draft,
                                    name: held.name,
                                    stage: .response,
                                    timeout: breakpointTimeoutOverride ?? held.timeout) { [self] resolution in
-            clearPendingBreakpoint()
-            guard !hasBeenCancelled else { return }
+            endHold(token)
 
-            let resolved: (response: HTTPURLResponse, body: Data)
-            switch resolution {
-            case .continue(let edited):
-                model.wasEdited = model.wasEdited || edited != draft
+            deliveryQueue.async { [self] in
+                guard !hasBeenCancelled else { return }
 
-                /// An edit that cannot be turned back into a response — a status code
-                /// `HTTPURLResponse` refuses, or a response with no URL to build one against —
-                /// falls back to what came off the wire. Handing the app nothing because a status
-                /// code was mistyped would be a worse answer than handing it the real response.
-                let url = httpResponse.url ?? request?.url ?? self.request.url
-                resolved = url.flatMap { edited.makeResponse(url: $0) } ?? (httpResponse, buffered)
+                let resolved: (response: HTTPURLResponse, body: Data)
+                switch resolution {
+                case .continue(let edited):
+                    model.wasEdited = model.wasEdited || edited != draft
 
-            case .timedOut:
-                resolved = (httpResponse, buffered)
+                    /// An edit that cannot be turned back into a response — a status code
+                    /// `HTTPURLResponse` refuses, or a response with no URL to build one against —
+                    /// falls back to what came off the wire. Handing the app nothing because a
+                    /// status code was mistyped would be a worse answer than handing it the real
+                    /// response.
+                    let url = httpResponse.url ?? request?.url ?? self.request.url
+                    resolved = url.flatMap { edited.makeResponse(url: $0) } ?? (httpResponse, buffered)
 
-            case .abort(let code):
-                model.saveErrorResponse()
-                finishWithFailure(URLError(code))
+                case .timedOut:
+                    resolved = (httpResponse, buffered)
+
+                case .abort(let code):
+                    model.saveErrorResponse()
+                    finishWithFailure(URLError(code))
+                    invalidatePrivateSession()
+                    return
+                }
+
+                forwardWithheld(resolved.response, body: resolved.body)
+                recordCompletion(request: request, error: nil, response: resolved.response, data: resolved.body)
+                deliverTerminal(nil)
                 invalidatePrivateSession()
-                return
             }
-
-            forwardWithheld(resolved.response, body: resolved.body)
-            recordCompletion(request: request, error: nil, response: resolved.response, data: resolved.body)
-            deliverTerminal(nil)
-            invalidatePrivateSession()
         }
 
-        recordPendingBreakpoint(id)
+        recordPendingBreakpoint(id, for: token)
     }
 
     /// Hands the client the response and body that were withheld while the exchange was held.
