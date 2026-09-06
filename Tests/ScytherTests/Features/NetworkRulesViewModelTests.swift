@@ -316,6 +316,74 @@ final class NetworkRulesViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.importOutcome, .failed)
     }
 
+    // MARK: - The one alert
+
+    /// The defect W28 named: three `.alert` modifiers are three claims on the one slot SwiftUI
+    /// gives a view, and a HAR import the store refuses makes two of them true together — so one
+    /// condition was reported with nothing on screen to report it.
+    func testAFailedImportAndAStoreFailureQueueRatherThanCollide() throws {
+        defaults.set(Data("not a rules array".utf8), forKey: "Scyther.NetworkRules.Rules")
+        let failing = NetworkRuleStore(defaults: defaults, bodyDirectory: bodyDirectory)
+        XCTAssertEqual(failing.lastFailure, .rulesNotLoaded)
+
+        let viewModel = NetworkRulesViewModel(store: failing)
+        viewModel.reportImportFailure()
+
+        XCTAssertEqual(viewModel.alert, .importOutcome(.failed), "the answer to what they just did")
+
+        viewModel.dismissAlert()
+
+        XCTAssertEqual(viewModel.alert, .storeFailure(.rulesNotLoaded),
+                       "and the failure behind it is still waiting, not lost")
+
+        viewModel.dismissAlert()
+        XCTAssertNil(viewModel.alert)
+    }
+
+    func testAPendingDeletionComesBeforeEverythingElse() {
+        let rule = NetworkRule(name: "cart", match: .host("api.example.com"))
+        _ = store.add(rule)
+        let viewModel = NetworkRulesViewModel(store: store)
+        viewModel.reportImportFailure()
+        viewModel.requestDeletion(of: rule)
+
+        XCTAssertEqual(viewModel.alert, .deletion(title: viewModel.deletionTitle),
+                       "a gesture waiting for an answer wins")
+
+        viewModel.cancelDeletion()
+        XCTAssertEqual(viewModel.alert, .importOutcome(.failed))
+    }
+
+    func testNoAlertWhenNothingHasHappened() {
+        XCTAssertNil(NetworkRulesViewModel(store: store).alert)
+    }
+
+    // MARK: - Escaping a quarantine
+
+    /// Wave 2 made the body sweep stand down for as long as a configuration is set aside, and
+    /// `removeAll()` the only way out — with no UI route to it. The failure alert is that route.
+    func testTheNotLoadedAlertOffersToDeleteEverything() {
+        XCTAssertTrue(NetworkRulesAlert.storeFailure(.rulesNotLoaded).offersDeleteAll)
+        XCTAssertFalse(NetworkRulesAlert.storeFailure(.rulesNotSaved).offersDeleteAll)
+        XCTAssertFalse(NetworkRulesAlert.storeFailure(.bodyNotWritten).offersDeleteAll)
+        XCTAssertFalse(NetworkRulesAlert.importOutcome(.failed).offersDeleteAll)
+    }
+
+    func testDeletingEverythingDischargesTheQuarantineAndTheAlert() throws {
+        defaults.set(Data("not a rules array".utf8), forKey: "Scyther.NetworkRules.Rules")
+        let quarantined = NetworkRuleStore(defaults: defaults, bodyDirectory: bodyDirectory)
+        XCTAssertEqual(quarantined.lastFailure, .rulesNotLoaded)
+        XCTAssertTrue(quarantined.isSweepSuspended, "no body on disk can be reclaimed while it stands")
+
+        let viewModel = NetworkRulesViewModel(store: quarantined)
+        XCTAssertTrue(try XCTUnwrap(viewModel.alert).offersDeleteAll)
+
+        viewModel.deleteAllOverrides()
+
+        XCTAssertFalse(quarantined.isSweepSuspended, "the sweep can reclaim disk again")
+        XCTAssertNil(viewModel.alert)
+    }
+
     func testImportingManyEntriesPublishesOnceRatherThanOncePerEntry() async throws {
         let viewModel = NetworkRulesViewModel(store: store)
         var publications = 0

@@ -124,43 +124,48 @@ struct NetworkRulesView: View {
             case .failure: viewModel.reportImportFailure()
             }
         }
+        // One alert modifier, not three. SwiftUI presents one alert per view, so three of them
+        // were three claims on a single slot — and a HAR import the store refused made two of
+        // them true together, leaving one condition reported with nothing on screen. The view
+        // model decides which alert it is, in one place, and the rest queue behind it.
         .alert(
-            viewModel.deletionTitle,
+            viewModel.alert?.title ?? "",
             isPresented: Binding(
-                get: { !viewModel.pendingDeletions.isEmpty },
-                set: { if !$0 { viewModel.cancelDeletion() } }
-            )
-        ) {
-            Button(localized("Cancel"), role: .cancel) { viewModel.cancelDeletion() }
-            Button(localized("Delete"), role: .destructive) { viewModel.confirmDeletion() }
-        } message: {
-            Text(localized("This action cannot be undone."))
-        }
-        .alert(
-            viewModel.importOutcome?.title ?? "",
-            isPresented: Binding(
-                get: { viewModel.importOutcome != nil },
-                set: { if !$0 { viewModel.importOutcome = nil } }
+                get: { viewModel.alert != nil },
+                set: { if !$0 { viewModel.dismissAlert() } }
             ),
-            presenting: viewModel.importOutcome
-        ) { _ in
-            Button(localized("OK"), role: .cancel) { viewModel.importOutcome = nil }
-        } message: { outcome in
-            Text(outcome.message)
-        }
-        .alert(
-            viewModel.storeFailure?.title ?? "",
-            isPresented: Binding(
-                get: { viewModel.storeFailure != nil },
-                set: { if !$0 { viewModel.storeFailure = nil } }
-            ),
-            presenting: viewModel.storeFailure
-        ) { _ in
-            Button(localized("OK"), role: .cancel) { viewModel.storeFailure = nil }
-        } message: { failure in
-            Text(failure.message)
+            presenting: viewModel.alert
+        ) { alert in
+            alertActions(for: alert)
+        } message: { alert in
+            Text(alert.message)
         }
         .navigationTitle(localized("Request Overrides"))
+    }
+
+    /// The buttons one alert offers.
+    ///
+    /// The "overrides not loaded" failure is the only one that offers to delete everything: a
+    /// configuration the store could not read is set aside rather than deleted, and while one is
+    /// set aside the body sweep stands down entirely, so this is the developer's only route back
+    /// to a store that reclaims disk.
+    ///
+    /// - Parameter alert: The alert being presented.
+    /// - Returns: Its buttons.
+    @ViewBuilder
+    private func alertActions(for alert: NetworkRulesAlert) -> some View {
+        switch alert {
+        case .deletion:
+            Button(localized("Cancel"), role: .cancel) { viewModel.cancelDeletion() }
+            Button(localized("Delete"), role: .destructive) { viewModel.confirmDeletion() }
+        case .importOutcome, .storeFailure:
+            if alert.offersDeleteAll {
+                Button(localized("Delete All Overrides"), role: .destructive) {
+                    viewModel.deleteAllOverrides()
+                }
+            }
+            Button(localized("OK"), role: .cancel) { viewModel.dismissAlert() }
+        }
     }
 
     /// The toolbar menu offering the two ways to add overrides.
@@ -190,15 +195,15 @@ struct NetworkRulesView: View {
         NavigationLink {
             NetworkRuleEditorView(rule: rule, store: store, showsCancel: false)
         } label: {
-            // Matches `MenuView.searchResultLabel(title:icon:tint:breadcrumbText:)`, which is how
-            // every other title-over-subtitle row in the menu is built. A bare two-`Text` label is
-            // documented for `Toggle` and `LabeledContent` but not for `NavigationLink`, so the
-            // stack is explicit rather than left to an unspecified layout.
-            VStack(alignment: .leading, spacing: 2) {
+            // `LabeledContent`'s two-`Text` label is the system's own title-over-subtitle row,
+            // and is how every such row in this feature is built: it supplies the secondary font
+            // and colour rather than each row picking them by hand. `EmptyView` because the row
+            // has no trailing value — the `NavigationLink`'s chevron is the accessory.
+            LabeledContent {
+                EmptyView()
+            } label: {
                 Text(rule.name)
                 Text(viewModel.subtitle(for: rule))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
             }
             // A disabled override reads as disabled rather than announcing it in words. The
             // hierarchy is the system's own — the same one the subtitle below already uses — not a

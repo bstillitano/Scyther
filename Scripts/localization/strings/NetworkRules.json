@@ -280,6 +280,21 @@
       "other": "刪除 %lld 條覆寫？"
     }
   },
+  "Delete All Overrides": {
+    "comment": "Destructive button on the 'overrides not loaded' alert, discarding every override and the set-aside configuration",
+    "fr": "Supprimer toutes les surcharges",
+    "de": "Alle Überschreibungen löschen",
+    "es": "Eliminar todas las anulaciones",
+    "it": "Elimina tutti gli override",
+    "pt-BR": "Excluir todas as substituições",
+    "nl": "Alle overrides verwijderen",
+    "ja": "すべてのオーバーライドを削除",
+    "zh-Hans": "删除所有覆盖规则",
+    "zh-Hant": "刪除所有覆寫規則",
+    "ko": "모든 재정의 삭제",
+    "ru": "Удалить все переопределения",
+    "ar": "حذف كل التجاوزات"
+  },
   "Disable": {
     "ar": "تعطيل",
     "comment": "Swipe action that turns an enabled override off",

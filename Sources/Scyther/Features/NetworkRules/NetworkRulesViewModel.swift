@@ -48,6 +48,12 @@ import Foundation
 /// - ``reportImportFailure()``
 /// - ``importOutcome``
 /// - ``storeFailure``
+///
+/// ### Alerts
+/// - ``NetworkRulesAlert``
+/// - ``alert``
+/// - ``dismissAlert()``
+/// - ``deleteAllOverrides()``
 final class NetworkRulesViewModel: ViewModel {
     /// The persisted rules, in precedence order, mirrored from the store.
     @Published private(set) var rules: [NetworkRule] = []
@@ -123,6 +129,48 @@ final class NetworkRulesViewModel: ViewModel {
             guard newValue == nil else { return }
             store.acknowledgeFailure()
         }
+    }
+
+    /// The one alert the list is showing, or `nil` when it is showing none.
+    ///
+    /// SwiftUI presents one alert per view, so the three `.alert` modifiers this screen used to
+    /// carry were three claims on one slot — and a HAR import that the store then refused made
+    /// two of them true at once, leaving the developer with a condition reported and nothing on
+    /// screen to report it. Every source is persistent state, so making this a computed
+    /// precedence turns the collision into a queue: dismissing the import outcome reveals the
+    /// store failure behind it.
+    ///
+    /// A pending deletion comes first because it is a gesture waiting for an answer. The import
+    /// outcome comes next, because it is the answer to what the developer just did, and the store
+    /// failure last, because it usually explains part of that answer.
+    var alert: NetworkRulesAlert? {
+        if !pendingDeletions.isEmpty { return .deletion(title: deletionTitle) }
+        if let importOutcome { return .importOutcome(importOutcome) }
+        if let storeFailure { return .storeFailure(storeFailure) }
+        return nil
+    }
+
+    /// Dismisses whichever alert is showing, leaving anything queued behind it.
+    func dismissAlert() {
+        switch alert {
+        case .deletion: cancelDeletion()
+        case .importOutcome: importOutcome = nil
+        case .storeFailure: storeFailure = nil
+        case nil: break
+        }
+    }
+
+    /// Deletes every override, persisted and transient, and every file they own.
+    ///
+    /// Offered from the ``NetworkRuleStoreFailure/rulesNotLoaded`` alert, which is the only place
+    /// it is needed: a configuration the store could not read is set aside rather than deleted,
+    /// and while one is set aside the body sweep stands down entirely, so orphaned bodies
+    /// accumulate on disk with nothing able to reclaim them. Discarding every override discards
+    /// the quarantine too, which is what lets the sweep start reclaiming again — and it was
+    /// reachable only from the public facade until now.
+    func deleteAllOverrides() {
+        store.removeAll()
+        storeFailure = nil
     }
 
     /// Whether the list has nothing to show.
@@ -301,5 +349,57 @@ enum NetworkRuleImportOutcome: Identifiable, Equatable {
         case .failed:
             return localized("The selected file could not be read as a HAR document.")
         }
+    }
+}
+
+/// The one alert ``NetworkRulesView`` shows at a time.
+///
+/// Three separate `.alert` modifiers on one view are three claims on a single slot, and a HAR
+/// import the store then refuses makes two of them true together. Gathering them here means the
+/// view declares one alert and the view model decides, in one place, which of them it is.
+enum NetworkRulesAlert: Equatable, Identifiable {
+    /// A swipe is waiting to be confirmed. Carries the title, which names or counts the rules.
+    case deletion(title: String)
+
+    /// A HAR import has finished and is waiting to be acknowledged.
+    case importOutcome(NetworkRuleImportOutcome)
+
+    /// The store could not do something and is waiting to be acknowledged.
+    case storeFailure(NetworkRuleStoreFailure)
+
+    /// A stable identity, so SwiftUI redraws when one alert replaces another.
+    var id: String {
+        switch self {
+        case .deletion(let title): return "deletion.\(title)"
+        case .importOutcome(let outcome): return "import.\(outcome.id)"
+        case .storeFailure(let failure): return "failure.\(failure.id)"
+        }
+    }
+
+    /// The alert's title.
+    var title: String {
+        switch self {
+        case .deletion(let title): return title
+        case .importOutcome(let outcome): return outcome.title
+        case .storeFailure(let failure): return failure.title
+        }
+    }
+
+    /// The alert's body copy.
+    var message: String {
+        switch self {
+        case .deletion: return localized("This action cannot be undone.")
+        case .importOutcome(let outcome): return outcome.message
+        case .storeFailure(let failure): return failure.message
+        }
+    }
+
+    /// Whether this alert offers to throw every override away.
+    ///
+    /// Only the "overrides not loaded" failure does. A configuration the store could not read is
+    /// set aside rather than deleted, and while one is set aside the body sweep stands down —
+    /// so this is the developer's way back to a store that reclaims disk again.
+    var offersDeleteAll: Bool {
+        self == .storeFailure(.rulesNotLoaded)
     }
 }
