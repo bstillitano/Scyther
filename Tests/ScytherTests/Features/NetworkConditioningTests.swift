@@ -8,12 +8,28 @@ import XCTest
 
 final class NetworkConditioningPresetTests: XCTestCase {
 
-    func testEveryPresetButCustomFillsInAllThreeFields() {
+    func testEveryPresetButCustomSuppliesACondition() {
         for preset in NetworkConditioningPreset.allCases where preset != .custom {
-            let condition = preset.condition
-            XCTAssertNotNil(condition, "\(preset.rawValue) must supply a condition")
-            XCTAssertNotNil(condition?.bandwidthKBps, "\(preset.rawValue) must supply a ceiling")
+            XCTAssertNotNil(preset.condition, "\(preset.rawValue) must supply a condition")
         }
+    }
+
+    /// Every named link but Wi-Fi is a link the ceiling is the point of.
+    func testEveryPresetButWiFiCarriesACeiling() {
+        for preset in NetworkConditioningPreset.allCases where preset != .custom && preset != .wifi {
+            XCTAssertNotNil(preset.condition?.bandwidthKBps, "\(preset.rawValue) must supply a ceiling")
+        }
+    }
+
+    /// Wi-Fi carried a 5000 KB/s ceiling, and *any* ceiling puts every response part through the
+    /// interceptor's delivery queue — so picking the preset that reads as "leave it alone" changed
+    /// the threading of every callback in the app and throttled localhost, stubs and cached
+    /// responses along with everything else.
+    func testWiFiCarriesNoCeilingAtAll() throws {
+        let wifi = try XCTUnwrap(NetworkConditioningPreset.wifi.condition)
+        XCTAssertNil(wifi.bandwidthKBps, "a good Wi-Fi link is not the bottleneck")
+        XCTAssertNil(BandwidthThrottle(bandwidthKBps: wifi.bandwidthKBps, maximumTotalSleep: 30),
+                     "nothing is paced")
     }
 
     func testCustomSuppliesNothing() {

@@ -27,7 +27,7 @@ import Foundation
 enum NetworkConditioningPreset: String, CaseIterable, Identifiable, Sendable {
     /// Whatever the three fields currently say. Never fills anything in.
     case custom
-    /// A good Wi-Fi link: no meaningful latency, no meaningful ceiling.
+    /// A good Wi-Fi link: a hint of latency and no ceiling at all.
     case wifi
     /// A good LTE link.
     case fourG
@@ -58,10 +58,17 @@ enum NetworkConditioningPreset: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// The conditioning this preset fills in, or `nil` for ``custom``, which fills in nothing.
+    ///
+    /// ``wifi`` alone carries no ceiling. It used to carry 5000 KB/s, which reads as "no
+    /// conditioning" and is not: any ceiling at all puts every response part through the
+    /// interceptor's delivery queue, so picking the preset that means "leave it alone" changed
+    /// the threading of every callback in the app and imposed a real ceiling on localhost, on
+    /// stubs and on cached responses. A good Wi-Fi link is not the bottleneck, so it does not
+    /// pretend to be one.
     var condition: NetworkCondition? {
         switch self {
         case .custom: return nil
-        case .wifi: return NetworkCondition(latency: 0.01, bandwidthKBps: 5_000, failureRate: 0)
+        case .wifi: return NetworkCondition(latency: 0.01, bandwidthKBps: nil, failureRate: 0)
         case .fourG: return NetworkCondition(latency: 0.05, bandwidthKBps: 1_500, failureRate: 0)
         case .threeG: return NetworkCondition(latency: 0.1, bandwidthKBps: 100, failureRate: 0)
         case .edge: return NetworkCondition(latency: 0.4, bandwidthKBps: 30, failureRate: 0)
