@@ -48,6 +48,7 @@ import UIKit
 /// - ``applicationState``
 /// - ``presentEditor``
 /// - ``dismissEditor``
+/// - ``scheduleRetry``
 @MainActor
 internal final class BreakpointPresenter: ObservableObject {
     /// The presenter `Scyther.start()` wires up.
@@ -86,6 +87,17 @@ internal final class BreakpointPresenter: ObservableObject {
         $0.dismissFromKeyWindow(whenGone: $1)
     }
 
+    /// How a refused presentation is tried again. Replaced by a test.
+    ///
+    /// The app is paused while a presentation cannot be made, so a refusal cannot be the end of
+    /// it: the anchor is busy for a moment — a sheet dismissing, a screen still appearing — and
+    /// waiting for the *next* hold means this one sits invisible for the whole of its timeout.
+    var scheduleRetry: @MainActor (@escaping @MainActor () -> Void) -> Void = { work in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            MainActor.assumeIsolated { work() }
+        }
+    }
+
     /// The controller currently presented, or `nil` when nothing is on screen.
     ///
     /// Held strongly, and cleared only where this presenter knows the screen has gone:
@@ -101,6 +113,10 @@ internal final class BreakpointPresenter: ObservableObject {
 
     /// Whether a dismissal arrived while the editor was still appearing, and is owed.
     private var wantsDismissal: Bool = false
+
+    /// Whether a retry of a refused presentation is already booked, so a burst of holds books one
+    /// rather than one apiece.
+    private var isRetryScheduled: Bool = false
 
     /// Whether the dismissal animation is still running.
     ///
@@ -215,9 +231,26 @@ internal final class BreakpointPresenter: ObservableObject {
 
         isAppearing = true
         isPresenting = presentEditor(self) { [weak self] in self?.editorDidAppear() }
-        if !isPresenting {
-            isAppearing = false
-            wantsDismissal = false
+        guard !isPresenting else { return }
+
+        isAppearing = false
+        wantsDismissal = false
+        scheduleRetryIfNeeded()
+    }
+
+    /// Books another attempt at presenting, because something is held and nothing is showing it.
+    ///
+    /// A refusal is nearly always momentary — the anchor is a sheet on its way out, or a screen
+    /// on its way in — and the exchange behind it is an app sitting still. Retrying stops of its
+    /// own accord: the hold's timeout releases it, and an empty list books nothing.
+    private func scheduleRetryIfNeeded() {
+        guard !isRetryScheduled, !pending.isEmpty else { return }
+
+        isRetryScheduled = true
+        scheduleRetry { [weak self] in
+            guard let self else { return }
+            self.isRetryScheduled = false
+            self.presentIfNeeded()
         }
     }
 
@@ -342,12 +375,12 @@ internal final class BreakpointPresenter: ObservableObject {
     /// - Returns: Whether the editor is now on screen.
     private func presentOverKeyWindow(whenAppeared: @escaping @MainActor () -> Void) -> Bool {
         guard let presenter = Scyther.topViewController else {
-            logMessage("Breakpoint editor could not be presented: no key window to anchor to. It will be offered again the next time an exchange is held.")
+            logMessage("Breakpoint editor could not be presented: no key window to anchor to. It will be tried again while the exchange is held.")
             return false
         }
 
         guard !presenter.isBeingDismissed, presenter.viewIfLoaded?.window != nil else {
-            logMessage("Breakpoint editor could not be presented: the anchor is on its way off screen. It will be offered again the next time an exchange is held.")
+            logMessage("Breakpoint editor could not be presented: the anchor is on its way off screen. It will be tried again while the exchange is held.")
             return false
         }
 
@@ -360,7 +393,7 @@ internal final class BreakpointPresenter: ObservableObject {
         }
 
         guard controller.presentingViewController != nil else {
-            logMessage("Breakpoint editor could not be presented: the anchor is already presenting something. It will be offered again the next time an exchange is held.")
+            logMessage("Breakpoint editor could not be presented: the anchor is already presenting something. It will be tried again while the exchange is held.")
             return false
         }
 

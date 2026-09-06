@@ -94,6 +94,7 @@ final class BreakpointPresenterTests: XCTestCase {
         let log: PresentationLog
         let appearances: Animations
         let dismissals: Animations
+        let retries: Animations
     }
 
     /// Builds and starts a presenter. Static, so nothing about the test case is captured.
@@ -104,6 +105,11 @@ final class BreakpointPresenterTests: XCTestCase {
         let log = PresentationLog()
         let appearances = Animations()
         let dismissals = Animations()
+        // Retries are always held: a test that cares runs them by hand, and one that does not is
+        // spared a presenter that keeps trying in the background while it makes its assertions.
+        let retries = Animations()
+        retries.isDeferring = true
+        presenter.scheduleRetry = { work in retries.record(work) }
         presenter.presentEditor = { _, appeared in
             let didPresent = log.recordPresentation()
             if didPresent { appearances.record(appeared) }
@@ -120,7 +126,8 @@ final class BreakpointPresenterTests: XCTestCase {
             presenter: presenter,
             log: log,
             appearances: appearances,
-            dismissals: dismissals
+            dismissals: dismissals,
+            retries: retries
         )
     }
 
@@ -135,6 +142,7 @@ final class BreakpointPresenterTests: XCTestCase {
     private var log: PresentationLog { fixture.log }
     private var appearances: Animations { fixture.appearances }
     private var dismissals: Animations { fixture.dismissals }
+    private var retries: Animations { fixture.retries }
 
     /// Builds the fixture on the main actor, which is where XCTest runs a synchronous test body
     /// of a `@MainActor` suite. `makeFixture()` is static, so no part of the test case crosses
@@ -341,6 +349,37 @@ final class BreakpointPresenterTests: XCTestCase {
         XCTAssertTrue(waitUntil { self.log.presented == 2 },
                       "a refused presentation must be offered again rather than swallowed")
         XCTAssertTrue(firstRecorder.resolutions.isEmpty, "and the first exchange is still held")
+    }
+
+    /// A refusal is momentary — the anchor is a sheet on its way out, or a screen on its way in —
+    /// and the app is paused behind it. Waiting for the next hold meant a replayed request that
+    /// was held while its own editor was dismissing sat invisible for the whole of its timeout.
+    func testARefusedPresentationIsTriedAgainWhileTheExchangeIsHeld() {
+        log.willReport([false])
+
+        hold()
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
+        XCTAssertEqual(log.presented, 1, "it was tried")
+
+        retries.finish()
+
+        XCTAssertEqual(log.presented, 2, "and tried again, without waiting for another hold")
+    }
+
+    /// Nothing is booked once the exchange has gone: the retry is for a paused app, and an app
+    /// that is not paused has nothing to show.
+    func testNoRetryIsBookedOnceNothingIsHeld() throws {
+        log.willReport([false])
+
+        hold()
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
+        let id = try XCTUnwrap(presenter.pending.first?.id)
+        coordinator.resolve(id: id, with: .timedOut)
+        XCTAssertTrue(waitUntil { self.presenter.pending.isEmpty })
+
+        retries.finish()
+
+        XCTAssertEqual(log.presented, 1, "there is nothing left to present")
     }
 
     /// Once one succeeds, the editor is on screen and further holds join it.
