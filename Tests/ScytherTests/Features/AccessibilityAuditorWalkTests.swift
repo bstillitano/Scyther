@@ -100,4 +100,24 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
         let root = Node(children: [Node(label: "one", isElement: true)])
         XCTAssertFalse(AccessibilityAuditor().collect(root: root).didHitLimit)
     }
+
+    /// The node cap counts every container traversed, not just elements collected.
+    /// A pathological tree of many container nodes can hit the cap even with few elements.
+    func testTheNodeCapCountsContainersAndNotOnlyElements() {
+        let containerCount = AccessibilityAuditor.maximumNodes + 100
+        var children: [AuditNode] = []
+        for i in 0..<containerCount {
+            let element = Node(label: "element-\(i)", isElement: true)
+            let container = Node(children: [element])
+            children.append(container)
+        }
+        let root = Node(children: children)
+
+        let walked = AccessibilityAuditor().collect(root: root)
+
+        XCTAssertTrue(walked.didHitLimit, "the cap should be hit")
+        XCTAssertLessThan(walked.nodes.count, containerCount, "not all elements should be collected; cap stops before traversing all containers")
+        // Each (container, element) pair costs 2 visits. At 5000 visits, only 2500 pairs fit.
+        XCTAssertEqual(walked.nodes.count, AccessibilityAuditor.maximumNodes / 2, "exactly half the budget is collected, the rest consumed by container nodes")
+    }
 }

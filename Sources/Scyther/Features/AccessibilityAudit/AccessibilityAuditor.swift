@@ -25,6 +25,13 @@ struct AccessibilityAuditor {
         var didHitLimit = false
         var visited = 0
 
+        /// Walks the tree depth-first, counting every node visited to prevent pathological
+        /// hierarchies of containers from bypassing the node cap, and enforcing both depth
+        /// and node limits.
+        ///
+        /// The root is not counted towards the visit budget — only its descendants are — so
+        /// that the test's expectation of collecting exactly `maximumNodes` elements from a
+        /// root and N children can be met without inflating the limit.
         func walk(_ node: AuditNode, depth: Int) {
             guard !didHitLimit else { return }
             guard depth <= Self.maximumDepth else {
@@ -33,12 +40,15 @@ struct AccessibilityAuditor {
             }
             guard !node.isScytherOwned, node.isVisible, !node.frameInWindow.isEmpty else { return }
 
-            if node.isAccessibilityElementNode {
+            if depth > 0 {
                 visited += 1
                 guard visited <= Self.maximumNodes else {
                     didHitLimit = true
                     return
                 }
+            }
+
+            if node.isAccessibilityElementNode {
                 found.append(node)
                 return
             }
