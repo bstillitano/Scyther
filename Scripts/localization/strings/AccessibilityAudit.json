@@ -43,5 +43,50 @@
     "ru": "Контраст",
     "zh-Hans": "对比度",
     "zh-Hant": "對比度"
+  },
+  "VoiceOver reads this element with no name.": {
+    "comment": "Detail of a missing-label finding: the element has a nameable trait but no accessibility label",
+    "ar": "يقرأ VoiceOver هذا العنصر بدون اسم.",
+    "de": "VoiceOver liest dieses Element ohne Namen vor.",
+    "es": "VoiceOver lee este elemento sin nombre.",
+    "fr": "VoiceOver lit cet élément sans nom.",
+    "it": "VoiceOver legge questo elemento senza nome.",
+    "ja": "VoiceOverはこの要素を名前なしで読み上げます。",
+    "ko": "VoiceOver가 이 요소를 이름 없이 읽습니다.",
+    "nl": "VoiceOver leest dit element voor zonder naam.",
+    "pt-BR": "O VoiceOver lê este elemento sem nome.",
+    "ru": "VoiceOver озвучивает этот элемент без названия.",
+    "zh-Hans": "VoiceOver 朗读此元素时没有名称。",
+    "zh-Hant": "VoiceOver 朗讀此元素時沒有名稱。"
+  },
+  "%@ × %@pt, under the 44 × 44pt minimum.": {
+    "comment": "Detail of a touch-target finding: %@ is the measured width and %@ the measured height, both already formatted with one decimal place",
+    "ar": "%@ × %@pt، أقل من الحد الأدنى 44 × 44pt.",
+    "de": "%@ × %@pt, unter dem Minimum von 44 × 44pt.",
+    "es": "%@ × %@pt, por debajo del mínimo de 44 × 44pt.",
+    "fr": "%@ × %@pt, sous le minimum de 44 × 44pt.",
+    "it": "%@ × %@pt, sotto il minimo di 44 × 44pt.",
+    "ja": "%@ × %@pt。最小値の44 × 44pt未満です。",
+    "ko": "%@ × %@pt, 최소 44 × 44pt 미만입니다.",
+    "nl": "%@ × %@pt, onder het minimum van 44 × 44pt.",
+    "pt-BR": "%@ × %@pt, abaixo do mínimo de 44 × 44pt.",
+    "ru": "%@ × %@pt, меньше минимума 44 × 44pt.",
+    "zh-Hans": "%@ × %@pt，低于 44 × 44pt 的最小值。",
+    "zh-Hant": "%@ × %@pt，低於 44 × 44pt 的最小值。"
+  },
+  "%@ at %@, %@": {
+    "comment": "Fallback name for an element with no accessibility label: %@ is the element's type name, then its x and y position in points, already formatted",
+    "ar": "%@ عند %@، %@",
+    "de": "%@ bei %@, %@",
+    "es": "%@ en %@, %@",
+    "fr": "%@ à %@, %@",
+    "it": "%@ a %@, %@",
+    "ja": "%@（位置: %@, %@）",
+    "ko": "%@ (위치: %@, %@)",
+    "nl": "%@ bij %@, %@",
+    "pt-BR": "%@ em %@, %@",
+    "ru": "%@ в позиции %@, %@",
+    "zh-Hans": "%@ 位于 %@, %@",
+    "zh-Hant": "%@ 位於 %@, %@"
   }
 }

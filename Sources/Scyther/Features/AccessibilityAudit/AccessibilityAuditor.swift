@@ -61,4 +61,116 @@ struct AccessibilityAuditor {
         walk(root, depth: 0)
         return (found, didHitLimit)
     }
+
+    /// What one pass found.
+    struct Result: Sendable {
+        /// Every defect, in tree order.
+        let findings: [AccessibilityFinding]
+
+        /// Whether a cap stopped the walk. A partial result that does not say so is a lie.
+        let didHitLimit: Bool
+
+        /// Which checks actually ran, so an empty report can say what was looked at.
+        let checksRun: Set<AccessibilityCheck>
+    }
+
+    /// The traits that mark an element a user is meant to name and reach.
+    private static let interactiveTraits: UIAccessibilityTraits = [.button, .link, .adjustable]
+
+    /// The traits that mark an element a user is meant to be able to name.
+    private static let nameableTraits: UIAccessibilityTraits =
+        [.button, .link, .image, .searchField, .adjustable, .keyboardKey]
+
+    /// Apple's minimum comfortable target, in points.
+    private static let minimumTargetSide: CGFloat = 44
+
+    /// Below this, a target is not slightly short — it is a miss.
+    private static let seriouslySmallSide: CGFloat = 32
+
+    /// Audits a tree.
+    ///
+    /// - Parameters:
+    ///   - root: The node to walk from.
+    ///   - checks: The checks to run. One that is not named here is not run at all.
+    ///   - sampler: How pixels are read for the contrast check, or `nil` when contrast is not
+    ///     being run.
+    /// - Returns: The findings, whether the walk was truncated, and which checks ran.
+    func audit(root: AuditNode,
+               checks: Set<AccessibilityCheck>,
+               sampler: ContrastSampling?) -> Result {
+        let walked = collect(root: root)
+        var findings: [AccessibilityFinding] = []
+
+        for node in walked.nodes {
+            if checks.contains(.missingLabel), let finding = missingLabelFinding(for: node) {
+                findings.append(finding)
+            }
+            if checks.contains(.touchTarget), let finding = touchTargetFinding(for: node) {
+                findings.append(finding)
+            }
+        }
+
+        return Result(findings: findings, didHitLimit: walked.didHitLimit, checksRun: checks)
+    }
+
+    /// The finding for an element VoiceOver could not name, if there is one.
+    ///
+    /// - Parameter node: The element to check.
+    /// - Returns: The finding, or `nil` when the element is named or exempt.
+    private func missingLabelFinding(for node: AuditNode) -> AccessibilityFinding? {
+        guard !node.traits.intersection(Self.nameableTraits).isEmpty else { return nil }
+        let trimmed = node.accessibilityLabelText?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed?.isEmpty ?? true else { return nil }
+
+        return AccessibilityFinding(
+            check: .missingLabel,
+            severity: .error,
+            frame: node.frameInWindow,
+            elementName: Self.name(for: node),
+            detail: localized("VoiceOver reads this element with no name.")
+        )
+    }
+
+    /// The finding for a target smaller than a finger, if there is one.
+    ///
+    /// - Parameter node: The element to check.
+    /// - Returns: The finding, or `nil` when the target is big enough or is not a target.
+    private func touchTargetFinding(for node: AuditNode) -> AccessibilityFinding? {
+        guard !node.traits.intersection(Self.interactiveTraits).isEmpty else { return nil }
+        let size = node.frameInWindow.size
+        guard size.width < Self.minimumTargetSide || size.height < Self.minimumTargetSide else {
+            return nil
+        }
+
+        let shortest = min(size.width, size.height)
+        return AccessibilityFinding(
+            check: .touchTarget,
+            severity: shortest < Self.seriouslySmallSide ? .error : .warning,
+            frame: node.frameInWindow,
+            elementName: Self.name(for: node),
+            detail: localized("\(Self.points(size.width)) × \(Self.points(size.height))pt, under the 44 × 44pt minimum.")
+        )
+    }
+
+    /// What to call an element in the report.
+    ///
+    /// An element with no label is named by what it is and where it is, because the finding that
+    /// says "this has nothing to call it" cannot then have nothing to call it.
+    ///
+    /// - Parameter node: The element to name.
+    /// - Returns: Its label, or its type and origin.
+    private static func name(for node: AuditNode) -> String {
+        let trimmed = node.accessibilityLabelText?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmed, !trimmed.isEmpty { return trimmed }
+        let origin = node.frameInWindow.origin
+        return localized("\(node.typeName) at \(points(origin.x)), \(points(origin.y))")
+    }
+
+    /// A measurement, to one decimal place.
+    ///
+    /// - Parameter value: The value in points.
+    /// - Returns: The formatted number.
+    private static func points(_ value: CGFloat) -> String {
+        String(format: "%.1f", value) // scyther:unlocalised a number, formatted
+    }
 }

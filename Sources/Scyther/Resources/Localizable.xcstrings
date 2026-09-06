@@ -1,6 +1,83 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ at %@, %@": {
+      "comment": "Fallback name for an element with no accessibility label: %@ is the element's type name, then its x and y position in points, already formatted",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ عند %@، %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ bei %@, %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ en %@, %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ à %@, %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ a %@, %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@（位置: %@, %@）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ (위치: %@, %@)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ bij %@, %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ em %@, %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ в позиции %@, %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ 位于 %@, %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ 位於 %@, %@"
+          }
+        }
+      }
+    },
     "%@ may change data on the server a second time.": {
       "comment": "Message of the replay confirmation alert, naming the HTTP method",
       "localizations": {
@@ -151,6 +228,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "%@ · %lld"
+          }
+        }
+      }
+    },
+    "%@ × %@pt, under the 44 × 44pt minimum.": {
+      "comment": "Detail of a touch-target finding: %@ is the measured width and %@ the measured height, both already formatted with one decimal place",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ × %@pt، أقل من الحد الأدنى 44 × 44pt."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ × %@pt, unter dem Minimum von 44 × 44pt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ × %@pt, por debajo del mínimo de 44 × 44pt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ × %@pt, sous le minimum de 44 × 44pt."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ × %@pt, sotto il minimo di 44 × 44pt."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ × %@pt。最小値の44 × 44pt未満です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ × %@pt, 최소 44 × 44pt 미만입니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ × %@pt, onder het minimum van 44 × 44pt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ × %@pt, abaixo do mínimo de 44 × 44pt."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ × %@pt, меньше минимума 44 × 44pt."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ × %@pt，低于 44 × 44pt 的最小值。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ × %@pt，低於 44 × 44pt 的最小值。"
           }
         }
       }
@@ -57086,6 +57240,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "視覺化觸控"
+          }
+        }
+      }
+    },
+    "VoiceOver reads this element with no name.": {
+      "comment": "Detail of a missing-label finding: the element has a nameable trait but no accessibility label",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يقرأ VoiceOver هذا العنصر بدون اسم."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "VoiceOver liest dieses Element ohne Namen vor."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "VoiceOver lee este elemento sin nombre."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "VoiceOver lit cet élément sans nom."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "VoiceOver legge questo elemento senza nome."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "VoiceOverはこの要素を名前なしで読み上げます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "VoiceOver가 이 요소를 이름 없이 읽습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "VoiceOver leest dit element voor zonder naam."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "O VoiceOver lê este elemento sem nome."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "VoiceOver озвучивает этот элемент без названия."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "VoiceOver 朗读此元素时没有名称。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "VoiceOver 朗讀此元素時沒有名稱。"
           }
         }
       }
