@@ -546,19 +546,26 @@ into that host's summary. The caption under the title says which it is — `8 re
 | --- | --- |
 | Requests | Every request in the filtered set, stubbed or not |
 | Stubbed | How many of them a request override answered without touching the network |
-| Failures | Requests that came back at 400 or above, plus requests that never came back at all |
+| Failures | Requests that came back at 400 or above, plus loads that ended with no response at all |
 | Failure rate | Failures over the requests that actually went to the network |
 | Pending | Requests still in flight |
 | Median / 95th Percentile | Round-trip duration, nearest rank |
 | Fastest / Slowest | Shown instead of the percentiles below five completed requests |
-| Bytes Received | Total response body length received over the network |
-| Elapsed | Wall-clock time from the first request starting to the last one finishing |
+| Bytes Received | Total response body length received over the network, whatever the bytes are |
+| Elapsed | Wall-clock time from the first measured request starting to the last one finishing |
+
+**Pending and failed are exclusive.** A load carries a response date whether or not a response
+arrived, so a request that ended in an error is a *failure* and one that has not come back yet is
+*pending*. Neither is counted as a zero-duration completion, which would flatter every latency
+figure.
 
 **Stubbed responses are counted but never measured.** A response a request override synthesised
 never left the device: its duration measures Scyther rather than the server, and its status code
 was authored rather than returned. Averaging it into "slowest endpoints" or an error rate would
 make both lie, so a stub is counted in *Requests* and *Stubbed* and left out of every duration,
-failure and byte total, and out of the host and endpoint breakdowns entirely.
+failure and byte total, and out of the host and endpoint breakdowns entirely — *Elapsed*
+included, so a stub answered an hour after the last real request does not report an hour of
+network activity that never happened.
 
 **Percentiles use the nearest rank**, not interpolation, so every duration reported is one a
 request actually took. **Below five completed requests there are no percentiles at all** — a
@@ -570,14 +577,18 @@ instead.
 One bar per request, the most recent forty, on a shared seconds axis: bars that overlap were in
 flight at the same time, and a staircase means the calls were serialised. Each bar is labelled
 with its duration and coloured by outcome — succeeded, failed, pending or stubbed. A request that
-has not come back yet runs to the end of the axis, because its real end is not known.
+has not come back yet runs to the end of the axis, which is the moment the chart was computed,
+because its real end is not known. A request that failed is drawn for as long as it actually ran,
+not as one still running.
 
 #### The breakdowns
 
 **Slowest Endpoints** groups requests by `METHOD host/path` with the query string dropped and any
 numeric or UUID path segment collapsed to `:id`, so `/users/1` and `/users/2` aggregate rather
-than producing one endpoint per record. Each row shows the request count, the median, and — as the
-figure beside it — the slowest round trip.
+than producing one endpoint per record. A GraphQL operation carries its name —
+`POST api.example.com/graphql (GetUser)` — because every operation in a GraphQL API is posted to
+the same path and the name is what identifies the call. Each row shows the request count, the
+median, and — as the figure beside it — the slowest round trip.
 
 **By Host** puts the worst offender first: most failures, then slowest median. Each row shows the
 request count, how many failed, and the host's median round trip.
@@ -641,7 +652,9 @@ A stub no longer suppresses the rest:
 
 The log's **Overrides** row credits everything that actually contributed, which for a stubbed
 request is the stub first and then whatever else applied to it. An override carrying several
-actions is named once.
+actions is named once. Each credit is its own row: one the store still holds pushes its editor
+and follows a rename made through it, and one whose override has since been deleted — or that has
+none, like the global conditioning — is named but inert.
 
 | Action | What it does |
 | --- | --- |
@@ -798,22 +811,34 @@ Global conditioning is sanitised the same way. If a write does fail, or if the s
 cannot be read at launch, the overrides screen says so; an unreadable blob is set aside under its
 own preferences key rather than overwritten, and a second one is added beside the first rather
 than replacing it. While anything is set aside the orphan sweep stands down, so the bodies those
-overrides point at are kept along with them. `Scyther.network.rules.removeAll()` discards the
-set-aside configurations too, and is what lets the sweep start reclaiming again.
+overrides point at are kept along with them. Discarding every override discards the set-aside
+configurations too, and is what lets the sweep start reclaiming again — from the alert itself,
+which offers **Delete All Overrides**, or from `Scyther.network.rules.removeAll()`.
 
 #### Stubbing a UI Test
 
-Transient overrides make a UI test hermetic without running a stub server:
+Transient overrides make a UI test hermetic without running a stub server.
+
+> **Register after `Scyther.start()`, not before.** Every member of `Scyther.network.rules` is
+> inert until `start()` has run, and `add(_:)`, `addTransient(_:)` and `update(_:)` are all
+> `@discardableResult` — so a block placed *above* `start()` compiles, runs, warns about nothing,
+> and registers nothing. Since the block below sits behind a launch argument it reads as though it
+> could go anywhere in `didFinishLaunching`; it cannot. If you want the compiler's help, read the
+> `Bool` these return: `false` means nothing was stored.
 
 ```swift
-// In the app, behind a launch argument the test sets.
+// In the app, in didFinishLaunching, *after* Scyther.start().
+Scyther.start()
+
 if ProcessInfo.processInfo.arguments.contains("-UITestStubs") {
     Scyther.network.rules.isEnabled = true
-    Scyther.network.rules.addTransient(
+    let registered = Scyther.network.rules.addTransient(
         .mock(name: "Profile",
               matching: .host("api.example.com", path: "/v1/profile", methods: ["GET"]),
               returning: .json(#"{"name": "Ada"}"#))
     )
+    assert(registered, "Scyther.start() must run before any override is registered")
+
     Scyther.network.rules.addTransient(
         .condition(name: "Slow uploads",
                    matching: .path("/v1/upload", methods: ["POST"]),
@@ -829,8 +854,11 @@ app.launchArguments += ["-UITestStubs"]
 app.launch()
 ```
 
-Because they are transient, the next launch starts clean: a stub left enabled by a failing run
-cannot quietly break the next one.
+Because they are transient, the *overrides* do not survive the launch that registered them: a stub
+left behind by a failing run cannot quietly break the next one. The master switch is a different
+matter — `isEnabled` is persisted, so setting it here leaves it on for the developer's next
+ordinary launch as well. That is usually what you want, since it is on by default; if a run may
+have turned it off, set it explicitly as the snippet does rather than assuming.
 
 > **Note**: Overrides apply only to traffic Scyther intercepts — `URLSession` traffic through a
 > standard configuration. A custom `URLSessionConfiguration` that does not carry Scyther's
@@ -854,9 +882,11 @@ confirm button is tapped.
   dropped rather than sent, because editing them has no effect. A duplicated header name travels
   as the one comma-joined field HTTP defines rather than one row silently winning.
 - **Body** — a row opening the same text editor the rest of the toolkit uses, showing a byte
-  count. A body that is not valid UTF-8 is shown as such and sent unchanged; the logger only ever
-  writes a UTF-8 request body to disk, so a binary body is not recoverable from the capture and
-  the replay goes out without one.
+  count. The logger only ever writes a UTF-8 request body to disk, so a binary body — a protobuf,
+  a multipart upload — is not recoverable from the capture and the replay goes out without one.
+  The editor says so on the row, in the section's footer, and in a confirmation before sending,
+  rather than quietly sending a request the developer did not ask for; typing a body of your own
+  retires the warning.
 
 #### What Happens on Send
 
@@ -875,7 +905,10 @@ override would simply synthesise the same response again.
 
 Because resending a `POST`, `PATCH` or `DELETE` can repeat whatever it changed, any method
 outside `GET`, `HEAD` and `OPTIONS` warns in the editor and asks for confirmation in an alert
-naming the method before anything is sent.
+naming the method before anything is sent. So does a replay whose body could not be captured, and
+one aimed at a URL Scyther does not intercept — an ignored host, or a scheme that is not HTTP —
+which would be sent and never appear in the log. The editor's footer and the confirmation show the
+same list of warnings, so they cannot tell you different things.
 
 #### Comparing
 
@@ -887,6 +920,11 @@ has since been cleared.
 
 Both sections track the log as it changes, so a replay that lands seconds after the editor
 dismissed appears without leaving the page.
+
+A row whose exchange Scyther shaped says so, in the log's own badge words — `Original: MOCKED`,
+`Replay: HELD OVERRIDDEN`. A mocked response never left the device and a held one waited for a
+developer to press a button, so a delta across either measures Scyther rather than the server, and
+the section that exists for comparison should not report it as though it did not.
 
 ### Breakpoints
 
@@ -962,11 +1000,16 @@ The screen carries a master switch, a preset picker, and the three numbers under
 | **3G** | 0.1 s | 100 KB/s | none |
 | **EDGE** | 0.4 s | 30 KB/s | none |
 | **Very bad network** | 0.5 s | 125 KB/s | 10% |
-| **Custom** | — | — | — |
 
 Picking a preset fills the three fields in; editing any of them makes the picker read **Custom**
-again, because that is what it now is. Picking Custom deliberately changes nothing, so it can
-never wipe what has been typed.
+again, because that is what it now is. Custom is not something you pick — it is the *absence* of a
+preset — so the picker lists it only while it is what the numbers say, rather than offering a
+choice that would change nothing and then snap back.
+
+A request the global condition slowed or failed carries the brown `OVERRIDDEN` badge in the log,
+credited as **Network Conditioning** in the details page's **Overrides** row. It names it without
+offering a link, because it is a screen rather than an override — but the log never shows a
+conditioned request as ordinary traffic.
 
 The global condition is a **floor**, not an addition. A request override whose own condition
 matches replaces it outright, so one endpoint can still be conditioned differently — or barely at
