@@ -440,6 +440,27 @@ final class NetworkRuleStoreTests: XCTestCase {
         XCTAssertEqual(store.lastFailure, .bodyNotWritten)
     }
 
+    /// A body failure is raised from `Scyther.network.rules.add(_:)` as readily as from the editor,
+    /// and nothing but an acknowledgement ever cleared it. A host app that failed to register an
+    /// override at launch and succeeded on a retry therefore left the failure standing, and the
+    /// developer was shown an alert about it whenever they next happened to open the screen.
+    func testABodyThatWritesSuccessfullyClearsAStandingFailure() throws {
+        let blocker = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try Data("in the way".utf8).write(to: blocker)
+        addTeardownBlock { try? FileManager.default.removeItem(at: blocker) }
+
+        let store = NetworkRuleStore(defaults: defaults,
+                                     bodyDirectory: blocker.appendingPathComponent("bodies", isDirectory: true))
+        XCTAssertFalse(store.add(.mock(name: "mock", matching: .path("/a"), returning: .json("{}"))))
+        XCTAssertEqual(store.lastFailure, .bodyNotWritten)
+
+        // Whatever was in the way is gone, and the retry works.
+        try FileManager.default.removeItem(at: blocker)
+
+        XCTAssertTrue(store.add(.mock(name: "mock", matching: .path("/a"), returning: .json("{}"))))
+        XCTAssertNil(store.lastFailure, "an alert about a write that has since gone through is worse than none")
+    }
+
     /// Building the value used to write a file through the *shared* store, so a test with an
     /// injected directory wrote into the real Application Support container.
     func testAJSONMockWritesNothingUntilTheRuleHoldingItIsStored() throws {

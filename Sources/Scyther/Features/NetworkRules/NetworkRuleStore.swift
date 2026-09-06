@@ -103,16 +103,22 @@ internal final class NetworkRuleStore: ObservableObject {
     /// The most recent thing the store could not do, or `nil` when nothing has gone wrong.
     ///
     /// ``NetworkRulesView`` presents it as an alert and then calls ``acknowledgeFailure()``. It
-    /// exists because the two things that can fail here — encoding the rules and decoding them —
-    /// both used to fail silently, leaving the developer looking at a list that did not match
-    /// what the interceptor was applying.
+    /// exists because the things that can fail here — encoding the rules, decoding them, and
+    /// writing a mock body — all used to fail silently, leaving the developer looking at a list
+    /// that did not match what the interceptor was applying.
+    ///
+    /// A failure is cleared by acknowledgement *or* by the same operation later succeeding, since
+    /// no screen need be open when one is raised and an alert about a write that has since gone
+    /// through is worse than no alert at all.
     @Published private(set) var lastFailure: NetworkRuleStoreFailure?
 
     /// A persisted blob this version could not decode, held until something is about to overwrite
     /// it.
     ///
-    /// `nil` in the ordinary case. While it is set the store knows it does not know what the
-    /// developer had configured, which is why ``sweepOrphanedBodies()`` stands down.
+    /// `nil` in the ordinary case, and cleared once the blob has been moved to ``Key/unreadableRules``
+    /// by ``persistRules()``. It is only ever the blob read by *this* store's initialiser; whether
+    /// the sweep stands down is asked of ``isSweepSuspended``, which also sees the blobs earlier
+    /// launches set aside.
     private var unreadableBlob: Data?
 
     /// The master switch. Turning it off leaves every rule intact but stops the interceptor
@@ -395,6 +401,14 @@ internal final class NetworkRuleStore: ObservableObject {
 
     /// Sanitises a rule and writes any bytes it is still carrying.
     ///
+    /// A body that writes successfully clears a standing
+    /// ``NetworkRuleStoreFailure/bodyNotWritten``, exactly as ``persistRules()`` clears a standing
+    /// ``NetworkRuleStoreFailure/rulesNotSaved``. Nothing else ever did, and a body failure is
+    /// raised from `Scyther.network.rules.add(_:)` as easily as from the editor — so a host app
+    /// that failed to register an override at launch and succeeded on a retry left the failure
+    /// standing, and the developer was shown an alert about it when they happened to open the
+    /// overrides screen an hour later.
+    ///
     /// - Parameter rule: The rule about to be stored.
     /// - Returns: The rule as it should be stored, or `nil` when its mock body could not be
     ///   written — in which case ``lastFailure`` says so and the caller stores nothing.
@@ -408,6 +422,7 @@ internal final class NetworkRuleStore: ObservableObject {
             mock.pendingBody = nil
             var resolved = rule
             resolved.actions.stub = .mock(mock)
+            if lastFailure == .bodyNotWritten { lastFailure = nil }
             return resolved
         } catch {
             lastFailure = .bodyNotWritten
