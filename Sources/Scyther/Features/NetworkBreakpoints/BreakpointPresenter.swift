@@ -66,13 +66,34 @@ internal final class BreakpointPresenter: ObservableObject {
     ///
     /// Returns whether the editor actually reached the screen. A presentation that did not happen
     /// must say so: believing one did leaves the app paused behind nothing at all.
-    var presentEditor: @MainActor (BreakpointPresenter) -> Bool = { $0.presentOverKeyWindow() }
+    ///
+    /// The closure it is handed is called once the editor has finished appearing. UIKit ignores a
+    /// dismissal asked for while a presentation is still animating, and the exchange that put the
+    /// screen up can be resolved inside that window — by a timeout, or by a developer who is
+    /// quick — which used to leave the screen up for good with nothing behind it. Knowing when the
+    /// animation ends is what lets that dismissal be held and run afterwards.
+    var presentEditor: @MainActor (BreakpointPresenter, @escaping @MainActor () -> Void) -> Bool = {
+        $0.presentOverKeyWindow(whenAppeared: $1)
+    }
 
     /// How the editor is taken off screen. Replaced by a test.
     var dismissEditor: @MainActor (BreakpointPresenter) -> Void = { $0.dismissFromKeyWindow() }
 
     /// The controller currently presented, or `nil` when nothing is on screen.
+    ///
+    /// Held strongly, and cleared only where this presenter knows the screen has gone:
+    /// ``revalidatePresentation()`` asks the controller itself whether it is still presented, and
+    /// a reference that had been let go could not be asked.
     private var hostingController: UIViewController?
+
+    /// Whether the presentation animation is still running.
+    ///
+    /// UIKit silently ignores a dismissal asked for during it, so a dismissal that arrives here is
+    /// remembered in ``wantsDismissal`` and run when the animation ends instead of being dropped.
+    private var isAppearing: Bool = false
+
+    /// Whether a dismissal arrived while the editor was still appearing, and is owed.
+    private var wantsDismissal: Bool = false
 
     /// Whether the editor reached the screen and is still expected to be on it.
     ///
@@ -132,9 +153,10 @@ internal final class BreakpointPresenter: ObservableObject {
             // while something is held. Dismissing when nothing is up is harmless.
             let wasHolding = !pending.isEmpty
             pending = []
-            isPresenting = false
             if wasHolding || hasPresentedController {
-                dismissEditor(self)
+                requestDismissal()
+            } else {
+                isPresenting = false
             }
             return
         }
@@ -159,8 +181,43 @@ internal final class BreakpointPresenter: ObservableObject {
         }
 
         pending = items
+
+        // Something is held again, so a dismissal owed from the moment the list emptied is owed no
+        // longer: running it once the animation ends would take the screen away from under an
+        // exchange the app is waiting on.
+        wantsDismissal = false
+
         guard !isPresenting else { return }
-        isPresenting = presentEditor(self)
+        isAppearing = true
+        isPresenting = presentEditor(self) { [weak self] in self?.editorDidAppear() }
+        if !isPresenting {
+            isAppearing = false
+            wantsDismissal = false
+        }
+    }
+
+    /// Takes the screen down, or remembers to once it has finished appearing.
+    ///
+    /// UIKit drops a dismissal asked for while the presentation is still animating, and says
+    /// nothing about having done so. The exchange that put the screen up can be resolved inside
+    /// that window — a short timeout, or a developer quicker than the animation — and the dropped
+    /// dismissal used to leave an empty modal over an app waiting for nothing, with no way out.
+    private func requestDismissal() {
+        guard !isAppearing else {
+            wantsDismissal = true
+            return
+        }
+
+        isPresenting = false
+        dismissEditor(self)
+    }
+
+    /// Called once the presentation animation has finished, paying whatever dismissal it held up.
+    private func editorDidAppear() {
+        isAppearing = false
+        guard wantsDismissal else { return }
+        wantsDismissal = false
+        requestDismissal()
     }
 
     /// Lets go of everything still held, because the app has left the screen.
@@ -212,12 +269,11 @@ internal final class BreakpointPresenter: ObservableObject {
 
     /// Takes the screen down, whatever this presenter believed about it.
     ///
-    /// The escape hatch behind the empty list's confirm button. Nothing is held, so there is
+    /// The escape hatch behind the empty list's close button. Nothing is held, so there is
     /// nothing to lose by closing, and a modal with no rows and no exit is worse than any state
     /// this can leave behind.
     func dismiss() {
-        isPresenting = false
-        dismissEditor(self)
+        requestDismissal()
     }
 
     /// Whether this presenter still has a controller it put on screen.
@@ -251,7 +307,7 @@ internal final class BreakpointPresenter: ObservableObject {
     /// does.
     ///
     /// - Returns: Whether the editor is now on screen.
-    private func presentOverKeyWindow() -> Bool {
+    private func presentOverKeyWindow(whenAppeared: @escaping @MainActor () -> Void) -> Bool {
         guard let presenter = Scyther.topViewController else {
             logMessage("Breakpoint editor could not be presented: no key window to anchor to. It will be offered again the next time an exchange is held.")
             return false
@@ -259,7 +315,11 @@ internal final class BreakpointPresenter: ObservableObject {
 
         let controller = UIHostingController(rootView: HeldRequestsView(presenter: self))
         controller.isModalInPresentation = true
-        presenter.present(controller, animated: true)
+        presenter.present(controller, animated: true) {
+            // UIKit runs this on the main thread; the compiler cannot see that through an
+            // unisolated closure.
+            MainActor.assumeIsolated { whenAppeared() }
+        }
 
         guard controller.presentingViewController != nil else {
             logMessage("Breakpoint editor could not be presented: the anchor is already presenting something. It will be offered again the next time an exchange is held.")
@@ -272,7 +332,8 @@ internal final class BreakpointPresenter: ObservableObject {
 
     /// Dismisses the editor, if it is on screen.
     private func dismissFromKeyWindow() {
-        hostingController?.dismiss(animated: true)
+        guard let controller = hostingController else { return }
         hostingController = nil
+        controller.dismiss(animated: true)
     }
 }

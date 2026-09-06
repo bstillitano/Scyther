@@ -26,6 +26,9 @@ struct HeldRequestsView: View {
     /// The presenter holding the live list of paused exchanges.
     @ObservedObject var presenter: BreakpointPresenter
 
+    /// Closes the presentation this view was put up in, whatever the presenter believes about it.
+    @Environment(\.dismiss) private var dismiss
+
     /// The screen's view model, owning the navigation path.
     @StateObject private var viewModel = HeldRequestsViewModel()
 
@@ -39,7 +42,11 @@ struct HeldRequestsView: View {
                         }
                     }
                 } footer: {
-                    Text(localized("The app is waiting on these. Each one continues unchanged when its timeout runs out."))
+                    // The footer describes the rows above it. With nothing held there are no rows,
+                    // and an app that is waiting on nothing should not be told it is waiting.
+                    if !presenter.pending.isEmpty {
+                        Text(localized("The app is waiting on these. Each one continues unchanged when its timeout runs out."))
+                    }
                 }
             }
             .overlay {
@@ -50,10 +57,18 @@ struct HeldRequestsView: View {
             .navigationTitle(localized("Held Requests"))
             .toolbar {
                 // Only ever offered with nothing held: closing while an exchange waits would lose
-                // it without a decision, which is the thing this screen exists to prevent.
+                // it without a decision, which is the thing this screen exists to prevent. A close
+                // rather than a confirm, because there is nothing left here to agree to — the
+                // decisions have all been made, and this only puts the screen away.
                 if presenter.pending.isEmpty {
-                    ToolbarItem(placement: .confirmationAction) {
-                        ConfirmButton { presenter.dismiss() }
+                    ToolbarItem(placement: .cancellationAction) {
+                        CloseButton {
+                            presenter.dismiss()
+                            // And again from the view's own side. This button exists for the case
+                            // where the presenter's idea of what is on screen has come apart from
+                            // UIKit's, so it cannot be the only way out.
+                            dismiss()
+                        }
                     }
                 }
             }

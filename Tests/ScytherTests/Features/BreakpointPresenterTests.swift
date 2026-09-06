@@ -57,6 +57,33 @@ final class BreakpointPresenterTests: XCTestCase {
         func recordDismissal() { lock.withLock { dismissals += 1 } }
     }
 
+    /// Holds the "the editor has finished appearing" callbacks, so a test can decide when — or
+    /// whether — the presentation animation ends.
+    ///
+    /// Main-actor isolated, like everything it stands in for: the presenter hands these callbacks
+    /// out and calls them back on the main actor, so no lock is needed here.
+    @MainActor
+    private final class Appearances {
+        /// Whether callbacks are held rather than run as they arrive. `false` presents instantly,
+        /// which is what every test that is not about the animation wants.
+        var isDeferring = false
+
+        private var held: [() -> Void] = []
+
+        /// Takes one presentation's callback.
+        func record(_ completion: @escaping () -> Void) {
+            guard isDeferring else { return completion() }
+            held.append(completion)
+        }
+
+        /// Ends every animation in flight.
+        func finish() {
+            let all = held
+            held = []
+            all.forEach { $0() }
+        }
+    }
+
     /// A started presenter over a coordinator of its own, with its UIKit hooks recorded.
     ///
     /// Sendable — every member is either lock-guarded or main-actor isolated — so it can be
@@ -65,6 +92,7 @@ final class BreakpointPresenterTests: XCTestCase {
         let coordinator: BreakpointCoordinator
         let presenter: BreakpointPresenter
         let log: PresentationLog
+        let appearances: Appearances
     }
 
     /// Builds and starts a presenter. Static, so nothing about the test case is captured.
@@ -73,11 +101,16 @@ final class BreakpointPresenterTests: XCTestCase {
         let coordinator = BreakpointCoordinator()
         let presenter = BreakpointPresenter(coordinator: coordinator)
         let log = PresentationLog()
-        presenter.presentEditor = { _ in log.recordPresentation() }
+        let appearances = Appearances()
+        presenter.presentEditor = { _, appeared in
+            let didPresent = log.recordPresentation()
+            if didPresent { appearances.record(appeared) }
+            return didPresent
+        }
         presenter.dismissEditor = { _ in log.recordDismissal() }
         presenter.applicationState = { .active }
         presenter.start()
-        return Fixture(coordinator: coordinator, presenter: presenter, log: log)
+        return Fixture(coordinator: coordinator, presenter: presenter, log: log, appearances: appearances)
     }
 
     /// Declared `nonisolated(unsafe)` because `setUp()` and `tearDown()` are inherited
@@ -89,6 +122,7 @@ final class BreakpointPresenterTests: XCTestCase {
     private var coordinator: BreakpointCoordinator { fixture.coordinator }
     private var presenter: BreakpointPresenter { fixture.presenter }
     private var log: PresentationLog { fixture.log }
+    private var appearances: Appearances { fixture.appearances }
 
     /// Builds the fixture on the main actor, which is where XCTest runs a synchronous test body
     /// of a `@MainActor` suite. `makeFixture()` is static, so no part of the test case crosses
@@ -167,7 +201,44 @@ final class BreakpointPresenterTests: XCTestCase {
         XCTAssertEqual(log.dismissed, 1, "the screen has to come down even when the flag says it is not up")
     }
 
-    /// The escape hatch behind the empty list's confirm button.
+    /// UIKit drops a dismissal asked for while the presentation is still animating, and says
+    /// nothing about having done so. A short timeout, or a developer quicker than the animation,
+    /// resolves the exchange inside that window — and the dropped dismissal left an empty modal
+    /// over an app waiting for nothing, with no way out, which is exactly what this screen must
+    /// never be.
+    func testADismissalAskedForWhileTheEditorIsAppearingHappensOnceItHas() throws {
+        appearances.isDeferring = true
+        hold()
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
+
+        let id = try XCTUnwrap(presenter.pending.first?.id)
+        coordinator.resolve(id: id, with: .timedOut)
+        XCTAssertTrue(waitUntil { self.presenter.pending.isEmpty })
+        XCTAssertEqual(log.dismissed, 0, "UIKit would ignore this one, so it is not asked for yet")
+
+        appearances.finish()
+
+        XCTAssertEqual(log.dismissed, 1, "it is owed, and paid once the animation ends")
+    }
+
+    /// Unless something is held again first, in which case the screen is wanted after all.
+    func testAnExchangeHeldWhileADismissalIsOwedKeepsTheScreenUp() throws {
+        appearances.isDeferring = true
+        hold(name: "cart")
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
+        let id = try XCTUnwrap(presenter.pending.first?.id)
+        coordinator.resolve(id: id, with: .timedOut)
+        XCTAssertTrue(waitUntil { self.presenter.pending.isEmpty })
+
+        hold(name: "checkout")
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
+        appearances.finish()
+
+        XCTAssertEqual(log.dismissed, 0, "the app is waiting on something again")
+        XCTAssertEqual(log.presented, 1, "and the screen it is waiting behind never left")
+    }
+
+    /// The escape hatch behind the empty list's close button.
     func testDismissingByHandTakesTheScreenDown() {
         hold()
         XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })

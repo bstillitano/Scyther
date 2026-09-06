@@ -674,21 +674,6 @@
     "ru": "Экспорт сетевого журнала",
     "ar": "تصدير سجل الشبكة"
   },
-  "Close": {
-    "comment": "Accessibility label of the button that dismisses the export sheet",
-    "fr": "Fermer",
-    "de": "Schließen",
-    "es": "Cerrar",
-    "it": "Chiudi",
-    "pt-BR": "Fechar",
-    "nl": "Sluiten",
-    "ja": "閉じる",
-    "zh-Hans": "关闭",
-    "zh-Hant": "關閉",
-    "ko": "닫기",
-    "ru": "Закрыть",
-    "ar": "إغلاق"
-  },
   "Export Sensitive Data?": {
     "comment": "Title of the alert shown before sharing the archive",
     "fr": "Exporter des données sensibles ?",

@@ -11715,7 +11715,7 @@
       }
     },
     "Close": {
-      "comment": "Accessibility label of the button that dismisses the export sheet",
+      "comment": "Accessibility label of the button that closes a screen without deciding anything",
       "localizations": {
         "ar": {
           "stringUnit": {
