@@ -62,6 +62,21 @@ final class AuditNodeAdapterTests: XCTestCase {
         XCTAssertEqual(children.first?.accessibilityLabelText, "synthetic")
     }
 
+    /// A window not at the screen origin (Split View, Slide Over, Stage Manager, ...) must not
+    /// leak `accessibilityFrame`'s screen coordinates into `frameInWindow` unconverted — the
+    /// overlay box and the contrast sampler's crop both assume window-local coordinates.
+    func testSyntheticElementFrameIsConvertedFromScreenToWindowCoordinates() {
+        let window = UIWindow(frame: CGRect(x: 100, y: 50, width: 200, height: 200))
+        let container = UIView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        window.addSubview(container)
+        let element = UIAccessibilityElement(accessibilityContainer: container)
+        element.accessibilityFrame = CGRect(x: 120, y: 70, width: 40, height: 40)
+
+        let node = AccessibilityElementNode(element: element)
+
+        XCTAssertEqual(node.frameInWindow, CGRect(x: 20, y: 20, width: 40, height: 40))
+    }
+
     /// The sampler reads back what was drawn.
     func testTheSamplerReadsTheColourOfWhatWasDrawn() {
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))

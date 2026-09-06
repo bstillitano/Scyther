@@ -73,6 +73,27 @@ private func isAncestryScytherOwned(startingAt start: NSObject, ancestor: (NSObj
     return false
 }
 
+/// Walks a synthetic element's `accessibilityContainer` chain up to the first real `UIView`, and
+/// returns that view's window.
+///
+/// A `UIAccessibilityElement` has no window of its own — only a `UIView` does — but it is always
+/// created with a container, and that container's container, and so on, is the same chain
+/// `isScytherOwned` already walks for ownership. Finding the window this way (rather than, say,
+/// keeping a reference to the key window at audit time) means the element's *actual* window is
+/// used even if a container itself sits inside a nested window.
+///
+/// - Parameter element: The element to resolve a window for.
+/// - Returns: The window, or `nil` when nothing in the chain is a view attached to one.
+@MainActor
+private func resolveWindow(forContainerChainOf element: NSObject) -> UIWindow? {
+    var current: NSObject? = element
+    while let node = current {
+        if let view = node as? UIView { return view.window }
+        current = (node as? UIAccessibilityElement)?.accessibilityContainer as? NSObject
+    }
+    return nil
+}
+
 // MARK: - Accessibility children
 
 /// Turns an `NSObject` accessibility container into `AuditNode` children.
@@ -196,10 +217,23 @@ struct AccessibilityElementNode: AuditNode {
     /// Direct read of `accessibilityTraits`.
     var traits: UIAccessibilityTraits { element.accessibilityTraits }
 
-    /// Unlike a view's `frame`, `accessibilityFrame` is already expressed in screen coordinates —
-    /// the same space `UIView.frameInWindow` converts *into* — so there is nothing to convert
-    /// here; converting it again would be the bug, not the fix.
-    var frameInWindow: CGRect { element.accessibilityFrame }
+    /// `accessibilityFrame` is documented in *screen* coordinates, not window coordinates — the
+    /// two only coincide when the window happens to fill the screen from its origin, which is not
+    /// true in Split View, Slide Over, Stage Manager, or any other non-fullscreen scene. Returning
+    /// it unconverted would misplace the overlay box and, worse, feed the contrast sampler a crop
+    /// rectangle in the wrong space entirely — one that can land outside the window's own bounds
+    /// and make `WindowContrastSampler.samples(in:)` return `[]`, silently dropping a real finding
+    /// rather than reporting it in the wrong place. So this resolves the element's actual window
+    /// through its container chain and converts into that window's own coordinate space. When no
+    /// window can be resolved (a container never attached to one, as in some of the tests below),
+    /// the raw frame is the least-wrong fallback: it is still a valid frame in *some* space, and
+    /// silently returning `.zero` would instead make the element invisible to every check.
+    var frameInWindow: CGRect {
+        guard let window = resolveWindow(forContainerChainOf: element) else {
+            return element.accessibilityFrame
+        }
+        return window.convert(element.accessibilityFrame, from: window.screen.coordinateSpace)
+    }
 
     /// A synthetic element has no `isHidden`/`alpha` of its own to read: a container only lists
     /// it in `accessibilityElements`, or hands it back from `accessibilityElement(at:)`, while it
