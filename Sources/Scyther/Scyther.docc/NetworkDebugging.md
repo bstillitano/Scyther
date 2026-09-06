@@ -451,6 +451,20 @@ a timeout.
 The editor refuses an unnamed breakpoint and one whose match names no endpoint: a match that
 applies to everything would hold every request the app makes for the timeout each.
 
+### Breaking on a captured request
+
+The request details page carries a **Break on requests like this** button, beside **Save as mock**
+and **Replay this request**. It opens the editor pre-filled from the capture, on the same matcher
+a mock built from that page uses: the captured method, host and path exactly, with the query left
+unconstrained, holding the request stage for the default minute.
+
+It arrives enabled, where a mock arrives disabled. Enabling a mock changes what the app sees with
+nothing on screen to say so; a breakpoint announces itself by stopping the request and putting a
+screen in front of the developer. Nothing is written until the editor is confirmed either way.
+
+The button is offered wherever the entry has a URL, including one an override answered — seeing
+what the app sent to a stubbed endpoint is one of the things a breakpoint is for.
+
 ### When one fires
 
 The editor is presented over the key window. One held exchange opens straight into its page;

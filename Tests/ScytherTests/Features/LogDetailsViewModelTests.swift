@@ -271,6 +271,59 @@ final class LogDetailsViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.canSaveAsMock)
     }
 
+    // MARK: - Building a breakpoint
+
+    /// The whole point of building one from the log is to catch the next request like it, so it
+    /// arrives switched on. Nothing is written until the editor is confirmed.
+    func testMakeBreakpointIsEnabledAndNamedAfterTheCapture() async throws {
+        let viewModel = LogDetailsViewModel(httpRequest: try makeCapture(), store: makeStore())
+        await viewModel.onFirstAppear()
+
+        let breakpoint = viewModel.makeBreakpoint()
+
+        XCTAssertTrue(breakpoint.isEnabled)
+        XCTAssertEqual(breakpoint.name, "GET /v1/users")
+        XCTAssertEqual(breakpoint.stage, .request)
+    }
+
+    /// The same matcher the mock builds, for the same reasons: the query is left unconstrained so
+    /// the breakpoint is not pinned to the page that happened to be captured.
+    func testMakeBreakpointMatchesTheCapturedMethodHostAndPath() async throws {
+        let capture = try makeCapture(url: "https://api.example.com/v1/users?page=2", method: "post")
+        let viewModel = LogDetailsViewModel(httpRequest: capture, store: makeStore())
+        await viewModel.onFirstAppear()
+
+        let match = viewModel.makeBreakpoint().match
+
+        XCTAssertEqual(match.methods, ["POST"])
+        XCTAssertEqual(match.host, NetworkRulePattern(kind: .exact, value: "api.example.com"))
+        XCTAssertEqual(match.path, NetworkRulePattern(kind: .exact, value: "/v1/users"))
+        XCTAssertTrue(match.query.isEmpty)
+    }
+
+    /// A capture with no URL has no endpoint to break on.
+    func testABreakpointIsNotOfferedWithoutAURL() async throws {
+        let request = try makeCapture()
+        request.requestURL = nil
+
+        let viewModel = LogDetailsViewModel(httpRequest: request, store: makeStore())
+        await viewModel.onFirstAppear()
+
+        XCTAssertFalse(viewModel.canAddBreakpoint)
+    }
+
+    /// Unlike the mock, a stubbed capture can still be broken on: the request is still made, and
+    /// holding it is how the developer sees what the app sent before an override answered it.
+    func testABreakpointIsOfferedForAStubbedCapture() async throws {
+        let request = try makeCapture()
+        request.wasStubbed = true
+
+        let viewModel = LogDetailsViewModel(httpRequest: request, store: makeStore())
+        await viewModel.onFirstAppear()
+
+        XCTAssertTrue(viewModel.canAddBreakpoint)
+    }
+
     // MARK: - Building the mock
 
     func testMakeMockRuleStartsDisabledAndNamedAfterTheCapture() async throws {

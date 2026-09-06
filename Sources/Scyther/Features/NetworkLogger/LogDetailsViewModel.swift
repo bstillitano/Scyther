@@ -73,6 +73,11 @@ import SwiftUI
 /// - ``ruleStore``
 /// - ``makeMockRule()``
 ///
+/// ### Breakpoints
+/// - ``canAddBreakpoint``
+/// - ``breakpointStore``
+/// - ``makeBreakpoint()``
+///
 /// ### Replays
 /// - ``canReplay``
 /// - ``replayLinks``
@@ -110,6 +115,12 @@ class LogDetailsViewModel: ViewModel {
     /// Exposed so the view can hand the same store to the editor it presents; a test passes a
     /// throwaway one so saving a mock never touches the developer's real overrides.
     let ruleStore: NetworkRuleStore
+
+    /// The breakpoint store a breakpoint built from this capture is written to.
+    ///
+    /// Exposed for the same reason ``ruleStore`` is: the view hands it to the editor it presents,
+    /// and a test passes a throwaway one so nothing here touches the developer's real breakpoints.
+    let breakpointStore: BreakpointStore
 
     /// The formatted request URL.
     @Published var requestURL: String = ""
@@ -250,19 +261,35 @@ class LogDetailsViewModel: ViewModel {
         hasResponse && !wasStubbed
     }
 
+    /// Whether the "Break on requests like this" button is offered.
+    ///
+    /// Only a URL is needed: a breakpoint is built from the request, not the response, so an
+    /// exchange that failed or that an override answered can still name an endpoint worth
+    /// holding. That is the opposite of ``canSaveAsMock``, which needs a response off the wire to
+    /// copy — and deliberately so: seeing what the app *sent* to a stubbed endpoint is one of the
+    /// things a breakpoint is for.
+    var canAddBreakpoint: Bool {
+        !requestURL.isEmpty
+    }
+
     /// Creates a new log details view model.
     ///
     /// - Parameters:
     ///   - httpRequest: The HTTP request to display details for
     ///   - store: The override store a mock built from this capture is written to. Defaults to
     ///     the shared store; a test passes a throwaway one.
+    ///   - breakpointStore: The breakpoint store a breakpoint built from this capture is written
+    ///     to. Defaults to the shared store; a test passes a throwaway one.
     ///
     /// - Note: Isolated to the main actor because the default store is, and because the view that
     ///   builds this view model is itself main-actor isolated.
     @MainActor
-    init(httpRequest: HTTPRequest, store: NetworkRuleStore = .shared) {
+    init(httpRequest: HTTPRequest,
+         store: NetworkRuleStore = .shared,
+         breakpointStore: BreakpointStore = .shared) {
         self.httpRequest = httpRequest
         self.ruleStore = store
+        self.breakpointStore = breakpointStore
         super.init()
     }
 
@@ -452,18 +479,51 @@ class LogDetailsViewModel: ViewModel {
     /// - Returns: The pre-filled override, not yet added to ``ruleStore``. The response body
     ///   travels with the override rather than being written here, so abandoning the editor leaves
     ///   nothing on disk to reclaim.
+    /// Builds a breakpoint that holds requests like this one, ready for the editor.
+    ///
+    /// The matcher is the one ``makeMockRule()`` builds — captured method, host and path, with the
+    /// query left unconstrained — because a breakpoint matches with the same ``NetworkRuleMatch``
+    /// an override does, and two ways of turning one capture into a matcher would eventually
+    /// disagree.
+    ///
+    /// It arrives **enabled**, where a mock arrives disabled. Enabling a mock changes what the app
+    /// sees with nothing on screen to say so; a breakpoint announces itself by stopping the
+    /// request and putting a screen in front of the developer, which is the whole reason they
+    /// built it from this page. Nothing is written until the editor is confirmed either way.
+    ///
+    /// - Returns: The pre-filled breakpoint, not yet added to ``breakpointStore``.
     @MainActor
-    func makeMockRule() -> NetworkRule {
+    func makeBreakpoint() -> NetworkBreakpoint {
+        NetworkBreakpoint(name: captureName, match: capturedMatch)
+    }
+
+    /// The `METHOD /path` label both the mock and the breakpoint are named after.
+    private var captureName: String {
+        let components = httpRequest.requestURL.flatMap { URLComponents(string: $0) }
+        let method = (httpRequest.requestMethod ?? "GET").uppercased()
+        let path = (components?.percentEncodedPath).flatMap { $0.isEmpty ? nil : $0 } ?? "/"
+        return "\(method) \(path)" // scyther:unlocalised a method and a path, neither of them words
+    }
+
+    /// The matcher built from this capture: its method, host and path, exactly as they went out.
+    ///
+    /// The query is deliberately left unconstrained — pinning to the page number that happened to
+    /// be captured is almost never what was meant — and the path is taken percent-encoded, because
+    /// that is the form ``NetworkRuleMatch/matches(_:)`` compares against.
+    private var capturedMatch: NetworkRuleMatch {
         let components = httpRequest.requestURL.flatMap { URLComponents(string: $0) }
         let method = (httpRequest.requestMethod ?? "GET").uppercased()
         let path = (components?.percentEncodedPath).flatMap { $0.isEmpty ? nil : $0 } ?? "/"
 
-        let match = NetworkRuleMatch(
+        return NetworkRuleMatch(
             methods: [method],
             host: components?.host.map { NetworkRulePattern(kind: .exact, value: $0) },
             path: NetworkRulePattern(kind: .exact, value: path)
         )
+    }
 
+    @MainActor
+    func makeMockRule() -> NetworkRule {
         var headers: [String: String] = [:]
         for (key, value) in httpRequest.responseHeaders ?? [:] {
             guard let key = key as? String, let value = value as? String,
@@ -481,9 +541,9 @@ class LogDetailsViewModel: ViewModel {
         }
 
         return NetworkRule(
-            name: "\(method) \(path)",
+            name: captureName,
             isEnabled: false,
-            match: match,
+            match: capturedMatch,
             actions: NetworkRuleActions(stub: .mock(mock))
         )
     }

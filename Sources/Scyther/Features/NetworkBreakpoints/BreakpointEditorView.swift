@@ -40,6 +40,20 @@ struct BreakpointEditorView: View {
         self.showsCancel = showsCancel
     }
 
+    /// Creates the editor on a breakpoint that does not exist yet but is already filled in — the
+    /// one **Break on requests like this** builds from a log entry.
+    ///
+    /// Saving *adds* it, unlike ``init(breakpoint:store:showsCancel:)``, which updates a
+    /// breakpoint the store already holds.
+    ///
+    /// - Parameters:
+    ///   - breakpoint: The pre-filled breakpoint. Nothing is written until it is confirmed.
+    ///   - store: Where the breakpoint is written on save. Defaults to the shared store.
+    init(prefilled breakpoint: NetworkBreakpoint, store: BreakpointStore = .shared) {
+        _viewModel = StateObject(wrappedValue: BreakpointEditorViewModel(prefilled: breakpoint, store: store))
+        self.showsCancel = true
+    }
+
     var body: some View {
         List {
             Section {

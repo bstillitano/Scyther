@@ -171,6 +171,37 @@ final class BreakpointEditorViewModelTests: XCTestCase {
         XCTAssertEqual(store.breakpoints.first?.stage, .both)
     }
 
+    /// A breakpoint built from a log entry carries an identifier the store has never seen, so it
+    /// has to be *added*. Routing it through the editing initialiser would treat it as an edit and
+    /// update nothing at all.
+    func testSavingAPrefilledBreakpointAddsIt() {
+        let store = makeStore()
+        let prefilled = NetworkBreakpoint(name: "GET /v1/users", match: .path("/v1/users"))
+
+        let viewModel = BreakpointEditorViewModel(prefilled: prefilled, store: store)
+        XCTAssertEqual(viewModel.title, localized("New Breakpoint"))
+        XCTAssertTrue(viewModel.save())
+
+        XCTAssertEqual(store.breakpoints.map(\.name), ["GET /v1/users"])
+    }
+
+    /// Its fields arrive filled in, so the editor opens on the endpoint the log entry named rather
+    /// than on a blank form.
+    func testAPrefilledBreakpointOpensOnItsOwnMatch() {
+        let prefilled = NetworkBreakpoint(
+            name: "GET /v1/users",
+            match: NetworkRuleMatch(methods: ["GET"],
+                                    host: NetworkRulePattern(kind: .exact, value: "api.example.com"),
+                                    path: NetworkRulePattern(kind: .exact, value: "/v1/users"))
+        )
+
+        let viewModel = BreakpointEditorViewModel(prefilled: prefilled, store: makeStore())
+
+        XCTAssertEqual(viewModel.hostText, "api.example.com")
+        XCTAssertEqual(viewModel.pathText, "/v1/users")
+        XCTAssertTrue(viewModel.isValid)
+    }
+
     func testSavingAnEditedBreakpointUpdatesItInPlace() {
         let store = makeStore()
         let breakpoint = NetworkBreakpoint(name: "cart", match: .path("/v1/cart"))
