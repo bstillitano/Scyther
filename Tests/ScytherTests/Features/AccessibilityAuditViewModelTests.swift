@@ -21,9 +21,13 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
 
     private func result(_ findings: [AccessibilityFinding],
                         didHitLimit: Bool = false,
-                        checksRun: Set<AccessibilityCheck> = Set(AccessibilityCheck.allCases))
+                        checksRun: Set<AccessibilityCheck> = Set(AccessibilityCheck.allCases),
+                        checksSkippedWhileCovered: Set<AccessibilityCheck> = [])
     -> AccessibilityAuditor.Result {
-        AccessibilityAuditor.Result(findings: findings, didHitLimit: didHitLimit, checksRun: checksRun)
+        AccessibilityAuditor.Result(findings: findings,
+                                    didHitLimit: didHitLimit,
+                                    checksRun: checksRun,
+                                    checksSkippedWhileCovered: checksSkippedWhileCovered)
     }
 
     /// Findings are grouped by check, errors first inside each group, so the report leads with
@@ -78,6 +82,37 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
         await viewModel.load()
 
         XCTAssertTrue(viewModel.skippedChecks.isEmpty)
+        XCTAssertTrue(viewModel.checksSkippedWhileCovered.isEmpty)
+    }
+
+    /// A check that was on and still did not run — because Scyther's own screen was over the app
+    /// when the pass was made — is reported on its own, never as one the developer switched off.
+    /// Telling a developer they had turned contrast off when they had not is a small lie the
+    /// report has no business telling.
+    func testACheckSkippedWhileCoveredIsNotReportedAsSwitchedOff() async {
+        let viewModel = AccessibilityAuditViewModel {
+            self.result([],
+                        checksRun: [.missingLabel, .touchTarget],
+                        checksSkippedWhileCovered: [.contrast])
+        }
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.checksSkippedWhileCovered, [.contrast])
+        XCTAssertTrue(viewModel.skippedChecks.isEmpty)
+    }
+
+    /// The two reasons a check did not run are reported separately even when both apply at once,
+    /// because the screen says something different about each.
+    func testSwitchedOffAndCoveredChecksAreReportedApart() async {
+        let viewModel = AccessibilityAuditViewModel {
+            self.result([],
+                        checksRun: [.missingLabel],
+                        checksSkippedWhileCovered: [.contrast])
+        }
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.checksSkippedWhileCovered, [.contrast])
+        XCTAssertEqual(viewModel.skippedChecks, [.touchTarget])
     }
 
     /// A truncated walk says so rather than presenting a partial result as complete.

@@ -80,6 +80,16 @@ final class AccessibilityAuditViewModel: ViewModel {
     /// because "no findings" and "nothing was looked at" must never read the same way.
     @Published private(set) var skippedChecks: [AccessibilityCheck] = []
 
+    /// Every check that was switched on and still did not run, because Scyther's own UI was
+    /// covering the app when the pass was made.
+    ///
+    /// Kept apart from ``skippedChecks`` because the screen has to say something different about
+    /// each: one is a setting the developer chose and can undo from the toggles above, the other
+    /// is a measurement Scyther declined to make because it would have measured its own dimming
+    /// of the app rather than the app. Reporting the second as the first would tell a developer
+    /// they had turned contrast off when they had not.
+    @Published private(set) var checksSkippedWhileCovered: [AccessibilityCheck] = []
+
     /// Whether a pass is in flight right now, so the screen can show a progress indicator
     /// instead of an empty report it does not yet have an answer for.
     ///
@@ -210,7 +220,12 @@ final class AccessibilityAuditViewModel: ViewModel {
         )
     }
 
-    /// Replaces ``groups``, ``didHitLimit`` and ``skippedChecks`` with what `result` found.
+    /// Replaces ``groups``, ``didHitLimit``, ``skippedChecks`` and ``checksSkippedWhileCovered``
+    /// with what `result` found.
+    ///
+    /// Both lists of skipped checks are ordered by ``AccessibilityCheck/allCases`` rather than
+    /// left in whatever order a `Set` iterates in, so the screen names them the same way twice
+    /// running.
     ///
     /// - Parameter result: One pass of the audit.
     private func apply(_ result: AccessibilityAuditor.Result) {
@@ -220,6 +235,11 @@ final class AccessibilityAuditViewModel: ViewModel {
             return Group(check: check, findings: findings.sorted { $0.severity > $1.severity })
         }
         didHitLimit = result.didHitLimit
-        skippedChecks = AccessibilityCheck.allCases.filter { !result.checksRun.contains($0) }
+        checksSkippedWhileCovered = AccessibilityCheck.allCases.filter(result.checksSkippedWhileCovered.contains)
+        // A check skipped because Scyther was in the way is not a check the developer switched
+        // off, and must not be listed as one.
+        skippedChecks = AccessibilityCheck.allCases.filter {
+            !result.checksRun.contains($0) && !result.checksSkippedWhileCovered.contains($0)
+        }
     }
 }

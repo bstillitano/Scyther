@@ -1469,6 +1469,9 @@ the report screen:
 **Show Issues On Screen** draws a box around every current finding directly over the running app,
 live, the same way `GridOverlay` and `FPSCounter` stay on screen without a manual refresh. Tapping
 a finding in the report flashes its box on the overlay so there's no doubt which element it means.
+A pill at the bottom of the screen counts the current findings; tapping it opens the report over
+whatever you're looking at, without going back through the menu. Closing it puts you straight back
+in the app with live mode still running.
 
 The report itself is frozen the moment it loads and only changes when **Re-run** is tapped, so
 findings never shift under you mid-read. A check you switch off is not run at all, and an empty
@@ -1482,7 +1485,13 @@ stopping it early puts a banner at the top of the report saying it may be incomp
 passing a partial answer off as a clean bill of health.
 
 The audit skips Scyther's own UI, so its menu and overlays are never reported as findings about
-your app.
+your app. It goes one step further for **Contrast**: while any Scyther screen is presented over
+the app — the menu, the report opened from the pill, the held-request editor — the check does not
+run at all. A presented screen dims and scales everything behind it, so the pixels the sampler
+would read are your app seen through Scyther's own dimming, and every ratio measured from them is
+an artefact. The report says so, and points you at live mode, which measures the real screen.
+Missing Labels and Touch Targets come from the accessibility tree rather than from pixels, so
+nothing covering the screen changes their answer and they keep running either way.
 
 There is no separate settings screen and no public code API for this feature yet — everything
 lives on the report screen itself, reached from **UI/UX → Accessibility Audit**.

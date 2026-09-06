@@ -14,6 +14,21 @@
     "zh-Hans": "%@ 位于 %@, %@",
     "zh-Hant": "%@ 位於 %@, %@"
   },
+  "%@ not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on %@ to measure the real screen instead.": {
+    "comment": "Banner on the accessibility audit report: the first %@ is the list of checks that were skipped (in practice 'Contrast'), the second is the localized title of the 'Show Issues On Screen' toggle",
+    "fr": "%@ non mesuré tant que Scyther recouvre l'app : les couleurs derrière cet écran sont celles de Scyther, pas celles de votre app. Activez %@ pour mesurer l'écran réel.",
+    "de": "%@ nicht gemessen, solange Scyther die App überdeckt: Die Farben hinter diesem Bildschirm gehören Scyther, nicht Ihrer App. Aktivieren Sie %@, um den echten Bildschirm zu messen.",
+    "es": "%@ no se ha medido mientras Scyther cubre la app: los colores detrás de esta pantalla son de Scyther, no de tu app. Activa %@ para medir la pantalla real.",
+    "it": "%@ non misurato mentre Scyther copre l'app: i colori dietro questa schermata sono di Scyther, non della tua app. Attiva %@ per misurare lo schermo reale.",
+    "pt-BR": "%@ não medido enquanto o Scyther cobre o app: as cores atrás desta tela são do Scyther, não do seu app. Ative %@ para medir a tela real.",
+    "nl": "%@ niet gemeten terwijl Scyther de app bedekt: de kleuren achter dit scherm zijn van Scyther, niet van je app. Schakel %@ in om het echte scherm te meten.",
+    "ja": "Scytherがアプリを覆っている間は%@を測定できません。この画面の背後の色はアプリではなくScytherのものです。%@をオンにすると実際の画面を測定します。",
+    "zh-Hans": "Scyther 覆盖应用时不会测量%@：此界面背后的颜色属于 Scyther，而非你的应用。开启%@即可测量真实屏幕。",
+    "zh-Hant": "Scyther 覆蓋 App 時不會測量%@：此畫面背後的顏色屬於 Scyther，而非你的 App。開啟%@即可測量真實畫面。",
+    "ko": "Scyther가 앱을 가리고 있는 동안에는 %@을(를) 측정하지 않습니다. 이 화면 뒤의 색은 앱이 아니라 Scyther의 색입니다. %@을(를) 켜면 실제 화면을 측정합니다.",
+    "ru": "%@ не измеряется, пока Scyther закрывает приложение: цвета за этим экраном принадлежат Scyther, а не вашему приложению. Включите %@, чтобы измерить настоящий экран.",
+    "ar": "لم يتم قياس %@ أثناء تغطية Scyther للتطبيق: الألوان خلف هذه الشاشة تخص Scyther وليس تطبيقك. فعّل %@ لقياس الشاشة الحقيقية."
+  },
   "%@ × %@pt, under the 44 × 44pt minimum.": {
     "ar": "%@ × %@pt، أقل من الحد الأدنى 44 × 44pt.",
     "comment": "Detail of a touch-target finding: %@ is the measured width and %@ the measured height, both already formatted with one decimal place",
@@ -251,6 +266,21 @@
     "ru": "Показывать проблемы на экране",
     "zh-Hans": "在屏幕上显示问题",
     "zh-Hant": "在螢幕上顯示問題"
+  },
+  "The checks that ran found nothing to report.": {
+    "comment": "Empty state of the accessibility audit report when every check that ran passed but at least one enabled check could not be run",
+    "fr": "Les vérifications effectuées n'ont rien trouvé à signaler.",
+    "de": "Die ausgeführten Prüfungen haben nichts gefunden.",
+    "es": "Las comprobaciones que se ejecutaron no encontraron nada que informar.",
+    "it": "I controlli eseguiti non hanno trovato nulla da segnalare.",
+    "pt-BR": "As verificações executadas não encontraram nada a relatar.",
+    "nl": "De uitgevoerde controles hebben niets gevonden om te melden.",
+    "ja": "実行されたチェックでは報告する問題は見つかりませんでした。",
+    "zh-Hans": "已运行的检查没有发现需要报告的问题。",
+    "zh-Hant": "已執行的檢查沒有發現需要回報的問題。",
+    "ko": "실행된 검사에서 보고할 문제를 찾지 못했습니다.",
+    "ru": "Выполненные проверки не нашли ничего, о чём стоит сообщить.",
+    "ar": "لم تجد الفحوصات التي تم تشغيلها ما يستدعي الإبلاغ عنه."
   },
   "The checks that ran found nothing to report. Switched off: %@.": {
     "ar": "لم تعثر الفحوصات التي تم تشغيلها على ما يستحق الإبلاغ عنه. معطّلة: %@.",

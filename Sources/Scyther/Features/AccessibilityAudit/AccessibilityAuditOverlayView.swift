@@ -71,7 +71,11 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     /// are. A real `UIButton` rather than a drawn shape, because a drawn shape cannot receive
     /// touches — see the type-level discussion of how this view avoids swallowing the app's own
     /// touches everywhere *except* here.
-    private let reportButton = UIButton()
+    ///
+    /// - Note: Readable rather than private so a test can check that the pill is laid out wide
+    ///   enough to draw its own title on one line. It is still owned entirely by this view:
+    ///   nothing outside may replace it.
+    internal private(set) var reportButton = UIButton()
 
     // MARK: - Data
 
@@ -89,9 +93,11 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
 
     /// Called when the pill is tapped.
     ///
-    /// Left unset by ``InterfaceToolkit``'s setup in this task: there is no report screen yet
-    /// for the pill to open one of. A later task assigns this once that screen exists, at which
-    /// point tapping the pill starts working with no further change needed here.
+    /// Assigned by `InterfaceToolkit.setupAccessibilityAudit()` to
+    /// ``AccessibilityAuditReportPresenter/openReport()``, so this view never has to know that
+    /// there is a report, where it comes from, or how it reaches the screen — only that its pill
+    /// was tapped. Left optional so an overlay created outside that setup (a test, a preview) is
+    /// inert rather than reaching for a presenter that is not there.
     internal var onOpenReport: (() -> Void)?
 
     /// Called at the end of every ``updateFrame()``.
@@ -131,6 +137,13 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
         configuration.baseForegroundColor = .white
         configuration.cornerStyle = .capsule
         configuration.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
+        // A pill is one line by definition. Left at the default the title wraps the moment the
+        // button is ever measured against a width narrower than the title needs — which is
+        // exactly what happened, reading "2 issue" over "s" — and a count broken across two lines
+        // is unreadable at this size. `.byClipping` makes wrapping impossible, so a mis-measured
+        // width would show as a clipped pill rather than a garbled one; ``layoutReportButton()``
+        // then makes sure it is never mis-measured in the first place.
+        configuration.titleLineBreakMode = .byClipping
         configuration.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
             outgoing.font = .systemFont(ofSize: 13, weight: .semibold)
@@ -158,10 +171,24 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     }
 
     /// Centres ``reportButton`` at the bottom of the screen, clear of the home indicator.
+    ///
+    /// Deliberately not `sizeToFit()`, which is what used to draw the pill's title across two
+    /// lines. `sizeToFit()` asks the button to fit its *current* bounds, and those bounds are
+    /// whatever the previous — shorter, or empty — title left behind, so the button answers with
+    /// the size of a wrapped title and is then laid out at exactly that too-narrow width. Asking
+    /// for the size that fits the full width of the overlay instead gives the title all the room
+    /// there is, and the answer is the natural single-line width of the pill.
+    ///
+    /// The layout pass before it is what makes that answer describe the title the pill is about to
+    /// show: a `UIButton.Configuration` is applied on the button's next update pass, so until one
+    /// has run the button is still measuring the title it had last time.
     private func layoutReportButton() {
-        reportButton.sizeToFit()
+        reportButton.setNeedsLayout()
+        reportButton.layoutIfNeeded()
+
+        let available = CGSize(width: max(bounds.width, 1), height: .greatestFiniteMagnitude)
+        let size = reportButton.sizeThatFits(available)
         let bottomInset = window?.safeAreaInsets.bottom ?? 0
-        let size = reportButton.frame.size
         reportButton.frame = CGRect(
             x: (bounds.width - size.width) / 2,
             y: bounds.height - bottomInset - Self.pillBottomPadding - size.height,

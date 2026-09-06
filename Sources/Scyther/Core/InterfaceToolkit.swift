@@ -257,11 +257,16 @@ extension InterfaceToolkit {
     /// The overlay's ``AccessibilityAuditOverlayView/onFrameChanged`` hook is wired here, to
     /// ``scheduleAccessibilityReaudit()``, rather than the overlay reaching into
     /// `InterfaceToolkit` itself — see that hook's own documentation for why the dependency runs
-    /// this direction.
+    /// this direction. ``AccessibilityAuditOverlayView/onOpenReport`` is wired here for the same
+    /// reason: the overlay knows only that its pill was tapped, and this is the one place that
+    /// knows there is a report to open and who opens it.
     @MainActor internal func setupAccessibilityAudit() {
         accessibilityAuditView.isHidden = true
         accessibilityAuditView.onFrameChanged = { [weak self] in
             self?.scheduleAccessibilityReaudit()
+        }
+        accessibilityAuditView.onOpenReport = {
+            AccessibilityAuditReportPresenter.shared.openReport()
         }
         topLevelViewsWrapper.addTopLevelView(topLevelView: accessibilityAuditView)
         showAccessibilityAudit()

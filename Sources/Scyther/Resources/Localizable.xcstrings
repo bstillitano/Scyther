@@ -155,6 +155,83 @@
         }
       }
     },
+    "%@ not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on %@ to measure the real screen instead.": {
+      "comment": "Banner on the accessibility audit report: the first %@ is the list of checks that were skipped (in practice 'Contrast'), the second is the localized title of the 'Show Issues On Screen' toggle",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لم يتم قياس %@ أثناء تغطية Scyther للتطبيق: الألوان خلف هذه الشاشة تخص Scyther وليس تطبيقك. فعّل %@ لقياس الشاشة الحقيقية."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ nicht gemessen, solange Scyther die App überdeckt: Die Farben hinter diesem Bildschirm gehören Scyther, nicht Ihrer App. Aktivieren Sie %@, um den echten Bildschirm zu messen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ no se ha medido mientras Scyther cubre la app: los colores detrás de esta pantalla son de Scyther, no de tu app. Activa %@ para medir la pantalla real."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ non mesuré tant que Scyther recouvre l'app : les couleurs derrière cet écran sont celles de Scyther, pas celles de votre app. Activez %@ pour mesurer l'écran réel."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ non misurato mentre Scyther copre l'app: i colori dietro questa schermata sono di Scyther, non della tua app. Attiva %@ per misurare lo schermo reale."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scytherがアプリを覆っている間は%@を測定できません。この画面の背後の色はアプリではなくScytherのものです。%@をオンにすると実際の画面を測定します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther가 앱을 가리고 있는 동안에는 %@을(를) 측정하지 않습니다. 이 화면 뒤의 색은 앱이 아니라 Scyther의 색입니다. %@을(를) 켜면 실제 화면을 측정합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ niet gemeten terwijl Scyther de app bedekt: de kleuren achter dit scherm zijn van Scyther, niet van je app. Schakel %@ in om het echte scherm te meten."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ não medido enquanto o Scyther cobre o app: as cores atrás desta tela são do Scyther, não do seu app. Ative %@ para medir a tela real."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ не измеряется, пока Scyther закрывает приложение: цвета за этим экраном принадлежат Scyther, а не вашему приложению. Включите %@, чтобы измерить настоящий экран."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther 覆盖应用时不会测量%@：此界面背后的颜色属于 Scyther，而非你的应用。开启%@即可测量真实屏幕。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther 覆蓋 App 時不會測量%@：此畫面背後的顏色屬於 Scyther，而非你的 App。開啟%@即可測量真實畫面。"
+          }
+        }
+      }
+    },
     "%@ · %lld": {
       "comment": "Filter chip title when several values are selected; %@ is the dimension title and %lld the count",
       "localizations": {
@@ -52543,6 +52620,83 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "The checks that ran found nothing to report.": {
+      "comment": "Empty state of the accessibility audit report when every check that ran passed but at least one enabled check could not be run",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لم تجد الفحوصات التي تم تشغيلها ما يستدعي الإبلاغ عنه."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Die ausgeführten Prüfungen haben nichts gefunden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Las comprobaciones que se ejecutaron no encontraron nada que informar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Les vérifications effectuées n'ont rien trouvé à signaler."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "I controlli eseguiti non hanno trovato nulla da segnalare."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "実行されたチェックでは報告する問題は見つかりませんでした。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "실행된 검사에서 보고할 문제를 찾지 못했습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "De uitgevoerde controles hebben niets gevonden om te melden."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "As verificações executadas não encontraram nada a relatar."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Выполненные проверки не нашли ничего, о чём стоит сообщить."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "已运行的检查没有发现需要报告的问题。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "已執行的檢查沒有發現需要回報的問題。"
           }
         }
       }

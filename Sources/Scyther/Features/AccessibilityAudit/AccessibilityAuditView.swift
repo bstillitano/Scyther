@@ -49,6 +49,10 @@ struct AccessibilityAuditView: View {
                 truncatedBanner
             }
 
+            if !viewModel.checksSkippedWhileCovered.isEmpty {
+                coveredBanner
+            }
+
             if viewModel.groups.isEmpty {
                 // Only once there is an answer: an empty report during a pass would say "No
                 // Issues Found" about a screen nothing has looked at yet.
@@ -126,6 +130,37 @@ struct AccessibilityAuditView: View {
             )
             .foregroundStyle(.orange)
         }
+    }
+
+    // MARK: - Covered Screen
+
+    /// Shown when a check was switched on but could not be run because this very screen — or
+    /// Scyther's menu — was covering the app.
+    ///
+    /// A banner rather than a line in the empty state, because it has to be visible whether or
+    /// not anything else was found: a report full of missing-label findings that quietly never
+    /// measured contrast reads exactly like a screen whose contrast is fine.
+    ///
+    /// It names the way to get the measurement rather than only refusing to make it. Live mode
+    /// draws over the app with nothing of Scyther's presented in front of it, which is the one
+    /// state where the pixels behind an element really are the app's own.
+    private var coveredBanner: some View {
+        Section {
+            Label(coveredDescription, systemImage: "eye.slash")
+                .foregroundStyle(.orange)
+        }
+    }
+
+    /// The covered banner's wording: which checks were skipped, and what to switch on to have
+    /// them measured against the real screen.
+    ///
+    /// The live-mode toggle is named through ``localized(_:comment:)`` rather than spelled out in
+    /// the sentence, so a developer reading Scyther in French is pointed at the French toggle
+    /// sitting a few rows above rather than at an English one that is not there.
+    private var coveredDescription: String {
+        let names = ListFormatter.localizedString(byJoining: viewModel.checksSkippedWhileCovered.map(\.title))
+        let liveToggle = localized("Show Issues On Screen")
+        return localized("\(names) not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on \(liveToggle) to measure the real screen instead.")
     }
 
     // MARK: - Findings
@@ -220,15 +255,23 @@ struct AccessibilityAuditView: View {
         }
     }
 
-    /// The empty state's explanation: that every enabled check passed, or — when
-    /// ``AccessibilityAuditViewModel/skippedChecks`` is not empty — that the checks which did run
-    /// found nothing, alongside exactly which checks did not run at all.
+    /// The empty state's explanation: that every enabled check passed, or — when something did
+    /// not run — that the checks which did run found nothing.
+    ///
+    /// Three cases rather than two. A check the developer switched off is named here, because
+    /// nothing else on the screen says so. A check skipped because Scyther was covering the app
+    /// is *not* named here: ``coveredBanner`` has already said which, and why, in more detail than
+    /// belongs in an empty state — but "every enabled check passed" would still be untrue while
+    /// one of them never ran, so that wording is withheld too.
     private var emptyStateDescription: String {
-        guard !viewModel.skippedChecks.isEmpty else {
-            return localized("Every enabled check passed.")
+        if !viewModel.skippedChecks.isEmpty {
+            let names = ListFormatter.localizedString(byJoining: viewModel.skippedChecks.map(\.title))
+            return localized("The checks that ran found nothing to report. Switched off: \(names).")
         }
-        let names = ListFormatter.localizedString(byJoining: viewModel.skippedChecks.map(\.title))
-        return localized("The checks that ran found nothing to report. Switched off: \(names).")
+        if !viewModel.checksSkippedWhileCovered.isEmpty {
+            return localized("The checks that ran found nothing to report.")
+        }
+        return localized("Every enabled check passed.")
     }
 }
 

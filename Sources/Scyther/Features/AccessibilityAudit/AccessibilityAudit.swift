@@ -45,6 +45,8 @@ import UIKit
 ///
 /// ### Running the Audit
 /// - ``auditKeyWindow()``
+/// - ``checksNeedingAnUncoveredScreen``
+/// - ``checksSkippedWhileCovered(from:isCovering:)``
 @MainActor
 internal final class AccessibilityAudit: Sendable {
     // MARK: - Static Data (nonisolated for cross-thread access)
@@ -137,6 +139,37 @@ internal final class AccessibilityAudit: Sendable {
         Set(AccessibilityCheck.allCases.filter(isEnabled))
     }
 
+    /// The checks that can only be answered honestly when nothing of Scyther's is on screen.
+    ///
+    /// Contrast alone. It is measured by snapshotting the window and reading the pixels behind
+    /// each element, and a modally presented screen dims and scales everything behind it — so
+    /// while Scyther's menu, or its own report, is up, those pixels are the app seen *through*
+    /// Scyther. That is how a screen of ordinary section headers came back as "About 1.2:1 …
+    /// #0A0A0B on #1B1B1D": two near-identical greys that exist nowhere in the app and only in
+    /// Scyther's dimming of it.
+    ///
+    /// Missing labels and touch targets are read from the accessibility tree rather than from
+    /// pixels, so nothing covering the screen can change their answer, and they keep running.
+    internal nonisolated static let checksNeedingAnUncoveredScreen: Set<AccessibilityCheck> = [.contrast]
+
+    /// Which of `enabled` must be skipped because Scyther's own UI is covering the app.
+    ///
+    /// Split out from ``auditKeyWindow()`` so the rule itself can be tested: `auditKeyWindow()`
+    /// deliberately does nothing at all under a test — see its own documentation — which would
+    /// otherwise leave this decision as the one part of the audit no test can reach.
+    ///
+    /// - Parameters:
+    ///   - enabled: The checks the developer has switched on.
+    ///   - isCovering: Whether Scyther's own UI is in front of the app, per
+    ///     ``ScytherPresentation/isCoveringScreen``.
+    /// - Returns: The enabled checks to skip, which is empty whenever nothing of Scyther's is on
+    ///   screen.
+    internal nonisolated static func checksSkippedWhileCovered(from enabled: Set<AccessibilityCheck>,
+                                                              isCovering: Bool) -> Set<AccessibilityCheck> {
+        guard isCovering else { return [] }
+        return enabled.intersection(checksNeedingAnUncoveredScreen)
+    }
+
     /// Audits the key window right now.
     ///
     /// Returns an empty result — no findings, no truncation, no checks run — while a test is
@@ -145,7 +178,13 @@ internal final class AccessibilityAudit: Sendable {
     /// about test scaffolding or, worse, waste time on a window that no developer will ever look
     /// at through this overlay. Production and the example app always audit the real key window.
     ///
-    /// - Returns: The audit's findings, whether the walk was truncated, and which checks ran.
+    /// A check that cannot be measured honestly from here is not measured at all: see
+    /// ``checksNeedingAnUncoveredScreen``. It is reported as skipped rather than silently dropped,
+    /// so the report can say why — a contrast ratio invented by Scyther's own dimming is worse
+    /// than an admitted gap.
+    ///
+    /// - Returns: The audit's findings, whether the walk was truncated, which checks ran, and
+    ///   which were skipped because Scyther was in the way.
     @MainActor
     func auditKeyWindow() -> AccessibilityAuditor.Result {
         guard !AppEnvironment.isTestCase else {
@@ -155,9 +194,14 @@ internal final class AccessibilityAudit: Sendable {
             return AccessibilityAuditor.Result(findings: [], didHitLimit: false, checksRun: [])
         }
 
-        let checks = enabledChecks
+        let skipped = Self.checksSkippedWhileCovered(from: enabledChecks,
+                                                     isCovering: ScytherPresentation.isCoveringScreen)
+        let checks = enabledChecks.subtracting(skipped)
         let sampler: ContrastSampling? = checks.contains(.contrast) ? WindowContrastSampler(window: window) : nil
-        return AccessibilityAuditor().audit(root: window, checks: checks, sampler: sampler)
+        return AccessibilityAuditor().audit(root: window,
+                                            checks: checks,
+                                            sampler: sampler,
+                                            checksSkippedWhileCovered: skipped)
     }
 
     /// The app's key window, resolved the same way `InterfaceToolkit` and `Scyther` itself do.

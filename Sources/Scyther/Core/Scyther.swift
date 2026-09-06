@@ -233,7 +233,11 @@ public enum Scyther {
     public static func showMenu(from viewController: UIViewController? = nil) {
         guard _started, !_presented else { return }
 
-        let menu = UIHostingController(rootView: MenuView())
+        // Hosted in Scyther's own controller subclass, not a plain `UIHostingController`, so
+        // ``ScytherPresentation`` can recognise the menu as Scyther's UI covering the app — which
+        // is how the accessibility audit knows not to measure contrast through this modal's own
+        // dimming of the app behind it.
+        let menu = ScytherHostingController(rootView: MenuView())
         let nav = UINavigationController(rootViewController: menu)
 
         _presented = true

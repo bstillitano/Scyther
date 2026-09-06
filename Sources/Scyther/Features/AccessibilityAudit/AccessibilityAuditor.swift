@@ -101,6 +101,39 @@ struct AccessibilityAuditor {
 
         /// Which checks actually ran, so an empty report can say what was looked at.
         let checksRun: Set<AccessibilityCheck>
+
+        /// Which checks were switched on but still did not run, because Scyther's own UI was
+        /// covering the app when the pass was made.
+        ///
+        /// Kept apart from the checks a developer switched off, rather than folded into the gap
+        /// between ``checksRun`` and every check, because the two need opposite things said about
+        /// them: one is a setting the developer chose, the other is a measurement Scyther refused
+        /// to make because it could only have been wrong. Telling a developer they had switched
+        /// contrast off when they had not would be its own small lie.
+        let checksSkippedWhileCovered: Set<AccessibilityCheck>
+
+        /// Creates a result.
+        ///
+        /// Written out rather than left to the synthesised memberwise initialiser so
+        /// ``checksSkippedWhileCovered`` can default to empty: nearly every pass — and every test
+        /// that predates it — has nothing skipped for that reason, and a `let` with an initial
+        /// value would be left out of the synthesised initialiser altogether.
+        ///
+        /// - Parameters:
+        ///   - findings: Every defect found, in tree order.
+        ///   - didHitLimit: Whether a cap stopped the walk.
+        ///   - checksRun: Which checks actually ran.
+        ///   - checksSkippedWhileCovered: Which enabled checks were skipped because Scyther's own
+        ///     UI was covering the app.
+        init(findings: [AccessibilityFinding],
+             didHitLimit: Bool,
+             checksRun: Set<AccessibilityCheck>,
+             checksSkippedWhileCovered: Set<AccessibilityCheck> = []) {
+            self.findings = findings
+            self.didHitLimit = didHitLimit
+            self.checksRun = checksRun
+            self.checksSkippedWhileCovered = checksSkippedWhileCovered
+        }
     }
 
     /// The traits that mark an element a user is meant to name and reach.
@@ -133,10 +166,16 @@ struct AccessibilityAuditor {
     ///   - checks: The checks to run. One that is not named here is not run at all.
     ///   - sampler: How pixels are read for the contrast check, or `nil` when contrast is not
     ///     being run.
+    ///   - checksSkippedWhileCovered: Checks the caller left out of `checks` because Scyther's own
+    ///     UI was covering the app, carried through onto the result so the report can say so.
+    ///     Nothing here changes what this method does — the decision belongs to
+    ///     ``AccessibilityAudit/auditKeyWindow()``, which is the only caller that can see a real
+    ///     screen — so it is purely passed along.
     /// - Returns: The findings, whether the walk was truncated, and which checks ran.
     func audit(root: AuditNode,
                checks: Set<AccessibilityCheck>,
-               sampler: ContrastSampling?) -> Result {
+               sampler: ContrastSampling?,
+               checksSkippedWhileCovered: Set<AccessibilityCheck> = []) -> Result {
         let walked = collect(root: root)
         var findings: [AccessibilityFinding] = []
 
@@ -153,7 +192,10 @@ struct AccessibilityAuditor {
             }
         }
 
-        return Result(findings: findings, didHitLimit: walked.didHitLimit, checksRun: checks)
+        return Result(findings: findings,
+                      didHitLimit: walked.didHitLimit,
+                      checksRun: checks,
+                      checksSkippedWhileCovered: checksSkippedWhileCovered)
     }
 
     /// The finding for an element VoiceOver could not name, if there is one.
