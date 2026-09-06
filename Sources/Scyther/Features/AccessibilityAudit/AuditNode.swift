@@ -35,40 +35,84 @@ protocol AuditNode {
 
 // MARK: - Scyther ownership
 
-/// Whether a node's own type marks it as one of Scyther's — before any ancestor is considered.
+/// Whether a node itself marks it as one of Scyther's — before any ancestor is considered.
 ///
-/// Both adapters below need this test, and both need to repeat it up an ancestor chain (a
-/// `UIView`'s superviews, or a synthetic element's `accessibilityContainer`), so it is pulled
-/// out rather than written twice. `TopLevelViewsWrapper`/`TopLevelView` catch Scyther's overlay
-/// classes directly; the `"Scyther"`-prefix fallback catches everything else Scyther draws
-/// (its menu, its inspectors) without this file needing to name every one of them and rot the
-/// moment a new feature is added.
+/// The first test is the load-bearing one, and it is deliberately *structural*: ``ScytherPresentedUI``
+/// is a marker adopted by ``ScytherHostingController``, the controller every screen Scyther puts
+/// on screen is hosted in. Ownership of a whole presented screen is therefore decided by which
+/// controller owns the view, not by what the view's class happens to be called.
 ///
-/// - Parameter object: The view or element to test.
-/// - Returns: `true` when `object` is itself one of Scyther's own types.
+/// That distinction is the defect this rule used to have. Every Scyther screen is SwiftUI, so the
+/// view a presented screen actually hangs off is `_UIHostingView<MenuView>` — a private SwiftUI
+/// type that names Scyther nowhere — and the name-based rules below never fired for it. The audit
+/// consequently walked Scyther's own menu and its own report as if they were the app, and drew
+/// error boxes over Scyther's close button. Matching `_UIHostingView` instead would only have
+/// swapped one guess about a class name for a worse one, at a private symbol Apple may rename.
+/// A view cannot be asked what it is called and be relied on to answer usefully; it can be asked
+/// who owns it.
+///
+/// The three name-based tests are kept because they catch what the marker cannot: Scyther's
+/// *non-presented* UI — the overlays it installs straight into the app's key window, which have no
+/// view controller of their own. `TopLevelViewsWrapper`/`TopLevelView` name those base classes
+/// directly, and the `"Scyther"`-prefix fallback catches anything else Scyther draws without this
+/// file having to list every one of them and rot the moment a feature is added.
+///
+/// - Parameter object: The view, controller or element to test.
+/// - Returns: `true` when `object` is itself one of Scyther's own.
 @MainActor
 private func isScytherOwnedType(_ object: AnyObject) -> Bool {
-    object is TopLevelViewsWrapper
+    object is ScytherPresentedUI
+        || object is TopLevelViewsWrapper
         || object is TopLevelView
         || String(describing: type(of: object)).hasPrefix("Scyther")
 }
 
-/// Walks from `start` up through `ancestor` looking for a Scyther type.
+/// The next node up from `object` for the purposes of deciding ownership.
+///
+/// Three chains are stitched into one, because Scyther's own UI is reached through all three:
+///
+/// - a synthetic accessibility element sits nowhere in the view hierarchy, so it is followed
+///   through its `accessibilityContainer` to whatever real object vends it;
+/// - a view is followed through the *responder* chain rather than through `superview`. This is
+///   the structural step that makes ownership work: `UIResponder.next` returns a view's owning
+///   view controller when the view is that controller's root view, and its superview otherwise.
+///   A `superview`-only walk stops at the SwiftUI hosting view and never reaches the
+///   ``ScytherPresentedUI`` controller sitting directly above it, which is precisely why a
+///   presented Scyther screen used to be audited as if it were the app's;
+/// - a view controller is followed the same way, up to whatever presents or contains it.
+///
+/// The walk stops the moment the chain leaves the view/controller hierarchy — at the window's
+/// `UIWindowScene`, and beyond that `UIApplication` and the app's delegate. Those belong to the
+/// app being debugged and may be named anything at all, so letting the `"Scyther"`-prefix rule
+/// reach them could mark every view in an app whose delegate happens to be called `Scyther…` as
+/// Scyther's own. A `UIWindow` *is* a `UIView`, so it is still visited: an overlay Scyther one day
+/// installs in a window class of its own would be recognised there.
+///
+/// - Parameter object: The node whose ancestor is wanted.
+/// - Returns: The next node up, or `nil` at the top of the chain.
+@MainActor
+private func ownershipAncestor(of object: NSObject) -> NSObject? {
+    if let container = (object as? UIAccessibilityElement)?.accessibilityContainer as? NSObject {
+        return container
+    }
+    guard let next = (object as? UIResponder)?.next else { return nil }
+    return next is UIView || next is UIViewController ? next : nil
+}
+
+/// Walks from `start` up through ``ownershipAncestor(of:)`` looking for something of Scyther's.
 ///
 /// A view or element that merely sits *inside* Scyther's UI is just as much Scyther's as the
 /// root of that subtree — a label inside the menu is not a finding either — so ownership has to
 /// propagate up the containment chain rather than testing only the node in hand.
 ///
-/// - Parameters:
-///   - start: The node to start from; it is tested too, not only its ancestors.
-///   - ancestor: Returns the next node up, or `nil` at the top.
-/// - Returns: `true` when `start` or any node reached through `ancestor` is Scyther's.
+/// - Parameter start: The node to start from; it is tested too, not only its ancestors.
+/// - Returns: `true` when `start` or any node above it is Scyther's.
 @MainActor
-private func isAncestryScytherOwned(startingAt start: NSObject, ancestor: (NSObject) -> NSObject?) -> Bool {
+private func isAncestryScytherOwned(startingAt start: NSObject) -> Bool {
     var current: NSObject? = start
     while let node = current {
         if isScytherOwnedType(node) { return true }
-        current = ancestor(node)
+        current = ownershipAncestor(of: node)
     }
     return false
 }
@@ -197,11 +241,13 @@ extension UIView: AuditNode {
     var isVisible: Bool { !isHidden && alpha > 0.01 }
 
     /// Scyther's overlays live inside the app's own key window, so recognising them can't rely
-    /// on being outside the app's hierarchy — it has to recognise Scyther's own view classes and
-    /// then propagate that up so a label or button *inside* Scyther's UI is caught too, not only
-    /// the container that owns it.
+    /// on being outside the app's hierarchy — it has to recognise Scyther's own views *and the
+    /// controllers Scyther presents*, then propagate that down so a label or button inside
+    /// Scyther's UI is caught too, not only the container that owns it. The walk goes up the
+    /// responder chain rather than up `superview`, which is what lets it reach the owning view
+    /// controller — see `ownershipAncestor(of:)`.
     var isScytherOwned: Bool {
-        isAncestryScytherOwned(startingAt: self) { ($0 as? UIView)?.superview }
+        isAncestryScytherOwned(startingAt: self)
     }
 
     /// Direct read of the dynamic type name, used when a node has no label to identify it by.
@@ -269,15 +315,14 @@ struct AccessibilityElementNode: AuditNode {
     /// is meant to be visible.
     var isVisible: Bool { true }
 
-    /// Same rule as `UIView.isScytherOwned`, walked through `accessibilityContainer` instead of
-    /// `superview` since a synthetic element usually has no superview of its own.
-    /// `accessibilityContainer` is declared by `UIAccessibilityElement` itself rather than by
-    /// `NSObject` in general — unlike `isAccessibilityElement`/`accessibilityLabel`/etc, which
-    /// every accessibility element has — so the cast narrows to that before reading it.
+    /// Exactly the same rule as `UIView.isScytherOwned`, and deliberately the same walk: a
+    /// synthetic element has no superview of its own, so `ownershipAncestor(of:)` starts by
+    /// following `accessibilityContainer` and then — once that chain reaches a real view —
+    /// continues up the responder chain to whichever controller owns it. Sharing the walk is what
+    /// stops a SwiftUI `AccessibilityNode` vended by Scyther's own menu from being audited while
+    /// the `UIView` beside it is not.
     var isScytherOwned: Bool {
-        isAncestryScytherOwned(startingAt: element) { object in
-            (object as? UIAccessibilityElement)?.accessibilityContainer as? NSObject
-        }
+        isAncestryScytherOwned(startingAt: element)
     }
 
     /// Direct read of the wrapped element's dynamic type name.

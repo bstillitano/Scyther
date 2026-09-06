@@ -48,6 +48,59 @@ final class AuditNodeAdapterTests: XCTestCase {
         XCTAssertFalse((UIView() as AuditNode).isScytherOwned)
     }
 
+    /// The defect: with live mode on and Scyther's own report open, the overlay stroked red error
+    /// boxes over Scyther's close button. Every Scyther screen is SwiftUI, so the view a presented
+    /// screen hangs off is `_UIHostingView<…>` — a private SwiftUI type naming Scyther nowhere —
+    /// and a walk up `superview` alone stops there without ever reaching the controller above it.
+    /// Ownership now comes from the owning view controller, so this is built for real rather than
+    /// asserted against a type name.
+    func testAViewInsideAScytherPresentedControllerIsScytherOwned() {
+        let hosted = ScytherHostingController(rootView: Text("Scyther"))
+        hosted.loadViewIfNeeded()
+        let inside = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
+        hosted.view.addSubview(inside)
+
+        XCTAssertTrue((hosted.view as AuditNode).isScytherOwned)
+        XCTAssertTrue((inside as AuditNode).isScytherOwned)
+    }
+
+    /// The other half of the same rule: the app's own SwiftUI screens are the whole point of the
+    /// audit, and hosting a view in a `UIHostingController` must not exempt it from anything.
+    func testAViewInsideTheAppsOwnHostingControllerIsNotScytherOwned() {
+        let hosted = UIHostingController(rootView: Text("App"))
+        hosted.loadViewIfNeeded()
+        let inside = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
+        hosted.view.addSubview(inside)
+
+        XCTAssertFalse((hosted.view as AuditNode).isScytherOwned)
+        XCTAssertFalse((inside as AuditNode).isScytherOwned)
+    }
+
+    /// Ownership has to come from *structure*, not from spelling — matching a type-name prefix is
+    /// the guess that produced the defect above. `MarkerOnlyPresentedController`'s name mentions
+    /// Scyther nowhere and it is not a `TopLevelView`, so the only thing that can identify it is
+    /// the `ScytherPresentedUI` marker it adopts.
+    func testOwnershipComesFromTheMarkerRatherThanFromTheTypeName() {
+        let controller = MarkerOnlyPresentedController()
+        controller.loadViewIfNeeded()
+        let inside = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
+        controller.view.addSubview(inside)
+
+        XCTAssertFalse(String(describing: type(of: controller)).hasPrefix("Scyther"))
+        XCTAssertTrue((inside as AuditNode).isScytherOwned)
+    }
+
+    /// A SwiftUI screen vends synthetic accessibility elements rather than views, so the element
+    /// side of the walk has to reach the owning controller too — otherwise the audit would skip
+    /// Scyther's own `UIView`s and report its `Text`s.
+    func testASyntheticElementInsideAScytherPresentedControllerIsScytherOwned() {
+        let hosted = ScytherHostingController(rootView: Text("Scyther"))
+        hosted.loadViewIfNeeded()
+        let element = UIAccessibilityElement(accessibilityContainer: hosted.view as Any)
+
+        XCTAssertTrue(AccessibilityElementNode(element: element).isScytherOwned)
+    }
+
     /// A container that exposes accessibility children is walked through them, not its subviews.
     func testAccessibilityChildrenWinOverSubviews() {
         let container = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
@@ -234,3 +287,10 @@ final class AuditNodeAdapterTests: XCTestCase {
                       "SwiftUI's synthetic elements must still be found, but got \(labels)")
     }
 }
+
+/// A controller Scyther presents whose *name* gives nothing away.
+///
+/// Exists only so `testOwnershipComesFromTheMarkerRatherThanFromTheTypeName` can prove the rule is
+/// structural: if this is recognised as Scyther's, it can only be through the `ScytherPresentedUI`
+/// marker, since nothing about the class is called `Scyther` and it inherits from no Scyther type.
+private final class MarkerOnlyPresentedController: UIViewController, ScytherPresentedUI { }

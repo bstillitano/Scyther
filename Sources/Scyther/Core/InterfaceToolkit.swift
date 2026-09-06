@@ -118,6 +118,10 @@ public final class InterfaceToolkit: NSObject, Sendable {
                                                selector: #selector(windowDidBecomeVisibleNotification(notification:)),
                                                name: UIWindow.didBecomeVisibleNotification,
                                                object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(scytherCoverageDidChangeNotification(notification:)),
+                                               name: ScytherPresentation.coverageDidChangeNotification,
+                                               object: nil)
     }
 
     internal func start() {
@@ -211,6 +215,24 @@ public final class InterfaceToolkit: NSObject, Sendable {
     @objc
     internal func windowDidBecomeVisibleNotification(notification: NSNotification) {
         scheduleAccessibilityReaudit()
+    }
+
+    /// Scyther's own UI has appeared over the app, or gone away again, so the live overlay has to
+    /// decide afresh whether to draw.
+    ///
+    /// This is the only signal there is. A modal presentation changes nothing about the overlay's
+    /// own frame, so ``AccessibilityAuditOverlayView/updateFrame()`` never runs and the boxes drawn
+    /// for the app underneath would otherwise stay stroked across Scyther's own report. Deliberately
+    /// *not* routed through ``scheduleAccessibilityReaudit()``: covering the app changes what should
+    /// be drawn, not what the findings are, and half a second of boxes over Scyther's report while a
+    /// debounce runs down is exactly the thing being fixed.
+    ///
+    /// - Parameter notification: The posted notification. Unused: it carries no payload, because
+    ///   whether Scyther covers the app is a fact about the whole presented chain rather than about
+    ///   the one controller that just came or went.
+    @objc
+    internal func scytherCoverageDidChangeNotification(notification: NSNotification) {
+        accessibilityAuditView.refreshForCoverageChange()
     }
 }
 

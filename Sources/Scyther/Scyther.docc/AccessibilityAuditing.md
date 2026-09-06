@@ -34,6 +34,15 @@ which is the whole point of an accessibility audit.
 The walk skips Scyther's own UI. A label inside the Scyther menu, or one of its own overlays, is
 never a finding — the audit is trying to tell you something about your app, not about itself.
 
+That decision is made structurally rather than by class name. Each node is walked up its responder
+chain to whichever view controller owns it, and everything Scyther presents is hosted in a
+controller marked as Scyther's; Scyther's non-presented overlays are recognised by their own
+`TopLevelView` base class. Naming was tried and did not work: every Scyther screen is SwiftUI, so
+the view it hangs off is `_UIHostingView<…>`, a private SwiftUI type mentioning Scyther nowhere —
+which is how the audit came to draw red error boxes over Scyther's own close button. The live
+overlay uses the same answer from the other side and draws nothing at all while a Scyther screen
+is in front of the app.
+
 The walk also gives up gracefully rather than hanging the app it's debugging: past a depth of 100
 or 5,000 visited nodes it stops and marks the result as truncated, and the report says so — see
 ``AccessibilityAuditor/maximumDepth`` and ``AccessibilityAuditor/maximumNodes``.

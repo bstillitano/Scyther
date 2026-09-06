@@ -1484,8 +1484,18 @@ bounded three ways — depth, node count, and a 0.25s wall-clock budget — and 
 stopping it early puts a banner at the top of the report saying it may be incomplete, rather than
 passing a partial answer off as a clean bill of health.
 
-The audit skips Scyther's own UI, so its menu and overlays are never reported as findings about
-your app. It goes one step further for **Contrast**: while any Scyther screen is presented over
+The audit skips Scyther's own UI, so its menu, its report and its overlays are never reported as
+findings about your app. Ownership is decided structurally — a view is walked up its responder
+chain to whichever view controller owns it, and everything Scyther presents is hosted in a
+controller of Scyther's own — rather than by what a class happens to be called, which is what
+matters in practice because every Scyther screen is SwiftUI and hangs off a private
+`_UIHostingView` naming Scyther nowhere. The live overlay follows the same rule from the other
+side: while a Scyther screen is in front of the app it draws no boxes and no count pill at all,
+since every box describes an element of the app underneath and points at a rectangle where nothing
+it describes is still on screen. Live mode stays on; the boxes come straight back when you dismiss
+Scyther.
+
+It goes one step further for **Contrast**: while any Scyther screen is presented over
 the app — the menu, the report opened from the pill, the held-request editor — the check does not
 run at all. A presented screen dims and scales everything behind it, so the pixels the sampler
 would read are your app seen through Scyther's own dimming, and every ratio measured from them is

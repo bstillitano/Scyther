@@ -100,6 +100,16 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     /// inert rather than reaching for a presenter that is not there.
     internal var onOpenReport: (() -> Void)?
 
+    /// Answers whether Scyther's own UI is covering the app right now.
+    ///
+    /// Injected rather than read inline so a test can drive both answers without a window, a
+    /// presented controller and a presentation animation — none of which would make the drawing
+    /// decision any more real. Defaults to ``ScytherPresentation/isCoveringScreen``, deliberately
+    /// the *same* answer the contrast check already skips itself on: there is one question here —
+    /// "is Scyther in front of the app?" — and two independent answers to it would eventually
+    /// disagree.
+    internal var isCoveredByScyther: @MainActor () -> Bool = { ScytherPresentation.isCoveringScreen }
+
     /// Called at the end of every ``updateFrame()``.
     ///
     /// `updateFrame()` runs whenever the overlay's size might have changed — initial setup, a
@@ -204,10 +214,13 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     /// Hiding it — rather than leaving it visible reading "0 issues" — is what lets
     /// ``point(inside:with:)`` stay a single frame check: a hidden button's frame is never where
     /// this view reports a touch as landing, because the guard below checks `isHidden` first.
+    /// The same hiding covers the second reason there should be no pill: Scyther is in front of
+    /// the app, so the pill would sit over Scyther's own screen and, being the one part of this
+    /// view that takes touches, would steal them from it.
     private func updateReportButton() {
         let count = findings.count
-        reportButton.isHidden = count == 0
-        guard count > 0 else { return }
+        reportButton.isHidden = count == 0 || isCoveredByScyther()
+        guard !reportButton.isHidden else { return }
 
         let title = localized("\(count) issues")
         reportButton.configuration?.title = title
@@ -219,6 +232,19 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     @objc
     private func reportButtonTapped() {
         onOpenReport?()
+    }
+
+    /// Re-reads ``isCoveredByScyther`` and brings the pill and the boxes back into line with it.
+    ///
+    /// Called by ``InterfaceToolkit`` when ``ScytherPresentation/coverageDidChangeNotification``
+    /// arrives. Nothing else would: a modal appearing over the app changes no frame this view owns
+    /// and triggers no redraw of it, so without an explicit nudge the boxes drawn for the app would
+    /// simply stay on screen underneath Scyther — and, worse, stay gone after Scyther's screen was
+    /// dismissed. Recomputing rather than being handed a boolean is what makes it correct when two
+    /// Scyther screens are stacked and only the upper one goes away.
+    internal func refreshForCoverageChange() {
+        updateReportButton()
+        setNeedsDisplay()
     }
 
     // MARK: - Hit Testing
@@ -241,9 +267,19 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
 
     /// Strokes one rounded rectangle per finding.
     ///
+    /// Draws nothing at all while Scyther's own UI is in front of the app. This view is kept above
+    /// everything in the key window — ``InterfaceToolkit`` brings ``TopLevelViewsWrapper`` back to
+    /// the front whenever the window's layers change — so a modal Scyther presents goes *under* it
+    /// and the boxes end up stroked across Scyther's own menu, and across the report the developer
+    /// just opened to read them. Every box describes an element of the app underneath, so over
+    /// Scyther's UI it is not merely untidy but wrong: it points at a rectangle where nothing it
+    /// describes is any longer on screen. Live mode stays on throughout; only the drawing stops,
+    /// and it comes straight back when Scyther's screen goes away.
+    ///
     /// - Parameter rect: The portion of the view's bounds that needs to be redrawn.
     override func draw(_ rect: CGRect) {
         super.draw(rect)
+        guard !isCoveredByScyther() else { return }
         guard let context = UIGraphicsGetCurrentContext() else { return }
 
         for finding in findings {

@@ -13,13 +13,19 @@ import UIKit
 /// app being debugged.
 ///
 /// This exists because there is no honest way to recognise Scyther's own presentations from the
-/// outside. ``AuditNode`` recognises Scyther's *views* by class — ``TopLevelView``,
+/// outside. ``AuditNode`` recognises Scyther's *non-presented* views by class — ``TopLevelView``,
 /// ``TopLevelViewsWrapper``, or a type whose name begins with `Scyther` — and that rule works
 /// there because those views really are Scyther's own classes. A presented screen is not: it is a
 /// `UIHostingController` whose view is SwiftUI's `_UIHostingView`, a type belonging to SwiftUI
 /// that names Scyther nowhere. Sniffing that class name would be guessing at a private type, so
 /// Scyther says so itself instead, by hosting everything it presents in a
 /// ``ScytherHostingController``.
+///
+/// Two things ask: ``ScytherPresentation/isCoveringScreen``, which decides whether the contrast
+/// check can be measured honestly and whether the live overlay should draw at all; and
+/// `AuditNode.isScytherOwned`, which walks a view up its responder chain to whichever controller
+/// owns it and skips the whole subtree when that controller is marked. Before the second of those,
+/// the audit walked Scyther's own menu and report and drew error boxes over Scyther's own buttons.
 ///
 /// - Note: `AnyObject`-constrained so `is`/`as?` can be used on it without boxing a value type
 ///   that could never be a view controller in the first place.
@@ -34,7 +40,33 @@ internal protocol ScytherPresentedUI: AnyObject { }
 ///
 /// - Note: Declares no initialisers of its own, so it inherits `UIHostingController`'s —
 ///   including the `required init?(coder:)` a subclass would otherwise have to restate.
-internal final class ScytherHostingController<Content: View>: UIHostingController<Content>, ScytherPresentedUI { }
+internal final class ScytherHostingController<Content: View>: UIHostingController<Content>, ScytherPresentedUI {
+    /// Announces that Scyther has just covered the app.
+    ///
+    /// Nothing else can see this happen. A modal presentation changes no frame the live
+    /// accessibility overlay owns and posts no system notification the overlay could observe, so
+    /// without this the overlay would keep drawing the boxes it drew for the screen underneath —
+    /// over the top of Scyther's own report, which is exactly the defect this pairs with.
+    ///
+    /// - Parameter animated: Whether the appearance was animated. Passed straight to `super`.
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        ScytherPresentation.coverageDidChange()
+    }
+
+    /// Announces that Scyther may have just stopped covering the app.
+    ///
+    /// "May", not "has": another Scyther screen can still be up — the menu disappearing behind
+    /// the breakpoint editor it presented, say — which is why observers are told to *recompute*
+    /// ``ScytherPresentation/isCoveringScreen`` rather than being handed a boolean from here.
+    /// It also fires for a swipe-dismissal, which no presenter of Scyther's is told about at all.
+    ///
+    /// - Parameter animated: Whether the disappearance was animated. Passed straight to `super`.
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        ScytherPresentation.coverageDidChange()
+    }
+}
 
 /// Answers one question: is Scyther's own UI in front of the app right now?
 ///
@@ -55,6 +87,26 @@ internal final class ScytherHostingController<Content: View>: UIHostingControlle
 /// hence looking at every link rather than the last one.
 @MainActor
 internal enum ScytherPresentation {
+    /// Posted whenever a ``ScytherHostingController`` appears or disappears, meaning the answer
+    /// ``isCoveringScreen`` gives may have changed.
+    ///
+    /// A notification rather than a direct call into `InterfaceToolkit` so the dependency runs the
+    /// same way round as the rest of Scyther's overlays: this file knows nothing about the
+    /// accessibility audit, and the toolkit — which already observes four other UIKit
+    /// notifications — subscribes to one more. `nonisolated` so an observer can be registered from
+    /// wherever it happens to be set up.
+    nonisolated static let coverageDidChangeNotification = NSNotification.Name("Scyther_presentation_coverage_did_change")
+
+    /// Posts ``coverageDidChangeNotification``.
+    ///
+    /// Carries no payload on purpose. Whether Scyther is covering the app is a fact about the
+    /// whole presented chain, not about the one controller that just appeared or disappeared, so
+    /// an observer that trusted a boolean sent from here would be wrong the moment two Scyther
+    /// screens are stacked and the upper one goes away.
+    static func coverageDidChange() {
+        NotificationCenter.default.post(name: coverageDidChangeNotification, object: nil)
+    }
+
     /// Whether anything Scyther presented is currently on screen over the app.
     static var isCoveringScreen: Bool {
         isScytherPresented(in: presentedControllers(over: keyWindow?.rootViewController))
