@@ -153,9 +153,21 @@ final class NetworkRuleStoreTests: XCTestCase {
         XCTAssertEqual(mock.delay, 0)
     }
 
+    /// The key an unreadable configuration is set aside under.
+    private let quarantineKey = "Scyther.NetworkRules.Rules.Unreadable"
+
+    /// What is currently in quarantine, oldest first.
+    private var quarantined: [Data] {
+        defaults.array(forKey: quarantineKey) as? [Data] ?? []
+    }
+
     /// A blob that will not decode as an array at all — truncated, or a future version that wraps
     /// it in an object — must not become an empty list that is then written back over the
     /// developer's whole configuration.
+    ///
+    /// Asserting the quarantine key by name, rather than that the bytes are somewhere in the
+    /// suite, is the point: the previous spelling of this test passed just as well when the store
+    /// had not written anything at all and the blob was simply still sitting under the rules key.
     func testAnUnreadableBlobIsSetAsideRatherThanOverwritten() {
         let original = Data(#"{"version": 2, "rules": []}"#.utf8)
         defaults.set(original, forKey: "Scyther.NetworkRules.Rules")
@@ -165,8 +177,52 @@ final class NetworkRuleStoreTests: XCTestCase {
 
         store.add(makeRule("written after the unreadable load"))
 
-        let survives = defaults.dictionaryRepresentation().values.contains { ($0 as? Data) == original }
-        XCTAssertTrue(survives, "the developer's configuration is set aside, not destroyed")
+        XCTAssertEqual(quarantined, [original], "the developer's configuration is set aside, not destroyed")
+        XCTAssertNotEqual(defaults.data(forKey: "Scyther.NetworkRules.Rules"), original,
+                          "and the rules key has moved on rather than never having been written")
+    }
+
+    /// A second unreadable configuration used to overwrite the first, with nothing recording that
+    /// it had. Both promises were then broken at once: one configuration destroyed, and the
+    /// developer told twice that theirs had been kept.
+    func testASecondUnreadableBlobDoesNotOverwriteTheFirst() {
+        let first = Data(#"{"version": 2, "rules": []}"#.utf8)
+        defaults.set(first, forKey: "Scyther.NetworkRules.Rules")
+        makeStore().add(makeRule("after the first failure"))
+
+        let second = Data(#"{"version": 3, "rules": []}"#.utf8)
+        defaults.set(second, forKey: "Scyther.NetworkRules.Rules")
+        makeStore().add(makeRule("after the second failure"))
+
+        XCTAssertEqual(quarantined, [first, second])
+    }
+
+    /// Preferences are not an archive: a build that cannot read what it wrote would otherwise set
+    /// a configuration aside on every launch forever.
+    func testTheQuarantineKeepsTheMostRecentBlobsAndNoMore() {
+        var written: [Data] = []
+        for version in 0..<(NetworkRuleStore.maximumQuarantinedBlobs + 2) {
+            let blob = Data(#"{"version": \#(version), "rules": []}"#.utf8)
+            written.append(blob)
+            defaults.set(blob, forKey: "Scyther.NetworkRules.Rules")
+            makeStore().add(makeRule("after failure \(version)"))
+        }
+
+        XCTAssertEqual(quarantined, Array(written.suffix(NetworkRuleStore.maximumQuarantinedBlobs)))
+    }
+
+    /// Throwing every override away is the only thing that discards a set-aside configuration —
+    /// and the only way back to a sweeping store, since the sweep stands down while one exists.
+    func testRemovingEverythingDiscardsTheQuarantine() {
+        defaults.set(Data("not json at all".utf8), forKey: "Scyther.NetworkRules.Rules")
+        let store = makeStore()
+        store.add(makeRule("something"))
+        XCTAssertFalse(quarantined.isEmpty)
+
+        store.removeAll()
+
+        XCTAssertTrue(quarantined.isEmpty)
+        XCTAssertFalse(store.isSweepSuspended, "the sweep can start reclaiming again")
     }
 
     func testAnUnreadableBlobIsReportedRatherThanShownAsAnEmptyList() {
@@ -182,17 +238,58 @@ final class NetworkRuleStoreTests: XCTestCase {
     /// The store does not know what the developer had configured, so every body on disk looks
     /// orphaned. Sweeping on that basis would delete the bodies of the very configuration that
     /// was set aside to be recovered.
-    func testAnUnreadableBlobStandsTheSweepDown() async throws {
+    ///
+    /// The stand-down is asserted directly rather than inferred from a file that is still there
+    /// after a fixed sleep, because a sweep that had simply not got round to the file yet would
+    /// have satisfied that just as well.
+    func testAnUnreadableBlobStandsTheSweepDown() throws {
         let store = makeStore()
         let body = try store.storeBody(Data("belongs to the unreadable configuration".utf8))
         try age(store.bodyURL(for: body))
         defaults.set(Data("not json at all".utf8), forKey: "Scyther.NetworkRules.Rules")
 
         let reloaded = makeStore()
+        XCTAssertTrue(reloaded.isSweepSuspended)
         reloaded.sweepOrphanedBodies()
-        try? await Task.sleep(nanoseconds: 200_000_000)
 
         XCTAssertEqual(reloaded.bodyData(for: body),
+                       Data("belongs to the unreadable configuration".utf8))
+    }
+
+    /// The positive control for the test above: the same orphan, the same call, and no quarantine.
+    /// Without this, the stand-down could be spelled "never sweep anything" and still pass.
+    func testAStoreWithNoQuarantineSweepsThatSameOrphan() async throws {
+        let store = makeStore()
+        let body = try store.storeBody(Data("nothing points here".utf8))
+        try age(store.bodyURL(for: body))
+
+        XCTAssertFalse(store.isSweepSuspended)
+        store.sweepOrphanedBodies()
+
+        for _ in 0..<200 where store.bodyData(for: body) != nil {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertNil(store.bodyData(for: body))
+    }
+
+    /// The half of the promise that was not kept. The first mutation after the failed load cleared
+    /// the in-memory blob, so the *next* launch — which reads a blob it can read, and therefore has
+    /// no in-memory quarantine — swept every body the set-aside rules pointed at.
+    func testASetAsideConfigurationKeepsItsBodiesAcrossRelaunches() throws {
+        let first = makeStore()
+        let body = try first.storeBody(Data("belongs to the unreadable configuration".utf8))
+        try age(first.bodyURL(for: body))
+        defaults.set(Data("not json at all".utf8), forKey: "Scyther.NetworkRules.Rules")
+
+        // The launch that fails to read it, and then writes something of its own.
+        makeStore().add(makeRule("written after the unreadable load"))
+
+        // The launch after that, which reads a perfectly good blob.
+        let later = makeStore()
+        XCTAssertTrue(later.isSweepSuspended, "the quarantine outlives the launch that filled it")
+        later.sweepOrphanedBodies()
+
+        XCTAssertEqual(later.bodyData(for: body),
                        Data("belongs to the unreadable configuration".utf8))
     }
 
@@ -534,23 +631,33 @@ final class NetworkRuleStoreTests: XCTestCase {
     /// The enumeration runs off the main actor and can take a while; deciding against a reference
     /// set captured before it began made the sweep a race an override registered seconds after
     /// `Scyther.start()` could lose.
+    /// The second body is what makes the assertion about the file that survives mean anything: it
+    /// is deleted by the very same call, so waiting for it to go proves the deletion pass ran and
+    /// spared the other one, rather than proving only that a fixed sleep was long enough to
+    /// observe nothing having happened yet.
     func testACandidateReferencedBetweenTheWalkAndTheDeleteSurvives() async throws {
         let store = makeStore()
         let body = try store.storeBody(Data("about to be referenced".utf8))
+        let orphan = try store.storeBody(Data("nothing will point here".utf8))
         try age(store.bodyURL(for: body))
+        try age(store.bodyURL(for: orphan))
 
-        // What the detached walk sees: nothing references it yet.
+        // What the detached walk sees: nothing references either of them yet.
         let candidates = NetworkRuleStore.orphanCandidates(
             in: bodyDirectory,
             ignoringFilesNewerThan: NetworkRuleStore.bodySweepGracePeriod
         )
         XCTAssertTrue(candidates.contains { $0.bodyID == body })
+        XCTAssertTrue(candidates.contains { $0.bodyID == orphan })
 
         // The override arrives while the sweep is still walking.
         store.add(mockRule("registered mid-sweep", bodyID: body))
         store.deleteOrphans(candidates)
-        try? await Task.sleep(nanoseconds: 200_000_000)
 
+        for _ in 0..<200 where store.bodyData(for: orphan) != nil {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertNil(store.bodyData(for: orphan), "the deletion pass has run")
         XCTAssertEqual(store.bodyData(for: body), Data("about to be referenced".utf8))
     }
 

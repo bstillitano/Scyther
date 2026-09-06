@@ -67,13 +67,19 @@ import Foundation
 /// - ``bodyByteCount(for:)``
 /// - ``bodyDataOffMainActor(for:)``
 /// - ``sweepOrphanedBodies()``
+/// - ``isSweepSuspended``
+/// - ``maximumQuarantinedBlobs``
 @MainActor
 internal final class NetworkRuleStore: ObservableObject {
     /// The `UserDefaults` keys the store writes.
     private enum Key {
         /// The JSON-encoded array of persisted rules.
         static let rules = "Scyther.NetworkRules.Rules"
-        /// A rules blob this version could not read, moved here rather than overwritten.
+        /// Every rules blob this version could not read, moved here rather than overwritten.
+        ///
+        /// An array rather than one blob: a second unreadable configuration used to overwrite the
+        /// first, so a developer who downgraded twice was told twice that their overrides had been
+        /// set aside and had one of them thrown away in between.
         static let unreadableRules = "Scyther.NetworkRules.Rules.Unreadable"
         /// The master switch. Absent means enabled.
         static let isEnabled = "Scyther.NetworkRules.Enabled"
@@ -127,8 +133,14 @@ internal final class NetworkRuleStore: ObservableObject {
     /// A blob that will not decode as an array *at all* — truncated, or a future version that
     /// wraps the rules in an object — is a different matter, because there is no element to skip.
     /// The store starts empty, records ``NetworkRuleStoreFailure/rulesNotLoaded``, and keeps the
-    /// bytes; the next write moves them to a key of their own rather than overwriting them, so an
-    /// unreadable configuration is set aside instead of destroyed.
+    /// bytes; the next write appends them to a key of their own rather than overwriting them, so
+    /// an unreadable configuration is set aside instead of destroyed.
+    ///
+    /// Setting a configuration aside sets its bodies aside too. The rules in it name files on disk
+    /// this version cannot read the names of, so ``sweepOrphanedBodies()`` stands down for as long
+    /// as anything is quarantined rather than only for the launch that quarantined it — see
+    /// ``isSweepSuspended``. ``removeAll()`` is the way out: throwing every override away is the
+    /// developer saying the set-aside configuration is not wanted either.
     ///
     /// - Parameters:
     ///   - defaults: Where rules and the master switch are persisted. Defaults to Scyther's own
@@ -364,10 +376,18 @@ internal final class NetworkRuleStore: ObservableObject {
     }
 
     /// Deletes every rule, persisted and transient, and every file they own.
+    ///
+    /// Also discards anything held in quarantine — a configuration an earlier launch could not
+    /// read and set aside — because "delete every override" cannot sensibly mean "except the ones
+    /// nobody was ever shown". It is the only thing that discards a quarantine, and doing so is
+    /// what lets ``sweepOrphanedBodies()`` start reclaiming again: while a configuration is set
+    /// aside the sweep cannot tell which files on disk belong to it, so it stands down entirely.
     func removeAll() {
         let owned: [UUID?] = (rules + transientRules).map(\.storedFileID)
         rules.removeAll()
         transientRules.removeAll()
+        unreadableBlob = nil
+        defaults.removeObject(forKey: Key.unreadableRules)
         reclaim(owned)
         persistRules()
         publish()
@@ -612,10 +632,11 @@ internal final class NetworkRuleStore: ObservableObject {
     /// the deletions happen off it, because a directory holding a HAR import's worth of bodies is
     /// not something to walk while a host app is trying to draw its first frame.
     ///
-    /// Stands down entirely when the persisted blob could not be read: the store does not know
-    /// what the developer had configured, so every body on disk would look orphaned.
+    /// Stands down entirely while anything is quarantined — see ``isSweepSuspended`` — because the
+    /// store does not know what the developer had configured and every body on disk would look
+    /// orphaned. ``removeAll()`` clears the quarantine and lets the sweep resume.
     func sweepOrphanedBodies() {
-        guard unreadableBlob == nil else { return }
+        guard !isSweepSuspended else { return }
         let directory = bodyDirectory
         Task { [weak self] in
             let candidates = await Task.detached(priority: .utility) {
@@ -761,12 +782,14 @@ internal final class NetworkRuleStore: ObservableObject {
     /// refuses, but a silent write is not a thing to leave standing on the strength of "should".
     ///
     /// A blob the store could not read is moved aside here rather than overwritten, because this
-    /// is the moment it would otherwise be destroyed.
+    /// is the moment it would otherwise be destroyed. It is *appended* to whatever is already in
+    /// quarantine: overwriting meant a second downgrade silently destroyed the configuration the
+    /// first one had promised to keep.
     private func persistRules() {
         do {
             let data = try JSONEncoder().encode(rules)
             if let unreadableBlob {
-                defaults.set(unreadableBlob, forKey: Key.unreadableRules)
+                quarantine(unreadableBlob)
                 self.unreadableBlob = nil
             }
             defaults.set(data, forKey: Key.rules)
@@ -774,6 +797,47 @@ internal final class NetworkRuleStore: ObservableObject {
         } catch {
             lastFailure = .rulesNotSaved
         }
+    }
+
+    /// The blobs earlier launches, or this one, could not read.
+    ///
+    /// - Returns: The quarantined blobs, oldest first, or an empty array when nothing is set aside.
+    private var quarantinedBlobs: [Data] {
+        defaults.array(forKey: Key.unreadableRules) as? [Data] ?? []
+    }
+
+    /// Adds one unreadable blob to the quarantine, keeping the most recent
+    /// ``maximumQuarantinedBlobs``.
+    ///
+    /// - Parameter blob: The bytes this version could not decode.
+    private func quarantine(_ blob: Data) {
+        let kept = (quarantinedBlobs + [blob]).suffix(Self.maximumQuarantinedBlobs)
+        defaults.set(Array(kept), forKey: Key.unreadableRules)
+    }
+
+    /// How many unreadable configurations are kept before the oldest is dropped.
+    ///
+    /// Preferences are not an archive, and a build that could not read the blob it wrote last
+    /// launch would otherwise set one aside on every launch forever. Five is more than a
+    /// downgrade-and-back needs, and the newest is kept because it is the one whose bodies are
+    /// still on disk to go with it.
+    nonisolated static let maximumQuarantinedBlobs = 5
+
+    /// Whether the orphan sweep is standing down because a configuration this version could not
+    /// read is set aside.
+    ///
+    /// The sweep deletes files no *surviving* rule points at, and the store cannot read the
+    /// quarantined rules to ask what they point at — so every body belonging to them looks
+    /// orphaned. Deleting those bodies would empty out the very configuration the quarantine
+    /// exists to preserve, which is what happened when this was asked of the in-memory blob alone:
+    /// the first mutation after the failed load cleared it, and the *next* launch's sweep — which
+    /// loads a blob it can read and so has no in-memory quarantine — deleted the lot.
+    ///
+    /// - Note: Internal so a test can prove the sweep stood down, rather than asserting the
+    ///   absence of a deletion that may simply not have happened yet. Nothing in production reads
+    ///   it apart from ``sweepOrphanedBodies()``.
+    var isSweepSuspended: Bool {
+        unreadableBlob != nil || !quarantinedBlobs.isEmpty
     }
 
     /// Clears ``lastFailure`` once the developer has been told about it.

@@ -185,6 +185,10 @@ public final class NetworkRules: Sendable {
     }
 
     /// Deletes every rule, persisted and transient, and every mock body they own.
+    ///
+    /// Also discards any configuration a launch could not read and set aside, which is the only
+    /// way to discard one. Until it is discarded the orphan sweep stands down, because the store
+    /// cannot tell which files on disk belong to overrides it could not decode.
     public func removeAll() {
         guard Scyther.isStarted else { return }
         NetworkRuleStore.shared.removeAll()
