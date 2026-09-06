@@ -28,14 +28,14 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
 
     /// Findings are grouped by check, errors first inside each group, so the report leads with
     /// what is broken rather than with whatever the walk happened to reach first.
-    func testFindingsAreGroupedByCheckWithErrorsFirst() {
+    func testFindingsAreGroupedByCheckWithErrorsFirst() async {
         let findings = [
             finding(.touchTarget, .warning, "warn"),
             finding(.missingLabel, .error, "label"),
             finding(.touchTarget, .error, "error")
         ]
         let viewModel = AccessibilityAuditViewModel { self.result(findings) }
-        viewModel.load()
+        await viewModel.load()
 
         XCTAssertEqual(viewModel.groups.map(\.check), [.missingLabel, .touchTarget])
         XCTAssertEqual(viewModel.groups.last?.findings.map(\.elementName), ["error", "warn"])
@@ -43,19 +43,19 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
 
     /// The report is frozen. Findings that move while they are being read are useless, so a new
     /// pass happens only when it is asked for.
-    func testTheReportDoesNotChangeUntilItIsRerun() {
+    func testTheReportDoesNotChangeUntilItIsRerun() async {
         var passes = 0
         let viewModel = AccessibilityAuditViewModel {
             passes += 1
             return self.result([self.finding(.missingLabel, .error, "pass \(passes)")])
         }
-        viewModel.load()
-        viewModel.load()
+        await viewModel.load()
+        await viewModel.load()
 
         XCTAssertEqual(passes, 1)
         XCTAssertEqual(viewModel.groups.first?.findings.first?.elementName, "pass 1")
 
-        viewModel.rerun()
+        await viewModel.rerun()
 
         XCTAssertEqual(passes, 2)
         XCTAssertEqual(viewModel.groups.first?.findings.first?.elementName, "pass 2")
@@ -63,29 +63,29 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
 
     /// "No findings" and "nothing was looked at" must not read the same, so the empty state is
     /// handed the checks that did not run.
-    func testTheEmptyStateNamesTheChecksThatWereSwitchedOff() {
+    func testTheEmptyStateNamesTheChecksThatWereSwitchedOff() async {
         let viewModel = AccessibilityAuditViewModel {
             self.result([], checksRun: [.missingLabel])
         }
-        viewModel.load()
+        await viewModel.load()
 
         XCTAssertTrue(viewModel.groups.isEmpty)
         XCTAssertEqual(Set(viewModel.skippedChecks), [.touchTarget, .contrast])
     }
 
-    func testNothingIsReportedAsSkippedWhenEveryCheckRan() {
+    func testNothingIsReportedAsSkippedWhenEveryCheckRan() async {
         let viewModel = AccessibilityAuditViewModel { self.result([]) }
-        viewModel.load()
+        await viewModel.load()
 
         XCTAssertTrue(viewModel.skippedChecks.isEmpty)
     }
 
     /// A truncated walk says so rather than presenting a partial result as complete.
-    func testATruncatedWalkIsReported() {
+    func testATruncatedWalkIsReported() async {
         let viewModel = AccessibilityAuditViewModel {
             self.result([self.finding(.contrast, .warning, "text")], didHitLimit: true)
         }
-        viewModel.load()
+        await viewModel.load()
 
         XCTAssertTrue(viewModel.didHitLimit)
     }
@@ -100,5 +100,59 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
         viewModel.flash(target)
 
         XCTAssertEqual(flashed?.id, target.id)
+    }
+
+    /// The defect this whole task exists for: the walk must not run inside the caller's own turn
+    /// on the main actor. `.onFirstAppear` starts during the navigation push, so a pass that runs
+    /// straight through holds the main thread until it finishes and the push never animates. A
+    /// competing main-actor task standing in for that transition has to get its turn first.
+    func testThePassYieldsTheMainActorBeforeItWalks() async {
+        let order = Recorder()
+        let viewModel = AccessibilityAuditViewModel {
+            order.steps.append("walk")
+            return self.result([])
+        }
+
+        async let loaded: Void = viewModel.load()
+        async let transitioned: Void = Task { @MainActor in order.steps.append("transition") }.value
+        _ = await (loaded, transitioned)
+
+        XCTAssertEqual(order.steps, ["transition", "walk"],
+                       "the transition must get the main actor before the walk takes it")
+    }
+
+    /// The screen shows a spinner rather than an empty report while a pass is in flight, and puts
+    /// it away again once there is an answer. Read from inside the walk itself, because that is
+    /// the only moment the flag is meant to be up.
+    func testTheReportSaysItIsRunningWhileThePassIsInFlight() async {
+        let recorder = Recorder()
+        let viewModel = AccessibilityAuditViewModel {
+            recorder.isRunningDuringTheWalk = recorder.viewModel?.isRunning
+            return self.result([])
+        }
+        recorder.viewModel = viewModel
+
+        XCTAssertFalse(viewModel.isRunning)
+        await viewModel.load()
+
+        XCTAssertEqual(recorder.isRunningDuringTheWalk, true, "the spinner must be up while the walk runs")
+        XCTAssertFalse(viewModel.isRunning, "and down once there is an answer")
+    }
+
+    /// Notes what happened during a pass, from inside the audit closure.
+    ///
+    /// A reference type rather than a captured `var` so the audit closure and a competing
+    /// main-actor task write to the same storage rather than to copies of it, and so the closure
+    /// can reach the view model that owns it without capturing it before it exists.
+    @MainActor
+    private final class Recorder {
+        /// What ran, in the order it ran.
+        var steps: [String] = []
+
+        /// The view model under test, set after it is constructed.
+        var viewModel: AccessibilityAuditViewModel?
+
+        /// What ``AccessibilityAuditViewModel/isRunning`` read as while the walk was happening.
+        var isRunningDuringTheWalk: Bool?
     }
 }

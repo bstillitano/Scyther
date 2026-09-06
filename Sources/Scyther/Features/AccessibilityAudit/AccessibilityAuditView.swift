@@ -17,9 +17,14 @@ import SwiftUI
 ///
 /// The report below the toggles is frozen the moment it loads — see
 /// ``AccessibilityAuditViewModel/load()`` — and only changes when **Re-run** is tapped, so
-/// findings do not shift under a developer mid-read. Tapping a finding's row flashes its box on
-/// the live overlay behind this screen, via ``AccessibilityAuditViewModel/onFlash``, wired here
-/// to `InterfaceToolkit.instance.accessibilityAuditView.flash(_:)`.
+/// findings do not shift under a developer mid-read. The pass itself runs a turn *after* this
+/// screen appears rather than inside its first appear, so the navigation push finishes and this
+/// list is on screen with a spinner while the walk happens; a walk that held the main thread
+/// through the push made the app look frozen rather than busy.
+///
+/// Tapping a finding's row flashes its box on the live overlay behind this screen, via
+/// ``AccessibilityAuditViewModel/onFlash``, wired here to
+/// `InterfaceToolkit.instance.accessibilityAuditView.flash(_:)`.
 ///
 /// ## Topics
 /// ### Related Types
@@ -36,12 +41,20 @@ struct AccessibilityAuditView: View {
         List {
             settingsSection
 
+            if viewModel.isRunning {
+                runningSection
+            }
+
             if viewModel.didHitLimit {
                 truncatedBanner
             }
 
             if viewModel.groups.isEmpty {
-                emptyState
+                // Only once there is an answer: an empty report during a pass would say "No
+                // Issues Found" about a screen nothing has looked at yet.
+                if !viewModel.isRunning {
+                    emptyState
+                }
             } else {
                 ForEach(viewModel.groups) { group in
                     findingsSection(for: group)
@@ -52,10 +65,11 @@ struct AccessibilityAuditView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    viewModel.rerun()
+                    Task { await viewModel.rerun() }
                 } label: {
                     Label(localized("Re-run"), systemImage: "arrow.clockwise")
                 }
+                .disabled(viewModel.isRunning)
             }
         }
         .onFirstAppear {
@@ -78,6 +92,23 @@ struct AccessibilityAuditView: View {
             }
         } footer: {
             Text(localized("Draws a box around every finding, live over the running app."))
+        }
+    }
+
+    // MARK: - Running
+
+    /// Shown while a pass is in flight.
+    ///
+    /// The pass happens a turn after the screen appears — see
+    /// `AccessibilityAuditViewModel.performPass()` — so there is a moment where the report
+    /// exists but its answer does not, and a spinner is what says so. Stock `ProgressView`, like
+    /// every other indeterminate wait in Scyther.
+    private var runningSection: some View {
+        Section {
+            ProgressView {
+                Text(localized("Checking every element on screen…"))
+            }
+            .frame(maxWidth: .infinity)
         }
     }
 

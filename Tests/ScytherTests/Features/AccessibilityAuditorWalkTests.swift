@@ -120,4 +120,36 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
         // Each (container, element) pair costs 2 visits. At 5000 visits, only 2500 pairs fit.
         XCTAssertEqual(walked.nodes.count, AccessibilityAuditor.maximumNodes / 2, "exactly half the budget is collected, the rest consumed by container nodes")
     }
+
+    /// A walk can be slow per node rather than long, and the node cap cannot see that. The
+    /// clock is injected so this can be driven deterministically rather than by sleeping.
+    func testAWalkThatRunsOutOfTimeStopsAndSaysSo() {
+        var ticks = 0
+        let start = Date()
+        var auditor = AccessibilityAuditor()
+        auditor.now = {
+            ticks += 1
+            return start.addingTimeInterval(ticks > 5 ? AccessibilityAuditor.budget + 0.1 : 0)
+        }
+
+        let children = (0..<500).map { _ in Node(label: "row", isElement: true) as AuditNode }
+        let walked = auditor.collect(root: Node(children: children))
+
+        XCTAssertTrue(walked.didHitLimit)
+        XCTAssertLessThan(walked.nodes.count, 500)
+    }
+
+    /// The budget must not fire on a walk that finishes inside it, or every report would claim
+    /// to be truncated.
+    func testAWalkInsideTheBudgetIsNotReportedAsTruncated() {
+        let start = Date()
+        var auditor = AccessibilityAuditor()
+        auditor.now = { start }
+
+        let children = (0..<500).map { _ in Node(label: "row", isElement: true) as AuditNode }
+        let walked = auditor.collect(root: Node(children: children))
+
+        XCTAssertFalse(walked.didHitLimit)
+        XCTAssertEqual(walked.nodes.count, 500)
+    }
 }

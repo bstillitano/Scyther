@@ -16,6 +16,24 @@ struct AccessibilityAuditor {
     /// How many nodes the walk visits before it gives up, for the same reason.
     static let maximumNodes = 5000
 
+    /// How long the walk is allowed to take before it gives up, in seconds.
+    ///
+    /// A cap measured in nodes only protects the developer from a walk that is *long*. It does
+    /// nothing about a walk that is slow per node, which is the shape a real hierarchy takes when
+    /// something below ``AuditNode/children`` turns out to cost more than a property read — and
+    /// the walk runs on the main thread, inside the report screen's first appear, so a walk that
+    /// takes seconds is a frozen app rather than a slow screen. A quarter of a second is about
+    /// the longest the main thread can be held without a developer noticing, and a partial report
+    /// that admits it is partial beats a complete one nobody waits for.
+    static let budget: TimeInterval = 0.25
+
+    /// Reads the current time, so a test can spend the budget deterministically.
+    ///
+    /// A wall-clock budget tested against the wall clock is a test that either sleeps or flakes.
+    /// Taking the clock through a closure lets `AccessibilityAuditorWalkTests` drive it forward by
+    /// hand, and costs production nothing: the default is `Date.init` itself.
+    var now: () -> Date = Date.init
+
     /// Every element worth checking, in tree order.
     ///
     /// - Parameter root: The node to walk from, usually the key window.
@@ -24,16 +42,27 @@ struct AccessibilityAuditor {
         var found: [AuditNode] = []
         var didHitLimit = false
         var visited = 0
+        let deadline = now().addingTimeInterval(Self.budget)
 
         /// Walks the tree depth-first, counting every node visited to prevent pathological
-        /// hierarchies of containers from bypassing the node cap, and enforcing both depth
-        /// and node limits.
+        /// hierarchies of containers from bypassing the node cap, and enforcing the depth, node
+        /// and time limits.
         ///
         /// The root is not counted towards the visit budget — only its descendants are — so
         /// that the test's expectation of collecting exactly `maximumNodes` elements from a
         /// root and N children can be met without inflating the limit.
+        ///
+        /// The time check comes first and applies to the root too: unlike a node count, elapsed
+        /// time is spent by whatever ``AuditNode/children`` costs rather than by how many nodes
+        /// it hands back, so it has to be read before the next node is touched rather than after.
+        /// All three limits raise the same `didHitLimit`, so the report has one thing to say —
+        /// "this is partial" — and does not need to learn a second reason for it.
         func walk(_ node: AuditNode, depth: Int) {
             guard !didHitLimit else { return }
+            guard now() < deadline else {
+                didHitLimit = true
+                return
+            }
             guard depth <= Self.maximumDepth else {
                 didHitLimit = true
                 return

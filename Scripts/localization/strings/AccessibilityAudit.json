@@ -117,6 +117,21 @@
     "zh-Hans": "辅助功能审核",
     "zh-Hant": "輔助使用稽核"
   },
+  "Checking every element on screen…": {
+    "ar": "جارٍ فحص كل عنصر على الشاشة…",
+    "comment": "Progress label shown while an accessibility audit pass is walking the screen",
+    "de": "Jedes Element auf dem Bildschirm wird geprüft…",
+    "es": "Comprobando todos los elementos de la pantalla…",
+    "fr": "Vérification de chaque élément à l’écran…",
+    "it": "Controllo di ogni elemento sullo schermo…",
+    "ja": "画面上のすべての要素を確認しています…",
+    "ko": "화면의 모든 요소를 확인하는 중…",
+    "nl": "Elk element op het scherm wordt gecontroleerd…",
+    "pt-BR": "Verificando todos os elementos na tela…",
+    "ru": "Проверка каждого элемента на экране…",
+    "zh-Hans": "正在检查屏幕上的每个元素…",
+    "zh-Hant": "正在檢查螢幕上的每個元素…"
+  },
   "Contrast": {
     "ar": "التباين",
     "comment": "Name of the accessibility audit check for text too close in colour to what is behind it, shown in the report and the settings screen",

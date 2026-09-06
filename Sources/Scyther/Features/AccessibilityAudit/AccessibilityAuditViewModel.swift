@@ -80,6 +80,13 @@ final class AccessibilityAuditViewModel: ViewModel {
     /// because "no findings" and "nothing was looked at" must never read the same way.
     @Published private(set) var skippedChecks: [AccessibilityCheck] = []
 
+    /// Whether a pass is in flight right now, so the screen can show a progress indicator
+    /// instead of an empty report it does not yet have an answer for.
+    ///
+    /// "No issues found" and "not finished looking" must not read the same way, exactly as
+    /// ``skippedChecks`` exists so "nothing was wrong" and "nothing was looked at" do not.
+    @Published private(set) var isRunning = false
+
     /// Mirrors ``AccessibilityAudit/liveEnabled`` for the toggle at the top of the report screen.
     ///
     /// Writing this writes straight through to the singleton, exactly like
@@ -121,26 +128,52 @@ final class AccessibilityAuditViewModel: ViewModel {
     ///
     /// Safe to call from `.onFirstAppear` every time the screen appears: only the very first
     /// call after this instance was created does anything, so navigating back to an
-    /// already-loaded report finds it exactly as it was left.
-    func load() {
+    /// already-loaded report finds it exactly as it was left. `hasLoaded` is raised before the
+    /// suspension in ``performPass()``, not after it, so a second `.onFirstAppear` arriving while
+    /// the first pass is still in flight cannot start a second one.
+    ///
+    /// `async` on purpose — see ``performPass()`` for why the walk must not happen inside the
+    /// caller's own turn on the main actor.
+    func load() async {
         guard !hasLoaded else { return }
         hasLoaded = true
-        apply(run())
+        await performPass()
     }
 
     /// Runs ``load()`` when the screen first appears, per the ``ViewModel`` lifecycle every
     /// other Scyther screen uses.
     override func onFirstAppear() async {
         await super.onFirstAppear()
-        load()
+        await load()
     }
 
     /// Runs the audit again and replaces the current report with its result.
     ///
     /// The only way ``groups``, ``didHitLimit`` and ``skippedChecks`` change after the first
     /// ``load()`` — see the type-level documentation for why a report otherwise stays frozen.
-    func rerun() {
-        apply(run())
+    func rerun() async {
+        await performPass()
+    }
+
+    /// Publishes that a pass is running, gives the main actor back, then runs it and publishes
+    /// the result.
+    ///
+    /// The `Task.yield()` in the middle is the whole point of this method. The audit reads UIKit
+    /// accessibility, so it can only run on the main actor; `.onFirstAppear` starts its work in a
+    /// `Task` that begins on the main actor *during* the navigation push, so a pass that runs
+    /// straight through holds the main thread for its whole duration and the push never animates
+    /// — which is why a slow walk read to a developer as a frozen app rather than a slow screen.
+    /// Yielding first lets the transition finish and the spinner appear, and only then spends
+    /// whatever the walk costs.
+    ///
+    /// This does not loosen the frozen-report contract: still one `run()` per call, still nothing
+    /// re-walking on its own — the pass is merely a turn later than it used to be.
+    private func performPass() async {
+        isRunning = true
+        await Task.yield()
+        let result = run()
+        apply(result)
+        isRunning = false
     }
 
     /// Forwards `finding` to ``onFlash``, so tapping its row asks the overlay to flash its box.

@@ -1475,6 +1475,12 @@ findings never shift under you mid-read. A check you switch off is not run at al
 report says explicitly which checks didn't run rather than letting "nothing was wrong" and
 "nothing was looked at" read the same way.
 
+The pass runs a moment *after* the screen appears, not inside its transition, so the push finishes
+and you see a spinner rather than a stalled navigation while the walk happens. The walk itself is
+bounded three ways — depth, node count, and a 0.25s wall-clock budget — and any one of them
+stopping it early puts a banner at the top of the report saying it may be incomplete, rather than
+passing a partial answer off as a clean bill of health.
+
 The audit skips Scyther's own UI, so its menu and overlays are never reported as findings about
 your app.
 

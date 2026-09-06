@@ -96,32 +96,57 @@ private func resolveWindow(forContainerChainOf element: NSObject) -> UIWindow? {
 
 // MARK: - Accessibility children
 
-/// Turns an `NSObject` accessibility container into `AuditNode` children.
+/// The children of a real `UIView`, without ever asking UIAccessibility to compute them.
 ///
-/// VoiceOver itself prefers `accessibilityElements` over the view hierarchy when a container
-/// sets it, and falls back to the older `accessibilityElementCount()`/`accessibilityElement(at:)`
-/// pair when a container implements those instead; both are declared on plain `NSObject`, not
-/// just `UIView`, so this reads them without caring whether `object` is a view or a synthetic
-/// element. The audit has to walk whichever one a container actually uses, or it finds subviews
-/// an app deliberately replaced with synthetic elements — the whole reason
-/// ``testAccessibilityChildrenWinOverSubviews`` exists.
+/// **Do not "simplify" this into a call to `accessibilityElementCount()` /
+/// `accessibilityElement(at:)`.** Those two are declared on `NSObject`, so they *look* like a
+/// uniform way to read any container's accessibility children, and that is exactly what hung the
+/// app the first time this shipped. For a `UIView` that has not had `accessibilityElements` set,
+/// asking either of them makes UIAccessibility compute that view's accessibility subtree on the
+/// spot — `-[NSObject(AXPrivCategory) _accessibilityElements]`, which descends the whole subtree
+/// below the view. Doing that once per view, at every level of a real hierarchy, is quadratic in
+/// the size of the screen, and no node cap can save it: the cost is paid inside this function,
+/// before ``AccessibilityAuditor/collect(root:)`` ever gets a chance to count the node.
 ///
-/// - Parameters:
-///   - object: The container to read children from.
-///   - fallback: What to use when `object` declares neither — a view's `subviews`, or nothing.
-/// - Returns: The container's accessibility children, or `fallback()`.
+/// Reading the `accessibilityElements` property itself is cheap — it is a stored value that is
+/// `nil` until somebody assigns it — so it is safe to ask, and it is the only thing worth asking:
+/// an app (or SwiftUI, which sets it on the hosting view that vends its synthetic
+/// `AccessibilityNode` elements) that has deliberately replaced its subviews with accessibility
+/// elements has *set* it. A view that has not set it has nothing to say that `subviews` does not,
+/// so the walk descends the view hierarchy instead and lets each subview answer for itself.
+///
+/// - Parameter view: The view to read children from.
+/// - Returns: The view's `accessibilityElements` when it has been set, its `subviews` otherwise.
 @MainActor
-private func accessibilityChildren(of object: NSObject, fallback: @autoclosure () -> [AuditNode]) -> [AuditNode] {
-    if let elements = object.accessibilityElements, !elements.isEmpty {
+private func viewChildren(of view: UIView) -> [AuditNode] {
+    if let elements = view.accessibilityElements, !elements.isEmpty {
         return elements.compactMap(auditNode(wrapping:))
     }
-    let count = object.accessibilityElementCount()
-    if count > 0 {
-        return (0..<count).compactMap { index in
-            object.accessibilityElement(at: index).flatMap(auditNode(wrapping:))
-        }
+    return view.subviews
+}
+
+/// The children of a synthetic accessibility element — an `NSObject` that is not a `UIView`.
+///
+/// This is the one place the older `accessibilityElementCount()`/`accessibilityElement(at:)` pair
+/// is still read, and it is safe here for the two reasons it is not safe on a `UIView`: a
+/// synthetic element has no `subviews` to fall back to, so refusing to ask would simply lose
+/// every child it vends; and an object that implements that pair implements it itself, returning
+/// a list it already holds, rather than routing into UIAccessibility's recursive computation of a
+/// view subtree. VoiceOver reads containers the same way, preferring `accessibilityElements` and
+/// falling back to the pair, so the audit sees what VoiceOver sees.
+///
+/// - Parameter element: The element to read children from.
+/// - Returns: The element's accessibility children, or `[]` when it vends none.
+@MainActor
+private func syntheticChildren(of element: NSObject) -> [AuditNode] {
+    if let elements = element.accessibilityElements, !elements.isEmpty {
+        return elements.compactMap(auditNode(wrapping:))
     }
-    return fallback()
+    let count = element.accessibilityElementCount()
+    guard count > 0 else { return [] }
+    return (0..<count).compactMap { index in
+        element.accessibilityElement(at: index).flatMap(auditNode(wrapping:))
+    }
 }
 
 /// Wraps one entry from `accessibilityElements`/`accessibilityElement(at:)` as an `AuditNode`.
@@ -182,8 +207,11 @@ extension UIView: AuditNode {
     /// Direct read of the dynamic type name, used when a node has no label to identify it by.
     var typeName: String { String(describing: type(of: self)) }
 
-    /// Accessibility children when the view declares any, `subviews` otherwise.
-    var children: [AuditNode] { accessibilityChildren(of: self, fallback: subviews) }
+    /// Accessibility children when the view has actually *set* `accessibilityElements`,
+    /// `subviews` otherwise — see `viewChildren(of:)` for why a view is never asked to compute
+    /// its accessibility children, which is the difference between this screen opening and this
+    /// screen hanging the app.
+    var children: [AuditNode] { viewChildren(of: self) }
 }
 
 // MARK: - AccessibilityElementNode
@@ -257,6 +285,8 @@ struct AccessibilityElementNode: AuditNode {
 
     /// Accessibility children when the element declares any — `UIAccessibilityElement` rarely
     /// does, but nothing stops a custom `NSObject` from doing so — an empty list otherwise, since
-    /// a synthetic element has no subviews to fall back to.
-    var children: [AuditNode] { accessibilityChildren(of: element, fallback: []) }
+    /// a synthetic element has no subviews to fall back to. Unlike a `UIView`, a synthetic element
+    /// *is* asked for `accessibilityElementCount()`; see `syntheticChildren(of:)` for why that is
+    /// safe here and ruinous there.
+    var children: [AuditNode] { syntheticChildren(of: element) }
 }

@@ -1,4 +1,5 @@
 @testable import Scyther
+import SwiftUI
 import UIKit
 import XCTest
 
@@ -96,5 +97,140 @@ final class AuditNodeAdapterTests: XCTestCase {
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
         let sampler = WindowContrastSampler(window: window)
         XCTAssertTrue(sampler.samples(in: CGRect(x: 500, y: 500, width: 10, height: 10)).isEmpty)
+    }
+
+    /// The walk runs on the main thread, inside the report screen's first appear, so "slow" and
+    /// "hung" are the same thing to a developer. Every other test in the audit's suite walks
+    /// doubles; this one walks a genuinely large *real* view hierarchy, which is the only shape
+    /// that exercises what UIAccessibility does when it is asked to compute a subtree.
+    func testWalkingALargeRealHierarchyIsFastEnoughToRunOnTheMainThread() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        // A `UIWindow` starts out hidden, and the walk skips a node it cannot see — so without
+        // this the walk stops at the root and the test measures nothing at all.
+        window.isHidden = false
+        let root = UIView(frame: window.bounds)
+        window.addSubview(root)
+        for _ in 0..<40 {
+            let container = UIView(frame: root.bounds)
+            for index in 0..<40 {
+                let label = UILabel(frame: CGRect(x: 0, y: index * 20, width: 200, height: 18))
+                label.text = "row \(index)" // scyther:unlocalised test fixture
+                container.addSubview(label)
+            }
+            root.addSubview(container)
+        }
+
+        let started = Date()
+        _ = AccessibilityAuditor().collect(root: window)
+        let elapsed = Date().timeIntervalSince(started)
+
+        XCTAssertLessThan(elapsed, 1.0, "the walk runs on the main thread, so a slow walk is a hang")
+    }
+
+    /// A `UIView` subclass that records every time it is asked to compute its accessibility
+    /// children, standing in for what UIAccessibility does on a device.
+    ///
+    /// The timing test above cannot fail in this test target: a bare `xctest` process has no
+    /// window scene and no accessibility client, so `_accessibilityElements` never computes
+    /// anything and `accessibilityElementCount()` answers `0` for every real view in microseconds
+    /// — the exact call that costs a recursive subtree walk on a device costs nothing here. This
+    /// class puts the cost back where the test host removed it, by counting the calls instead of
+    /// timing them. Zero calls is the whole fix: on a device each one of them is a recursive walk
+    /// of everything below the view, paid before the auditor's node cap is ever consulted.
+    private final class ComputingView: UIView {
+        /// How many times any instance has been asked to compute its accessibility children.
+        static var computations = 0
+
+        /// Records the call and answers as UIKit would for a container of subviews.
+        override func accessibilityElementCount() -> Int {
+            Self.computations += 1
+            return subviews.count
+        }
+
+        /// Records the call and answers as UIKit would for a container of subviews.
+        ///
+        /// - Parameter index: The child to return.
+        /// - Returns: The subview at `index`, or `nil` when there is none.
+        override func accessibilityElement(at index: Int) -> Any? {
+            Self.computations += 1
+            return subviews.indices.contains(index) ? subviews[index] : nil
+        }
+    }
+
+    /// The regression test for the hang: a plain view is never asked to compute its accessibility
+    /// children, because on a device that single call recursively walks everything beneath it.
+    func testAPlainViewIsNeverAskedToComputeItsAccessibilityChildren() {
+        ComputingView.computations = 0
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        // A hidden window is skipped whole, and this test needs the walk to actually descend.
+        window.isHidden = false
+        let root = ComputingView(frame: window.bounds)
+        window.addSubview(root)
+        for _ in 0..<10 {
+            let container = ComputingView(frame: root.bounds)
+            for index in 0..<10 {
+                let label = UILabel(frame: CGRect(x: 0, y: index * 20, width: 200, height: 18))
+                label.text = "row \(index)" // scyther:unlocalised test fixture
+                container.addSubview(label)
+            }
+            root.addSubview(container)
+        }
+
+        _ = AccessibilityAuditor().collect(root: window)
+
+        XCTAssertEqual(ComputingView.computations, 0,
+                       "asking a UIView for its accessibility children makes UIAccessibility compute its whole subtree")
+    }
+
+    /// Stopping short of `accessibilityElementCount()` must not cost the walk the elements it is
+    /// there to find: a view that has actually *set* `accessibilityElements` — which is what
+    /// SwiftUI's hosting view does for its synthetic `AccessibilityNode` elements — is still read
+    /// through that property rather than through its subviews.
+    func testAViewThatSetsAccessibilityElementsIsStillReadThroughThem() {
+        ComputingView.computations = 0
+        let container = ComputingView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+        container.addSubview(UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10)))
+        let element = UIAccessibilityElement(accessibilityContainer: container)
+        element.accessibilityLabel = "synthetic"
+        element.accessibilityFrame = CGRect(x: 0, y: 0, width: 20, height: 20)
+        container.accessibilityElements = [element]
+
+        let children = (container as AuditNode).children
+
+        XCTAssertEqual(children.map(\.accessibilityLabelText), ["synthetic"])
+        XCTAssertEqual(ComputingView.computations, 0)
+    }
+
+    /// The other half of not asking a `UIView` to compute its accessibility children: doing so
+    /// must not cost the walk the elements it is there to find.
+    ///
+    /// SwiftUI draws no `UILabel` for a `Text` — it vends synthetic `AccessibilityNode` elements
+    /// instead — so if those were only reachable through `accessibilityElementCount()` the fix
+    /// would have quietly emptied the audit for every SwiftUI app. They are not: SwiftUI *sets*
+    /// `accessibilityElements` on its hosting view, which is the cheap stored property the walk
+    /// still reads. This test is the evidence for that, against a real `UIHostingController`
+    /// rather than against the claim.
+    func testTheWalkFindsSwiftUIsSyntheticAccessibilityElements() {
+        struct Sample: View {
+            var body: some View {
+                VStack {
+                    Text(verbatim: "Hello world") // scyther:unlocalised test fixture
+                    Button("Tap me") { } // scyther:unlocalised test fixture
+                    Image(systemName: "star")
+                        .accessibilityLabel("Star") // scyther:unlocalised test fixture
+                }
+            }
+        }
+
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.rootViewController = UIHostingController(rootView: Sample())
+        window.isHidden = false
+        window.layoutIfNeeded()
+
+        let walked = AccessibilityAuditor().collect(root: window)
+        let labels = Set(walked.nodes.compactMap(\.accessibilityLabelText))
+
+        XCTAssertTrue(labels.isSuperset(of: ["Hello world", "Tap me", "Star"]),
+                      "SwiftUI's synthetic elements must still be found, but got \(labels)")
     }
 }
