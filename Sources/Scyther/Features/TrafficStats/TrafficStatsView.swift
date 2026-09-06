@@ -55,10 +55,17 @@ struct TrafficStatsView: View {
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }
-        .onChange(of: logs.requests.count) { _ in
+        .onChange(of: logRevision) { _ in
             viewModel.update(requests: logs.requests, totalCount: logs.totalRequestCount)
         }
     }
+
+    /// What the screen watches the log for: the filtered count and the unfiltered count together.
+    ///
+    /// Watching the filtered count alone meant that with a filter active — the case the screen's
+    /// own empty state advertises — new traffic that the filter excludes moved nothing the screen
+    /// was looking at, so the figures and the caption's "N of M" denominator never updated.
+    private var logRevision: [Int] { [logs.requests.count, logs.totalRequestCount] }
 
     /// The figures, once there is traffic to describe.
     private var statistics: some View {
@@ -159,18 +166,13 @@ struct TrafficStatsView: View {
             ])
             .chartXScale(domain: 0...viewModel.chartUpperBound)
             .chartXAxisLabel(localized("Seconds"))
-            .chartXAxis {
-                AxisMarks { _ in
-                    AxisGridLine().foregroundStyle(Color.secondary.opacity(0.3))
-                    AxisTick().foregroundStyle(Color.secondary)
-                    AxisValueLabel().foregroundStyle(Color.secondary)
-                }
-            }
+            // The x axis is left entirely to Charts. It was hand-coloured to secondary grid
+            // lines, ticks and labels, which is what Charts already draws — restating it only
+            // meant the chart stopped following the theme the rest of the screen follows.
             .chartYAxis {
                 AxisMarks(preset: .aligned, position: .leading) {
                     AxisValueLabel()
                         .font(.caption2)
-                        .foregroundStyle(Color.primary)
                 }
             }
             .frame(height: viewModel.chartHeight)

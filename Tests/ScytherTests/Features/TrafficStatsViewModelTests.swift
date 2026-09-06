@@ -81,10 +81,44 @@ final class TrafficStatsViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.caption.contains("340"), "the caption names the unfiltered total")
     }
 
-    func testAnUnfilteredListIsNotReportedAsFiltered() {
-        let viewModel = TrafficStatsViewModel(requests: [request(duration: 100)], totalCount: 1)
+    func testAnUnfilteredListIsNotReportedAsFiltered() async {
+        let viewModel = TrafficStatsViewModel(
+            requests: (0..<3).map { _ in request(duration: 100) },
+            totalCount: 3
+        )
+        await viewModel.recompute()
         XCTAssertFalse(viewModel.isFiltered)
-        XCTAssertFalse(viewModel.caption.contains("340"))
+        XCTAssertEqual(viewModel.caption, "3 requests",
+                       "with nothing filtered out the caption names one number, not two")
+    }
+
+    /// The defect W27 named: the caption read the live array while the figures beneath it lagged
+    /// by the debounce, so the header said "41 requests" over a table describing forty.
+    func testTheCaptionDescribesTheSnapshotTheFiguresWereComputedFrom() async {
+        let viewModel = TrafficStatsViewModel(requests: [request(duration: 100)], totalCount: 1)
+        await viewModel.recompute()
+
+        viewModel.update(requests: (0..<5).map { _ in request(duration: 100) }, totalCount: 5)
+
+        XCTAssertEqual(viewModel.captionCount, 1, "the caption still describes the published figures")
+        XCTAssertEqual(viewModel.statistics.summary.requestCount, 1)
+
+        await viewModel.recompute()
+
+        XCTAssertEqual(viewModel.captionCount, 5, "and moves with them when they are recomputed")
+        XCTAssertEqual(viewModel.statistics.summary.requestCount, 5)
+    }
+
+    func testTheUnfilteredTotalIsSnapshottedWithTheFiguresToo() async {
+        let viewModel = TrafficStatsViewModel(requests: [request(duration: 100)], totalCount: 1)
+        await viewModel.recompute()
+
+        viewModel.update(requests: [request(duration: 100)], totalCount: 400)
+        XCTAssertFalse(viewModel.isFiltered, "the published figures still cover the whole log")
+
+        await viewModel.recompute()
+        XCTAssertTrue(viewModel.isFiltered)
+        XCTAssertTrue(viewModel.caption.contains("400"))
     }
 
     // MARK: Percentile threshold
@@ -161,9 +195,26 @@ final class TrafficStatsViewModelTests: XCTestCase {
     }
 
     func testTheElapsedTextIsHiddenWithoutASpan() async {
-        let viewModel = TrafficStatsViewModel(requests: [], totalCount: 0)
+        let undated = request(duration: 100)
+        undated.requestDate = nil
+        undated.responseDate = nil
+        let viewModel = TrafficStatsViewModel(requests: [undated], totalCount: 1)
         await viewModel.recompute()
-        XCTAssertNil(viewModel.elapsedText)
+        XCTAssertEqual(viewModel.statistics.summary.requestCount, 1, "there is traffic here")
+        XCTAssertNil(viewModel.elapsedText, "but nothing to measure an elapsed time between")
+    }
+
+    func testTheElapsedTextIsShownForDatedTraffic() async throws {
+        let base = Date(timeIntervalSince1970: 1_000_000)
+        let first = request(duration: 100)
+        first.requestDate = base
+        first.responseDate = base.addingTimeInterval(0.1)
+        let second = request(duration: 100)
+        second.requestDate = base.addingTimeInterval(2)
+        second.responseDate = base.addingTimeInterval(2.1)
+        let viewModel = TrafficStatsViewModel(requests: [first, second], totalCount: 2)
+        await viewModel.recompute()
+        XCTAssertTrue(try XCTUnwrap(viewModel.elapsedText).contains("2.1"))
     }
 
     // MARK: Chart geometry
@@ -218,12 +269,44 @@ final class TrafficStatsViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.chartDomain.isEmpty)
     }
 
-    func testABarValueLabelUsesMillisecondsUnderASecond() async {
+    func testABarValueLabelUsesMillisecondsUnderASecond() async throws {
         let viewModel = TrafficStatsViewModel(requests: [request(duration: 2)], totalCount: 1)
         await viewModel.recompute()
-        let row = try? XCTUnwrap(viewModel.chartRows.first)
-        XCTAssertEqual(viewModel.valueLabel(for: row!.entry), viewModel.durationText(2),
-                       "a two millisecond stub must not round away to zero seconds")
+        let row = try XCTUnwrap(viewModel.chartRows.first)
+        let label = viewModel.valueLabel(for: row.entry)
+        XCTAssertTrue(label.contains("2"), "a two millisecond bar reads as two milliseconds")
+        XCTAssertFalse(label.contains("0.002"), "and must not round away to zero seconds")
+    }
+
+    func testABarValueLabelUsesSecondsBeyondOne() async throws {
+        let viewModel = TrafficStatsViewModel(requests: [request(duration: 2_500)], totalCount: 1)
+        await viewModel.recompute()
+        let row = try XCTUnwrap(viewModel.chartRows.first)
+        XCTAssertTrue(viewModel.valueLabel(for: row.entry).contains("2.5"))
+    }
+
+    /// The defect W19 named, at the surface it reaches the developer through: a failed request
+    /// was coloured, named and measured as though it were still running.
+    func testAFailedBarIsNamedFailedAndNotPending() async throws {
+        let failed = request(duration: 20, status: 0)
+        failed.noResponse = true
+        failed.responseCode = nil
+        let viewModel = TrafficStatsViewModel(requests: [failed], totalCount: 1)
+        await viewModel.recompute()
+        let row = try XCTUnwrap(viewModel.chartRows.first)
+        XCTAssertEqual(viewModel.outcomeTitle(for: row.entry), "Failed")
+        XCTAssertFalse(row.entry.isPending)
+    }
+
+    func testAStubbedBarIsNamedStubbedWhateverItsStatusSays() async throws {
+        let viewModel = TrafficStatsViewModel(
+            requests: [request(duration: 2, status: 500, stubbed: true)],
+            totalCount: 1
+        )
+        await viewModel.recompute()
+        let row = try XCTUnwrap(viewModel.chartRows.first)
+        XCTAssertEqual(viewModel.outcomeTitle(for: row.entry), "Stubbed",
+                       "an authored 500 says nothing about the server")
     }
 
     func testAnEndpointSubtitleNamesTheCountAndMedian() async {
