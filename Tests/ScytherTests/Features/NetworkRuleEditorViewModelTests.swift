@@ -296,8 +296,8 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
         guard case .mapLocal(let file) = try XCTUnwrap(viewModel.draft.actions.stub) else {
             return XCTFail("expected a map local stub")
         }
-        XCTAssertNotEqual(file.relativePath, picked.path, "the override points at the copy")
-        XCTAssertEqual(try Data(contentsOf: URL(fileURLWithPath: file.relativePath)), Data("[]".utf8))
+        XCTAssertNotEqual(file.path, picked.path, "the override points at the copy")
+        XCTAssertEqual(try Data(contentsOf: URL(fileURLWithPath: file.path)), Data("[]".utf8))
     }
 
     func testImportingAFileLeavesATypedContentTypeAlone() throws {
@@ -738,7 +738,7 @@ final class NetworkRuleEditorViewModelTests: XCTestCase {
     func testReopeningAMapLocalOverrideSeedsThePickerFromWhatWasStored() {
         let rule = NetworkRule(
             name: "Users", isEnabled: true, match: .path("/v1/users"),
-            actions: NetworkRuleActions(stub: .mapLocal(MapLocalFile(relativePath: "/tmp/users.json",
+            actions: NetworkRuleActions(stub: .mapLocal(MapLocalFile(path: "/tmp/users.json",
                                                                      fileName: "users.json",
                                                                      contentType: "application/json")))
         )

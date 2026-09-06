@@ -359,7 +359,7 @@ final class NetworkRuleEngineTests: XCTestCase {
     }
 
     func testMapLocalIsAlsoAStub() {
-        let file = MapLocalFile(relativePath: "fixtures/users.json", statusCode: 200, contentType: "application/json", delay: 0)
+        let file = MapLocalFile(path: "fixtures/users.json", statusCode: 200, contentType: "application/json", delay: 0)
         let outcome = NetworkRuleEngine.outcome(for: request(), rules: [rule("file", actions: NetworkRuleActions(stub: .mapLocal(file)))])
         XCTAssertEqual(outcome.stub, .mapLocal(file))
     }

@@ -81,15 +81,50 @@ final class NetworkRuleCodingTests: XCTestCase {
 
     func testALegacyMapLocalRuleDecodesIntoAStub() throws {
         let json = legacyRule(action: """
-        { "mapLocal": { "_0": { "relativePath": "/tmp/users.json", "statusCode": 200,
+        { "mapLocal": { "_0": { "path": "/tmp/users.json", "statusCode": 200,
           "contentType": "application/json", "delay": 0 } } }
         """)
         guard case .mapLocal(let file) = try XCTUnwrap(try decode(json).actions.stub) else {
             return XCTFail("expected a map local stub")
         }
-        XCTAssertEqual(file.relativePath, "/tmp/users.json")
+        XCTAssertEqual(file.path, "/tmp/users.json")
         XCTAssertEqual(file.contentType, "application/json")
         XCTAssertNil(file.fileName, "a rule written before the field existed simply has no name")
+    }
+
+    /// W33: the field was called `relativePath` and held an absolute path, justified in its own
+    /// documentation as compatibility with rules already persisted under it. No released version
+    /// ever persisted one, so the only documents carrying the old key came from intermediate
+    /// commits of this branch — which are read for the developers who ran them.
+    func testAMapLocalFileWrittenUnderTheOldPathKeyStillDecodes() throws {
+        let json = """
+        { "id": "\(identifier)", "name": "x", "isEnabled": true,
+          "match": { "methods": [], "query": {} },
+          "actions": { "stub": {
+            "mapLocal": { "relativePath": "/tmp/users.json", "statusCode": 200, "delay": 0 }
+          } } }
+        """
+        guard case .mapLocal(let file) = try XCTUnwrap(try decode(json).actions.stub) else {
+            return XCTFail("expected a map local stub")
+        }
+        XCTAssertEqual(file.path, "/tmp/users.json")
+    }
+
+    func testTheOldPathKeyIsNeverWritten() throws {
+        let file = MapLocalFile(path: "/tmp/users.json", statusCode: 200, delay: 0)
+        let data = try JSONEncoder().encode(file)
+        let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertNil(object["relativePath"], "the old name was never true of the value it held")
+        XCTAssertEqual(object["path"] as? String, "/tmp/users.json")
+    }
+
+    func testAMapLocalFileCarryingNeitherPathKeyFailsToDecode() {
+        let json = """
+        { "id": "\(identifier)", "name": "x", "isEnabled": true,
+          "match": { "methods": [], "query": {} },
+          "actions": { "stub": { "mapLocal": { "statusCode": 200, "delay": 0 } } } }
+        """
+        XCTAssertThrowsError(try decode(json), "a map local override with no file serves nothing")
     }
 
     func testALegacyRewriteRuleDecodesIntoARewrite() throws {
@@ -204,7 +239,7 @@ final class NetworkRuleCodingTests: XCTestCase {
                                name: "file",
                                match: .path("/v1"),
                                actions: NetworkRuleActions(stub: .mapLocal(
-                                MapLocalFile(relativePath: "/tmp/x.json",
+                                MapLocalFile(path: "/tmp/x.json",
                                              fileName: "x.json",
                                              statusCode: 200,
                                              contentType: "application/json",
@@ -215,7 +250,7 @@ final class NetworkRuleCodingTests: XCTestCase {
         let stub = try XCTUnwrap((object["actions"] as? [String: Any])?["stub"] as? [String: Any])
         XCTAssertEqual(Set(stub.keys), ["mapLocal"])
         XCTAssertEqual(Set(try XCTUnwrap(stub["mapLocal"] as? [String: Any]).keys),
-                       ["relativePath", "fileName", "statusCode", "contentType", "delay"])
+                       ["path", "fileName", "statusCode", "contentType", "delay"])
     }
 
     func testTheLegacyKeyIsNeverWritten() throws {
@@ -293,7 +328,7 @@ final class NetworkRuleCodingTests: XCTestCase {
           "match": { "methods": [], "query": {} },
           "actions": { "stub": {
             "mock": { "statusCode": 200, "headers": {}, "delay": 0 },
-            "mapLocal": { "relativePath": "/tmp/x.json", "statusCode": 200, "delay": 0 }
+            "mapLocal": { "path": "/tmp/x.json", "statusCode": 200, "delay": 0 }
           } } }
         """
         XCTAssertThrowsError(try decode(json), "a stub answers from one place or the other")

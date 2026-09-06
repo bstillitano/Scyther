@@ -207,9 +207,9 @@ Reordering the list is what changes precedence.
 - Note: ``MockResponse/headers`` is a dictionary, so a mocked response cannot repeat a header
   name. Where a real response may send `Set-Cookie` more than once, only one value survives, and a
   HAR import keeps the last of the repeats.
-- Note: ``MapLocalFile/relativePath`` holds an **absolute** path despite its name. A container
-  path is not something anyone can type on a device, so it has to come from code or be copied from
-  Scyther's file browser. A path that cannot be read fails safely — the request goes to the real
+- Note: ``MapLocalFile/path`` is **absolute**. A container path is not something anyone can type
+  on a device, so it has to come from code or be picked in the editor, which copies the file into
+  Scyther's own directory. A path that cannot be read fails safely — the request goes to the real
   network.
 
 ### Saving a captured request as a mock

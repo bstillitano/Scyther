@@ -444,7 +444,7 @@ final class NetworkRuleEditorViewModel: ViewModel {
             case .mock:
                 draft.actions.stub = rememberedStubs[.mock] ?? .mock(MockResponse())
             case .mapLocal:
-                draft.actions.stub = rememberedStubs[.mapLocal] ?? .mapLocal(MapLocalFile(relativePath: ""))
+                draft.actions.stub = rememberedStubs[.mapLocal] ?? .mapLocal(MapLocalFile(path: ""))
             }
             reloadResponseHeaders()
         }
@@ -544,8 +544,8 @@ final class NetworkRuleEditorViewModel: ViewModel {
     var mapLocalSummary: String {
         guard case .mapLocal(let file) = draft.actions.stub else { return localized("Choose File") }
         if let fileName = file.fileName, !fileName.isEmpty { return fileName }
-        guard !file.relativePath.isEmpty else { return localized("Choose File") }
-        return URL(fileURLWithPath: file.relativePath).lastPathComponent
+        guard !file.path.isEmpty else { return localized("Choose File") }
+        return URL(fileURLWithPath: file.path).lastPathComponent
     }
 
     /// Copies a picked file into the rules directory and points the map-local stub at the copy.
@@ -569,9 +569,9 @@ final class NetworkRuleEditorViewModel: ViewModel {
         if case .mapLocal(let existing) = draft.actions.stub {
             file = existing
         } else {
-            file = MapLocalFile(relativePath: "")
+            file = MapLocalFile(path: "")
         }
-        file.relativePath = path
+        file.path = path
         file.fileName = url.lastPathComponent
         if file.contentType?.isEmpty ?? true {
             let derived = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType

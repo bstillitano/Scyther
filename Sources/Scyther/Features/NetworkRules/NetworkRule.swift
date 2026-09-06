@@ -69,6 +69,10 @@ public struct NetworkRule: Identifiable, Codable, Sendable, Equatable {
         /// ``actions``.
         case actions
         /// The single action a rule carried before actions became composable.
+        ///
+        /// - Note: Only intermediate commits of the branch that added request overrides ever
+        ///   wrote this key. The feature does not exist in 4.0.0, so no *released* version can
+        ///   have persisted one.
         case action
     }
 
@@ -77,7 +81,15 @@ public struct NetworkRule: Identifiable, Codable, Sendable, Equatable {
     /// A rule used to hold one `action`; it now holds an `actions` object. A decode failure costs
     /// the developer **every** override they have configured — ``NetworkRuleStore`` drops what it
     /// cannot read — so the old key is still understood and lifted into the equivalent
-    /// ``NetworkRuleActions``:
+    /// ``NetworkRuleActions``.
+    ///
+    /// - Important: To be plain about who this is for. Request overrides ship for the first time
+    ///   in 4.1.0, so no released version of Scyther ever wrote an `action` key. The documents
+    ///   that carry one were written by intermediate commits of the branch that added the
+    ///   feature, by a developer running it before it shipped. That is a small audience, and the
+    ///   fallback exists for them rather than for any upgrade path from a public release.
+    ///
+    /// The mapping:
     ///
     /// | Persisted `action` | Becomes |
     /// |---|---|
@@ -156,6 +168,9 @@ public struct NetworkRule: Identifiable, Codable, Sendable, Equatable {
     }
 
     /// Lifts a rule persisted with one `action` into the composable shape.
+    ///
+    /// See ``init(from:)`` for who wrote such a rule: only intermediate commits of this feature's
+    /// own branch, never a released version.
     ///
     /// - Parameter container: The rule's own keyed container, positioned at a rule with no
     ///   `actions` key or with one this version cannot read.
@@ -394,20 +409,23 @@ public struct MockResponse: Codable, Sendable, Equatable {
 }
 
 /// Serves the contents of a local file in place of a real network call.
-///
-/// - Important: ``relativePath`` holds an **absolute** file path despite its name. The name is
-///   retained for compatibility with rules already persisted under it.
 public struct MapLocalFile: Codable, Sendable, Equatable {
     /// The absolute path of the file to serve.
     ///
-    /// - Important: Absolute, despite the name — it is read with `URL(fileURLWithPath:)` and is
-    ///   not resolved against the Documents directory or any other root. A file picked in the
-    ///   editor is **copied** into the rules directory and this holds the path of the copy, so the
-    ///   override keeps working after the document the developer picked has moved or gone away,
-    ///   and no security-scoped bookmark is needed to read it. A path supplied from code is used
-    ///   as given. A path that cannot be read fails safely: the responder returns nothing and the
-    ///   request goes to the real network.
-    public var relativePath: String
+    /// It is read with `URL(fileURLWithPath:)` and is not resolved against the Documents directory
+    /// or any other root. A file picked in the editor is **copied** into the rules directory and
+    /// this holds the path of the copy, so the override keeps working after the document the
+    /// developer picked has moved or gone away, and no security-scoped bookmark is needed to read
+    /// it. A path supplied from code is used as given. A path that cannot be read fails safely:
+    /// the responder returns nothing and the request goes to the real network.
+    ///
+    /// This was called `relativePath` until 4.1.0, which was never true of any value it held, and
+    /// was justified in its own documentation as compatibility with rules already persisted under
+    /// that name. No released version ever persisted one — the whole request-overrides feature is
+    /// absent from 4.0.0 — so the only data written under the old key came from intermediate
+    /// commits of the branch that added it. ``init(from:)`` still reads that key, for the handful
+    /// of developers who ran one.
+    public var path: String
 
     /// The name of the document the copy was made from, for display in the editor.
     ///
@@ -432,8 +450,8 @@ public struct MapLocalFile: Codable, Sendable, Equatable {
     ///
     /// Spelled out rather than synthesised so the on-disk format cannot change under a rename.
     private enum CodingKeys: String, CodingKey {
-        /// ``relativePath``.
-        case relativePath
+        /// ``path``.
+        case path
         /// ``fileName``.
         case fileName
         /// ``statusCode``.
@@ -444,25 +462,67 @@ public struct MapLocalFile: Codable, Sendable, Equatable {
         case delay
     }
 
+    /// The key ``path`` was written under before 4.1.0.
+    ///
+    /// - Note: Nothing any *released* version wrote uses it. The request-overrides feature does
+    ///   not exist in 4.0.0, so the only documents carrying this key were written by intermediate
+    ///   commits of the branch that added it — a developer who ran one of those builds. It is read
+    ///   for their sake and is never written.
+    private enum LegacyCodingKeys: String, CodingKey {
+        /// The old, and always inaccurate, spelling of ``path``.
+        case relativePath
+    }
+
     /// Creates a map-local action.
     ///
     /// - Parameters:
-    ///   - relativePath: The absolute path of the file to serve.
+    ///   - path: The absolute path of the file to serve.
     ///   - fileName: The name of the document the file was copied from, for display. Defaults to
     ///     none, which is right for a path supplied from code.
     ///   - statusCode: The HTTP status code to return. Defaults to `200`.
     ///   - contentType: The `Content-Type` header to return, or `nil` to omit it.
     ///   - delay: Seconds to wait before responding. Defaults to none.
-    public init(relativePath: String,
+    public init(path: String,
                 fileName: String? = nil,
                 statusCode: Int = 200,
                 contentType: String? = nil,
                 delay: TimeInterval = 0) {
-        self.relativePath = relativePath
+        self.path = path
         self.fileName = fileName
         self.statusCode = statusCode
         self.contentType = contentType
         self.delay = delay
+    }
+
+    /// Reads a map-local action, accepting the pre-4.1.0 spelling of ``path``.
+    ///
+    /// - Parameter decoder: The decoder positioned at one map-local action.
+    /// - Throws: A decoding error when the document carries neither spelling of the path, or when
+    ///   any other field cannot be read.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let path = try container.decodeIfPresent(String.self, forKey: .path) {
+            self.path = path
+        } else {
+            let legacy = try decoder.container(keyedBy: LegacyCodingKeys.self)
+            self.path = try legacy.decode(String.self, forKey: .relativePath)
+        }
+        self.fileName = try container.decodeIfPresent(String.self, forKey: .fileName)
+        self.statusCode = try container.decode(Int.self, forKey: .statusCode)
+        self.contentType = try container.decodeIfPresent(String.self, forKey: .contentType)
+        self.delay = try container.decode(TimeInterval.self, forKey: .delay)
+    }
+
+    /// Writes a map-local action in the current shape. The legacy key is never written.
+    ///
+    /// - Parameter encoder: The encoder to write to.
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(path, forKey: .path)
+        try container.encodeIfPresent(fileName, forKey: .fileName)
+        try container.encode(statusCode, forKey: .statusCode)
+        try container.encodeIfPresent(contentType, forKey: .contentType)
+        try container.encode(delay, forKey: .delay)
     }
 }
 

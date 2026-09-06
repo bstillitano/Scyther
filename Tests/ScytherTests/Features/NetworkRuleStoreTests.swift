@@ -383,7 +383,7 @@ final class NetworkRuleStoreTests: XCTestCase {
         let store = makeStore()
         let path = try XCTUnwrap(store.storeFile(at: try pickedFile(named: "users.json", contents: "[]")))
         var rule = makeRule("map local")
-        rule.actions.stub = .mapLocal(MapLocalFile(relativePath: path, fileName: "users.json"))
+        rule.actions.stub = .mapLocal(MapLocalFile(path: path, fileName: "users.json"))
         store.add(rule)
 
         store.remove(id: rule.id)
@@ -397,7 +397,7 @@ final class NetworkRuleStoreTests: XCTestCase {
         let store = makeStore()
         let picked = try pickedFile(named: "users.json", contents: "[]")
         var rule = makeRule("map local")
-        rule.actions.stub = .mapLocal(MapLocalFile(relativePath: picked.path))
+        rule.actions.stub = .mapLocal(MapLocalFile(path: picked.path))
         store.add(rule)
 
         store.remove(id: rule.id)
@@ -744,7 +744,7 @@ final class NetworkRuleStoreTests: XCTestCase {
         let store = makeStore()
         let path = try XCTUnwrap(store.storeFile(at: try pickedFile(named: "users.json", contents: "[]")))
         var rule = makeRule("map local")
-        rule.actions.stub = .mapLocal(MapLocalFile(relativePath: path, fileName: "users.json"))
+        rule.actions.stub = .mapLocal(MapLocalFile(path: path, fileName: "users.json"))
         store.add(rule)
 
         let orphan = try store.storeBody(Data("orphan".utf8))
@@ -927,7 +927,7 @@ final class NetworkRuleStoreTests: XCTestCase {
         store.add(.mock(name: "m", matching: .path("/a"), returning: .json("{}")))
         store.add(.headers(name: "h", matching: .path("/b"), set: ["X": "1"], remove: []))
         store.add(.condition(name: "c", matching: .path("/c"), NetworkCondition(latency: 1)))
-        store.add(.mapLocal(name: "l", matching: .path("/d"), serving: MapLocalFile(relativePath: "/tmp/x.json")))
+        store.add(.mapLocal(name: "l", matching: .path("/d"), serving: MapLocalFile(path: "/tmp/x.json")))
 
         XCTAssertEqual(store.rules.map(\.name), ["m", "h", "c", "l"])
 
@@ -944,7 +944,7 @@ final class NetworkRuleStoreTests: XCTestCase {
         guard case .mapLocal(let file) = store.rules[3].actions.stub else {
             return XCTFail("mapLocal built the wrong action")
         }
-        XCTAssertEqual(file.relativePath, "/tmp/x.json")
+        XCTAssertEqual(file.path, "/tmp/x.json")
         XCTAssertNil(store.rules[3].actions.condition)
     }
 }

@@ -61,7 +61,7 @@ internal enum NetworkRuleStubResponder {
             return (response, body)
 
         case .mapLocal(let file):
-            let fileURL = URL(fileURLWithPath: file.relativePath)
+            let fileURL = URL(fileURLWithPath: file.path)
             guard let body = mappedFileBody(at: fileURL) else { return nil }
             var headers: [String: String] = [:]
             if let contentType = file.contentType { headers["Content-Type"] = contentType }

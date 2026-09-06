@@ -44,7 +44,7 @@ final class NetworkRuleStubResponderTests: XCTestCase {
         try Data("[]".utf8).write(to: file)
 
         let map = MapLocalFile(
-            relativePath: file.path,
+            path: file.path,
             statusCode: 200,
             contentType: "application/json",
             delay: 0
@@ -56,7 +56,7 @@ final class NetworkRuleStubResponderTests: XCTestCase {
     }
 
     func testMapLocalReturnsNilWhenTheFileIsMissing() {
-        let map = MapLocalFile(relativePath: "/nope/missing.json", statusCode: 200, contentType: nil, delay: 0)
+        let map = MapLocalFile(path: "/nope/missing.json", statusCode: 200, contentType: nil, delay: 0)
         XCTAssertNil(NetworkRuleStubResponder.response(for: .mapLocal(map), url: url) { _ in nil })
     }
 }
@@ -418,7 +418,7 @@ final class NetworkRuleInterceptorTests: XCTestCase {
             isEnabled: true,
             match: .host("unreachable.invalid"),
             actions: NetworkRuleActions(stub: .mapLocal(MapLocalFile(
-                relativePath: path,
+                path: path,
                 fileName: "users.json",
                 statusCode: 200,
                 contentType: "application/json"

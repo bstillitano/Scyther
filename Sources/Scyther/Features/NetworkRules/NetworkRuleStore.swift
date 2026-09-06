@@ -930,7 +930,7 @@ internal extension NetworkRule {
         case .mock(let mock):
             return mock.bodyID
         case .mapLocal(let file):
-            return UUID(uuidString: URL(fileURLWithPath: file.relativePath).lastPathComponent)
+            return UUID(uuidString: URL(fileURLWithPath: file.path).lastPathComponent)
         case nil:
             return nil
         }
