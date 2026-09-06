@@ -8326,8 +8326,85 @@
         }
       }
     },
+    "Binary body, not replayed": {
+      "comment": "Body row value when the captured request body was not text and so cannot be resent",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "محتوى ثنائي، لا يُعاد إرساله"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Binärer Body, nicht erneut gesendet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Cuerpo binario, no reenviado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Corps binaire, non rejoué"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Corpo binario, non riprodotto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "バイナリ本文、再送されません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "바이너리 본문, 재전송되지 않음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Binaire body, niet opnieuw verzonden"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Corpo binário, não reenviado"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Двоичное тело, не воспроизводится"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "二进制正文，不会重放"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "二進位內容，不會重送"
+          }
+        }
+      }
+    },
     "Binary body, sent unchanged": {
-      "comment": "Shown in place of the body row when the captured body is not valid UTF-8",
+      "comment": "Shown in place of the body row when a held request's body is not valid UTF-8 and is passed through untouched",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -34084,83 +34161,6 @@
         }
       }
     },
-    "Not safe to repeat: this method can change data on the server.": {
-      "comment": "Warning in the replay editor for a non-idempotent HTTP method",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "التكرار غير آمن: قد يغيّر هذا الأسلوب بيانات على الخادم."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Nicht gefahrlos wiederholbar: Diese Methode kann Daten auf dem Server ändern."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "No es seguro repetirla: este método puede cambiar datos en el servidor."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Répétition risquée : cette méthode peut modifier des données sur le serveur."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Non è sicuro ripeterla: questo metodo può modificare dati sul server."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "繰り返しは安全ではありません: このメソッドはサーバー上のデータを変更する可能性があります。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "반복해도 안전하지 않습니다: 이 메서드는 서버의 데이터를 변경할 수 있습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Niet veilig om te herhalen: deze methode kan gegevens op de server wijzigen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Não é seguro repetir: este método pode alterar dados no servidor."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Повторять небезопасно: этот метод может изменить данные на сервере."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "重复发送不安全：此方法可能会更改服务器上的数据。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "重複送出不安全：此方法可能會變更伺服器上的資料。"
-          }
-        }
-      }
-    },
     "Not set": {
       "comment": "Value shown for a push token the host app has not supplied",
       "localizations": {
@@ -51003,6 +51003,83 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "The original body was not text, so the log did not keep it. This replay is sent without a body.": {
+      "comment": "Warning shown in the replay editor, and in its confirmation alert, when the captured body was binary",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لم يكن المحتوى الأصلي نصًا، لذا لم يحتفظ به السجل. يُرسل هذا التكرار دون محتوى."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Der ursprüngliche Body war kein Text, daher hat das Protokoll ihn nicht behalten. Diese Wiederholung wird ohne Body gesendet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "El cuerpo original no era texto, así que el registro no lo conservó. Esta repetición se envía sin cuerpo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Le corps d'origine n'était pas du texte : le journal ne l'a pas conservé. Ce rejeu est envoyé sans corps."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Il corpo originale non era testo, quindi il log non l'ha conservato. Questa riproduzione viene inviata senza corpo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "元の本文はテキストではないため、ログには保存されていません。この再送は本文なしで送信されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "원래 본문이 텍스트가 아니어서 로그에 보관되지 않았습니다. 이 재전송은 본문 없이 전송됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "De oorspronkelijke body was geen tekst, dus het logboek heeft deze niet bewaard. Deze herhaling wordt zonder body verzonden."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "O corpo original não era texto, então o log não o guardou. Este reenvio é feito sem corpo."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Исходное тело не было текстом, поэтому журнал его не сохранил. Этот повтор отправляется без тела."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "原始正文不是文本，因此日志未保存它。此次重放将不带正文发送。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "原始內容不是文字，因此記錄未保存它。這次重送將不帶內容。"
           }
         }
       }

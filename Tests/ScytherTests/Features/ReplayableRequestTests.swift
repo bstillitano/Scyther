@@ -15,12 +15,22 @@ final class ReplayableRequestTests: XCTestCase {
         headers: [String: String] = ["Content-Type": "application/json", "Authorization": "Bearer abc"],
         body: String? = "{\"name\":\"Ada\"}"
     ) -> HTTPRequest {
+        capture(url: url, method: method, headers: headers, bodyData: body.map { Data($0.utf8) })
+    }
+
+    /// Builds a captured model from raw bytes, so a body that is not text can be captured too.
+    private func capture(
+        url: String = "https://api.example.com/v1/users?page=2",
+        method: String = "POST",
+        headers: [String: String] = [:],
+        bodyData: Data?
+    ) -> HTTPRequest {
         let mutable = NSMutableURLRequest(url: URL(string: url)!)
         mutable.httpMethod = method
         headers.forEach { mutable.setValue($0.value, forHTTPHeaderField: $0.key) }
-        if let body {
+        if let bodyData {
             // The same mechanism the interceptor uses to hand a body to the logger.
-            URLProtocol.setProperty(Data(body.utf8), forKey: "ScytherBodyData", in: mutable)
+            URLProtocol.setProperty(bodyData, forKey: "ScytherBodyData", in: mutable)
         }
         let request = mutable as URLRequest
         let model = HTTPRequest()
@@ -136,7 +146,7 @@ final class ReplayableRequestTests: XCTestCase {
         var header = original; header.headers.append(.init(name: "X-Debug", value: "1"))
         XCTAssertTrue(header.isModified(from: original))
 
-        var body = original; body.body = Data("{}".utf8)
+        var body = original; body.setBodyText("{}")
         XCTAssertTrue(body.isModified(from: original))
     }
 
@@ -155,18 +165,44 @@ final class ReplayableRequestTests: XCTestCase {
         XCTAssertFalse(ReplayableRequest.isManaged("Authorization"))
     }
 
-    func testBodyTextRoundTripsUTF8AndRefusesBinary() {
+    func testBodyTextRoundTripsUTF8() {
         var draft = ReplayableRequest(capturing: capture())
         XCTAssertEqual(draft.bodyText, "{\"name\":\"Ada\"}")
-        XCTAssertTrue(draft.isBodyEditable)
+        XCTAssertFalse(draft.hasUncapturedBody)
 
-        draft.body = Data([0xFF, 0xFE, 0x00])
-        XCTAssertNil(draft.bodyText)
-        XCTAssertFalse(draft.isBodyEditable, "a body that is not valid UTF-8 cannot be edited as text")
-
-        draft.body = nil
+        draft.setBodyText("")
         XCTAssertEqual(draft.bodyText, "", "an absent body edits as empty text")
-        XCTAssertTrue(draft.isBodyEditable)
+    }
+
+    /// The defect W22 named. The old test drove this state by assigning bytes to the draft
+    /// directly, which nothing in the app does, and so certified a branch no capture could reach
+    /// while the branch that a capture *does* reach — an empty body, silently — went unnoticed.
+    /// This one starts where the app starts: a request the logger measured but could not store.
+    func testABinaryCaptureReportsABodyItCannotReplay() {
+        let binary = capture(bodyData: Data([0xFF, 0xFE, 0x00, 0x01]))
+        XCTAssertEqual(binary.requestBodyLength, 4, "the logger measured it")
+
+        let draft = ReplayableRequest(capturing: binary)
+
+        XCTAssertNil(draft.body, "and could not keep it")
+        XCTAssertTrue(draft.hasUncapturedBody, "so the draft knows a body is missing rather than assuming none")
+        XCTAssertEqual(draft.uncapturedBodyByteCount, 4)
+    }
+
+    func testACaptureWithNoBodyAtAllReportsNothingMissing() {
+        let draft = ReplayableRequest(capturing: capture(body: nil))
+        XCTAssertNil(draft.body)
+        XCTAssertFalse(draft.hasUncapturedBody, "no body is not the same as a body that was lost")
+    }
+
+    func testTypingABodyClearsTheMissingBodyWarning() {
+        var draft = ReplayableRequest(capturing: capture(bodyData: Data([0xFF, 0xFE])))
+        XCTAssertTrue(draft.hasUncapturedBody)
+
+        draft.setBodyText("{}")
+
+        XCTAssertFalse(draft.hasUncapturedBody, "the developer supplied the bytes the log could not")
+        XCTAssertEqual(draft.body, Data("{}".utf8))
     }
 
     func testSettingBodyTextToEmptyClearsTheBody() {
@@ -180,7 +216,7 @@ final class ReplayableRequestTests: XCTestCase {
     func testByteCountReportsTheBodyLength() {
         var draft = ReplayableRequest(capturing: capture())
         XCTAssertEqual(draft.bodyByteCount, 14)
-        draft.body = nil
+        draft.setBodyText("")
         XCTAssertEqual(draft.bodyByteCount, 0)
     }
 }

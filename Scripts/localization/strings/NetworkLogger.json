@@ -1952,20 +1952,20 @@
     "ru": "Этот URL нельзя отправить.",
     "ar": "لا يمكن إرسال عنوان URL هذا."
   },
-  "Not safe to repeat: this method can change data on the server.": {
-    "comment": "Warning in the replay editor for a non-idempotent HTTP method",
-    "fr": "Répétition risquée : cette méthode peut modifier des données sur le serveur.",
-    "de": "Nicht gefahrlos wiederholbar: Diese Methode kann Daten auf dem Server ändern.",
-    "es": "No es seguro repetirla: este método puede cambiar datos en el servidor.",
-    "it": "Non è sicuro ripeterla: questo metodo può modificare dati sul server.",
-    "pt-BR": "Não é seguro repetir: este método pode alterar dados no servidor.",
-    "nl": "Niet veilig om te herhalen: deze methode kan gegevens op de server wijzigen.",
-    "ja": "繰り返しは安全ではありません: このメソッドはサーバー上のデータを変更する可能性があります。",
-    "zh-Hans": "重复发送不安全：此方法可能会更改服务器上的数据。",
-    "zh-Hant": "重複送出不安全：此方法可能會變更伺服器上的資料。",
-    "ko": "반복해도 안전하지 않습니다: 이 메서드는 서버의 데이터를 변경할 수 있습니다.",
-    "ru": "Повторять небезопасно: этот метод может изменить данные на сервере.",
-    "ar": "التكرار غير آمن: قد يغيّر هذا الأسلوب بيانات على الخادم."
+  "The original body was not text, so the log did not keep it. This replay is sent without a body.": {
+    "comment": "Warning shown in the replay editor, and in its confirmation alert, when the captured body was binary",
+    "fr": "Le corps d'origine n'était pas du texte : le journal ne l'a pas conservé. Ce rejeu est envoyé sans corps.",
+    "de": "Der ursprüngliche Body war kein Text, daher hat das Protokoll ihn nicht behalten. Diese Wiederholung wird ohne Body gesendet.",
+    "es": "El cuerpo original no era texto, así que el registro no lo conservó. Esta repetición se envía sin cuerpo.",
+    "it": "Il corpo originale non era testo, quindi il log non l'ha conservato. Questa riproduzione viene inviata senza corpo.",
+    "pt-BR": "O corpo original não era texto, então o log não o guardou. Este reenvio é feito sem corpo.",
+    "nl": "De oorspronkelijke body was geen tekst, dus het logboek heeft deze niet bewaard. Deze herhaling wordt zonder body verzonden.",
+    "ja": "元の本文はテキストではないため、ログには保存されていません。この再送は本文なしで送信されます。",
+    "zh-Hans": "原始正文不是文本，因此日志未保存它。此次重放将不带正文发送。",
+    "zh-Hant": "原始內容不是文字，因此記錄未保存它。這次重送將不帶內容。",
+    "ko": "원래 본문이 텍스트가 아니어서 로그에 보관되지 않았습니다. 이 재전송은 본문 없이 전송됩니다.",
+    "ru": "Исходное тело не было текстом, поэтому журнал его не сохранил. Этот повтор отправляется без тела.",
+    "ar": "لم يكن المحتوى الأصلي نصًا، لذا لم يحتفظ به السجل. يُرسل هذا التكرار دون محتوى."
   },
   "Replays are sent like app traffic, so any enabled override applies to them too.": {
     "comment": "Footer in the replay editor explaining that request overrides match replays as well",
@@ -1997,8 +1997,23 @@
     "ru": "Content-Length, Host и Connection задаются системой и не редактируются.",
     "ar": "يضبط النظام Content-Length وHost وConnection ولا يمكن تعديلها."
   },
+  "Binary body, not replayed": {
+    "comment": "Body row value when the captured request body was not text and so cannot be resent",
+    "fr": "Corps binaire, non rejoué",
+    "de": "Binärer Body, nicht erneut gesendet",
+    "es": "Cuerpo binario, no reenviado",
+    "it": "Corpo binario, non riprodotto",
+    "pt-BR": "Corpo binário, não reenviado",
+    "nl": "Binaire body, niet opnieuw verzonden",
+    "ja": "バイナリ本文、再送されません",
+    "zh-Hans": "二进制正文，不会重放",
+    "zh-Hant": "二進位內容，不會重送",
+    "ko": "바이너리 본문, 재전송되지 않음",
+    "ru": "Двоичное тело, не воспроизводится",
+    "ar": "محتوى ثنائي، لا يُعاد إرساله"
+  },
   "Binary body, sent unchanged": {
-    "comment": "Shown in place of the body row when the captured body is not valid UTF-8",
+    "comment": "Shown in place of the body row when a held request's body is not valid UTF-8 and is passed through untouched",
     "fr": "Corps binaire, envoyé tel quel",
     "de": "Binärer Body, unverändert gesendet",
     "es": "Cuerpo binario, enviado sin cambios",

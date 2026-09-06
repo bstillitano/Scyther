@@ -69,8 +69,13 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
     /// The timeout of the response
     var requestTimeout: String?
 
-    /// The length of the body that was sent with the request
-    private var requestBodyLength: Int?
+    /// The length of the body that was sent with the request, in bytes.
+    ///
+    /// Recorded whatever the bytes are, while the body itself is only written to disk when it
+    /// decodes as UTF-8. The two together are what let the replay editor tell "this request had
+    /// no body" apart from "this request had a body the log could not keep" — see
+    /// ``ReplayableRequest/uncapturedBodyByteCount``.
+    private(set) var requestBodyLength: Int?
 
     /// The type of the request that was made eg: `application/x-protobuf`
     var requestType: String?
@@ -522,6 +527,12 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
 
     // MARK: - Private Methods
 
+    /// Records how big a request body was, and stores it when it can be stored as text.
+    ///
+    /// A body that is not valid UTF-8 — a protobuf, a multipart upload — is measured but not
+    /// written, so ``requestBodyLength`` is the only record that it existed at all.
+    ///
+    /// - Parameter data: The request body, or `nil` when the request carried none.
     private func saveRequestBodyData(_ data: Data?) {
         guard let data = data else {
             return

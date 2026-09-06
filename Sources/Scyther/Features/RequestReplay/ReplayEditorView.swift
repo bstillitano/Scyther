@@ -68,7 +68,7 @@ struct ReplayEditorView: View {
                 dismiss()
             }
         } message: {
-            Text(localized("\(viewModel.normalisedMethod) may change data on the server a second time."))
+            Text(viewModel.confirmationMessage)
         }
     }
 
@@ -102,15 +102,16 @@ struct ReplayEditorView: View {
     /// The warnings and the note about overrides, stacked under the overview section.
     ///
     /// A `Section` takes one footer, so the lines that apply are gathered into a single stack
-    /// rather than fighting over it.
+    /// rather than fighting over it. The warnings are the same list the confirmation alert
+    /// shows, so the editor and the alert can never tell the developer different things.
     @ViewBuilder
     private var requestFooter: some View {
         VStack(alignment: .leading, spacing: 4) {
             if !viewModel.hasValidURL {
                 Text(localized("This URL cannot be sent."))
             }
-            if viewModel.requiresConfirmation {
-                Text(localized("Not safe to repeat: this method can change data on the server."))
+            ForEach(viewModel.warnings, id: \.self) { warning in
+                Text(warning)
             }
             Text(localized("Replays are sent like app traffic, so any enabled override applies to them too."))
         }
@@ -151,29 +152,37 @@ struct ReplayEditorView: View {
     }
 
     /// The body row, opening the existing text editor.
+    ///
+    /// A capture whose body the log could not keep says so on the row rather than showing an
+    /// editable `0 bytes`, and the section's footer explains what will be sent instead. The
+    /// developer can still type a body of their own, which is why the row stays a link.
     private var bodySection: some View {
         Section {
-            if viewModel.draft.isBodyEditable {
-                NavigationLink {
-                    TextEntryView(text: bodyText, title: localized("Request Body"))
-                } label: {
-                    LabeledContent(localized("Body"), value: localized("\(viewModel.draft.bodyByteCount) bytes"))
-                }
-            } else {
-                LabeledContent(localized("Body"), value: localized("Binary body, sent unchanged"))
+            NavigationLink {
+                TextEntryView(text: bodyText, title: localized("Request Body"))
+            } label: {
+                LabeledContent(localized("Body"), value: bodySummary)
             }
         } header: {
             Text(localized("Request Body"))
+        } footer: {
+            if viewModel.draft.hasUncapturedBody {
+                Text(localized("The original body was not text, so the log did not keep it. This replay is sent without a body."))
+            }
         }
     }
 
+    /// What the body row's trailing value says.
+    private var bodySummary: String {
+        viewModel.draft.hasUncapturedBody
+            ? localized("Binary body, not replayed")
+            : localized("\(viewModel.draft.bodyByteCount) bytes")
+    }
+
     /// The body as editable text.
-    ///
-    /// Only ever read while ``ReplayableRequest/isBodyEditable`` is true, so the fallback is
-    /// unreachable rather than lossy.
     private var bodyText: Binding<String> {
         Binding(
-            get: { viewModel.draft.bodyText ?? "" },
+            get: { viewModel.draft.bodyText },
             set: { viewModel.draft.setBodyText($0) }
         )
     }

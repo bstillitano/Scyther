@@ -23,12 +23,18 @@ final class ReplayEditorViewModelTests: XCTestCase {
 
     private func capture(method: String = "GET",
                          url: String = "https://api.example.com/v1/users",
-                         headers: [String: String] = [:]) -> HTTPRequest {
+                         headers: [String: String] = [:],
+                         body: Data? = nil) -> HTTPRequest {
         let mutable = NSMutableURLRequest(url: URL(string: url)!)
         mutable.httpMethod = method
         headers.forEach { mutable.setValue($0.value, forHTTPHeaderField: $0.key) }
+        if let body {
+            URLProtocol.setProperty(body, forKey: "ScytherBodyData", in: mutable)
+        }
         let model = HTTPRequest()
-        model.saveRequest(mutable as URLRequest)
+        let request = mutable as URLRequest
+        model.saveRequest(request)
+        model.saveRequestBody(request)
         return model
     }
 
@@ -50,6 +56,11 @@ final class ReplayEditorViewModelTests: XCTestCase {
         let viewModel = viewModel(capture())
         viewModel.draft.method = "  "
         XCTAssertFalse(viewModel.canSend)
+    }
+
+    func testTheConfirmationMessageNamesTheMethod() {
+        let viewModel = viewModel(capture(method: "DELETE"))
+        XCTAssertTrue(viewModel.confirmationMessage.hasPrefix("DELETE"))
     }
 
     func testNonIdempotentMethodsRequireConfirmation() {
@@ -152,6 +163,39 @@ final class ReplayEditorViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draft.headers.last?.name, "")
         viewModel.removeHeaders(at: IndexSet(integer: 0))
         XCTAssertEqual(viewModel.draft.headers.map(\.name), [""])
+    }
+
+    // MARK: - A body the replay cannot carry
+
+    /// The defect W22 named at the surface: a protobuf POST went out with nothing in it, and the
+    /// only thing on screen was an editable "Body, 0 bytes" row.
+    func testABinaryBodyIsWarnedAboutInTheEditorAndAtTheButton() {
+        let viewModel = viewModel(capture(method: "POST", body: Data([0xFF, 0xFE, 0x00])))
+        XCTAssertTrue(viewModel.draft.hasUncapturedBody)
+        XCTAssertTrue(viewModel.requiresConfirmation)
+        XCTAssertTrue(viewModel.warnings.contains { $0.contains("without a body") },
+                      "the editor's footer and the confirmation alert both say so")
+        XCTAssertTrue(viewModel.confirmationMessage.contains("without a body"))
+    }
+
+    func testAGetWithABinaryBodyStillAsksBeforeSending() {
+        let viewModel = viewModel(capture(method: "GET", body: Data([0xFF, 0xFE])))
+        XCTAssertFalse(viewModel.changesServerState, "a GET changes nothing")
+        XCTAssertTrue(viewModel.requiresConfirmation, "but it is not the request on screen either")
+    }
+
+    func testAnOrdinaryGetNeitherWarnsNorConfirms() {
+        let viewModel = viewModel(capture(method: "GET"))
+        XCTAssertTrue(viewModel.warnings.isEmpty)
+        XCTAssertFalse(viewModel.requiresConfirmation)
+        XCTAssertEqual(viewModel.confirmationMessage, "")
+    }
+
+    func testTypingABodyRetiresTheWarning() {
+        let viewModel = viewModel(capture(method: "GET", body: Data([0xFF, 0xFE])))
+        viewModel.draft.setBodyText("{}")
+        XCTAssertFalse(viewModel.requiresConfirmation)
+        XCTAssertTrue(viewModel.warnings.isEmpty)
     }
 
     // MARK: - Sending

@@ -54,7 +54,27 @@ struct ReplayableRequest: Equatable, Sendable {
     var headers: [Header]
 
     /// The request body, or `nil` when the replay carries none.
-    var body: Data?
+    ///
+    /// Always either absent or valid UTF-8. A capture only ever supplies a body the logger wrote,
+    /// and the logger writes one only when it decodes as UTF-8; every other way in goes through
+    /// ``setBodyText(_:)``. That invariant is what retires the editor's old "binary body, sent
+    /// unchanged" branch, which nothing could reach.
+    private(set) var body: Data?
+
+    /// How many bytes of body the capture had that the log could not keep, or `nil` when there
+    /// were none.
+    ///
+    /// The logger writes a request body to disk only when it decodes as UTF-8, but it measures it
+    /// either way, so a capture that reports a length with nothing on disk had a binary body — a
+    /// protobuf, a multipart upload — that cannot be recovered and therefore cannot be replayed.
+    ///
+    /// Recording it is what lets the editor say so. Without it the draft simply had no body, read
+    /// as an empty one, and a protobuf `POST` was resent with nothing in it while the comparison
+    /// row reported a size delta as though the server had answered with less.
+    ///
+    /// Editing the body clears it: once the developer has typed a body of their own there is
+    /// nothing missing from the request any more.
+    private(set) var uncapturedBodyByteCount: Int?
 
     /// Headers `URLSession` sets itself. Editing them has no effect, so the UI marks them managed
     /// and ``makeURLRequest(replayOf:)`` drops them rather than sending a value the system will
@@ -75,8 +95,9 @@ struct ReplayableRequest: Equatable, Sendable {
     /// Builds a draft from a captured request, reading its body from disk.
     ///
     /// A body that was never valid UTF-8 was never written to disk by the logger, so it comes
-    /// back `nil` here — see ``isBodyEditable``, which the editor uses to say so rather than
-    /// pretend the request had no body.
+    /// back `nil` here. The capture still knows how big it was, and that length is kept in
+    /// ``uncapturedBodyByteCount`` so the editor can say the request had a body it cannot resend
+    /// rather than quietly sending none.
     ///
     /// - Parameter request: The capture to start from.
     init(capturing request: HTTPRequest) {
@@ -90,23 +111,23 @@ struct ReplayableRequest: Equatable, Sendable {
             .sorted { $0.name < $1.name }
         let data = request.readRawData(request.getRequestBodyFilepath())
         body = (data?.isEmpty == false) ? data : nil
+        if body == nil, let captured = request.requestBodyLength, captured > 0 {
+            uncapturedBodyByteCount = captured
+        }
     }
 
-    /// The body as text, or `nil` when it is not valid UTF-8.
-    ///
-    /// An absent body reads as empty text, so the editor can open on it without a special case.
-    var bodyText: String? {
+    /// The body as text. An absent body reads as empty text, so the editor opens on it without a
+    /// special case.
+    var bodyText: String {
         guard let body else { return "" }
-        return String(data: body, encoding: .utf8)
+        return String(decoding: body, as: UTF8.self)
     }
 
-    /// Whether the body can be edited as text.
+    /// Whether the capture carried a body that this replay cannot send.
     ///
-    /// False only for a body that is present and is not valid UTF-8. Such a body is sent
-    /// unchanged rather than mangled through a text editor.
-    var isBodyEditable: Bool {
-        bodyText != nil
-    }
+    /// Drives every place the editor says so: the body row, the overview footer, and the
+    /// confirmation the send button asks for.
+    var hasUncapturedBody: Bool { uncapturedBodyByteCount != nil }
 
     /// The number of bytes the body carries.
     var bodyByteCount: Int {
@@ -118,9 +139,13 @@ struct ReplayableRequest: Equatable, Sendable {
     /// Empty text clears the body outright rather than sending a zero-length one, because an
     /// emptied field reads as "send nothing" and a zero-length body is a different request.
     ///
+    /// Writing a body also clears ``uncapturedBodyByteCount``: the developer has supplied the
+    /// bytes the log could not, so there is no longer anything missing to warn about.
+    ///
     /// - Parameter text: The new body text.
     mutating func setBodyText(_ text: String) {
         body = text.isEmpty ? nil : Data(text.utf8)
+        uncapturedBodyByteCount = nil
     }
 
     /// The URL the draft would be sent to, or `nil` when what has been typed is not one.

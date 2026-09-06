@@ -30,10 +30,13 @@ import Foundation
 /// ### Validation
 /// - ``canSend``
 /// - ``hasValidURL``
+/// - ``changesServerState``
+/// - ``warnings``
 /// - ``requiresConfirmation``
 ///
 /// ### Sending
 /// - ``showingConfirmation``
+/// - ``confirmationMessage``
 /// - ``send()``
 @MainActor
 final class ReplayEditorViewModel: ViewModel {
@@ -123,9 +126,38 @@ final class ReplayEditorViewModel: ViewModel {
     /// Whether anything has been edited since the editor opened.
     var isModified: Bool { draft.isModified(from: original) }
 
-    /// Whether sending could change server state twice and should ask first.
-    var requiresConfirmation: Bool {
-        !Self.idempotentMethods.contains(draft.method.trimmingCharacters(in: .whitespacesAndNewlines).uppercased())
+    /// Whether the method could change server state, and so should not be repeated blind.
+    var changesServerState: Bool {
+        !Self.idempotentMethods.contains(normalisedMethod)
+    }
+
+    /// Everything about this replay that will not be what the developer expects, in the order the
+    /// editor states them.
+    ///
+    /// One list rather than several, so the overview footer and the confirmation alert cannot
+    /// disagree about what the developer has been told. Empty means the replay is exactly the
+    /// request on screen.
+    var warnings: [String] {
+        var lines: [String] = []
+        if changesServerState {
+            lines.append(localized("\(normalisedMethod) may change data on the server a second time."))
+        }
+        if draft.hasUncapturedBody {
+            lines.append(localized("The original body was not text, so the log did not keep it. This replay is sent without a body."))
+        }
+        return lines
+    }
+
+    /// Whether sending asks for confirmation first.
+    ///
+    /// Anything in ``warnings`` earns a confirmation. A body the replay cannot carry counts
+    /// even on a `GET`: sending something quietly different from the request on screen is worse
+    /// than one extra tap.
+    var requiresConfirmation: Bool { !warnings.isEmpty }
+
+    /// The confirmation alert's message: every warning, one paragraph each.
+    var confirmationMessage: String {
+        warnings.joined(separator: "\n\n") // scyther:unlocalised paragraph break between localised lines
     }
 
     /// The method as it will appear on the wire, for the confirmation alert to name.
