@@ -88,5 +88,20 @@
     "ru": "%@ в позиции %@, %@",
     "zh-Hans": "%@ 位于 %@, %@",
     "zh-Hant": "%@ 位於 %@, %@"
+  },
+  "About %@:1, under %@:1. Estimated from %@ on %@.": {
+    "comment": "Detail of a contrast finding: the first %@ is the measured ratio, the second is the threshold it fell under, both formatted to one decimal place; the third and fourth are the sampled foreground and background colours as #RRGGBB hex strings",
+    "ar": "حوالي %@:1، أقل من %@:1. تقدير من %@ على %@.",
+    "de": "Etwa %@:1, unter %@:1. Geschätzt aus %@ auf %@.",
+    "es": "Aproximadamente %@:1, por debajo de %@:1. Estimado a partir de %@ sobre %@.",
+    "fr": "Environ %@:1, sous %@:1. Estimé à partir de %@ sur %@.",
+    "it": "Circa %@:1, sotto %@:1. Stimato da %@ su %@.",
+    "ja": "約%@:1で、%@:1を下回っています。%@ を %@ の上に置いた推定値です。",
+    "ko": "약 %@:1로 %@:1 미만입니다. %@ 을(를) %@ 위에 놓았을 때의 추정치입니다.",
+    "nl": "Ongeveer %@:1, onder %@:1. Geschat op basis van %@ op %@.",
+    "pt-BR": "Cerca de %@:1, abaixo de %@:1. Estimado a partir de %@ sobre %@.",
+    "ru": "Примерно %@:1, ниже %@:1. Оценено по %@ на %@.",
+    "zh-Hans": "约为 %@:1，低于 %@:1。基于 %@ 在 %@ 上的估算。",
+    "zh-Hant": "約為 %@:1，低於 %@:1。基於 %@ 在 %@ 上的估算。"
   }
 }

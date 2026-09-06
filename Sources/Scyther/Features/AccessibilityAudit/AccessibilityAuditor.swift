@@ -87,6 +87,16 @@ struct AccessibilityAuditor {
     /// Below this, a target is not slightly short — it is a miss.
     private static let seriouslySmallSide: CGFloat = 32
 
+    /// The traits that mark an element that draws text worth measuring.
+    private static let textTraits: UIAccessibilityTraits = [.staticText, .button]
+
+    /// The height at which text is treated as large, and held to the lower threshold.
+    ///
+    /// WCAG's "large" is a point size, which cannot be read off an accessibility element. The
+    /// element's height is the closest an outside observer gets, and it is stated as an estimate
+    /// rather than dressed up as the real rule.
+    private static let largeTextHeight: CGFloat = 24
+
     /// Audits a tree.
     ///
     /// - Parameters:
@@ -106,6 +116,10 @@ struct AccessibilityAuditor {
                 findings.append(finding)
             }
             if checks.contains(.touchTarget), let finding = touchTargetFinding(for: node) {
+                findings.append(finding)
+            }
+            if checks.contains(.contrast), let sampler,
+               let finding = contrastFinding(for: node, sampler: sampler) {
                 findings.append(finding)
             }
         }
@@ -171,6 +185,41 @@ struct AccessibilityAuditor {
     /// - Parameter value: The value in points.
     /// - Returns: The formatted number.
     private static func points(_ value: CGFloat) -> String {
+        String(format: "%.1f", value) // scyther:unlocalised a number, formatted
+    }
+
+    /// The finding for text too close in colour to what is behind it, if there is one.
+    ///
+    /// - Parameters:
+    ///   - node: The element to measure.
+    ///   - sampler: Where the pixels come from.
+    /// - Returns: The finding, or `nil` when the element is not text, cannot be read, or passes.
+    private func contrastFinding(for node: AuditNode, sampler: ContrastSampling) -> AccessibilityFinding? {
+        guard !node.traits.intersection(Self.textTraits).isEmpty else { return nil }
+        let trimmed = node.accessibilityLabelText?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmed, !trimmed.isEmpty else { return nil }
+
+        guard let measured = ContrastAnalyser.measure(pixels: sampler.samples(in: node.frameInWindow)) else {
+            return nil
+        }
+
+        let threshold = node.frameInWindow.height >= Self.largeTextHeight ? 3.0 : 4.5
+        guard measured.ratio < threshold else { return nil }
+
+        return AccessibilityFinding(
+            check: .contrast,
+            severity: .warning,
+            frame: node.frameInWindow,
+            elementName: Self.name(for: node),
+            detail: localized("About \(Self.ratio(measured.ratio)):1, under \(Self.ratio(threshold)):1. Estimated from \(measured.foreground.hexDescription) on \(measured.background.hexDescription).")
+        )
+    }
+
+    /// A ratio, to one decimal place.
+    ///
+    /// - Parameter value: The ratio.
+    /// - Returns: The formatted number.
+    private static func ratio(_ value: Double) -> String {
         String(format: "%.1f", value) // scyther:unlocalised a number, formatted
     }
 }

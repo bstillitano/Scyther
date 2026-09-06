@@ -4744,6 +4744,83 @@
         }
       }
     },
+    "About %@:1, under %@:1. Estimated from %@ on %@.": {
+      "comment": "Detail of a contrast finding: the first %@ is the measured ratio, the second is the threshold it fell under, both formatted to one decimal place; the third and fourth are the sampled foreground and background colours as #RRGGBB hex strings",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "حوالي %@:1، أقل من %@:1. تقدير من %@ على %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Etwa %@:1, unter %@:1. Geschätzt aus %@ auf %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aproximadamente %@:1, por debajo de %@:1. Estimado a partir de %@ sobre %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Environ %@:1, sous %@:1. Estimé à partir de %@ sur %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Circa %@:1, sotto %@:1. Stimato da %@ su %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "約%@:1で、%@:1を下回っています。%@ を %@ の上に置いた推定値です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "약 %@:1로 %@:1 미만입니다. %@ 을(를) %@ 위에 놓았을 때의 추정치입니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ongeveer %@:1, onder %@:1. Geschat op basis van %@ op %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Cerca de %@:1, abaixo de %@:1. Estimado a partir de %@ sobre %@."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Примерно %@:1, ниже %@:1. Оценено по %@ на %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "约为 %@:1，低于 %@:1。基于 %@ 在 %@ 上的估算。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "約為 %@:1，低於 %@:1。基於 %@ 在 %@ 上的估算。"
+          }
+        }
+      }
+    },
     "Access Group": {
       "comment": "Keychain attribute row label for kSecAttrAccessGroup",
       "localizations": {
