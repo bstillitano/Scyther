@@ -5226,6 +5226,83 @@
         }
       }
     },
+    "Accessibility Audit": {
+      "comment": "Navigation title of the accessibility audit's report screen",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تدقيق إمكانية الوصول"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Bedienungshilfen-Audit"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Auditoría de accesibilidad"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Audit d'accessibilité"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Audit di accessibilità"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "アクセシビリティ監査"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "손쉬운 사용 감사"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Toegankelijkheidsaudit"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Auditoria de acessibilidade"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Аудит специальных возможностей"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "辅助功能审核"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "輔助使用稽核"
+          }
+        }
+      }
+    },
     "Accessibility L": {
       "comment": "Dynamic Type accessibility size name, large",
       "localizations": {
@@ -13813,6 +13890,83 @@
         }
       }
     },
+    "Contrast ratios are estimated by sampling pixels on screen, not measured from exact colors.": {
+      "comment": "Footer under the Contrast section of the accessibility audit report screen, noting that its findings are estimates rather than exact measurements",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يتم تقدير نسب التباين عن طريق أخذ عينات من وحدات البكسل على الشاشة، وليس قياسها من الألوان الدقيقة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Kontrastverhältnisse werden durch Stichproben von Bildschirmpixeln geschätzt, nicht anhand exakter Farbwerte gemessen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Las relaciones de contraste se estiman muestreando píxeles en pantalla, no se miden a partir de colores exactos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Les ratios de contraste sont estimés en échantillonnant des pixels à l'écran, et non mesurés à partir des couleurs exactes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "I rapporti di contrasto sono stimati campionando i pixel sullo schermo, non misurati a partire dai colori esatti."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "コントラスト比は画面上のピクセルをサンプリングして推定した値であり、正確な色から測定したものではありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "명암비는 화면의 픽셀을 샘플링하여 추정한 값이며, 정확한 색상으로 측정한 것이 아닙니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Contrastverhoudingen worden geschat door pixels op het scherm te bemonsteren, niet gemeten op basis van exacte kleuren."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "As taxas de contraste são estimadas por amostragem de pixels na tela, não medidas a partir de cores exatas."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Коэффициенты контрастности оцениваются по выборке пикселей на экране, а не измеряются по точным цветам."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "对比度是通过采样屏幕像素估算得出的,并非根据精确颜色测量。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "對比度是透過取樣螢幕像素估算得出的,並非根據精確顏色測量。"
+          }
+        }
+      }
+    },
     "Cookie Browser": {
       "comment": "Navigation title of the cookie browser",
       "localizations": {
@@ -18838,6 +18992,83 @@
         }
       }
     },
+    "Draws a box around every finding, live over the running app.": {
+      "comment": "Footer under the settings section of the accessibility audit report screen, explaining what the live-overlay toggle above it does",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يرسم إطارًا حول كل نتيجة، مباشرةً فوق التطبيق قيد التشغيل."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Zeichnet einen Rahmen um jeden Befund, live über der laufenden App."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dibuja un recuadro alrededor de cada hallazgo, en vivo sobre la aplicación en ejecución."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dessine un cadre autour de chaque problème, en direct par-dessus l'application en cours d'exécution."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Disegna un riquadro attorno a ogni rilevamento, in tempo reale sopra l'app in esecuzione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "実行中のアプリの上に、検出結果ごとの枠をリアルタイムで描画します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "실행 중인 앱 위에 각 발견 항목의 테두리를 실시간으로 표시합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Tekent een kader om elke bevinding, live over de actieve app heen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Desenha uma caixa ao redor de cada ocorrência, ao vivo sobre o aplicativo em execução."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Обводит рамкой каждую находку прямо поверх работающего приложения в реальном времени."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "在运行中的应用上方实时绘制每个发现项的边框。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "在執行中的應用程式上方即時繪製每個發現項目的邊框。"
+          }
+        }
+      }
+    },
     "Drive from city to suburb": {
       "comment": "Route preset name: a simulated drive from a city centre to a suburb",
       "localizations": {
@@ -21452,6 +21683,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "讀取 plist 時發生錯誤：%@"
+          }
+        }
+      }
+    },
+    "Every enabled check passed.": {
+      "comment": "Description under the empty state's title on the accessibility audit report screen, shown when every check was enabled and none of them found anything",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "اجتازت جميع الفحوصات المفعّلة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alle aktivierten Prüfungen wurden bestanden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Todas las comprobaciones activadas se superaron correctamente."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Toutes les vérifications activées ont réussi."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Tutti i controlli attivati sono stati superati."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "有効になっているすべてのチェックに合格しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "활성화된 모든 검사를 통과했습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alle ingeschakelde controles zijn geslaagd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Todas as verificações ativadas foram aprovadas."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Все включённые проверки пройдены успешно."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "所有已启用的检查均已通过。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "所有已啟用的檢查均已通過。"
           }
         }
       }
@@ -32564,6 +32872,83 @@
         }
       }
     },
+    "No Issues Found": {
+      "comment": "Title of the empty state on the accessibility audit report screen, shown when the current report has no findings",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لم يتم العثور على مشكلات"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Keine Probleme gefunden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No se encontraron problemas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aucun problème détecté"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nessun problema rilevato"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "問題は見つかりませんでした"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "발견된 문제 없음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Geen problemen gevonden"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nenhum problema encontrado"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Проблем не найдено"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "未发现问题"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "未發現問題"
+          }
+        }
+      }
+    },
     "No Logs": {
       "comment": "Empty state title on the console log page",
       "localizations": {
@@ -41054,6 +41439,83 @@
         }
       }
     },
+    "Re-run": {
+      "comment": "Toolbar button on the accessibility audit report screen that runs the audit again and replaces the current report",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "إعادة التشغيل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Erneut ausführen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Volver a ejecutar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Relancer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Riesegui"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "再実行"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "다시 실행"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Opnieuw uitvoeren"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Executar novamente"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Повторить"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "重新运行"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "重新執行"
+          }
+        }
+      }
+    },
     "Reason": {
       "comment": "Caption above the reason reported by a crash",
       "localizations": {
@@ -48446,6 +48908,83 @@
         }
       }
     },
+    "Show Issues On Screen": {
+      "comment": "Toggle on the accessibility audit report screen that switches on the live overlay, which draws a box over the running app around every current finding",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "إظهار المشكلات على الشاشة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Probleme auf dem Bildschirm anzeigen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostrar problemas en pantalla"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Afficher les problèmes à l'écran"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostra i problemi sullo schermo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "問題を画面に表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "화면에 문제 표시"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Problemen op het scherm tonen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostrar problemas na tela"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Показывать проблемы на экране"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "在屏幕上显示问题"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "在螢幕上顯示問題"
+          }
+        }
+      }
+    },
     "Show Screen Touches": {
       "comment": "Searchable row inside the Touch Visualiser page",
       "localizations": {
@@ -51931,6 +52470,83 @@
         }
       }
     },
+    "The checks that ran found nothing to report. Switched off: %@.": {
+      "comment": "Description under the empty state's title on the accessibility audit report screen, shown when the report has no findings but at least one check was switched off; %@ is the localized, comma-joined list of the checks that did not run",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لم تعثر الفحوصات التي تم تشغيلها على ما يستحق الإبلاغ عنه. معطّلة: %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Die durchgeführten Prüfungen haben nichts gemeldet. Deaktiviert: %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Las comprobaciones realizadas no encontraron nada que informar. Desactivadas: %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Les vérifications effectuées n'ont rien signalé. Désactivées : %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "I controlli eseguiti non hanno rilevato nulla da segnalare. Disattivati: %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "実行されたチェックでは報告する内容はありませんでした。無効: %@。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "실행된 검사에서 보고할 내용이 없습니다. 꺼짐: %@."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "De uitgevoerde controles hebben niets te melden. Uitgeschakeld: %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "As verificações realizadas não encontraram nada a relatar. Desativadas: %@."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Выполненные проверки ничего не обнаружили. Отключены: %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "已运行的检查未发现需要报告的内容。已关闭:%@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "已執行的檢查未發現需要回報的內容。已關閉:%@。"
+          }
+        }
+      }
+    },
     "The figure shown beside each endpoint is its slowest recorded round trip.": {
       "comment": "Footer under the endpoint breakdown, explaining the figure each row shows",
       "localizations": {
@@ -53179,6 +53795,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "此 App 未宣告基礎語言以外的在地化，因此沒有可切換的語言。"
+          }
+        }
+      }
+    },
+    "This audit stopped early because there was too much to check. This report may be incomplete.": {
+      "comment": "Banner shown on the accessibility audit report screen when AccessibilityAuditor.Result.didHitLimit is true, warning that the walk was truncated by the node or depth cap before it finished",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "توقف هذا التدقيق مبكرًا لأن هناك الكثير مما يجب فحصه. قد يكون هذا التقرير غير مكتمل."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dieses Audit wurde vorzeitig beendet, da zu viel zu prüfen war. Dieser Bericht ist möglicherweise unvollständig."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Esta auditoría se detuvo antes de tiempo porque había demasiado que comprobar. Este informe puede estar incompleto."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Cet audit s'est arrêté prématurément car il y avait trop d'éléments à vérifier. Ce rapport est peut-être incomplet."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Questo audit si è interrotto in anticipo perché c'era troppo da controllare. Questo report potrebbe essere incompleto."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "確認対象が多すぎたため、この監査は途中で終了しました。このレポートは不完全な可能性があります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "확인할 항목이 너무 많아 감사가 조기에 중단되었습니다. 이 보고서는 불완전할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Deze audit is vroegtijdig gestopt omdat er te veel te controleren was. Dit rapport kan onvolledig zijn."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Esta auditoria parou antes do previsto porque havia muito a verificar. Este relatório pode estar incompleto."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Проверка остановлена раньше времени — элементов для проверки оказалось слишком много. Этот отчёт может быть неполным."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "由于需要检查的内容过多,本次审核提前停止,报告可能不完整。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "由於需要檢查的內容過多,本次稽核提前停止,報告可能不完整。"
           }
         }
       }
@@ -57645,6 +58338,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "VoiceOver 朗讀此元素時沒有名稱。"
+          }
+        }
+      }
+    },
+    "Warning": {
+      "comment": "Accessibility label read by VoiceOver for the dot beside a warning-severity finding on the accessibility audit report screen",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تحذير"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Warnung"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Advertencia"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Avertissement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Avviso"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "警告"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "경고"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Waarschuwing"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aviso"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Предупреждение"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "警告"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "警告"
           }
         }
       }
