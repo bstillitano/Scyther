@@ -238,6 +238,43 @@ final class HTTPRequestTests: XCTestCase {
         XCTAssertNotNil(request.responseDate)
     }
 
+    // MARK: - Response body length
+
+    /// The defect W21 named: the length was recorded only alongside a successful text write, so
+    /// every response that was neither an image nor valid UTF-8 reported no size at all and the
+    /// traffic stats' byte total silently left it out.
+    func testABinaryResponseStillReportsItsLength() throws {
+        let request = HTTPRequest()
+        let url = try XCTUnwrap(URL(string: "https://api.example.com/v1/report.pb"))
+        let response = try XCTUnwrap(HTTPURLResponse(
+            url: url,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "application/x-protobuf"]
+        ))
+        let body = Data([0xFF, 0xFE, 0x00, 0x01, 0x02])
+
+        request.saveResponse(response, data: body)
+
+        XCTAssertEqual(request.responseBodyLength, 5, "five bytes arrived, whatever they say")
+        XCTAssertEqual(request.getResponseBody(), "", "and they are still not shown as text")
+    }
+
+    func testATextResponseReportsItsLength() throws {
+        let request = HTTPRequest()
+        let url = try XCTUnwrap(URL(string: "https://api.example.com/v1/users"))
+        let response = try XCTUnwrap(HTTPURLResponse(
+            url: url,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "application/json"]
+        ))
+
+        request.saveResponse(response, data: Data(#"{"id":1}"#.utf8))
+
+        XCTAssertEqual(request.responseBodyLength, 8)
+    }
+
     // MARK: - getResponseBodyDictionary Tests
 
     func testGetResponseBodyDictionaryEmpty() {

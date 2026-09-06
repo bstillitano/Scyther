@@ -533,6 +533,15 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
         }
     }
 
+    /// Records how big a response body was, and stores it when it can be stored as text.
+    ///
+    /// The length is recorded whatever the bytes are. It used to be recorded only alongside a
+    /// successful write, so every response that was neither an image nor valid UTF-8 — a
+    /// protobuf, a zip, a font — reported no length at all, and the traffic stats' byte total,
+    /// the details page's response size and the HAR export's `bodySize` silently left it out. How
+    /// many bytes arrived is a fact about the wire; whether they can be shown as text is not.
+    ///
+    /// - Parameter data: The response body as it arrived.
     private func saveResponseBodyData(_ data: Data) {
         var bodyString: NSString?
 
@@ -544,8 +553,8 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
             }
         }
 
+        responseBodyLength = data.count
         if let bodyString = bodyString {
-            responseBodyLength = data.count
             saveData(bodyString, toFile: getResponseBodyFilepath())
         }
     }

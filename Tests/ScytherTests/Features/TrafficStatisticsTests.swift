@@ -21,6 +21,8 @@ final class TrafficStatisticsTests: XCTestCase {
     ///   - duration: The round trip in milliseconds, or `nil` when there was no response.
     ///   - size: The response body length in bytes.
     ///   - stubbed: Whether a rule synthesised the response.
+    ///   - finished: Whether the load ended. `false` is a request still in flight.
+    ///   - graphQL: The GraphQL operation name, if this is a GraphQL request.
     /// - Returns: The request.
     private func request(
         url: String = "https://api.example.com/v1/users",
@@ -29,12 +31,17 @@ final class TrafficStatisticsTests: XCTestCase {
         duration: Float? = 100,
         size: Int? = 500,
         stubbed: Bool = false,
-        finished: Bool = true
+        finished: Bool = true,
+        graphQL: String? = nil
     ) -> HTTPRequest {
         var urlRequest = URLRequest(url: URL(string: url)!)
         urlRequest.httpMethod = method
         let model = HTTPRequest()
         model.saveRequest(urlRequest)
+        if let graphQL {
+            model.isGraphQL = true
+            model.graphQLOperationName = graphQL
+        }
         model.responseCode = status
         model.requestDuration = duration
         model.responseBodyLength = size
@@ -152,7 +159,7 @@ final class TrafficStatisticsTests: XCTestCase {
             request(status: 200), request(status: 404), request(status: 500),
             request(status: nil, duration: nil, size: nil), request(status: 301),
         ])
-        XCTAssertEqual(stats.summary.failureCount, 3, "404, 500 and the pending entry")
+        XCTAssertEqual(stats.summary.failureCount, 3, "404, 500 and the load that ended with no response")
     }
 
     func testAFourHundredIsAFailureAndAThreeNinetyNineIsNot() {
@@ -265,6 +272,27 @@ final class TrafficStatisticsTests: XCTestCase {
         XCTAssertEqual(stats.summary.wallClockSpan ?? -1, 4, accuracy: 0.0001)
     }
 
+    /// The defect W21 named: the dates were accumulated before the stubbed guard, so a stub
+    /// answered long after the last real request stretched a figure the screen's own footer
+    /// promises is free of stubs.
+    func testWallClockSpanLeavesStubsOut() {
+        let base = Date(timeIntervalSince1970: 1_000_000)
+        let real = request(duration: 1_000)
+        real.requestDate = base
+        real.responseDate = base.addingTimeInterval(1)
+        let stub = request(duration: 1, stubbed: true)
+        stub.requestDate = base.addingTimeInterval(3_600)
+        stub.responseDate = base.addingTimeInterval(3_600.001)
+        let stats = TrafficStatistics.compute(from: [real, stub])
+        XCTAssertEqual(stats.summary.wallClockSpan ?? -1, 1, accuracy: 0.0001,
+                       "one second of network activity, not an hour")
+    }
+
+    func testAWhollyStubbedSessionHasNoElapsedTime() {
+        let stats = TrafficStatistics.compute(from: [request(stubbed: true), request(stubbed: true)])
+        XCTAssertNil(stats.summary.wallClockSpan, "nothing here was measured, so nothing elapsed")
+    }
+
     func testWallClockSpanIsNilWithoutDates() {
         let model = HTTPRequest()
         model.requestDate = nil
@@ -312,6 +340,38 @@ final class TrafficStatisticsTests: XCTestCase {
         XCTAssertEqual(
             TrafficStatistics.endpointIdentity(for: request(url: "https://api.example.com/")),
             "GET api.example.com"
+        )
+    }
+
+    /// The defect W21 named: every operation in a GraphQL API is posted to the same path, so
+    /// without the operation name the breakdown collapsed the whole API into one row — while the
+    /// waterfall, on the same screen, named each operation individually.
+    func testEndpointIdentityNamesTheGraphQLOperation() {
+        XCTAssertEqual(
+            TrafficStatistics.endpointIdentity(
+                for: request(url: "https://api.example.com/graphql", method: "POST", graphQL: "GetUser")
+            ),
+            "POST api.example.com/graphql (GetUser)"
+        )
+    }
+
+    func testTwoGraphQLOperationsOnOnePathDoNotAggregate() {
+        let stats = TrafficStatistics.compute(from: [
+            request(url: "https://api.example.com/graphql", method: "POST", duration: 100, graphQL: "GetUser"),
+            request(url: "https://api.example.com/graphql", method: "POST", duration: 900, graphQL: "AddToCart"),
+        ])
+        XCTAssertEqual(stats.endpoints.map(\.id),
+                       ["POST api.example.com/graphql (AddToCart)", "POST api.example.com/graphql (GetUser)"],
+                       "slowest first; one row each")
+    }
+
+    func testAnUnnamedGraphQLOperationKeepsTheBareEndpoint() {
+        XCTAssertEqual(
+            TrafficStatistics.endpointIdentity(
+                for: request(url: "https://api.example.com/graphql", method: "POST", graphQL: "")
+            ),
+            "POST api.example.com/graphql",
+            "an anonymous query has no name to tell it apart by"
         )
     }
 

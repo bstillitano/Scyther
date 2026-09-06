@@ -79,8 +79,12 @@ struct TrafficStatistics: Equatable, Sendable {
         /// The slowest completed duration in milliseconds, or `nil` when nothing completed.
         var slowestDuration: Double?
 
-        /// The elapsed time from the first request starting to the last one finishing, or `nil`
-        /// when no request carries a date.
+        /// The elapsed time from the first measured request starting to the last one finishing,
+        /// or `nil` when no measured request carries a date.
+        ///
+        /// Stubbed requests are left out, like every other duration here: a stub that answered an
+        /// hour after the last real request would otherwise report an hour of network activity
+        /// that never happened.
         var wallClockSpan: TimeInterval?
 
         /// ``failureCount`` over ``measuredCount``, or `nil` when nothing was measured.
@@ -192,6 +196,16 @@ struct TrafficStatistics: Equatable, Sendable {
         summary.requestCount = requests.count
 
         for request in requests {
+            guard !request.wasStubbed else {
+                summary.stubbedCount += 1
+                continue
+            }
+            summary.measuredCount += 1
+
+            // Dated after the stubbed guard, not before it. The screen's own footer says a
+            // stubbed response is "left out of every duration", and the elapsed figure is a
+            // duration: a session of one real request and a stub answered an hour later reported
+            // an hour of network activity that never happened.
             if let start = request.requestDate {
                 if earliestStart == nil || start < earliestStart! {
                     earliestStart = start
@@ -201,12 +215,6 @@ struct TrafficStatistics: Equatable, Sendable {
                     latestFinish = finish
                 }
             }
-
-            guard !request.wasStubbed else {
-                summary.stubbedCount += 1
-                continue
-            }
-            summary.measuredCount += 1
 
             // A load that ended carries a response date whether or not a response arrived, so it
             // is the only signal that separates "failed" from "still in flight". Without it a
@@ -276,14 +284,20 @@ struct TrafficStatistics: Equatable, Sendable {
     /// the breakdown is useless. A request with no parseable URL is identified by its method
     /// alone, which keeps it visible rather than silently dropping it.
     ///
+    /// A GraphQL operation carries its name, in parentheses. Every operation in a GraphQL API is
+    /// posted to the same path, so without the name the breakdown collapsed a whole API into one
+    /// row called `POST api.example.com/graphql` — while the waterfall, ten lines away on the
+    /// same screen, named each operation individually. The name is what identifies the call.
+    ///
     /// - Parameter request: The request to identify.
-    /// - Returns: `"METHOD host/path"`, for example `"GET api.example.com/v1/users/:id"`.
+    /// - Returns: `"METHOD host/path"`, for example `"GET api.example.com/v1/users/:id"`, or
+    ///   `"POST api.example.com/graphql (GetUser)"` for a named GraphQL operation.
     static func endpointIdentity(for request: HTTPRequest) -> String {
         let method = (request.requestMethod ?? "GET").uppercased()
         guard let url = request.requestURL,
               let components = URLComponents(string: url),
               let host = components.host, !host.isEmpty else {
-            return method
+            return operationSuffixed(method, for: request)
         }
         let segments = components.path.split(separator: "/").map { segment -> String in
             let text = String(segment)
@@ -292,7 +306,23 @@ struct TrafficStatistics: Equatable, Sendable {
             return text
         }
         let path = segments.isEmpty ? "" : "/" + segments.joined(separator: "/")
-        return "\(method) \(host.lowercased())\(path)"
+        return operationSuffixed("\(method) \(host.lowercased())\(path)", for: request)
+    }
+
+    /// Appends a GraphQL operation name to an endpoint identity, when there is one.
+    ///
+    /// An unnamed operation — an anonymous query, or a batch — is left as the bare endpoint,
+    /// because there is no name to tell it apart by.
+    ///
+    /// - Parameters:
+    ///   - identity: The identity built from the method and URL.
+    ///   - request: The request being identified.
+    /// - Returns: The identity, with `" (name)"` appended for a named GraphQL operation.
+    private static func operationSuffixed(_ identity: String, for request: HTTPRequest) -> String {
+        guard request.isGraphQL, let name = request.graphQLOperationName, !name.isEmpty else {
+            return identity
+        }
+        return "\(identity) (\(name))"
     }
 
     /// The duration of `request` in milliseconds, or `nil` when it is not a measurement.
