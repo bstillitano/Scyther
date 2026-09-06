@@ -90,8 +90,16 @@ struct NetworkRulesView: View {
             if !viewModel.transientRules.isEmpty {
                 Section {
                     ForEach(viewModel.transientRules) { rule in
-                        LabeledContent(rule.name, value: viewModel.subtitle(for: rule))
-                            .foregroundStyle(rule.isEnabled ? .primary : .secondary)
+                        // The same stock title-over-subtitle row the editable rows use, so the
+                        // two sections read as one list. Trailing rather than beneath truncated
+                        // the summary of an override carrying more than one action.
+                        LabeledContent {
+                            EmptyView()
+                        } label: {
+                            Text(rule.name)
+                            Text(viewModel.subtitle(for: rule))
+                        }
+                        .foregroundStyle(rule.isEnabled ? .primary : .secondary)
                     }
                 } header: {
                     Text(localized("Registered in Code"))
