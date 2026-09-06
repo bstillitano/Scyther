@@ -124,18 +124,29 @@ final class NetworkRuleInterceptorTests: XCTestCase {
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
     }
 
+    /// Whether the process was already started when this test began.
+    nonisolated(unsafe) private var wasStarted = false
+
     /// A store over this test's throwaway suite and body directory, already publishing to
     /// ``NetworkRuleSnapshot`` — which is what the interceptor actually reads.
+    ///
+    /// The interceptor gate is opened by setting ``Scyther/_started`` rather than by calling
+    /// `Scyther.start()`. All this suite needs is for `canInit(with:)` to stop refusing; `start()`
+    /// additionally sweeps orphaned bodies out of the *real* container, installs the crash
+    /// handler and swizzles the interface toolkit, none of which a test of the interceptor asked
+    /// for. What is changed is put back in `tearDownWithError()`.
     private func makeStore() throws -> NetworkRuleStore {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         let store = NetworkRuleStore(defaults: defaults, bodyDirectory: bodyDirectory)
-        Scyther.start()
+        wasStarted = Scyther.isStarted
+        Scyther._started = true
         return store
     }
 
-    /// Restores the snapshot so a rule cannot leak into a later test in the suite.
+    /// Restores the snapshot, and the process, so neither leaks into a later test.
     override func tearDownWithError() throws {
         NetworkRuleSnapshot.update(isEnabled: true, rules: [])
+        Scyther._started = wasStarted
         UserDefaults().removePersistentDomain(forName: suiteName)
         try? FileManager.default.removeItem(at: bodyDirectory)
     }
@@ -464,14 +475,24 @@ final class NetworkRuleInterceptorTests: XCTestCase {
 @MainActor
 final class NetworkGlobalConditioningTests: XCTestCase {
 
+    /// Whether the process was already started when this test began.
+    nonisolated(unsafe) private var wasStarted = false
+
+    /// Opens the interceptor's gate without the rest of `Scyther.start()`.
+    ///
+    /// `canInit(with:)` refuses every request while the process is not started, which is all this
+    /// suite needs changed. Calling `start()` would also sweep orphaned bodies out of the real
+    /// container and install process-wide hooks that have no uninstall.
     override func setUp() {
         super.setUp()
-        Scyther.start()
+        wasStarted = Scyther.isStarted
+        Scyther._started = true
     }
 
     override func tearDown() {
         NetworkRuleSnapshot.update(isEnabled: true, rules: [])
         NetworkRuleSnapshot.update(globalCondition: nil)
+        Scyther._started = wasStarted
         super.tearDown()
     }
 

@@ -57,26 +57,49 @@ final class BreakpointPresenterTests: XCTestCase {
         func recordDismissal() { lock.withLock { dismissals += 1 } }
     }
 
-    private var coordinator: BreakpointCoordinator!
-    private var presenter: BreakpointPresenter!
-    private var log: PresentationLog!
+    /// A started presenter over a coordinator of its own, with its UIKit hooks recorded.
+    ///
+    /// Sendable — every member is either lock-guarded or main-actor isolated — so it can be
+    /// carried out of ``makeFixture()`` and into the inherited-nonisolated `setUp()`.
+    private struct Fixture: Sendable {
+        let coordinator: BreakpointCoordinator
+        let presenter: BreakpointPresenter
+        let log: PresentationLog
+    }
 
-    override func setUp() {
-        super.setUp()
-        coordinator = BreakpointCoordinator()
-        presenter = BreakpointPresenter(coordinator: coordinator)
+    /// Builds and starts a presenter. Static, so nothing about the test case is captured.
+    @MainActor
+    private static func makeFixture() -> Fixture {
+        let coordinator = BreakpointCoordinator()
+        let presenter = BreakpointPresenter(coordinator: coordinator)
         let log = PresentationLog()
-        self.log = log
         presenter.presentEditor = { _ in log.recordPresentation() }
         presenter.dismissEditor = { _ in log.recordDismissal() }
         presenter.applicationState = { .active }
         presenter.start()
+        return Fixture(coordinator: coordinator, presenter: presenter, log: log)
+    }
+
+    /// Declared `nonisolated(unsafe)` because `setUp()` and `tearDown()` are inherited
+    /// nonisolated. XCTest runs them on the same thread as the test body, so the access is
+    /// serialised even though the compiler cannot prove it — the pattern the store suites in this
+    /// target already use.
+    nonisolated(unsafe) private var fixture: Fixture!
+
+    private var coordinator: BreakpointCoordinator { fixture.coordinator }
+    private var presenter: BreakpointPresenter { fixture.presenter }
+    private var log: PresentationLog { fixture.log }
+
+    /// Builds the fixture on the main actor, which is where XCTest runs a synchronous test body
+    /// of a `@MainActor` suite. `makeFixture()` is static, so no part of the test case crosses
+    /// the isolation boundary.
+    override func setUp() {
+        super.setUp()
+        fixture = MainActor.assumeIsolated { Self.makeFixture() }
     }
 
     override func tearDown() {
-        presenter = nil
-        coordinator = nil
-        log = nil
+        fixture = nil
         super.tearDown()
     }
 

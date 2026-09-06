@@ -21,7 +21,13 @@ final class HeldRequestEditorViewModelTests: XCTestCase {
         var resolutions: [BreakpointResolution] { lock.withLock { storage } }
     }
 
-    private var coordinator: BreakpointCoordinator!
+    /// The coordinator every test in this suite drives.
+    ///
+    /// `nonisolated(unsafe)` because `setUp()` and `tearDown()` are inherited nonisolated, which
+    /// is the same reason the stored properties in the store suites carry it. XCTest runs both on
+    /// the same thread as the synchronous test body, so the access is serialised even though the
+    /// compiler cannot prove it.
+    nonisolated(unsafe) private var coordinator: BreakpointCoordinator!
 
     override func setUp() {
         super.setUp()

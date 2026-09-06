@@ -30,7 +30,6 @@ import Foundation
 /// ### Reading
 /// - ``breakpoints``
 /// - ``isEnabled``
-/// - ``enabledCount``
 ///
 /// ### Mutating
 /// - ``activate()``
@@ -65,14 +64,6 @@ internal final class BreakpointStore: ObservableObject {
             defaults.set(isEnabled, forKey: Key.isEnabled)
             publish()
         }
-    }
-
-    /// How many breakpoints are being applied right now.
-    ///
-    /// Zero while the master switch is off, however many are enabled behind it: the menu badge
-    /// says what is being applied, not what is configured.
-    var enabledCount: Int {
-        isEnabled ? breakpoints.filter(\.isEnabled).count : 0
     }
 
     /// Creates a store backed by a preferences store.

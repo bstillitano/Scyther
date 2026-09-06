@@ -228,11 +228,18 @@ final class ReplayInterceptorTests: XCTestCase {
     private let url = URL(string: "https://api.example.com/v1/users")!
 
     /// Records the request the interceptor forwarded to the client on a redirect.
-    private final class RedirectRecordingClient: NSObject, URLProtocolClient {
-        var redirectedTo: URLRequest?
+    ///
+    /// `URLProtocolClient` is `Sendable`, so the recorded request is held behind a lock rather
+    /// than in a bare mutable property — the same shape every other recording double in this
+    /// target uses.
+    private final class RedirectRecordingClient: NSObject, URLProtocolClient, @unchecked Sendable {
+        private let lock = NSLock()
+        private var storage: URLRequest?
+
+        var redirectedTo: URLRequest? { lock.withLock { storage } }
 
         func urlProtocol(_ protocol: URLProtocol, wasRedirectedTo request: URLRequest, redirectResponse: URLResponse) {
-            redirectedTo = request
+            lock.withLock { storage = request }
         }
 
         func urlProtocol(_ protocol: URLProtocol, didReceive response: URLResponse, cacheStoragePolicy policy: URLCache.StoragePolicy) { }
