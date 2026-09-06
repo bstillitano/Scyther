@@ -92,6 +92,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Grid Overlay**: Display alignment grid over your UI
 - **FPS Counter**: Real-time frame rate overlay with color-coded performance indicators
 - **Touch Visualizer**: Show touch points for demos and recordings
+- **Accessibility Audit**: Walk the live accessibility tree for missing VoiceOver labels, undersized touch targets, and low-contrast text, with a live on-screen overlay
 - **View Frames**: Highlight view boundaries with colored borders
 - **View Sizes**: Display view dimensions as labels
 - **Slow Animations**: Reduce animation speed for debugging
@@ -1444,6 +1445,41 @@ config.showsTouchDuration = true
 config.touchIndicatorColor = .systemBlue
 TouchVisualiser.instance.config = config
 ```
+
+#### Accessibility Audit
+
+**UI/UX → Accessibility Audit** walks the live accessibility tree — not the view tree, which is
+why it works the same over SwiftUI and UIKit — and reports what a VoiceOver user or someone with
+low vision would run into. Three checks run independently, each with its own toggle at the top of
+the report screen:
+
+- **Missing Labels**: an element with an interactive trait (button, link, adjustable) or an
+  informative one (image, search field, keyboard key) whose accessibility label is empty. Static
+  text is exempt, since it reads its own text content with no label needed.
+- **Touch Targets**: an interactive element measured against Apple's 44 × 44pt minimum — below
+  32pt on its shortest side is an error, 32pt up to 44pt is a warning.
+- **Contrast**: text measured against its background at 4.5:1, or 3:1 when the element is at
+  least 24pt tall (a stand-in for WCAG's point-size-based "large text" rule, which isn't visible
+  from the accessibility tree). **Contrast is an estimate**, not a measurement: the ratio is
+  sampled from the pixels actually drawn on screen, because a glyph over a photograph, a
+  gradient, or anything else showing through has no single honest foreground/background pair to
+  compute from. Treat a contrast finding as worth a look, not as a certificate — it's always
+  reported as a warning, never an error.
+
+**Show Issues On Screen** draws a box around every current finding directly over the running app,
+live, the same way `GridOverlay` and `FPSCounter` stay on screen without a manual refresh. Tapping
+a finding in the report flashes its box on the overlay so there's no doubt which element it means.
+
+The report itself is frozen the moment it loads and only changes when **Re-run** is tapped, so
+findings never shift under you mid-read. A check you switch off is not run at all, and an empty
+report says explicitly which checks didn't run rather than letting "nothing was wrong" and
+"nothing was looked at" read the same way.
+
+The audit skips Scyther's own UI, so its menu and overlays are never reported as findings about
+your app.
+
+There is no separate settings screen and no public code API for this feature yet — everything
+lives on the report screen itself, reached from **UI/UX → Accessibility Audit**.
 
 #### Debug View Frames and Sizes
 

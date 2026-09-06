@@ -109,6 +109,16 @@ Scyther is fully compatible with Swift 6 strict concurrency. Key components use 
 - ``TouchVisualiserConfiguration``
 - ``GridOverlay``
 
+### Accessibility Auditing
+
+- <doc:AccessibilityAuditing>
+- ``AccessibilityAuditView``
+- ``AccessibilityAuditViewModel``
+- ``AccessibilityAuditor``
+- ``AccessibilityCheck``
+- ``AccessibilityFinding``
+- ``AccessibilitySeverity``
+
 ### Console & Logging
 
 - ``ConsoleLogger``

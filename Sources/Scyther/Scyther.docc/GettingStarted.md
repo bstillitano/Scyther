@@ -125,5 +125,6 @@ Now that Scyther is integrated, explore its features:
 - <doc:ManagingServerConfigurations> - Switch between environments
 - <doc:NetworkDebugging> - Inspect HTTP traffic
 - <doc:UIDebuggingTools> - Visual debugging aids
+- <doc:AccessibilityAuditing> - Find missing labels, undersized touch targets, and low-contrast text
 - <doc:SpoofingLocations> - Test location-based features
 

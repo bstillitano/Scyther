@@ -87,7 +87,7 @@ enum MenuItem: Hashable, Identifiable {
 
     // UI/UX
     case fonts, interfaceComponents, gridOverlay, fpsCounter
-    case touchVisualiser, appearance, language
+    case touchVisualiser, accessibilityAudit, appearance, language
     case slowAnimations, showViewFrames, showViewSizes
 
     /// The identifier prefix distinguishing host-supplied rows from built-in ones.
@@ -108,7 +108,7 @@ enum MenuItem: Hashable, Identifiable {
         .locationSpoofer, .consoleLogs, .deepLinkTester, .crashLogs,
         .notificationLogger, .notificationTester, .apnsToken, .fcmToken,
         .fonts, .interfaceComponents, .gridOverlay, .fpsCounter,
-        .touchVisualiser, .appearance, .language,
+        .touchVisualiser, .accessibilityAudit, .appearance, .language,
         .slowAnimations, .showViewFrames, .showViewSizes
     ]
 
@@ -154,6 +154,7 @@ enum MenuItem: Hashable, Identifiable {
         case .gridOverlay: return "gridOverlay"
         case .fpsCounter: return "fpsCounter"
         case .touchVisualiser: return "touchVisualiser"
+        case .accessibilityAudit: return "accessibilityAudit"
         case .appearance: return "appearance"
         case .language: return "language"
         case .slowAnimations: return "slowAnimations"
@@ -235,6 +236,7 @@ enum MenuItem: Hashable, Identifiable {
         case .gridOverlay: return localized("Grid Overlay")
         case .fpsCounter: return localized("FPS Counter")
         case .touchVisualiser: return localized("Touch Visualiser")
+        case .accessibilityAudit: return localized("Accessibility Audit")
         case .appearance: return localized("Appearance")
         case .language: return localized("Language")
         case .slowAnimations: return localized("Slow Animations")
@@ -291,6 +293,7 @@ enum MenuItem: Hashable, Identifiable {
         case .gridOverlay: return "rectangle.split.3x3"
         case .fpsCounter: return "speedometer"
         case .touchVisualiser: return "hand.point.up"
+        case .accessibilityAudit: return "figure.stand"
         case .appearance: return "paintbrush"
         case .language: return "globe"
         case .slowAnimations: return "tortoise"

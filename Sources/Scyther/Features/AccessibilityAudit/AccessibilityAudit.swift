@@ -26,10 +26,9 @@ import UIKit
 /// AccessibilityAudit.instance.setEnabled(.contrast, to: false)
 /// ```
 ///
-/// - Note: This task does not build a settings screen — nothing in Scyther's menu reaches these
-///   properties yet. They exist so the settings screen a later task builds has something to bind
-///   to, and so ``InterfaceToolkit`` has something to read when it decides whether to draw the
-///   overlay.
+/// - Note: These settings are bound to by the toggles at the top of ``AccessibilityAuditView``,
+///   reachable from the menu at **UI/UX → Accessibility Audit**, and read by
+///   ``InterfaceToolkit`` when it decides whether to draw the live overlay.
 ///
 /// ## Topics
 /// ### Getting the Shared Instance
