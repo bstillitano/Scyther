@@ -290,6 +290,10 @@ struct LogDetailsView: View {
                 NavigationLink {
                     NetworkRuleEditorView(rule: rule, store: viewModel.ruleStore, showsCancel: false)
                 } label: {
+                    // `LabeledContent`'s two-`Text` label is the system's own title-over-subtitle
+                    // row: it supplies the secondary font and colour, so nothing here picks them
+                    // by hand. `EmptyView` because the row has no trailing value — the
+                    // `NavigationLink`'s chevron is the accessory.
                     LabeledContent {
                         EmptyView()
                     } label: {

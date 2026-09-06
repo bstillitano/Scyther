@@ -57,11 +57,12 @@ struct HeldRequestsView: View {
 
     /// One held exchange's row: the breakpoint's name over what it is holding.
     private func row(for pause: PendingBreakpoint) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        // The same stock title-over-subtitle row the overrides and breakpoints lists use.
+        LabeledContent {
+            EmptyView()
+        } label: {
             Text(pause.breakpointName)
             Text(pause.draft.url ?? pause.stage.title)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
         }
     }
 }

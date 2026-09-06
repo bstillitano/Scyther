@@ -109,11 +109,14 @@ struct BreakpointsView: View {
             // Matches the override list's rows, which in turn match
             // `MenuView.searchResultLabel(title:icon:tint:breadcrumbText:)` — the way every
             // title-over-subtitle row in this menu is built.
-            VStack(alignment: .leading, spacing: 2) {
+            // The same stock title-over-subtitle row the overrides list uses: `LabeledContent`
+            // supplies the secondary font and colour, and `EmptyView` because the row's accessory
+            // is the `NavigationLink`'s own chevron.
+            LabeledContent {
+                EmptyView()
+            } label: {
                 Text(breakpoint.name)
                 Text(viewModel.subtitle(for: breakpoint))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
             }
             .foregroundStyle(breakpoint.isEnabled ? .primary : .secondary)
         }
