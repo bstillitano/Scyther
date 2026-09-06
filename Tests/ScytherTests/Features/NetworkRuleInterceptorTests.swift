@@ -481,6 +481,16 @@ final class NetworkGlobalConditioningTests: XCTestCase {
         _ = try await URLSession(configuration: configuration).data(from: URL(string: url)!)
     }
 
+    /// Waits for the log to carry the request made to `url`.
+    private func loggedRequest(matching url: String) async -> HTTPRequest? {
+        for _ in 0..<200 {
+            let match = await NetworkLogger.instance.items.first { $0.requestURL == url }
+            if let match { return match }
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        return nil
+    }
+
     /// Fails a request and reports the error's code, or `nil` when it somehow succeeded.
     private func failureCode(for url: String) async -> URLError.Code? {
         do {
@@ -562,6 +572,83 @@ final class NetworkGlobalConditioningTests: XCTestCase {
 
         let code = await failureCode(for: "https://unreachable.invalid/stubbed-global")
         XCTAssertEqual(code, .timedOut)
+    }
+
+    // MARK: - Crediting
+
+    /// The defect W29 named: the DocC said a globally conditioned request wears the brown
+    /// `OVERRIDDEN` badge, and the badge reads the credits, which the global condition never
+    /// reached — so a request the developer had deliberately slowed or failed was
+    /// indistinguishable in the list from traffic nobody had touched.
+    func testAGloballyConditionedRequestIsCredited() async throws {
+        NetworkRuleSnapshot.update(globalCondition: NetworkCondition(
+            latency: 0, bandwidthKBps: nil, failureRate: 1, failureCode: URLError.Code.timedOut.rawValue
+        ))
+
+        let url = "https://unreachable.invalid/global-credit"
+        _ = await failureCode(for: url)
+        let found = await loggedRequest(matching: url)
+        let logged = try XCTUnwrap(found)
+
+        XCTAssertEqual(logged.appliedRuleNames, ["Network Conditioning"])
+        XCTAssertEqual(logged.appliedRuleIDs, [nil], "there is no override to open, so the row is inert")
+        XCTAssertFalse(logged.wasStubbed, "which is what makes the badge OVERRIDDEN rather than MOCKED")
+    }
+
+    func testAConditionThatShapesNothingIsNotCredited() async throws {
+        NetworkRuleSnapshot.update(globalCondition: NetworkCondition(
+            latency: 0, bandwidthKBps: nil, failureRate: 0
+        ))
+
+        let url = "https://unreachable.invalid/uncredited"
+        _ = await failureCode(for: url)
+        let found = await loggedRequest(matching: url)
+        let logged = try XCTUnwrap(found)
+
+        XCTAssertTrue(logged.appliedRuleNames.isEmpty, "conditioning that does nothing shaped nothing")
+    }
+
+    func testAnOverridesOwnConditionIsCreditedInsteadOfTheGlobalOne() async throws {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [
+            NetworkRule(name: "targeted",
+                        match: .host("unreachable.invalid"),
+                        actions: NetworkRuleActions(condition: NetworkCondition(
+                            latency: 0,
+                            bandwidthKBps: nil,
+                            failureRate: 1,
+                            failureCode: URLError.Code.networkConnectionLost.rawValue
+                        )))
+        ])
+        NetworkRuleSnapshot.update(globalCondition: NetworkCondition(
+            latency: 0, bandwidthKBps: nil, failureRate: 1, failureCode: URLError.Code.timedOut.rawValue
+        ))
+
+        let url = "https://unreachable.invalid/targeted-credit"
+        _ = await failureCode(for: url)
+        let found = await loggedRequest(matching: url)
+        let logged = try XCTUnwrap(found)
+
+        XCTAssertEqual(logged.appliedRuleNames, ["targeted"],
+                       "the global condition is replaced outright, so it is not also credited")
+    }
+
+    func testAGloballyConditionedStubIsCreditedBesideItsOverride() async throws {
+        NetworkRuleSnapshot.update(isEnabled: true, rules: [
+            NetworkRule(name: "cart",
+                        match: .host("unreachable.invalid"),
+                        actions: NetworkRuleActions(stub: .mock(MockResponse(statusCode: 200))))
+        ])
+        NetworkRuleSnapshot.update(globalCondition: NetworkCondition(
+            latency: 0.01, bandwidthKBps: nil, failureRate: 0
+        ))
+
+        let url = "https://unreachable.invalid/stubbed-credit"
+        _ = try? await perform(url)
+        let found = await loggedRequest(matching: url)
+        let logged = try XCTUnwrap(found)
+
+        XCTAssertEqual(logged.appliedRuleNames, ["cart", "Network Conditioning"])
+        XCTAssertEqual(logged.appliedRuleIDs.count, 2, "names and ids stay the same length")
     }
 }
 

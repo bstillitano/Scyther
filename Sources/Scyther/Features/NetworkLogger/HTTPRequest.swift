@@ -137,12 +137,15 @@ final class HTTPRequest: @unchecked Sendable, Identifiable {
     /// Names of the rules that shaped this request, if any.
     var appliedRuleNames: [String] = []
 
-    /// Identifiers of the overrides named by ``appliedRuleNames``, in the same order.
+    /// Identifiers of the overrides named by ``appliedRuleNames``, in the same order and always
+    /// the same length.
     ///
-    /// Lets the request details page link back to the override that shaped this request. Empty
-    /// for a capture recorded before the identifiers were carried, in which case the names are
-    /// still shown but are not tappable.
-    var appliedRuleIDs: [UUID] = []
+    /// Lets the request details page link back to the override that shaped this request. An entry
+    /// is `nil` when the credit has no override behind it to open — the global network
+    /// conditioning, which is a screen rather than a rule — in which case the name is still shown
+    /// but is not tappable. Empty for a capture recorded before the identifiers were carried, and
+    /// for one nothing shaped.
+    var appliedRuleIDs: [UUID?] = []
 
     /// Whether the response was synthesised by a rule rather than received from the network.
     var wasStubbed: Bool = false

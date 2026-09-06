@@ -381,8 +381,16 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         let condition = outcome.condition ?? snapshot.globalCondition
         self.condition = condition
 
+        /// The global condition is credited on the request it shapes, exactly as an override's
+        /// own condition is. It has no rule behind it, so it is credited by name with no
+        /// identifier, and the log's brown `OVERRIDDEN` badge — which reads the credits — is
+        /// finally true of a globally conditioned request. Without it a request the developer had
+        /// deliberately slowed or failed was indistinguishable in the list from ordinary traffic,
+        /// which is the one thing that badge exists to prevent.
+        let isGloballyConditioned = outcome.condition == nil && (condition?.shapesTheRequest ?? false)
+
         guard let stub = outcome.stub, let url = request.url else {
-            beginNetworkPath(outcome: outcome, condition: condition)
+            beginNetworkPath(outcome: outcome, condition: condition, creditingGlobalCondition: isGloballyConditioned)
             return
         }
 
@@ -405,7 +413,12 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         /// of the decision touches disk on the caller's thread.
         Self.delayQueue.async { [weak self] in
             guard let self, !self.hasBeenCancelled else { return }
-            self.serveStub(stub, url: url, outcome: outcome, condition: condition, delay: delay)
+            self.serveStub(stub,
+                           url: url,
+                           outcome: outcome,
+                           condition: condition,
+                           delay: delay,
+                           creditingGlobalCondition: isGloballyConditioned)
         }
     }
 
@@ -417,15 +430,20 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     ///   - outcome: Everything the rules resolved to, for the credits and the rewrite.
     ///   - condition: The conditioning that applies to the synthesised response, if any.
     ///   - delay: Seconds to wait before answering, already clamped to ``maximumDelay``.
+    ///   - creditingGlobalCondition: Whether the conditioning came from the global floor rather
+    ///     than from an override, and so is credited by name with no identifier.
     /// - Note: Only ever called on ``delayQueue``, because it reads a body off disk.
     private func serveStub(_ stub: NetworkRuleStub,
                            url: URL,
                            outcome: NetworkRuleOutcome,
                            condition: NetworkCondition?,
-                           delay: TimeInterval) {
+                           delay: TimeInterval,
+                           creditingGlobalCondition: Bool) {
         let bodies = { NetworkRuleStore.bodyDataOffMainActor(for: $0) }
         guard let (response, body) = NetworkRuleStubResponder.response(for: stub, url: url, bodyProvider: bodies) else {
-            beginNetworkPath(outcome: outcome, condition: condition)
+            beginNetworkPath(outcome: outcome,
+                             condition: condition,
+                             creditingGlobalCondition: creditingGlobalCondition)
             return
         }
 
@@ -434,7 +452,8 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         /// assigned together and must never be allowed to drift.
         let credits = outcome.stubbedCredits
         model.appliedRuleNames = credits.names
-        model.appliedRuleIDs = credits.ids
+        model.appliedRuleIDs = credits.ids.map { $0 }
+        creditGlobalCondition(if: creditingGlobalCondition)
         _ = rewrittenRequest(applying: outcome.headerRewrite)
 
         perform(after: delay) { interceptor in
@@ -455,14 +474,33 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// - Parameters:
     ///   - outcome: Everything the rules resolved to, for the credits and the rewrite.
     ///   - condition: The conditioning that applies to the request, if any.
+    ///   - creditingGlobalCondition: Whether the conditioning came from the global floor rather
+    ///     than from an override, and so is credited by name with no identifier.
     /// - Note: Runs on the thread `startLoading()` was called on when nothing stubbed the request,
     ///   which is what keeps an unmatched request's threading exactly as it was before rules
     ///   existed; and on ``delayQueue`` when a stub matched but could not be produced.
-    private func beginNetworkPath(outcome: NetworkRuleOutcome, condition: NetworkCondition?) {
+    /// Adds the global conditioning to this request's credits, when it is what shaped it.
+    ///
+    /// Appended after the overrides' own credits, so the names read in the order they applied:
+    /// an override matched but conditioned nothing, and the global floor did the conditioning.
+    /// The identifier is `nil` because there is no override to open — the global condition is a
+    /// screen, not a rule — which is what ``HTTPRequest/appliedRuleIDs``' optional element is for.
+    ///
+    /// - Parameter isCredited: Whether the conditioning came from the global floor.
+    private func creditGlobalCondition(if isCredited: Bool) {
+        guard isCredited else { return }
+        model.appliedRuleNames.append(localized("Network Conditioning"))
+        model.appliedRuleIDs.append(nil)
+    }
+
+    private func beginNetworkPath(outcome: NetworkRuleOutcome,
+                                  condition: NetworkCondition?,
+                                  creditingGlobalCondition: Bool) {
         /// Names and ids stay parallel, as on the stubbed path: same length, same order, assigned
         /// together.
         model.appliedRuleNames = outcome.networkRuleNames
-        model.appliedRuleIDs = outcome.networkRuleIDs
+        model.appliedRuleIDs = outcome.networkRuleIDs.map { $0 }
+        creditGlobalCondition(if: creditingGlobalCondition)
 
         /// Continue executing request
         guard let mutableRequest = rewrittenRequest(applying: outcome.headerRewrite) else {
