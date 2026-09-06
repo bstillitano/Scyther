@@ -298,4 +298,52 @@ final class BreakpointCoordinatorTests: XCTestCase {
         coordinator.resolve(id: id, with: .timedOut)
         XCTAssertTrue(waitUntil { counts == [1, 0] })
     }
+
+    // MARK: - Timeouts
+
+    /// The timeout used to be scheduled and then forgotten, so a pause that ended early left a
+    /// block holding the coordinator on its queue for the whole of a timeout that can be five
+    /// minutes long — once per hold, and the coordinator holds every other live pause's
+    /// continuation.
+    ///
+    /// A timeout no shorter than the production ceiling, so a coordinator that survives it is
+    /// unambiguously being kept alive by the block rather than by the wait being short.
+    @MainActor
+    func testACancelledPauseDoesNotLeaveItsTimeoutHoldingTheCoordinator() {
+        weak var leaked: BreakpointCoordinator?
+
+        autoreleasepool {
+            let live = BreakpointCoordinator()
+            leaked = live
+            let id = live.pause(draft(), name: "cart", stage: .request, timeout: 300) { _ in }
+            XCTAssertTrue(waitUntil { !live.pending.isEmpty })
+            live.cancel(id: id)
+            /// The cancellation is applied on the coordinator's own queue, so give it a turn to
+            /// land before the last strong reference goes.
+            XCTAssertTrue(waitUntil { live.pending.isEmpty })
+        }
+
+        XCTAssertTrue(waitUntil { leaked == nil },
+                      "a cancelled pause must not keep the coordinator alive for its timeout")
+    }
+
+    /// The same for the ordinary ending: the developer decided, so the timeout has nothing left to
+    /// do.
+    @MainActor
+    func testAResolvedPauseDoesNotLeaveItsTimeoutHoldingTheCoordinator() throws {
+        weak var leaked: BreakpointCoordinator?
+        let recorder = Recorder()
+
+        try autoreleasepool {
+            let live = BreakpointCoordinator()
+            leaked = live
+            live.pause(draft(), name: "cart", stage: .request, timeout: 300, resume: recorder.resume)
+            XCTAssertTrue(waitUntil { !live.pending.isEmpty })
+            live.resolve(id: try XCTUnwrap(live.pending.first?.id), with: .timedOut)
+            XCTAssertTrue(waitUntil { recorder.resolutions.count == 1 })
+        }
+
+        XCTAssertTrue(waitUntil { leaked == nil },
+                      "a resolved pause must not keep the coordinator alive for its timeout")
+    }
 }

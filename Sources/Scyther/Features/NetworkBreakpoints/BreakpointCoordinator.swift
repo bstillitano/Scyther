@@ -64,11 +64,16 @@ final class BreakpointCoordinator: @unchecked Sendable {
     /// The coordinator the interceptor and the UI both use.
     static let shared = BreakpointCoordinator()
 
-    /// The queue owning ``continuations`` and running every continuation.
+    /// The queue owning ``continuations`` and ``timeouts``, and running every continuation.
     ///
-    /// Serial, and private to the coordinator. A continuation starts a data task or hands a
-    /// response to the client, so it must not run on the main actor and must not run on a queue
-    /// the URL loading system owns.
+    /// Serial, and private to the coordinator. It must not be the main actor and must not be a
+    /// queue the URL loading system owns, because what a continuation goes on to do is resume a
+    /// network exchange.
+    ///
+    /// It is shared by every live pause in the process, so a continuation is expected to hand its
+    /// work to a queue of its own and return. Doing the work here instead would put one pause's
+    /// disk I/O in front of another's registration, cancellation and timeout — the very
+    /// immediacy ``cancel(id:)`` promises.
     private let queue = DispatchQueue(label: "com.scyther.networkBreakpoints.coordinator",
                                       qos: .userInitiated)
 
@@ -76,6 +81,15 @@ final class BreakpointCoordinator: @unchecked Sendable {
     ///
     /// - Note: Only ever touched on ``queue``.
     private var continuations: [UUID: @Sendable (BreakpointResolution) -> Void] = [:]
+
+    /// The block that will time each live pause out, kept so it can be cancelled.
+    ///
+    /// A timeout may be five minutes away. Left queued after the pause has already resolved it
+    /// would keep the coordinator, and everything the pause's own captures reach, alive for the
+    /// whole of that — per hold — for the sake of a delivery that has nothing left to deliver to.
+    ///
+    /// - Note: Only ever touched on ``queue``.
+    private var timeouts: [UUID: DispatchWorkItem] = [:]
 
     /// The pauses the developer can currently see, oldest first.
     @MainActor private(set) var pending: [PendingBreakpoint] = []
@@ -100,7 +114,8 @@ final class BreakpointCoordinator: @unchecked Sendable {
     ///     as given: ``NetworkBreakpoint`` is what clamps a configured timeout into its allowed
     ///     range, and a test needs a shorter one than that range allows.
     ///   - resume: Called once, on ``queue``, with the decision. Never called at all if the pause
-    ///     is cancelled first.
+    ///     is cancelled first. ``queue`` is shared by every live pause, so this must return
+    ///     promptly — hand the work to a queue of your own rather than doing it here.
     /// - Returns: The pause's identifier, which ``cancel(id:)`` and ``resolve(id:with:)`` take.
     @discardableResult
     func pause(_ draft: BreakpointDraft,
@@ -115,10 +130,14 @@ final class BreakpointCoordinator: @unchecked Sendable {
             continuations[id] = resume
 
             /// Armed from inside the registration so the timeout can never fire against a pause
-            /// that is not registered yet.
-            queue.asyncAfter(deadline: .now() + timeout) { [self] in
-                deliver(.timedOut, to: id)
+            /// that is not registered yet, and kept so that resolving or cancelling early can take
+            /// it back off the queue. `self` is captured weakly for the same reason: a block
+            /// scheduled five minutes out must not be what keeps this coordinator alive.
+            let timeoutItem = DispatchWorkItem { [weak self] in
+                self?.deliver(.timedOut, to: id)
             }
+            timeouts[id] = timeoutItem
+            queue.asyncAfter(deadline: .now() + timeout, execute: timeoutItem)
 
             Task { @MainActor [self] in
                 let item = PendingBreakpoint(id: id,
@@ -164,6 +183,7 @@ final class BreakpointCoordinator: @unchecked Sendable {
     func cancel(id: UUID) {
         queue.async { [self] in
             guard continuations.removeValue(forKey: id) != nil else { return }
+            disarmTimeout(for: id)
             Task { @MainActor [self] in
                 guard pending.contains(where: { $0.id == id }) else { return }
                 pending.removeAll { $0.id == id }
@@ -183,11 +203,24 @@ final class BreakpointCoordinator: @unchecked Sendable {
     /// - Note: Only ever called on ``queue``.
     private func deliver(_ resolution: BreakpointResolution, to id: UUID) {
         guard let resume = continuations.removeValue(forKey: id) else { return }
+        disarmTimeout(for: id)
         Task { @MainActor [self] in
             guard pending.contains(where: { $0.id == id }) else { return }
             pending.removeAll { $0.id == id }
             onPendingChanged?(pending)
         }
         resume(resolution)
+    }
+
+    /// Takes a resolved pause's timeout back off ``queue``.
+    ///
+    /// Called from both places a pause can end early. Cancelling the timeout that is itself
+    /// running is harmless: it has already taken the continuation, so there is nothing left for a
+    /// second delivery to find.
+    ///
+    /// - Parameter id: The pause whose timeout is no longer wanted.
+    /// - Note: Only ever called on ``queue``.
+    private func disarmTimeout(for id: UUID) {
+        timeouts.removeValue(forKey: id)?.cancel()
     }
 }
