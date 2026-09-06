@@ -31,6 +31,13 @@ public final class InterfaceToolkit: NSObject, Sendable {
     nonisolated internal static let ViewSizesUserDefaultsKey = "Scyther_Interface_Toolkit_View_Sizes_Enabled"
     nonisolated internal static let VisualiseTouchesUserDefaultsKey = "Scyther_Interface_Toolkit_Visualise_Touches_Enabled"
 
+    /// How long to wait, after the last thing that might have changed the screen's layout,
+    /// before re-auditing it in live mode. A single tap, rotation, or navigation push can
+    /// trigger several layout passes in quick succession; without a debounce each one would
+    /// start its own snapshot-and-walk, which is exactly the wasted, overlapping work
+    /// ``scheduleAccessibilityReaudit()`` exists to avoid.
+    nonisolated internal static let AccessibilityAuditDebounceInterval: TimeInterval = 0.5
+
     /// Private Init to Stop re-initialisation and allow singleton creation.
     override private init() { }
 
@@ -41,7 +48,13 @@ public final class InterfaceToolkit: NSObject, Sendable {
     public var touchVisualiser: TouchVisualiser = TouchVisualiser.instance
     internal var gridOverlayView: GridOverlayView = GridOverlayView()
     internal var fpsCounterView: FPSCounterView = FPSCounterView()
+    internal var accessibilityAuditView: AccessibilityAuditOverlayView = AccessibilityAuditOverlayView()
     internal var topLevelViewsWrapper: TopLevelViewsWrapper = TopLevelViewsWrapper()
+
+    /// The pending, debounced re-audit scheduled by ``scheduleAccessibilityReaudit()``, kept so
+    /// a second trigger arriving before it fires can cancel and replace it rather than stacking
+    /// up a second audit behind the first.
+    private var pendingAccessibilityAudit: DispatchWorkItem?
 
     // MARK: - Data (nonisolated for UserDefaults access - thread-safe)
     internal nonisolated var visualiseTouches: Bool {
@@ -101,6 +114,10 @@ public final class InterfaceToolkit: NSObject, Sendable {
                                                selector: #selector(applicationDidBecomeActiveNotification(notification:)),
                                                name: UIApplication.didBecomeActiveNotification,
                                                object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(windowDidBecomeVisibleNotification(notification:)),
+                                               name: UIWindow.didBecomeVisibleNotification,
+                                               object: nil)
     }
 
     internal func start() {
@@ -111,6 +128,7 @@ public final class InterfaceToolkit: NSObject, Sendable {
             self?.setupTopLevelViewsWrapper()
             self?.setupGridOverlay()
             self?.setupFPSCounter()
+            self?.setupAccessibilityAudit()
             self?.setWindowSpeed()
             // Always swizzle so views can respond to debug toggle changes
             self?.swizzleLayout()
@@ -183,6 +201,17 @@ public final class InterfaceToolkit: NSObject, Sendable {
     internal func orientationDidChangeNotification(_ notification: Notification) {
         TouchVisualiser.instance.removeAllTouchViews()
     }
+
+    /// A window finishing its first real appearance is one more moment the screen's layout may
+    /// have just settled into its final shape — the case ``AccessibilityAuditOverlayView``'s own
+    /// ``AccessibilityAuditOverlayView/updateFrame()`` hook cannot see, since nothing about *its*
+    /// frame changed. Debouncing through the same ``scheduleAccessibilityReaudit()`` this notification
+    /// shares with that hook means a rotation and a fresh window appearing in quick succession
+    /// still only trigger one audit.
+    @objc
+    internal func windowDidBecomeVisibleNotification(notification: NSNotification) {
+        scheduleAccessibilityReaudit()
+    }
 }
 
 // MARK: - Grid Overlay
@@ -218,6 +247,75 @@ extension InterfaceToolkit {
         } else {
             FPSCounter.instance.stop()
         }
+    }
+}
+
+// MARK: - Accessibility Audit
+extension InterfaceToolkit {
+    /// Installs the accessibility audit's overlay, mirroring ``setupGridOverlay()``.
+    ///
+    /// The overlay's ``AccessibilityAuditOverlayView/onFrameChanged`` hook is wired here, to
+    /// ``scheduleAccessibilityReaudit()``, rather than the overlay reaching into
+    /// `InterfaceToolkit` itself — see that hook's own documentation for why the dependency runs
+    /// this direction.
+    @MainActor internal func setupAccessibilityAudit() {
+        accessibilityAuditView.isHidden = true
+        accessibilityAuditView.onFrameChanged = { [weak self] in
+            self?.scheduleAccessibilityReaudit()
+        }
+        topLevelViewsWrapper.addTopLevelView(topLevelView: accessibilityAuditView)
+        showAccessibilityAudit()
+    }
+
+    /// Shows or hides the accessibility audit overlay to match
+    /// ``AccessibilityAudit/liveEnabled``, mirroring ``showGridOverlay()``.
+    ///
+    /// Switching live mode off clears ``AccessibilityAuditOverlayView/findings`` and cancels any
+    /// re-audit already in flight — a stale box left on screen after the developer has turned
+    /// the feature off would look like a bug in the audit rather than a setting they chose.
+    @MainActor internal func showAccessibilityAudit() {
+        let enabled = AccessibilityAudit.instance.liveEnabled
+        accessibilityAuditView.isHidden = !enabled
+        if enabled {
+            scheduleAccessibilityReaudit()
+        } else {
+            pendingAccessibilityAudit?.cancel()
+            pendingAccessibilityAudit = nil
+            accessibilityAuditView.findings = []
+        }
+    }
+
+    /// Coalesces however many things just triggered a re-audit into a single audit, run
+    /// ``AccessibilityAuditDebounceInterval`` seconds from now.
+    ///
+    /// Built on a cancellable `DispatchWorkItem` rather than a repeating `Timer`: a `Timer` fires
+    /// on a fixed schedule and has to be told each time whether to skip that firing, where a
+    /// work item simply *is* the one pending audit — the previous one is cancelled and a fresh
+    /// one takes its place, so there is only ever at most one audit scheduled no matter how many
+    /// times this is called in quick succession. Does nothing when live mode is off, so a stray
+    /// call from ``AccessibilityAuditOverlayView/onFrameChanged`` after the developer has
+    /// switched the feature off does not schedule work that will just clear the overlay's
+    /// already-empty findings a moment later.
+    @MainActor internal func scheduleAccessibilityReaudit() {
+        guard AccessibilityAudit.instance.liveEnabled else { return }
+
+        pendingAccessibilityAudit?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.runAccessibilityAudit()
+        }
+        pendingAccessibilityAudit = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.AccessibilityAuditDebounceInterval, execute: workItem)
+    }
+
+    /// Runs the audit and hands its findings to the overlay.
+    ///
+    /// Only ``scheduleAccessibilityReaudit()`` calls this — nothing audits the window
+    /// immediately, even when live mode is first switched on, so that the very first audit
+    /// after enabling live mode gets the same debounce as every subsequent one and does not
+    /// race a layout pass that has not finished yet.
+    @MainActor private func runAccessibilityAudit() {
+        pendingAccessibilityAudit = nil
+        accessibilityAuditView.findings = AccessibilityAudit.instance.auditKeyWindow().findings
     }
 }
 

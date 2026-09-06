@@ -1,7 +1,125 @@
 {
+  "%@ at %@, %@": {
+    "ar": "%@ عند %@، %@",
+    "comment": "Fallback name for an element with no accessibility label: %@ is the element's type name, then its x and y position in points, already formatted",
+    "de": "%@ bei %@, %@",
+    "es": "%@ en %@, %@",
+    "fr": "%@ à %@, %@",
+    "it": "%@ a %@, %@",
+    "ja": "%@（位置: %@, %@）",
+    "ko": "%@ (위치: %@, %@)",
+    "nl": "%@ bij %@, %@",
+    "pt-BR": "%@ em %@, %@",
+    "ru": "%@ в позиции %@, %@",
+    "zh-Hans": "%@ 位于 %@, %@",
+    "zh-Hant": "%@ 位於 %@, %@"
+  },
+  "%@ × %@pt, under the 44 × 44pt minimum.": {
+    "ar": "%@ × %@pt، أقل من الحد الأدنى 44 × 44pt.",
+    "comment": "Detail of a touch-target finding: %@ is the measured width and %@ the measured height, both already formatted with one decimal place",
+    "de": "%@ × %@pt, unter dem Minimum von 44 × 44pt.",
+    "es": "%@ × %@pt, por debajo del mínimo de 44 × 44pt.",
+    "fr": "%@ × %@pt, sous le minimum de 44 × 44pt.",
+    "it": "%@ × %@pt, sotto il minimo di 44 × 44pt.",
+    "ja": "%@ × %@pt。最小値の44 × 44pt未満です。",
+    "ko": "%@ × %@pt, 최소 44 × 44pt 미만입니다.",
+    "nl": "%@ × %@pt, onder het minimum van 44 × 44pt.",
+    "pt-BR": "%@ × %@pt, abaixo do mínimo de 44 × 44pt.",
+    "ru": "%@ × %@pt, меньше минимума 44 × 44pt.",
+    "zh-Hans": "%@ × %@pt，低于 44 × 44pt 的最小值。",
+    "zh-Hant": "%@ × %@pt，低於 44 × 44pt 的最小值。"
+  },
+  "%lld issues": {
+    "ar": {
+      "few": "%lld مشاكل",
+      "many": "%lld مشكلة",
+      "one": "مشكلة واحدة",
+      "other": "%lld مشكلة",
+      "two": "مشكلتان",
+      "zero": "%lld مشكلة"
+    },
+    "comment": "Title of the tappable pill at the bottom of the live accessibility audit overlay, reporting how many findings are currently on screen",
+    "de": {
+      "one": "%lld Problem",
+      "other": "%lld Probleme"
+    },
+    "en": {
+      "one": "%lld issue",
+      "other": "%lld issues"
+    },
+    "es": {
+      "one": "%lld problema",
+      "other": "%lld problemas"
+    },
+    "fr": {
+      "one": "%lld problème",
+      "other": "%lld problèmes"
+    },
+    "it": {
+      "one": "%lld problema",
+      "other": "%lld problemi"
+    },
+    "ja": {
+      "other": "%lld件の問題"
+    },
+    "ko": {
+      "other": "%lld개 문제"
+    },
+    "nl": {
+      "one": "%lld probleem",
+      "other": "%lld problemen"
+    },
+    "plural": true,
+    "pt-BR": {
+      "one": "%lld problema",
+      "other": "%lld problemas"
+    },
+    "ru": {
+      "few": "%lld проблемы",
+      "many": "%lld проблем",
+      "one": "%lld проблема",
+      "other": "%lld проблем"
+    },
+    "zh-Hans": {
+      "other": "%lld 个问题"
+    },
+    "zh-Hant": {
+      "other": "%lld 個問題"
+    }
+  },
+  "About %@:1, under %@:1. Estimated from %@ on %@.": {
+    "ar": "حوالي %@:1، أقل من %@:1. تقدير من %@ على %@.",
+    "comment": "Detail of a contrast finding: the first %@ is the measured ratio, the second is the threshold it fell under, both formatted to one decimal place; the third and fourth are the sampled foreground and background colours as #RRGGBB hex strings",
+    "de": "Etwa %@:1, unter %@:1. Geschätzt aus %@ auf %@.",
+    "es": "Aproximadamente %@:1, por debajo de %@:1. Estimado a partir de %@ sobre %@.",
+    "fr": "Environ %@:1, sous %@:1. Estimé à partir de %@ sur %@.",
+    "it": "Circa %@:1, sotto %@:1. Stimato da %@ su %@.",
+    "ja": "約%@:1で、%@:1を下回っています。%@ を %@ の上に置いた推定値です。",
+    "ko": "약 %@:1로 %@:1 미만입니다. %@ 을(를) %@ 위에 놓았을 때의 추정치입니다.",
+    "nl": "Ongeveer %@:1, onder %@:1. Geschat op basis van %@ op %@.",
+    "pt-BR": "Cerca de %@:1, abaixo de %@:1. Estimado a partir de %@ sobre %@.",
+    "ru": "Примерно %@:1, ниже %@:1. Оценено по %@ на %@.",
+    "zh-Hans": "约为 %@:1，低于 %@:1。基于 %@ 在 %@ 上的估算。",
+    "zh-Hant": "約為 %@:1，低於 %@:1。基於 %@ 在 %@ 上的估算。"
+  },
+  "Contrast": {
+    "ar": "التباين",
+    "comment": "Name of the accessibility audit check for text too close in colour to what is behind it, shown in the report and the settings screen",
+    "de": "Kontrast",
+    "es": "Contraste",
+    "fr": "Contraste",
+    "it": "Contrasto",
+    "ja": "コントラスト",
+    "ko": "대비",
+    "nl": "Contrast",
+    "pt-BR": "Contraste",
+    "ru": "Контраст",
+    "zh-Hans": "对比度",
+    "zh-Hant": "對比度"
+  },
   "Missing Labels": {
-    "comment": "Name of the accessibility audit check for elements VoiceOver cannot name, shown in the report and the settings screen",
     "ar": "التسميات المفقودة",
+    "comment": "Name of the accessibility audit check for elements VoiceOver cannot name, shown in the report and the settings screen",
     "de": "Fehlende Beschriftungen",
     "es": "Etiquetas faltantes",
     "fr": "Libellés manquants",
@@ -15,8 +133,8 @@
     "zh-Hant": "缺少標籤"
   },
   "Touch Targets": {
-    "comment": "Name of the accessibility audit check for controls smaller than a finger, shown in the report and the settings screen",
     "ar": "مناطق اللمس",
+    "comment": "Name of the accessibility audit check for controls smaller than a finger, shown in the report and the settings screen",
     "de": "Berührungsziele",
     "es": "Áreas táctiles",
     "fr": "Zones tactiles",
@@ -29,24 +147,9 @@
     "zh-Hans": "触控区域",
     "zh-Hant": "觸控區域"
   },
-  "Contrast": {
-    "comment": "Name of the accessibility audit check for text too close in colour to what is behind it, shown in the report and the settings screen",
-    "ar": "التباين",
-    "de": "Kontrast",
-    "es": "Contraste",
-    "fr": "Contraste",
-    "it": "Contrasto",
-    "ja": "コントラスト",
-    "ko": "대비",
-    "nl": "Contrast",
-    "pt-BR": "Contraste",
-    "ru": "Контраст",
-    "zh-Hans": "对比度",
-    "zh-Hant": "對比度"
-  },
   "VoiceOver reads this element with no name.": {
-    "comment": "Detail of a missing-label finding: the element has a nameable trait but no accessibility label",
     "ar": "يقرأ VoiceOver هذا العنصر بدون اسم.",
+    "comment": "Detail of a missing-label finding: the element has a nameable trait but no accessibility label",
     "de": "VoiceOver liest dieses Element ohne Namen vor.",
     "es": "VoiceOver lee este elemento sin nombre.",
     "fr": "VoiceOver lit cet élément sans nom.",
@@ -58,50 +161,5 @@
     "ru": "VoiceOver озвучивает этот элемент без названия.",
     "zh-Hans": "VoiceOver 朗读此元素时没有名称。",
     "zh-Hant": "VoiceOver 朗讀此元素時沒有名稱。"
-  },
-  "%@ × %@pt, under the 44 × 44pt minimum.": {
-    "comment": "Detail of a touch-target finding: %@ is the measured width and %@ the measured height, both already formatted with one decimal place",
-    "ar": "%@ × %@pt، أقل من الحد الأدنى 44 × 44pt.",
-    "de": "%@ × %@pt, unter dem Minimum von 44 × 44pt.",
-    "es": "%@ × %@pt, por debajo del mínimo de 44 × 44pt.",
-    "fr": "%@ × %@pt, sous le minimum de 44 × 44pt.",
-    "it": "%@ × %@pt, sotto il minimo di 44 × 44pt.",
-    "ja": "%@ × %@pt。最小値の44 × 44pt未満です。",
-    "ko": "%@ × %@pt, 최소 44 × 44pt 미만입니다.",
-    "nl": "%@ × %@pt, onder het minimum van 44 × 44pt.",
-    "pt-BR": "%@ × %@pt, abaixo do mínimo de 44 × 44pt.",
-    "ru": "%@ × %@pt, меньше минимума 44 × 44pt.",
-    "zh-Hans": "%@ × %@pt，低于 44 × 44pt 的最小值。",
-    "zh-Hant": "%@ × %@pt，低於 44 × 44pt 的最小值。"
-  },
-  "%@ at %@, %@": {
-    "comment": "Fallback name for an element with no accessibility label: %@ is the element's type name, then its x and y position in points, already formatted",
-    "ar": "%@ عند %@، %@",
-    "de": "%@ bei %@, %@",
-    "es": "%@ en %@, %@",
-    "fr": "%@ à %@, %@",
-    "it": "%@ a %@, %@",
-    "ja": "%@（位置: %@, %@）",
-    "ko": "%@ (위치: %@, %@)",
-    "nl": "%@ bij %@, %@",
-    "pt-BR": "%@ em %@, %@",
-    "ru": "%@ в позиции %@, %@",
-    "zh-Hans": "%@ 位于 %@, %@",
-    "zh-Hant": "%@ 位於 %@, %@"
-  },
-  "About %@:1, under %@:1. Estimated from %@ on %@.": {
-    "comment": "Detail of a contrast finding: the first %@ is the measured ratio, the second is the threshold it fell under, both formatted to one decimal place; the third and fourth are the sampled foreground and background colours as #RRGGBB hex strings",
-    "ar": "حوالي %@:1، أقل من %@:1. تقدير من %@ على %@.",
-    "de": "Etwa %@:1, unter %@:1. Geschätzt aus %@ auf %@.",
-    "es": "Aproximadamente %@:1, por debajo de %@:1. Estimado a partir de %@ sobre %@.",
-    "fr": "Environ %@:1, sous %@:1. Estimé à partir de %@ sur %@.",
-    "it": "Circa %@:1, sotto %@:1. Stimato da %@ su %@.",
-    "ja": "約%@:1で、%@:1を下回っています。%@ を %@ の上に置いた推定値です。",
-    "ko": "약 %@:1로 %@:1 미만입니다. %@ 을(를) %@ 위에 놓았을 때의 추정치입니다.",
-    "nl": "Ongeveer %@:1, onder %@:1. Geschat op basis van %@ op %@.",
-    "pt-BR": "Cerca de %@:1, abaixo de %@:1. Estimado a partir de %@ sobre %@.",
-    "ru": "Примерно %@:1, ниже %@:1. Оценено по %@ на %@.",
-    "zh-Hans": "约为 %@:1，低于 %@:1。基于 %@ 在 %@ 上的估算。",
-    "zh-Hant": "約為 %@:1，低於 %@:1。基於 %@ 在 %@ 上的估算。"
   }
 }
