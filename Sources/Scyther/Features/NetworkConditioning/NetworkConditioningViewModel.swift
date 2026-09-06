@@ -74,10 +74,17 @@ final class NetworkConditioningViewModel: ViewModel {
     /// Setting it fills the fields in. Setting ``NetworkConditioningPreset/custom`` deliberately
     /// leaves them alone: "custom" is the *absence* of a preset, and having it clear the fields
     /// would make picking it a destructive act.
+    ///
+    /// The configured failure code is carried across, because no preset sets one and
+    /// ``NetworkConditioningPreset/matching(_:)`` deliberately ignores it when deciding which
+    /// preset a condition reads as. Without this the round trip was lossy in the one direction
+    /// nothing would warn about: a condition carrying a custom code read as 3G, and picking 3G —
+    /// the preset it already was — silently reset the code to `.notConnectedToInternet`.
     var preset: NetworkConditioningPreset {
         get { NetworkConditioningPreset.matching(store.condition) }
         set {
-            guard let condition = newValue.condition else { return }
+            guard var condition = newValue.condition else { return }
+            condition.failureCode = store.condition.failureCode
             store.condition = condition
         }
     }

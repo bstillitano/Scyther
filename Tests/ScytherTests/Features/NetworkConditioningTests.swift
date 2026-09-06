@@ -136,6 +136,48 @@ final class NetworkConditioningStoreTests: XCTestCase {
         XCTAssertEqual(NetworkRuleSnapshot.current.rules.map(\.name), ["cart"])
     }
 
+    /// The rule store sanitises a rule on the way in; this store had nothing. `JSONEncoder` refuses
+    /// a non-finite `Double`, so the condition silently stopped being persisted — and a `NaN`
+    /// latency reaching the interceptor erased a mock's own delay, because `min(.nan, cap)` is
+    /// `NaN` and the delay guard then fails.
+    func testANonFiniteLatencyIsSanitisedOnTheWayIn() {
+        let store = makeStore()
+        store.condition.latency = .infinity
+        XCTAssertEqual(store.condition.latency, 0)
+
+        store.condition.latency = .nan
+        XCTAssertEqual(store.condition.latency, 0)
+
+        store.condition.failureRate = .nan
+        XCTAssertEqual(store.condition.failureRate, 0)
+    }
+
+    /// The consequence the sanitiser exists for: a condition that cannot be encoded is a condition
+    /// that quietly stops surviving a relaunch.
+    func testAConditionSurvivesARelaunchAfterANonFiniteLatency() {
+        let first = makeStore()
+        first.isEnabled = true
+        first.condition.latency = .infinity
+        first.condition.bandwidthKBps = 64
+
+        let reloaded = makeStore()
+        XCTAssertEqual(reloaded.condition.latency, 0)
+        XCTAssertEqual(reloaded.condition.bandwidthKBps, 64)
+    }
+
+    /// A non-finite latency used to reach the snapshot the interceptor reads, where it erased the
+    /// stub's own delay rather than merely adding nothing to it: the interceptor adds the two and
+    /// clamps them, and `min(.nan, 30)` is `NaN`, which then fails its own `delay > 0` guard.
+    func testTheSnapshotNeverCarriesANonFiniteLatency() throws {
+        let store = makeStore()
+        store.isEnabled = true
+        store.condition.latency = .nan
+
+        let published = try XCTUnwrap(NetworkRuleSnapshot.current.globalCondition)
+        XCTAssertTrue(published.latency.isFinite)
+        XCTAssertEqual(min(1.5 + published.latency, 30), 1.5, "a mock's own delay still stands")
+    }
+
     func testActivateRepublishesWhatIsAlreadyStored() throws {
         let store = makeStore()
         store.isEnabled = true
@@ -207,6 +249,21 @@ final class NetworkConditioningViewModelTests: XCTestCase {
         let viewModel = NetworkConditioningViewModel(store: store)
         viewModel.bandwidthKBps = 0
         XCTAssertNil(store.condition.bandwidthKBps)
+    }
+
+    /// ``NetworkConditioningPreset/matching(_:)`` deliberately ignores the failure code, so a
+    /// condition carrying a custom one still reads as the preset it otherwise is. Picking that
+    /// same preset then reset the code, which made the round trip lossy in the one direction
+    /// nothing would warn about.
+    func testPickingAPresetKeepsAConfiguredFailureCode() {
+        let store = self.store
+        let viewModel = NetworkConditioningViewModel(store: store)
+        store.condition.failureCode = URLError.Code.timedOut.rawValue
+
+        viewModel.preset = .threeG
+
+        XCTAssertEqual(store.condition.failureCode, URLError.Code.timedOut.rawValue)
+        XCTAssertEqual(viewModel.bandwidthKBps, 100, "and the preset is still applied")
     }
 
     func testTheSwitchReadsAndWritesTheStore() {

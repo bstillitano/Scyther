@@ -28,6 +28,11 @@ import Foundation
 /// it outright. Adding the two would make a deliberately fast endpoint impossible to express while
 /// the rest of the app is being slowed down.
 ///
+/// ## Sanitising
+///
+/// A condition is sanitised on the way in, the way ``NetworkRuleStore`` sanitises a rule. Nothing
+/// non-finite reaches the encoder or the interceptor — see ``NetworkCondition/sanitised``.
+///
 /// ## Topics
 ///
 /// ### Shared Instance
@@ -68,8 +73,23 @@ internal final class NetworkConditioningStore: ObservableObject {
     }
 
     /// The latency, bandwidth ceiling and failure rate applied while ``isEnabled``.
+    ///
+    /// Sanitised on the way in, exactly as ``NetworkRuleStore`` sanitises a rule — see
+    /// ``NetworkCondition/sanitised``. A latency of `.infinity` or `.nan` is reachable from the
+    /// screen's own text field, and this store had no sanitiser at all: `JSONEncoder` refuses a
+    /// non-finite `Double`, so the condition silently stopped being persisted, and a `NaN` latency
+    /// reached the interceptor, where `min(.nan, cap)` is `NaN` and the delay guard then fails —
+    /// which erased a mock's own delay along with the latency.
+    ///
+    /// Assigning the sanitised value back re-enters this observer exactly once: a sanitised
+    /// condition sanitises to itself, so the second pass falls straight through to persisting.
     @Published var condition: NetworkCondition {
         didSet {
+            let clean = condition.sanitised
+            guard clean == condition else {
+                condition = clean
+                return
+            }
             persistCondition()
             publish()
         }
@@ -82,7 +102,7 @@ internal final class NetworkConditioningStore: ObservableObject {
     init(defaults: UserDefaults = .scyther) {
         self.defaults = defaults
         self.isEnabled = defaults.bool(forKey: Key.isEnabled)
-        self.condition = Self.decodeCondition(from: defaults.data(forKey: Key.condition))
+        self.condition = Self.decodeCondition(from: defaults.data(forKey: Key.condition)).sanitised
         publish()
     }
 
