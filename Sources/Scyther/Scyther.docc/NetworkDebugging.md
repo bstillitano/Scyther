@@ -457,8 +457,11 @@ saw — the edited exchange, not the original.
 - Breakpoints report as off inside an XCTest process, so one left enabled can never hang CI, and
   are disabled on App Store builds with the rest of Scyther.
 - A stubbed request is never held: the override answers it, so nothing goes in flight.
-- A pause taken while the app is backgrounded is skipped and logged, because a held request the
-  developer cannot see looks exactly like a hang.
+- A pause taken while the app is not active is skipped and logged, because a held request the
+  developer cannot see looks exactly like a hang. Only the newly taken pause is skipped: an
+  exchange already open in the editor is not discarded for a glance at Control Centre or the app
+  switcher. Anything still held when the app goes to the background is continued unchanged at that
+  point, rather than waiting out its timeout out of sight.
 
 ## Exporting cURL Commands
 

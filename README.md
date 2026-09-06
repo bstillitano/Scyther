@@ -936,8 +936,11 @@ log records what the app actually sent and received — the edit, not the origin
 - **It never fires during tests.** Breakpoints report as off inside an XCTest process, so one left
   enabled cannot hang CI, and they are off on App Store builds along with the rest of Scyther.
 - **A stubbed request is not held.** An override answers it without anything going in flight.
-- **A pause taken while the app is in the background is skipped** and logged: a held request the
-  developer cannot see is indistinguishable from a hang.
+- **A pause taken while the app is not active is skipped** and logged: a held request the
+  developer cannot see is indistinguishable from a hang. Only that one pause is skipped — an
+  exchange already open in the editor survives a glance at Control Centre or the app switcher.
+  Anything still held when the app actually goes to the background is continued unchanged there
+  and then, rather than waiting out its timeout somewhere nobody can see it.
 
 ### Network Conditioning
 

@@ -45,7 +45,12 @@ struct HeldRequestsView: View {
             }
         }
         .onAppear { viewModel.pendingChanged(presenter.pending) }
-        .onChange(of: presenter.pending.count) { _ in
+        /// Keyed on the identities rather than the count. One exchange resolving while another is
+        /// held — a burst of matching traffic, or a decision that races a new request — leaves the
+        /// count exactly as it was, so the path is never brought back into line: the editor stays
+        /// pushed for a pause that has gone, `navigationDestination` finds nothing to build, and
+        /// the developer is left on a blank screen with the app still paused behind it.
+        .onChange(of: presenter.pending.map(\.id)) { _ in
             viewModel.pendingChanged(presenter.pending)
         }
     }

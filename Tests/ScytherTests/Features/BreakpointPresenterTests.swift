@@ -31,6 +31,7 @@ final class BreakpointPresenterTests: XCTestCase {
         private let lock = NSLock()
         private var presentations = 0
         private var dismissals = 0
+        private var outcomes: [Bool] = []
 
         /// How many times the editor was asked to be presented.
         var presented: Int { lock.withLock { presentations } }
@@ -38,8 +39,19 @@ final class BreakpointPresenterTests: XCTestCase {
         /// How many times it was asked to be dismissed.
         var dismissed: Int { lock.withLock { dismissals } }
 
-        /// Records a presentation.
-        func recordPresentation() { lock.withLock { presentations += 1 } }
+        /// The outcome each presentation is to report, oldest first. Anything past the end
+        /// succeeds.
+        func willReport(_ outcomes: [Bool]) { lock.withLock { self.outcomes = outcomes } }
+
+        /// Records a presentation and reports whether it reached the screen.
+        @discardableResult
+        func recordPresentation() -> Bool {
+            lock.withLock {
+                let outcome = presentations < outcomes.count ? outcomes[presentations] : true
+                presentations += 1
+                return outcome
+            }
+        }
 
         /// Records a dismissal.
         func recordDismissal() { lock.withLock { dismissals += 1 } }
@@ -116,7 +128,7 @@ final class BreakpointPresenterTests: XCTestCase {
     }
 
     /// A held request the developer cannot see is indistinguishable from a hang, and the developer
-    /// is by definition not looking at a backgrounded app.
+    /// is by definition not looking at an app that is not on screen.
     func testAPauseTakenWhileBackgroundedIsSkippedAndResumedUnchanged() throws {
         presenter.applicationState = { .background }
         let recorder = Recorder()
@@ -153,5 +165,109 @@ final class BreakpointPresenterTests: XCTestCase {
 
         XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
         XCTAssertEqual(log.presented, 1)
+    }
+
+    // MARK: - A presentation that did not happen
+
+    /// The flag used to record the intention to present rather than the outcome of presenting. A
+    /// presentation UIKit refuses — no key window, or an anchor part-way through dismissing the
+    /// last editor — then left it stuck true, and every hold after it was published to a screen
+    /// that was never there while the app sat paused for up to five minutes.
+    func testAPresentationThatDidNotHappenIsOfferedAgainOnTheNextHold() throws {
+        log.willReport([false])
+
+        let firstRecorder = Recorder()
+        hold(firstRecorder, name: "cart")
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
+        XCTAssertEqual(log.presented, 1, "it was tried")
+
+        hold(name: "checkout")
+
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 2 })
+        XCTAssertTrue(waitUntil { self.log.presented == 2 },
+                      "a refused presentation must be offered again rather than swallowed")
+        XCTAssertTrue(firstRecorder.resolutions.isEmpty, "and the first exchange is still held")
+    }
+
+    /// Once one succeeds, the editor is on screen and further holds join it.
+    func testAPresentationThatSucceededAfterAFailureIsNotRepeated() {
+        log.willReport([false, true])
+
+        hold(name: "cart")
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
+        hold(name: "checkout")
+        XCTAssertTrue(waitUntil { self.log.presented == 2 })
+
+        hold(name: "search")
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 3 })
+        XCTAssertEqual(log.presented, 2, "the second presentation took, so there is nothing to retry")
+    }
+
+    // MARK: - Leaving the screen
+
+    /// Pulling down Control Centre makes the app `.inactive`. The skip used to resolve the whole
+    /// pending list whenever it ran, so a glance at Control Centre while a request was being
+    /// edited discarded the edits and dismissed the editor.
+    func testAPauseTakenWhileInactiveDoesNotDiscardWhatIsAlreadyHeld() throws {
+        let beingEdited = Recorder()
+        hold(beingEdited, name: "cart")
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
+
+        presenter.applicationState = { .inactive }
+        let arrivingLate = Recorder()
+        hold(arrivingLate, name: "checkout")
+
+        XCTAssertTrue(waitUntil { arrivingLate.resolutions.count == 1 },
+                      "the new pause is the one that is skipped")
+        XCTAssertTrue(beingEdited.resolutions.isEmpty,
+                      "the exchange the developer is editing must survive Control Centre")
+        XCTAssertEqual(presenter.pending.map(\.breakpointName), ["cart"])
+        XCTAssertEqual(log.dismissed, 0, "and the editor stays where it is")
+    }
+
+    /// The app's state used to be sampled only when the coordinator's list changed, so one
+    /// exchange held a moment before the developer switched away sat there, invisible, for the
+    /// whole of its timeout.
+    func testBackgroundingReleasesAnExchangeThatWasAlreadyHeld() throws {
+        let recorder = Recorder()
+        hold(recorder, name: "cart")
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 1 })
+
+        presenter.applicationState = { .background }
+        presenter.applicationDidEnterBackground()
+
+        XCTAssertTrue(waitUntil { recorder.resolutions.count == 1 })
+        guard case .continue(let resumed) = try XCTUnwrap(recorder.resolutions.first) else {
+            return XCTFail("expected the exchange to be let go unchanged")
+        }
+        XCTAssertEqual(resumed, draft(), "unchanged means unchanged")
+        XCTAssertTrue(waitUntil { self.presenter.pending.isEmpty })
+        XCTAssertEqual(log.dismissed, 1)
+    }
+
+    /// Every exchange goes, however many there are, and each of them exactly once.
+    func testBackgroundingReleasesEveryExchangeExactlyOnce() {
+        let first = Recorder()
+        let second = Recorder()
+        hold(first, name: "cart")
+        hold(second, name: "checkout")
+        XCTAssertTrue(waitUntil { self.presenter.pending.count == 2 })
+
+        presenter.applicationState = { .background }
+        presenter.applicationDidEnterBackground()
+
+        XCTAssertTrue(waitUntil { first.resolutions.count == 1 && second.resolutions.count == 1 })
+        XCTAssertTrue(waitUntil { self.presenter.pending.isEmpty })
+        XCTAssertEqual(first.resolutions.count, 1)
+        XCTAssertEqual(second.resolutions.count, 1)
+    }
+
+    /// Nothing held, nothing to let go of — and no log line about it either.
+    func testBackgroundingWithNothingHeldDoesNothing() {
+        presenter.applicationState = { .background }
+        presenter.applicationDidEnterBackground()
+
+        XCTAssertTrue(presenter.pending.isEmpty)
+        XCTAssertEqual(log.dismissed, 0)
     }
 }
