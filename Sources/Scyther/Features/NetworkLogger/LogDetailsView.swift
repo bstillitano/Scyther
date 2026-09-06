@@ -277,28 +277,28 @@ struct LogDetailsView: View {
         }
     }
 
-    /// One row per override that shaped this request.
+    /// One row per credit this request recorded, in the order they applied.
     ///
-    /// Overrides the store still holds push their editor; ones that have since been deleted are
-    /// named but inert, because there is nothing left to open.
+    /// An override the store still holds pushes its editor; one deleted since the capture, and the
+    /// global network conditioning, are named but inert, because there is nothing left to open.
+    /// Every credit gets a row either way — the section used to drop the unresolvable ones as soon
+    /// as any one name resolved.
     @ViewBuilder
     private var overrideRows: some View {
-        if viewModel.appliedOverrides.isEmpty {
-            ForEach(viewModel.appliedRuleNames, id: \.self) { name in
-                LabeledContent(localized("Override"), value: name)
-            }
-        } else {
-            ForEach(viewModel.appliedOverrides) { rule in
+        ForEach(viewModel.appliedOverrideRows) { row in
+            if let rule = row.rule {
                 NavigationLink {
                     NetworkRuleEditorView(rule: rule, store: viewModel.ruleStore, showsCancel: false)
                 } label: {
-                    VStack(alignment: .leading, spacing: 2) {
+                    LabeledContent {
+                        EmptyView()
+                    } label: {
                         Text(rule.name)
                         Text(rule.actions.summary)
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
                     }
                 }
+            } else {
+                LabeledContent(localized("Override"), value: row.name)
             }
         }
     }

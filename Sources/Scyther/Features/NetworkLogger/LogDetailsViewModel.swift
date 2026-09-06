@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 20/12/2025.
 //
 
+import Combine
 import Foundation
 import SwiftUI
 
@@ -66,6 +67,7 @@ import SwiftUI
 ///
 /// ### Request Overrides
 /// - ``appliedRuleNames``
+/// - ``appliedOverrideRows``
 /// - ``wasStubbed``
 /// - ``canSaveAsMock``
 /// - ``ruleStore``
@@ -99,6 +101,9 @@ class LogDetailsViewModel: ViewModel {
     /// in `deinit`, after everything else has let go of it — so there is no interleaving for
     /// isolation to protect.
     private nonisolated(unsafe) var logObserver: (any NSObjectProtocol)?
+
+    /// Keeps the override store's publisher alive for the lifetime of the page.
+    private var cancellables: Set<AnyCancellable> = []
 
     /// The override store a mock built from this capture is written to.
     ///
@@ -181,11 +186,18 @@ class LogDetailsViewModel: ViewModel {
     /// master switch is off.
     @Published var appliedRuleNames: [String] = []
 
-    /// The overrides that shaped this request, resolved from the store, in the order they applied.
+    /// One row per override credited on this capture, in the order they applied.
     ///
-    /// Only overrides the store still holds appear here, so a capture whose override has since
-    /// been deleted keeps its names in ``appliedRuleNames`` without offering a link to nothing.
-    @Published var appliedOverrides: [NetworkRule] = []
+    /// Every credit gets a row, whether or not the store still holds the override behind it: a
+    /// deleted override is named but inert, and so is the global network conditioning, which is a
+    /// screen rather than a rule. The list used to be the resolvable ones only, so as soon as any
+    /// one name resolved the rest vanished — contradicting its own documentation.
+    ///
+    /// Rebuilt whenever the store changes, so a rename made through one of these rows is on the
+    /// row when the developer comes back. It used to be filled in once, on first appear, and
+    /// reopening the row handed the editor the rule as it was before the rename — which the next
+    /// confirm then wrote back.
+    @Published var appliedOverrideRows: [AppliedOverrideRow] = []
 
     /// Whether the response was synthesised by a mock or map-local override rather than received
     /// from the network.
@@ -277,6 +289,24 @@ class LogDetailsViewModel: ViewModel {
                 await self?.loadRelatedRequests()
             }
         }
+
+        // The Overrides rows push the override's own editor, and confirming there writes back
+        // through this store. Resolving once on first appear meant the second visit handed the
+        // editor the rule as it was before the first edit, and the next confirm reverted it.
+        //
+        // The rules come from the publisher rather than from the store: `@Published` emits in
+        // `willSet`, so reading `ruleStore.rules` back inside the sink would see the array as it
+        // was *before* the edit that woke us — the same staleness this exists to fix. No
+        // `receive(on:)` for the same reason `NetworkRulesViewModel` uses none: the store is
+        // main-actor isolated and so is this, so hopping would only delay the redraw a frame.
+        ruleStore.$rules
+            .combineLatest(ruleStore.$transientRules)
+            .sink { [weak self] rules, transient in
+                guard let self else { return }
+                self.appliedOverrideRows = self.resolveOverrides(for: self.httpRequest,
+                                                                 known: rules + transient)
+            }
+            .store(in: &cancellables)
     }
 
     /// Stops watching the log.
@@ -369,24 +399,39 @@ class LogDetailsViewModel: ViewModel {
         curlRequest = httpRequest.requestCurl ?? ""
 
         appliedRuleNames = httpRequest.appliedRuleNames
-        appliedOverrides = resolveOverrides(for: httpRequest)
+        appliedOverrideRows = resolveOverrides(for: httpRequest)
         wasStubbed = httpRequest.wasStubbed
         hasResponse = httpRequest.responseCode != nil
     }
 
-    /// Resolves the overrides a capture recorded into the ones the store still holds.
+    /// Builds one row per credit the capture recorded, resolving each against the store.
     ///
     /// Matching is by identifier rather than by name, so two overrides sharing a name cannot send
-    /// the developer to the wrong one. A capture recorded before identifiers were carried has an
-    /// empty ``HTTPRequest/appliedRuleIDs`` and therefore resolves to nothing, which is correct:
-    /// its names are still displayed, just not as links.
+    /// the developer to the wrong one, and two sharing a name still get a row each — the rows are
+    /// identified by their position, which is the only thing that is guaranteed unique.
     ///
-    /// - Parameter httpRequest: The capture to resolve.
-    /// - Returns: The overrides still present in the store, in the order they applied.
-    private func resolveOverrides(for httpRequest: HTTPRequest) -> [NetworkRule] {
-        let known = ruleStore.rules + ruleStore.transientRules
-        return httpRequest.appliedRuleIDs.compactMap { id in
-            known.first { $0.id == id }
+    /// A capture recorded before identifiers were carried has an empty
+    /// ``HTTPRequest/appliedRuleIDs``, and one credited to the global conditioning carries a `nil`
+    /// entry. Both produce a named row that opens nothing, which is correct: there is nothing to
+    /// open.
+    ///
+    /// - Parameters:
+    ///   - httpRequest: The capture to resolve.
+    ///   - known: The overrides the store holds, persisted and transient. Defaults to reading them
+    ///     off the store, which is right everywhere but inside its own `willSet` publisher.
+    /// - Returns: One row per credited name, in the order they applied.
+    private func resolveOverrides(for httpRequest: HTTPRequest,
+                                  known: [NetworkRule]? = nil) -> [AppliedOverrideRow] {
+        let known = known ?? (ruleStore.rules + ruleStore.transientRules)
+        return httpRequest.appliedRuleNames.enumerated().map { position, name in
+            let id = httpRequest.appliedRuleIDs.indices.contains(position)
+                ? httpRequest.appliedRuleIDs[position]
+                : nil
+            return AppliedOverrideRow(
+                position: position,
+                name: name,
+                rule: id.flatMap { identifier in known.first { $0.id == identifier } }
+            )
         }
     }
 
@@ -519,5 +564,41 @@ struct ReplayLink: Identifiable {
         if shaping.contains(.held) { words.append(localized("HELD")) }
         if shaping.contains(.edited) { words.append(localized("EDITED")) }
         return words.isEmpty ? nil : words.joined(separator: " ") // scyther:unlocalised separator
+    }
+}
+
+/// One row of the request details page's Overrides section.
+///
+/// Carries the name the capture recorded and, when the store still holds it, the override behind
+/// it. The two are separate because a credit can outlive its override — deleted since the capture
+/// — and because one credit never had an override at all: the global network conditioning, which
+/// is a screen rather than a rule.
+struct AppliedOverrideRow: Identifiable, Equatable {
+    /// The credit's position among this capture's credits, which is the row's identity.
+    ///
+    /// Position rather than name or override identifier: two overrides can share a name, and an
+    /// unresolvable credit has no identifier at all, so neither is unique. The order is the order
+    /// they applied in, which does not change for a capture already recorded.
+    let id: Int
+
+    /// The name the capture recorded, shown whether or not the override survives.
+    let name: String
+
+    /// The override the store still holds, or `nil` when there is nothing to open.
+    let rule: NetworkRule?
+
+    /// Whether tapping the row opens an editor.
+    var isOpenable: Bool { rule != nil }
+
+    /// Builds a row.
+    ///
+    /// - Parameters:
+    ///   - position: The credit's position among this capture's credits.
+    ///   - name: The name the capture recorded.
+    ///   - rule: The override the store still holds, or `nil`.
+    init(position: Int, name: String, rule: NetworkRule?) {
+        self.id = position
+        self.name = name
+        self.rule = rule
     }
 }

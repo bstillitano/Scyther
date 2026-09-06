@@ -150,6 +150,83 @@ final class LogDetailsViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.appliedRuleNames.isEmpty)
     }
 
+    /// The defect W25 named: the rows were resolved once, on first appear, so a rename made
+    /// through one of them was gone by the time the developer opened it again — and the next
+    /// confirm wrote the stale name back over the new one.
+    func testAnOverrideRowFollowsARenameMadeThroughIt() async {
+        let store = makeStore()
+        var rule = NetworkRule(name: "Empty cart",
+                               match: NetworkRuleMatch(path: NetworkRulePattern(kind: .exact, value: "/v1/cart")),
+                               actions: NetworkRuleActions(condition: NetworkCondition(latency: 1)))
+        _ = store.add(rule)
+
+        let request = HTTPRequest()
+        request.appliedRuleNames = ["Empty cart"]
+        request.appliedRuleIDs = [rule.id]
+        let viewModel = LogDetailsViewModel(httpRequest: request, store: store)
+        await viewModel.onFirstAppear()
+        XCTAssertEqual(viewModel.appliedOverrideRows.map(\.rule?.name), ["Empty cart"])
+
+        rule.name = "Cart, but empty"
+        _ = store.update(rule)
+
+        XCTAssertEqual(viewModel.appliedOverrideRows.map(\.rule?.name), ["Cart, but empty"],
+                       "the row hands the editor the override as it stands, not as it was")
+    }
+
+    /// The other half of W25: the block dropped every name it could not resolve as soon as any
+    /// one of them did resolve, contradicting its own documentation.
+    func testACreditWhoseOverrideIsGoneKeepsItsRowBesideOneThatResolves() async {
+        let store = makeStore()
+        let live = NetworkRule(name: "Slow cart",
+                               match: NetworkRuleMatch(path: NetworkRulePattern(kind: .exact, value: "/v1/cart")),
+                               actions: NetworkRuleActions(condition: NetworkCondition(latency: 1)))
+        _ = store.add(live)
+
+        let request = HTTPRequest()
+        request.appliedRuleNames = ["Deleted since", "Slow cart"]
+        request.appliedRuleIDs = [UUID(), live.id]
+        let viewModel = LogDetailsViewModel(httpRequest: request, store: store)
+        await viewModel.onFirstAppear()
+
+        XCTAssertEqual(viewModel.appliedOverrideRows.map(\.name), ["Deleted since", "Slow cart"])
+        XCTAssertEqual(viewModel.appliedOverrideRows.map(\.isOpenable), [false, true])
+    }
+
+    func testTwoOverridesSharingANameGetARowEach() async {
+        let request = HTTPRequest()
+        request.appliedRuleNames = ["Cart", "Cart"]
+        request.appliedRuleIDs = [UUID(), UUID()]
+        let viewModel = LogDetailsViewModel(httpRequest: request, store: makeStore())
+        await viewModel.onFirstAppear()
+
+        XCTAssertEqual(viewModel.appliedOverrideRows.count, 2, "identity is the position, not the name")
+        XCTAssertEqual(Set(viewModel.appliedOverrideRows.map(\.id)).count, 2)
+    }
+
+    func testACreditWithNoIdentifierIsNamedButInert() async {
+        let request = HTTPRequest()
+        request.appliedRuleNames = ["Network Conditioning"]
+        request.appliedRuleIDs = [nil]
+        let viewModel = LogDetailsViewModel(httpRequest: request, store: makeStore())
+        await viewModel.onFirstAppear()
+
+        XCTAssertEqual(viewModel.appliedOverrideRows.map(\.name), ["Network Conditioning"])
+        XCTAssertFalse(try XCTUnwrap(viewModel.appliedOverrideRows.first).isOpenable,
+                       "the global conditioning is a screen, not a rule")
+    }
+
+    func testACaptureFromBeforeIdentifiersWereCarriedStillGetsRows() async {
+        let request = HTTPRequest()
+        request.appliedRuleNames = ["Empty cart", "Slow network"]
+        request.appliedRuleIDs = []
+        let viewModel = LogDetailsViewModel(httpRequest: request, store: makeStore())
+        await viewModel.onFirstAppear()
+
+        XCTAssertEqual(viewModel.appliedOverrideRows.map(\.name), ["Empty cart", "Slow network"])
+        XCTAssertEqual(viewModel.appliedOverrideRows.map(\.isOpenable), [false, false])
+    }
+
     func testWasStubbedPopulatedOnFirstAppear() async {
         let request = HTTPRequest()
         request.wasStubbed = true
