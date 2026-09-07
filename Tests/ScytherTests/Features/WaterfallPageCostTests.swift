@@ -58,12 +58,12 @@ final class WaterfallPageCostTests: XCTestCase {
     func testTheLayoutIsHeldRatherThanRecomputedOnEveryRead() async {
         let viewModel = WaterfallViewModel(requests: log(of: 10), totalCount: 10)
         await viewModel.recompute()
-        let first = viewModel.rows
+        let first = viewModel.layout.rows
         viewModel.update(requests: log(of: 20), totalCount: 20)
-        XCTAssertEqual(viewModel.rows.map(\.id), first.map(\.id),
+        XCTAssertEqual(viewModel.layout.rows.map(\.id), first.map(\.id),
                        "reading rows must not lay the log out again")
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.rows.count, 20, "recomputation is the only thing that replaces them")
+        XCTAssertEqual(viewModel.layout.rows.count, 20, "recomputation is the only thing that replaces them")
     }
 
     /// Every row is built once, in the same pass, rather than each row looking its own request up

@@ -17,16 +17,18 @@ import Foundation
 /// it lays out *every* request the log is currently showing on one axis, and pairs each bar back
 /// with the request it was drawn from so tapping the bar can open it.
 ///
-/// It holds the result rather than deriving it. A `LazyVStack` asks its rows for content
-/// constantly while scrolling, so a computed `rows` would rebuild a thousand-entry series on
-/// every frame; the layout is computed once per change to the log, on a detached task behind the
-/// same debounce ``TrafficStatsViewModel`` uses, and published as a single value.
+/// It holds the result rather than deriving it. A `List` asks its rows for content constantly
+/// while scrolling, so a computed ``Layout/rows`` would rebuild a thousand-entry series on every
+/// frame; the layout is computed once per change to the log, on a detached task behind the same
+/// debounce ``TrafficStatsViewModel`` uses, and published as a single value. ``visibleRows`` is
+/// cached the same way, on top of it, for the window rather than the whole log — see its own
+/// documentation.
 ///
 /// ## Usage
 /// ```swift
 /// let viewModel = WaterfallViewModel(requests: logs.requests, totalCount: logs.totalRequestCount)
 /// await viewModel.recompute()
-/// viewModel.rows.first?.request   // the capture behind the topmost bar
+/// viewModel.visibleRows.first?.request   // the capture behind the topmost bar in the window
 /// ```
 final class WaterfallViewModel: ViewModel {
 
@@ -55,19 +57,11 @@ final class WaterfallViewModel: ViewModel {
         /// The capture's own hash, so a row keeps its identity as newer traffic arrives above it.
         let id: String
 
-        /// The row's position in the log and the bar's own label, `"1. GET /v1/users"`-shaped.
-        ///
-        /// Not what ``WaterfallDetailRow`` puts on screen — it reads ``entry``'s own `label`
-        /// unnumbered instead, stacked under the host when the log holds more than one. This
-        /// numbered form predates that row and nothing currently draws it.
-        let label: String
-
         /// The bar this row draws.
         let entry: WaterfallEntry
 
         /// The capture the bar was drawn from, which is what tapping the row opens.
         let request: HTTPRequest
-
     }
 
     /// A laid-out log: the shared axis, the rows on it, and what the two describe.
@@ -89,30 +83,17 @@ final class WaterfallViewModel: ViewModel {
         /// How many requests the log held, unfiltered, when they were laid out.
         let total: Int
 
-        /// The median measured duration in the series, in seconds, or `nil` when nothing in it
-        /// finished.
-        ///
-        /// Cached with the rows rather than derived on demand, the same as ``shortestMeasured``: a
-        /// `LazyVStack` asks this view model for its layout constantly, and resorting a thousand
-        /// durations on every one of those asks would be wasted work for a value that only changes
-        /// when the rows themselves do.
-        let medianDuration: Double?
-
-        /// The ``WaterfallDurations/tailPercentile`` measured duration, in seconds, or `nil` as
-        /// above. Cached for the same reason.
-        let tailDuration: Double?
-
         /// The shortest finished, non-zero duration in the series, or `nil` when nothing
         /// finished.
         ///
-        /// Cached beside the median and the tail, and for the same reason: it is an input to the
-        /// zoom limit, the view recomputes that whenever its geometry changes, and a `List` asks
-        /// for geometry constantly.
+        /// Cached with the rows rather than derived on demand: it is an input to the zoom limit,
+        /// the view recomputes that whenever its geometry changes, and a `List` asks for geometry
+        /// constantly.
         let shortestMeasured: Double?
 
         /// Whether the rows hold more than one distinct, non-empty host.
         ///
-        /// Cached with the rows for the same reason as the durations above: the detail list reads
+        /// Cached with the rows for the same reason ``shortestMeasured`` is: the detail list reads
         /// this once per row it builds, and counting distinct hosts across every row on every one
         /// of those reads would make an O(rows) check happen O(rows) times.
         ///
@@ -123,19 +104,28 @@ final class WaterfallViewModel: ViewModel {
 
         /// Nothing laid out.
         static let empty = Layout(series: .empty, rows: [], count: 0, total: 0,
-                                  medianDuration: nil, tailDuration: nil, shortestMeasured: nil,
-                                  showsHost: false)
+                                  shortestMeasured: nil, showsHost: false)
     }
 
     /// The laid-out log the page is drawing.
-    @Published private(set) var layout: Layout = .empty
+    ///
+    /// `didSet` recomputes ``visibleRows``'s cache: see ``refreshVisibleRows()`` for why that has
+    /// to happen here rather than being left for the next read.
+    @Published private(set) var layout: Layout = .empty {
+        didSet { refreshVisibleRows() }
+    }
 
     /// The slice of the log the page is showing.
     ///
     /// Published rather than derived so the strip's overlay and the detail list are always
     /// drawing the same window: two views deriving it separately is two views one layout pass
     /// apart from disagreeing.
-    @Published private(set) var window: WaterfallWindow = WaterfallWindow(span: 0, narrowest: 0)
+    ///
+    /// `didSet` recomputes ``visibleRows``'s cache, the same as ``layout``'s does — see
+    /// ``refreshVisibleRows()``.
+    @Published private(set) var window: WaterfallWindow = WaterfallWindow(span: 0, narrowest: 0) {
+        didSet { refreshVisibleRows() }
+    }
 
     /// The width the detail list gives a bar, from the last ``configureWindow(plotWidth:)``.
     private var plotWidth: CGFloat = WaterfallChartStyle.minimumPlotWidth
@@ -294,22 +284,16 @@ final class WaterfallViewModel: ViewModel {
     ) -> Layout {
         guard !requests.isEmpty else {
             return Layout(series: .empty, rows: [], count: 0, total: totalCount,
-                          medianDuration: nil, tailDuration: nil, shortestMeasured: nil,
-                          showsHost: false)
+                          shortestMeasured: nil, showsHost: false)
         }
         let series = WaterfallSeries.build(from: requests, limit: requests.count, now: now)
         var byHash = [String: HTTPRequest](minimumCapacity: requests.count)
         for request in requests {
             byHash[request.getRandomHash() as String] = request
         }
-        let rows = series.entries.enumerated().compactMap { index, entry -> Row? in
+        let rows = series.entries.compactMap { entry -> Row? in
             guard let request = byHash[entry.id] else { return nil }
-            return Row(
-                id: entry.id,
-                label: "\(index + 1). \(entry.label)",
-                entry: entry,
-                request: request
-            )
+            return Row(id: entry.id, entry: entry, request: request)
         }
         let durations = WaterfallDurations.measuredDurations(of: series)
         let shortestMeasured = durations.filter { $0 > 0 }.min()
@@ -319,8 +303,6 @@ final class WaterfallViewModel: ViewModel {
             rows: rows,
             count: requests.count,
             total: totalCount,
-            medianDuration: WaterfallDurations.percentile(0.5, of: durations),
-            tailDuration: WaterfallDurations.percentile(WaterfallDurations.tailPercentile, of: durations),
             shortestMeasured: shortestMeasured,
             showsHost: distinctHosts.count > 1
         )
@@ -328,17 +310,11 @@ final class WaterfallViewModel: ViewModel {
 
     // MARK: - Presentation
 
-    /// The rows, oldest first, so time reads downward.
-    var rows: [Row] { layout.rows }
-
     /// The series the published rows were laid out on.
     var series: WaterfallSeries { layout.series }
 
     /// Whether there is nothing to draw, which is what the page's empty state is for.
     var isEmpty: Bool { layout.rows.isEmpty }
-
-    /// Whether the log's search or filters are narrowing what the page draws.
-    var isFiltered: Bool { layout.count != layout.total }
 
     /// Whether the detail list's rows should draw their host.
     ///
@@ -348,26 +324,34 @@ final class WaterfallViewModel: ViewModel {
     /// when the host is not drawn at all.
     var showsHost: Bool { layout.showsHost }
 
-    /// The sentence under the bars saying what the page is showing.
-    ///
-    /// It says "every request" only when that is true. The page is handed the log's *filtered*
-    /// array, so under an active filter the unqualified sentence claimed to be the whole log while
-    /// drawing one host's slice of it — the caption has to name the same "N of M" the screen it
-    /// was opened from names.
-    var caption: String {
-        isFiltered
-            ? localized("\(layout.count) of \(layout.total) requests on a shared axis, oldest first. Bars that overlap were in flight at the same time.")
-            : localized("Every request in the log on a shared axis, oldest first. Bars that overlap were in flight at the same time.")
-    }
-
     // MARK: - The window
 
-    /// The rows the window holds, oldest first.
+    /// The rows the window holds, oldest first, cached rather than filtered on every read.
+    ///
+    /// Reading this used to run `layout.rows.filter { window.contains(...) } }` fresh each time —
+    /// an uncached `O(rows)` pass with its own allocation. `window` is `@Published`, so a pinch or
+    /// a drag re-evaluates ``WaterfallView``'s `body` on every frame the gesture reports, and that
+    /// body reads this property four times — the strip's window overlay, `isWindowEmpty`, the
+    /// `ForEach`, and `windowCaption`'s count — so one frame of a gesture over the 5,000 requests
+    /// the design names as the reason the strip is a `Canvas` cost four full passes and four
+    /// allocations. See ``refreshVisibleRows()`` for where the cache is kept in step; this is the
+    /// same reasoning ``Layout``'s own cached ``Layout/shortestMeasured`` was written from — a
+    /// value a `List` or a gesture reads constantly should not be recomputed on every one of those
+    /// reads.
     ///
     /// Intersection rather than containment, so a request already in flight when the window opens
     /// is shown clipped rather than missing. See ``WaterfallWindow/contains(start:duration:)``.
-    var visibleRows: [Row] {
-        layout.rows.filter { window.contains(start: $0.entry.start, duration: $0.entry.duration) }
+    private(set) var visibleRows: [Row] = []
+
+    /// Recomputes ``visibleRows``'s cache against the current ``layout`` and ``window``.
+    ///
+    /// Called from both properties' `didSet`, which is what makes the cache correct rather than
+    /// merely fast: a cache invalidated by hand at each call site is a cache one future call site
+    /// forgets to invalidate. Filtering here, eagerly, on the far less frequent event of one of
+    /// the two inputs actually changing, is what lets every other read of ``visibleRows`` be a
+    /// property access instead of a pass over ``Layout/rows``.
+    private func refreshVisibleRows() {
+        visibleRows = layout.rows.filter { window.contains(start: $0.entry.start, duration: $0.entry.duration) }
     }
 
     /// Whether the window is over a stretch of the log with no traffic in it.
@@ -424,7 +408,10 @@ final class WaterfallViewModel: ViewModel {
 
     /// Opens the window at ``openingWindowFraction`` of the span, centred on `time`.
     ///
-    /// - Parameter time: Seconds from the series origin.
+    /// - Parameter time: Seconds from ``series``'s own origin — this instance's, not necessarily
+    ///   whichever series `time` was originally measured against. See
+    ///   ``WaterfallView/init(logs:openingTime:)`` for the one caller that crosses that boundary,
+    ///   from Traffic Stats' own strip, and the bound that crossing accepts.
     func open(centredOn time: TimeInterval) {
         let span = layout.series.span
         guard span > 0 else { return }
@@ -436,8 +423,9 @@ final class WaterfallViewModel: ViewModel {
     /// Against ``layout``'s *filtered* count, not its unfiltered `total`: the window is a slice of
     /// the rows the page is actually drawing, which under an active filter is already a slice of
     /// the log. Comparing `visibleRows` to `total` mixed a filtered numerator with an unfiltered
-    /// denominator and could read "5 of 340" for a window over a dozen-request filtered list — the
-    /// same "count against the wrong total" mistake ``caption`` was written to avoid.
+    /// denominator and could read "5 of 340" for a window over a dozen-request filtered list —
+    /// the count against the wrong total the page's own caption on ``TrafficStatsViewModel`` is
+    /// written to avoid making, and the same mistake this line exists to rule out here.
     var windowCaption: String {
         localized("\(visibleRows.count) of \(layout.count) requests")
     }

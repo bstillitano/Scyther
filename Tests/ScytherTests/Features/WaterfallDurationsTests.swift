@@ -63,22 +63,15 @@ final class WaterfallDurationsTests: XCTestCase {
         XCTAssertEqual(WaterfallDurations.measuredDurations(of: series), [0.5])
     }
 
-    // MARK: - The percentile
-
-    /// The nearest-rank value: the lower of the two middles at an even count, exactly as
-    /// ``TrafficStatistics`` reports its own median — see that type's tests for the rule this
-    /// mirrors.
-    func testPercentileIsTheNearestRankValue() {
-        XCTAssertEqual(WaterfallDurations.percentile(0.5, of: [10, 20, 30]), 20,
-                       "an odd count lands exactly on the middle value")
-        XCTAssertEqual(WaterfallDurations.percentile(0.5, of: [10, 20, 30, 40]), 20,
-                       "an even count takes the lower of the two middles")
-        XCTAssertEqual(WaterfallDurations.percentile(0.1, of: Array(stride(from: 1.0, through: 10.0, by: 1))),
-                       1, "the tenth percentile of ten ranked values is the first")
-    }
-
-    /// An empty sample has no rank to name.
-    func testPercentileOfAnEmptySampleIsNil() {
-        XCTAssertNil(WaterfallDurations.percentile(0.5, of: []))
-    }
+    // Two tests used to live here: `testPercentileIsTheNearestRankValue`, asserting the
+    // nearest-rank selection (the lower of the two middles at an even count; the first of ten at
+    // the tenth percentile), and `testPercentileOfAnEmptySampleIsNil`, asserting an empty sample
+    // names no rank. Both drove `WaterfallDurations.percentile(_:of:)`, which this file's own type
+    // doc now explains was dead from the rename onward: `WaterfallViewModel` stopped reading a
+    // median or a tail duration once `windowCaption` and the zoom limit turned out not to need
+    // either, and nothing else in production ever called it. The nearest-rank rule itself is not
+    // an orphaned guarantee — `TrafficStatistics` computes the same arithmetic for its own median
+    // and 95th-percentile figures, independently, and `TrafficStatisticsTests` already pins it
+    // there — so removing the function removed a second, unused implementation of a rule the
+    // codebase still keeps exactly one owner for.
 }

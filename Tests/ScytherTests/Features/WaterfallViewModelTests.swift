@@ -56,7 +56,7 @@ final class WaterfallViewModelTests: XCTestCase {
         let requests = (0..<50).map { request(startedAt: origin.addingTimeInterval(Double($0))) }
         let viewModel = WaterfallViewModel(requests: requests, totalCount: requests.count)
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.rows.count, 50, "every request gets a row, not a sample of them")
+        XCTAssertEqual(viewModel.layout.rows.count, 50, "every request gets a row, not a sample of them")
     }
 
     /// Time reads downward, so the oldest request is the first row.
@@ -65,19 +65,14 @@ final class WaterfallViewModelTests: XCTestCase {
         let new = request(startedAt: origin.addingTimeInterval(5), path: "/new")
         let viewModel = WaterfallViewModel(requests: [new, old], totalCount: 2)
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.rows.map(\.entry.label), ["GET /old", "GET /new"])
+        XCTAssertEqual(viewModel.layout.rows.map(\.entry.label), ["GET /old", "GET /new"])
     }
 
-    /// Each row's label carries its own position in the log, numbered rather than left as the
-    /// bare `"METHOD /path"`, so two calls to the same endpoint still read as two distinct rows.
-    func testRowsAreNumberedByTheirPositionInTheLog() async {
-        let viewModel = WaterfallViewModel(requests: [
-            request(startedAt: origin),
-            request(startedAt: origin.addingTimeInterval(1)),
-        ], totalCount: 2)
-        await viewModel.recompute()
-        XCTAssertEqual(viewModel.rows.map(\.label), ["1. GET /v1/users", "2. GET /v1/users"])
-    }
+    // `testRowsAreNumberedByTheirPositionInTheLog` used to live here, asserting
+    // `Row.label`'s numbered form — `"1. GET /v1/users"`. `WaterfallDetailRow` never drew it: it
+    // reads `Row.entry.label` unnumbered instead, stacked under the host, and nothing else in
+    // production read the numbered form either. `Row.label` was removed with the test — see the
+    // fix report.
 
     // MARK: - Tapping a bar
 
@@ -88,9 +83,9 @@ final class WaterfallViewModelTests: XCTestCase {
         let second = request(startedAt: origin.addingTimeInterval(1), path: "/v1/users")
         let viewModel = WaterfallViewModel(requests: [first, second], totalCount: 2)
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.rows.count, 2)
-        XCTAssertTrue(viewModel.rows.first?.request === first)
-        XCTAssertTrue(viewModel.rows.last?.request === second)
+        XCTAssertEqual(viewModel.layout.rows.count, 2)
+        XCTAssertTrue(viewModel.layout.rows.first?.request === first)
+        XCTAssertTrue(viewModel.layout.rows.last?.request === second)
     }
 
     /// The row's identity is the request's own hash, so a redraw after new traffic arrives does
@@ -99,7 +94,7 @@ final class WaterfallViewModelTests: XCTestCase {
         let only = request(startedAt: origin)
         let viewModel = WaterfallViewModel(requests: [only], totalCount: 1)
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.rows.first?.id, only.getRandomHash() as String)
+        XCTAssertEqual(viewModel.layout.rows.first?.id, only.getRandomHash() as String)
     }
 
     // MARK: - The shared axis
@@ -112,8 +107,8 @@ final class WaterfallViewModelTests: XCTestCase {
             request(startedAt: origin.addingTimeInterval(10)),
         ], totalCount: 2)
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.rows.first?.entry.start ?? -1, 0, accuracy: 0.0001)
-        XCTAssertEqual(viewModel.rows.last?.entry.start ?? -1, 10, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.layout.rows.first?.entry.start ?? -1, 0, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.layout.rows.last?.entry.start ?? -1, 10, accuracy: 0.0001)
     }
 
     /// The section on Traffic Stats and this page now feed the *same* `WaterfallOverviewStrip`
@@ -148,7 +143,7 @@ final class WaterfallViewModelTests: XCTestCase {
         undated.requestDate = nil
         let viewModel = WaterfallViewModel(requests: [request(startedAt: origin), undated], totalCount: 2)
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.rows.count, 1)
+        XCTAssertEqual(viewModel.layout.rows.count, 1)
     }
 
     /// A cleared log empties the page, which is what its empty state is for.
@@ -159,7 +154,7 @@ final class WaterfallViewModelTests: XCTestCase {
         viewModel.update(requests: [], totalCount: 0)
         await viewModel.recompute()
         XCTAssertTrue(viewModel.isEmpty)
-        XCTAssertTrue(viewModel.rows.isEmpty)
+        XCTAssertTrue(viewModel.layout.rows.isEmpty)
     }
 
     /// The page follows the log the way the rest of the stats screen does.
@@ -171,46 +166,32 @@ final class WaterfallViewModelTests: XCTestCase {
             totalCount: 2
         )
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.rows.count, 2)
+        XCTAssertEqual(viewModel.layout.rows.count, 2)
     }
 
     // MARK: - Saying what it is showing
 
-    /// The defect: the page is handed the log's *filtered* array, and said "Every request in the
-    /// log" over one host's slice of it. Text that claims more than the code did.
-    func testTheCaptionNamesBothCountsWhenTheLogIsFiltered() async {
-        let viewModel = WaterfallViewModel(
-            requests: [request(startedAt: origin), request(startedAt: origin.addingTimeInterval(1))],
-            totalCount: 10
-        )
-        await viewModel.recompute()
-        XCTAssertTrue(viewModel.isFiltered)
-        XCTAssertTrue(viewModel.caption.contains("2"))
-        XCTAssertTrue(viewModel.caption.contains("10"))
-        XCTAssertFalse(viewModel.caption.contains("Every request"),
-                       "it is not every request when a filter is on")
-    }
-
-    /// And says the unqualified thing only when it is true.
-    func testTheCaptionSaysEveryRequestOnlyWhenItIsEveryRequest() async {
-        let viewModel = WaterfallViewModel(requests: [request(startedAt: origin)], totalCount: 1)
-        await viewModel.recompute()
-        XCTAssertFalse(viewModel.isFiltered)
-        XCTAssertTrue(viewModel.caption.contains("Every request"))
-    }
+    // `testTheCaptionNamesBothCountsWhenTheLogIsFiltered` and
+    // `testTheCaptionSaysEveryRequestOnlyWhenItIsEveryRequest` used to live here, asserting
+    // `WaterfallViewModel.caption` and `.isFiltered`: the sentence under the bars naming "Every
+    // request in the log…" or "N of M requests on a shared axis…". `WaterfallView` never read
+    // either — it reads `windowCaption` instead, which is built from `visibleRows` and `layout`'s
+    // counts alone and already has its own coverage below in
+    // `testWindowCaptionCountsAgainstTheFilteredTotalNotTheUnfilteredOne`. Both members, and the
+    // two localised sentences they were the only production readers of, were removed together —
+    // see the fix report.
 
     /// `windowCaption` counts against the *filtered* rows the page is drawing, not the log's
     /// unfiltered total. Comparing the window to `total` mixed a filtered numerator with an
     /// unfiltered denominator and could read "5 of 340" for a window over a dozen-request
-    /// filtered list — the same "count against the wrong total" mistake `caption` was written to
-    /// avoid.
+    /// filtered list.
     func testWindowCaptionCountsAgainstTheFilteredTotalNotTheUnfilteredOne() async {
         let requests = (0..<12).map { request(startedAt: origin.addingTimeInterval(Double($0))) }
         let viewModel = WaterfallViewModel(requests: requests, totalCount: 340)
         await viewModel.recompute()
         viewModel.configureWindow(plotWidth: 240)
 
-        XCTAssertTrue(viewModel.isFiltered)
+        XCTAssertNotEqual(viewModel.layout.count, viewModel.layout.total, "the log is filtered")
         XCTAssertEqual(viewModel.visibleRows.count, 12, "the window opens on the whole span")
         XCTAssertTrue(viewModel.windowCaption.contains("12"))
         XCTAssertFalse(viewModel.windowCaption.contains("340"),
@@ -267,28 +248,13 @@ final class WaterfallViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.showsHost)
     }
 
-    // MARK: - The cached percentiles
-
-    /// The median and tail are computed once with the rows and cached, rather than derived on
-    /// demand — a `LazyVStack` asks this view model for its layout constantly, and resorting a
-    /// thousand durations on every one of those asks would be wasted work. This pins the cache to
-    /// the series it describes: a cache that drifted would report a median or tail belonging to a
-    /// different log.
-    func testTheCachedPercentilesDescribeTheSeriesTheRowsWereLaidOutOn() async {
-        let durations: [Float] = [32, 90, 250, 700, 1_400]
-        let viewModel = WaterfallViewModel(
-            requests: durations.enumerated().map { index, duration in
-                request(startedAt: origin.addingTimeInterval(Double(index)), duration: duration)
-            },
-            totalCount: durations.count
-        )
-        await viewModel.recompute()
-        let measured = WaterfallDurations.measuredDurations(of: viewModel.series)
-        XCTAssertEqual(viewModel.layout.medianDuration,
-                       WaterfallDurations.percentile(0.5, of: measured))
-        XCTAssertEqual(viewModel.layout.tailDuration,
-                       WaterfallDurations.percentile(WaterfallDurations.tailPercentile, of: measured))
-    }
+    // `testTheCachedPercentilesDescribeTheSeriesTheRowsWereLaidOutOn` used to live here, pinning
+    // `Layout.medianDuration` and `.tailDuration` to `WaterfallDurations.percentile(_:of:)` over
+    // the series' measured durations. Both fields, and the function, were removed — see
+    // `WaterfallDurations`' own type documentation for why nothing in production read them any
+    // more. `Layout.shortestMeasured`, the cached figure that *is* still read — by the zoom limit,
+    // through `configureWindow(plotWidth:)` — keeps its own coverage: every test below that zooms
+    // to the limit and checks where the window lands is exercising it end to end.
 
     // MARK: - Snapshots
 
@@ -313,7 +279,7 @@ final class WaterfallViewModelTests: XCTestCase {
             totalCount: 3
         )
         XCTAssertFalse(viewModel.isEmpty, "no placeholder over a log that is full")
-        XCTAssertEqual(viewModel.rows.count, 3)
+        XCTAssertEqual(viewModel.layout.rows.count, 3)
     }
 
     // MARK: - The window
@@ -473,5 +439,43 @@ final class WaterfallViewModelTests: XCTestCase {
 
         XCTAssertGreaterThan(model.window.duration, durationBefore, "the floor really was raised")
         XCTAssertEqual(model.window.centre, centre, accuracy: 0.0001)
+    }
+
+    // MARK: - The visible-rows cache
+
+    /// `visibleRows` is a cache, not a computed property re-filtered on every read — see
+    /// ``WaterfallViewModel/visibleRows``'s own documentation. This proves it invalidates on a
+    /// change to `window`, at a fixed `layout`: zooming past a request without touching the log
+    /// has to drop it from the cached array, not just from what a fresh filter would produce.
+    func testVisibleRowsCacheInvalidatesWhenTheWindowChanges() async {
+        let model = makeModel(starts: [0, 14, 15, 16, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+        XCTAssertEqual(model.visibleRows.count, 5, "the window opens on the whole span")
+
+        model.zoom(by: 8)
+        model.scrub(to: 15)
+
+        XCTAssertEqual(model.visibleRows.map(\.entry.start), [14, 15, 16],
+                       "the cache must reflect the narrowed, re-centred window")
+    }
+
+    /// The other half of the same guarantee: invalidation on a change to `layout`, at a fixed
+    /// `window`. New traffic arriving inside an already-open window has to appear without the
+    /// developer touching the window at all — a cache invalidated only by `window` would miss
+    /// exactly this.
+    func testVisibleRowsCacheInvalidatesWhenNewTrafficArrives() async {
+        let viewModel = WaterfallViewModel(requests: [request(startedAt: origin)], totalCount: 1)
+        await viewModel.recompute()
+        viewModel.configureWindow(plotWidth: 240)
+        XCTAssertEqual(viewModel.visibleRows.count, 1)
+
+        viewModel.update(
+            requests: [request(startedAt: origin), request(startedAt: origin.addingTimeInterval(1))],
+            totalCount: 2
+        )
+        await viewModel.recompute()
+
+        XCTAssertEqual(viewModel.visibleRows.count, 2, "new traffic must appear without touching the window")
     }
 }
