@@ -97,6 +97,24 @@ struct WaterfallView: View {
     ///     tapping a moment on the Traffic Stats section's overview strip. The window opens
     ///     already centred there instead of at the full span, which is what `nil` — the **See
     ///     all** link's default — leaves it at.
+    ///
+    ///     Measured against ``TrafficStatsViewModel/waterfall``'s origin — the strip that was
+    ///     tapped — and reapplied here against this page's own, separately built
+    ///     ``WaterfallViewModel/series``'s origin, on the assumption the two agree. They almost
+    ///     always do: both are built from the same log, moments apart, and an origin only moves
+    ///     when the log's *oldest* surviving request changes, which navigating to this page does
+    ///     not itself cause. What the two builds do *not* share is `now` — each call to
+    ///     `WaterfallSeries.build(from:limit:now:)` defaults it independently, at whatever instant
+    ///     that particular build ran — so a request still pending when the strip was tapped grows
+    ///     this page's own span a little further by the time its `WaterfallViewModel` is built.
+    ///     The tapped moment is still centred exactly, in absolute terms; what shifts is *where
+    ///     that moment falls* on this page's own, now slightly longer, strip — proportionally
+    ///     further toward its leading edge than where the finger actually was on the shorter one
+    ///     it tapped. Accepted rather than threaded through as an absolute `Date`: the drift is
+    ///     bounded by how long the push takes and is invisible unless a request is still pending
+    ///     at the exact moment of the tap, and carrying a `Date` end to end would mean converting
+    ///     it back to a `TimeInterval` against *this* page's origin anyway, which is exactly the
+    ///     assumption above with an extra type in the way.
     init(logs: NetworkLogsViewModel, openingTime: TimeInterval? = nil) {
         self.logs = logs
         _viewModel = StateObject(
@@ -234,11 +252,21 @@ struct WaterfallView: View {
     /// The width a bar actually gets, which is the row less the label and duration columns.
     ///
     /// The zoom limit is computed from this rather than from the screen's width, so the shortest
-    /// request really is 24pt at maximum zoom instead of 24pt-minus-the-chrome. The trailing `48`
-    /// is the row's own overhead that ``WaterfallChartStyle/detailLabelWidth`` and
+    /// request really is close to 24pt at maximum zoom instead of 24pt-minus-the-chrome. The
+    /// trailing `48` is the row's own overhead that ``WaterfallChartStyle/detailLabelWidth`` and
     /// ``WaterfallChartStyle/detailDurationWidth`` do not already account for: the two 8pt gaps
     /// ``WaterfallDetailRow``'s `HStack` puts between its three columns, plus the 16pt leading and
     /// trailing insets a plain `List` gives every row.
+    ///
+    /// It does not additionally subtract the `NavigationLink` disclosure chevron's own width and
+    /// inset, which a plain `List` row reserves beyond its 16pt trailing inset — around 24pt more.
+    /// That means this slightly over-estimates the plot the row actually has, so the zoom limit is
+    /// a little looser than the true geometry: the shortest measured request lands at roughly
+    /// 21pt when fully zoomed in rather than the full 24pt ``WaterfallWindow/targetShortestBarWidth``
+    /// names. Left uncorrected because 3pt of slack on a legibility target is not worth a second
+    /// magic number tied to a chevron's width, which UIKit does not publish and which changes with
+    /// Dynamic Type in its own right; if the gap is ever felt on a device, this is where to account
+    /// for it.
     ///
     /// - Parameter rowWidth: The full width one row is given, from the list's own geometry.
     /// - Returns: The width left for the bar, never below ``WaterfallChartStyle/minimumPlotWidth``.
@@ -299,6 +327,53 @@ struct WaterfallView: View {
     }
 }
 
+/// Where one row's bar is drawn inside the detail list's plot.
+///
+/// Separated from ``WaterfallDetailRow`` for the same reason ``WaterfallStripGeometry`` is
+/// separated from ``WaterfallOverviewStrip``: a `GeometryReader`'s content cannot be inspected by
+/// a test, so pulling the arithmetic out into a pure function is what makes it something a test
+/// can drive directly instead of asserting against rendered pixels.
+enum WaterfallDetailGeometry {
+
+    /// Where one row's bar sits inside the window, clipped at both edges.
+    ///
+    /// The left edge is pulled back before ``WaterfallChartStyle/detailMinimumBarWidth`` is
+    /// applied, not after — the same shape
+    /// ``WaterfallStripGeometry/barRect(index:count:start:duration:span:size:)`` and
+    /// ``WaterfallStripGeometry/windowRect(startFraction:durationFraction:size:)`` already fix,
+    /// and the defect this function used to carry as `WaterfallDetailRow.barRect(in:)`: because
+    /// ``WaterfallWindow/contains(start:duration:)`` is inclusive of the window's right edge, an
+    /// entry starting exactly there is part of `visibleRows` and computed a raw `x` of exactly
+    /// `size.width`; the old code applied the width floor *after* clamping `x`, so the floored
+    /// rect's far edge ran past `size.width` and drew entirely outside the plot — removed by the
+    /// row's own `.clipped()`, leaving a row with a label, a duration, and no bar to show for it.
+    /// Pulling `x` back first means the two clamps can never fight: the rect this returns is
+    /// always at least ``WaterfallChartStyle/detailMinimumBarWidth`` wide when `size` is that
+    /// wide, and always inside `size`.
+    ///
+    /// Clipping rather than shrinking: a request that outlives the window is drawn flush to the
+    /// edge, so the clip reads as "continues" instead of as a shorter request than it was.
+    ///
+    /// - Parameters:
+    ///   - start: The entry's start, in seconds from the series origin.
+    ///   - duration: The entry's length in seconds.
+    ///   - window: The window the bar is positioned and clipped against.
+    ///   - size: The plot's measured size, from the row's own `GeometryReader`.
+    /// - Returns: The rect to fill, always inside `size`.
+    static func barRect(start: TimeInterval, duration: TimeInterval, window: WaterfallWindow, size: CGSize) -> CGRect {
+        guard window.duration > 0, size.width > 0 else { return .zero }
+        let scale = size.width / CGFloat(window.duration)
+        let rawStart = CGFloat(start - window.start) * scale
+        let rawEnd = CGFloat(start + duration - window.start) * scale
+        let clippedStart = min(max(0, rawStart), size.width)
+        let clippedEnd = min(max(0, rawEnd), size.width)
+        let x = min(clippedStart, max(0, size.width - WaterfallChartStyle.detailMinimumBarWidth))
+        let rawWidth = clippedEnd - clippedStart
+        let width = min(max(rawWidth, WaterfallChartStyle.detailMinimumBarWidth), max(0, size.width - x))
+        return CGRect(x: x, y: 0, width: width, height: WaterfallChartStyle.barThickness)
+    }
+}
+
 /// One request in the waterfall's detail list: who it went to, what it was, when it happened
 /// inside the window, and how long it took.
 ///
@@ -337,21 +412,33 @@ private struct WaterfallDetailRow: View {
     /// where it most needs to be legible.
     @ScaledMetric(relativeTo: .caption) private var rowHeight: CGFloat = WaterfallChartStyle.rowHeight
 
+    /// The row's label column, scaled against the reader's text size for the same reason
+    /// ``rowHeight`` is. See ``WaterfallChartStyle/detailLabelWidth``.
+    @ScaledMetric(relativeTo: .caption) private var labelWidth: CGFloat = WaterfallChartStyle.detailLabelWidth
+
+    /// The row's duration column, scaled against the reader's text size for the same reason
+    /// ``rowHeight`` is. See ``WaterfallChartStyle/detailDurationWidth``.
+    @ScaledMetric(relativeTo: .caption) private var durationWidth: CGFloat = WaterfallChartStyle.detailDurationWidth
+
     var body: some View {
         HStack(spacing: 8) {
             label
 
             GeometryReader { proxy in
-                let rect = barRect(in: proxy.size)
+                let rect = WaterfallDetailGeometry.barRect(start: row.entry.start,
+                                                           duration: row.entry.duration,
+                                                           window: window,
+                                                           size: proxy.size)
                 RoundedRectangle(cornerRadius: 3)
                     .fill(WaterfallChartStyle.colour(for: row.entry))
                     .frame(width: rect.width, height: WaterfallChartStyle.barThickness)
                     .offset(x: rect.minX, y: (proxy.size.height - WaterfallChartStyle.barThickness) / 2)
             }
-            // `GeometryReader` does not clip its own content: a request in the window's last few
-            // points still computes a rect flush to the trailing edge, and the minimum-width floor
-            // below can push that rect's far edge past `size.width`. Without this the bar draws
-            // over the duration column instead of stopping at the plot's edge.
+            // `GeometryReader` does not clip its own content, and belt-and-braces is cheap: even
+            // though `WaterfallDetailGeometry.barRect(start:duration:window:size:)` now pulls `x`
+            // back before the width floor is applied, so the rect it returns is always inside
+            // `size`, this still guards against a future change to that arithmetic drawing over
+            // the duration column instead of stopping at the plot's edge.
             .clipped()
 
             Text(row.entry.isPending
@@ -360,7 +447,7 @@ private struct WaterfallDetailRow: View {
                 .font(.caption)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
-                .frame(width: WaterfallChartStyle.detailDurationWidth, alignment: .trailing)
+                .frame(width: durationWidth, alignment: .trailing)
         }
         .frame(height: rowHeight)
         // The bar itself conveys length by width, which is nothing to a screen reader, so the
@@ -408,34 +495,14 @@ private struct WaterfallDetailRow: View {
                     // Middle keeps a fragment of both ends.
                     .truncationMode(.middle)
             }
-            .frame(width: WaterfallChartStyle.detailLabelWidth, alignment: .leading)
+            .frame(width: labelWidth, alignment: .leading)
         } else {
             Text(verbatim: row.entry.label)
                 .font(.subheadline)
                 .lineLimit(1)
                 .truncationMode(.middle)
-                .frame(width: WaterfallChartStyle.detailLabelWidth, alignment: .leading)
+                .frame(width: labelWidth, alignment: .leading)
         }
-    }
-
-    /// The bar's position inside the window, clipped at both edges.
-    ///
-    /// Clipping rather than shrinking: a request that outlives the window is drawn flush to the
-    /// edge, so the clip reads as "continues" instead of as a shorter request than it was.
-    ///
-    /// - Parameter size: The plot's measured size, from the row's own `GeometryReader`.
-    /// - Returns: The rect to fill, always inside `size`.
-    private func barRect(in size: CGSize) -> CGRect {
-        guard window.duration > 0, size.width > 0 else { return .zero }
-        let scale = size.width / CGFloat(window.duration)
-        let rawStart = CGFloat(row.entry.start - window.start) * scale
-        let rawEnd = CGFloat(row.entry.start + row.entry.duration - window.start) * scale
-        let clippedStart = min(max(0, rawStart), size.width)
-        let clippedEnd = min(max(0, rawEnd), size.width)
-        return CGRect(x: clippedStart,
-                      y: 0,
-                      width: max(WaterfallChartStyle.minimumBarWidth, clippedEnd - clippedStart),
-                      height: WaterfallChartStyle.barThickness)
     }
 
     /// What VoiceOver reads for the row.
