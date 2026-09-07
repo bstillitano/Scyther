@@ -153,7 +153,7 @@ final class AuditNodeVisibilityTests: XCTestCase {
         card.addSubview(UIView(frame: CGRect(x: 0, y: 0, width: 40, height: 40)))
         root.addSubview(card)
 
-        let walked = AccessibilityAuditor().collect(root: root)
+        let walked = AccessibilityAuditor.unbudgeted().collect(root: root)
 
         XCTAssertEqual(walked.nodes.count, 1)
         XCTAssertTrue(walked.nodes.first as? UIView === card)
@@ -569,7 +569,7 @@ final class AuditNodeVisibilityTests: XCTestCase {
         }
         let root = CountingNode(children: pooled)
 
-        let walked = AccessibilityAuditor().collect(root: root)
+        let walked = AccessibilityAuditor.unbudgeted().collect(root: root)
 
         XCTAssertTrue(walked.didHitLimit, "a pool of skipped nodes must still trip the cap")
         XCTAssertTrue(walked.nodes.isEmpty)

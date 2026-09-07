@@ -210,7 +210,7 @@ final class AuditNodeAdapterTests: XCTestCase {
         let window = largeRealHierarchy()
         let start = Date()
         var readings = 0
-        var auditor = AccessibilityAuditor()
+        var auditor = AccessibilityAuditor.unbudgeted()
         auditor.now = {
             readings += 1
             return start.addingTimeInterval(readings > 200 ? AccessibilityAuditor.budget + 0.1 : 0)
@@ -229,7 +229,7 @@ final class AuditNodeAdapterTests: XCTestCase {
     func testALargeRealHierarchyInsideEveryBoundIsNotReportedAsTruncated() {
         let window = largeRealHierarchy()
         let start = Date()
-        var auditor = AccessibilityAuditor()
+        var auditor = AccessibilityAuditor.unbudgeted()
         auditor.now = { start }
 
         XCTAssertFalse(auditor.collect(root: window).didHitLimit,
@@ -301,7 +301,7 @@ final class AuditNodeAdapterTests: XCTestCase {
             root.addSubview(container)
         }
 
-        _ = AccessibilityAuditor().collect(root: window)
+        _ = AccessibilityAuditor.unbudgeted().collect(root: window)
 
         XCTAssertGreaterThan(ComputingView.computations, 0,
                              "a class that implements the pair is read through it, subviews or not")
@@ -338,7 +338,7 @@ final class AuditNodeAdapterTests: XCTestCase {
     /// `accessibilityElements` on its hosting view, which is the cheap stored property the walk
     /// still reads. This test is the evidence for that, against a real `UIHostingController`
     /// rather than against the claim.
-    func testTheWalkFindsSwiftUIsSyntheticAccessibilityElements() {
+    func testTheWalkFindsSwiftUIsSyntheticAccessibilityElements() throws {
         struct Sample: View {
             var body: some View {
                 VStack {
@@ -350,12 +350,16 @@ final class AuditNodeAdapterTests: XCTestCase {
             }
         }
 
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
-        window.rootViewController = UIHostingController(rootView: Sample())
-        window.isHidden = false
-        window.layoutIfNeeded()
+        // Waits for SwiftUI to publish its three elements rather than looking once: a fixed wait
+        // passed here and failed on CI's toolchain on every run since the audit landed. See
+        // `HostedSwiftUIWindow`. The wait counts what SwiftUI set, so it stays independent of what
+        // the walk below finds and cannot paper over a regression in it.
+        let window = try HostedSwiftUIWindow.make(
+            hosting: Sample(),
+            isReady: { HostedSwiftUIWindow.publishedAccessibilityElementCount($0) >= 3 }
+        )
 
-        let walked = AccessibilityAuditor().collect(root: window)
+        let walked = AccessibilityAuditor.unbudgeted().collect(root: window)
         let labels = Set(walked.nodes.compactMap(\.accessibilityLabelText))
 
         XCTAssertTrue(labels.isSuperset(of: ["Hello world", "Tap me", "Star"]),

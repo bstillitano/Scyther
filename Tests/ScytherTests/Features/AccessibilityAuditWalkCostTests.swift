@@ -79,7 +79,7 @@ final class AccessibilityAuditWalkCostTests: XCTestCase {
         window.addSubview(UIView(frame: CGRect(x: 0, y: 0, width: 44, height: 44)))
         window.addSubview(UIView(frame: CGRect(x: 0, y: 100, width: 44, height: 44)))
 
-        _ = AccessibilityAuditor().collect(root: window)
+        _ = AccessibilityAuditor.unbudgeted().collect(root: window)
 
         XCTAssertEqual(asked, 3, "the window and its two subviews, once each")
     }
@@ -93,7 +93,7 @@ final class AccessibilityAuditWalkCostTests: XCTestCase {
         let leaf = CountingLeaf()
         let root = CountingLeaf(isElement: false, children: [leaf])
 
-        let result = AccessibilityAuditor().audit(root: root,
+        let result = AccessibilityAuditor.unbudgeted().audit(root: root,
                                                   checks: [.missingLabel, .touchTarget],
                                                   sampler: nil)
 
@@ -120,7 +120,7 @@ final class AccessibilityAuditWalkCostTests: XCTestCase {
         }
         CountingResponderView.nextReads = 0
 
-        _ = AccessibilityAuditor().collect(root: window)
+        _ = AccessibilityAuditor.unbudgeted().collect(root: window)
 
         XCTAssertLessThanOrEqual(CountingResponderView.nextReads, 24,
                                  "each of the twelve views should climb about one link, not twelve")
