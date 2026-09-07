@@ -35,11 +35,11 @@ import XCTest
 ///
 /// ## What it does
 ///
-/// Hosts the view, attaches the window to a foreground scene when the test host has one, makes it
-/// key and visible, then polls until the hierarchy publishes accessibility elements. If it never
-/// does, the calling test is **skipped** with a message naming the platform — so a run on a
-/// toolchain where SwiftUI behaves differently reads as "unverified here", which is true, rather
-/// than as "the audit is broken", which is not.
+/// Hosts the view, makes the window key and visible, then polls until the hierarchy publishes
+/// accessibility elements. If it never does, the window is put away and the calling test is
+/// **skipped** with a message naming the platform — so a run on a toolchain where SwiftUI behaves
+/// differently reads as "unverified here", which is true, rather than as "the audit is broken",
+/// which is not.
 @MainActor
 enum HostedSwiftUIWindow {
 
@@ -72,6 +72,8 @@ enum HostedSwiftUIWindow {
     ///   - line: The calling line, for the same reason.
     /// - Returns: A key, visible window whose root view controller hosts `view`. The caller has to
     ///   hold on to it: a window with no other references goes away and takes the hierarchy with it.
+    ///   Unattached to any scene on purpose — a scene retains the window, and one left behind by a
+    ///   skipped test changes what every later test in the process sees.
     /// - Throws: `XCTSkip` when `isReady` never succeeds within `timeout`.
     static func make<Root: View>(hosting view: Root,
                                  size: CGSize = defaultSize,
@@ -79,7 +81,7 @@ enum HostedSwiftUIWindow {
                                  isReady: @MainActor (UIView) -> Bool = publishesAccessibilityElements,
                                  file: StaticString = #filePath,
                                  line: UInt = #line) throws -> UIWindow {
-        let window = makeWindow(size: size)
+        let window = UIWindow(frame: CGRect(origin: .zero, size: size))
         let host = UIHostingController(rootView: view)
         window.rootViewController = host
         window.makeKeyAndVisible()
@@ -91,6 +93,12 @@ enum HostedSwiftUIWindow {
             if isReady(host.view) { return window }
             RunLoop.current.run(until: Date().addingTimeInterval(pollInterval))
         } while Date() < deadline
+
+        // Put the window away before skipping. A key, visible window left behind outlives the test
+        // that made it and changes what every later test in the process sees — on CI, a skip here
+        // took `testASyntheticElementOverAViewWithNoTextViewsIsStillMeasured` down with it.
+        window.isHidden = true
+        window.rootViewController = nil
 
         throw XCTSkip("""
             SwiftUI published no accessibility elements for a hosted view within \(timeout)s on \
@@ -134,27 +142,5 @@ enum HostedSwiftUIWindow {
     static func publishedAccessibilityElementCount(_ view: UIView) -> Int {
         (view.accessibilityElements?.count ?? 0)
             + view.subviews.reduce(0) { $0 + publishedAccessibilityElementCount($1) }
-    }
-
-    /// Builds the window, attached to a foreground window scene when one exists.
-    ///
-    /// A test bundle with no host application has no scenes at all, and an unattached window is
-    /// what the audit's fixtures have always used successfully. Where a scene *is* available,
-    /// attaching to it is the closer approximation of a real app and gives SwiftUI a display to
-    /// commit against — so take it when it is there and carry on without it when it is not.
-    ///
-    /// - Parameter size: The window's size.
-    /// - Returns: An unshown window of `size`.
-    private static func makeWindow(size: CGSize) -> UIWindow {
-        let frame = CGRect(origin: .zero, size: size)
-        let scene = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first { $0.activationState == .foregroundActive }
-            ?? UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
-
-        guard let scene else { return UIWindow(frame: frame) }
-        let window = UIWindow(windowScene: scene)
-        window.frame = frame
-        return window
     }
 }
