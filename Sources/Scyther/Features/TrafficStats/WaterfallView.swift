@@ -105,13 +105,31 @@ struct WaterfallView: View {
     /// entire pinch on every frame the gesture reports and slam the window into its zoom limit on
     /// the first frame of motion.
     ///
-    /// `@GestureState` rather than `@State`: SwiftUI resets a gesture state back to its initial
-    /// value whenever the gesture ends *or is cancelled*, which a plain `@State` variable reset
-    /// only from `onEnded` does not get. A pinch the enclosing `List` claims mid-gesture never
-    /// calls `onEnded`, and a `@State` left stranded at, say, `3` would make the *next* pinch's
-    /// first callback compute `factor = 1/3` and snap the window before the user had moved a
-    /// finger.
-    @GestureState private var lastMagnification: CGFloat = 1
+    /// A plain `@State` now, not `@GestureState`. It used to be `@GestureState`, driven from
+    /// `.updating(_:body:)`, specifically to survive a pinch the enclosing `List` claimed
+    /// mid-gesture — before this fix, ``detail`` attached the gesture with plain `.gesture(_:)`,
+    /// SwiftUI's *lowest* priority, so the `List`'s own pan recogniser routinely won the sequence
+    /// outright and the pinch's `onEnded` never ran; a `@State` reset only there would have been
+    /// left stranded at whatever magnitude the pinch last reported, corrupting the next pinch's
+    /// first delta. `@GestureState` avoided that because SwiftUI resets it whenever the gesture
+    /// ends *or is cancelled*, with no `onEnded` required.
+    ///
+    /// That risk is gone now that ``magnification`` is attached with
+    /// `.simultaneousGesture(_:including:)` instead: the pinch no longer has to wait for the
+    /// `List`'s own gesture to fail before it can recognise, so it is tracked to completion
+    /// independently, and `onEnded` — which resets this back to `1` explicitly, below — is
+    /// reliably the last callback SwiftUI sends for any pinch that recognises at all. With that
+    /// guarantee back, `.updating(_:body:)` stops being the safer choice and starts being the
+    /// worse one: its closure is documented as updating only the transient gesture-state property
+    /// it is attached to, because it runs as part of the gesture's own transaction rather than an
+    /// ordinary event callback, and can be invoked, retried or coalesced as SwiftUI applies that
+    /// transaction. Calling ``WaterfallViewModel/zoom(by:)`` from inside it — a write to a
+    /// `@Published` property, which schedules `objectWillChange` and a body re-evaluation — is a
+    /// side effect exactly of the kind that closure is supposed to be free of, and is the known
+    /// shape of SwiftUI's "publishing changes from within view updates" warning. `.onChanged`
+    /// runs as an ordinary callback instead, so the same mutation runs on the same footing every
+    /// other change to ``WaterfallViewModel`` in this file does.
+    @State private var lastMagnification: CGFloat = 1
 
     /// Creates the page.
     ///
@@ -283,13 +301,17 @@ struct WaterfallView: View {
             .onChange(of: dynamicTypeSize) { _ in
                 viewModel.configureWindow(plotWidth: rowLayout(in: proxy.size.width).plotWidth)
             }
-            // `.subviews` rather than `.all` when zoom is impossible: it disables the pinch this
-            // modifier adds while still letting the `List` recognise its own scroll and press
-            // gestures, so a request the window cannot narrow any further does not also lose its
-            // scroll. See `canZoom`'s own documentation on why the page disables the gesture
-            // rather than letting a pinch silently do nothing.
-            .gesture(magnification, including: viewModel.window.canZoom ? .all : .subviews)
         }
+        // Attached to the `GeometryReader` — the container this method returns — rather than
+        // chained onto the `List` inside it, and with `.simultaneousGesture` rather than
+        // `.gesture`. Both changed together as this fix's answer to the pinch never recognising
+        // in practice: see ``magnification``'s own documentation for the full reasoning and what
+        // it means for one-finger scrolling. `.subviews` rather than `.all` when zoom is
+        // impossible: it disables the pinch this modifier adds while still letting the `List`
+        // recognise its own scroll and press gestures, so a request the window cannot narrow any
+        // further does not also lose its scroll. See `canZoom`'s own documentation on why the
+        // page disables the gesture rather than letting a pinch silently do nothing.
+        .simultaneousGesture(magnification, including: viewModel.window.canZoom ? .all : .subviews)
     }
 
     /// How one row divides its width between the label column, the plot, and the duration column,
@@ -318,20 +340,73 @@ struct WaterfallView: View {
     /// Pinch to zoom, running alongside the list's scrolling rather than instead of it.
     ///
     /// `MagnificationGesture` and not `MagnifyGesture`: the package's floor is iOS 16 and
-    /// `MagnifyGesture` is iOS 17. Attached by ``detail`` with `including: .all` so the list keeps
-    /// recognising its own scroll and press gestures simultaneously — a pinch and a scroll do not
-    /// compete for the same fingers — and with `including: .subviews` once the window cannot
-    /// narrow any further, which disables the pinch itself without disabling the list underneath
-    /// it.
+    /// `MagnifyGesture` is iOS 17.
     ///
-    /// Driven through `.updating($lastMagnification)` rather than `.onChanged`/`.onEnded`: see
-    /// ``lastMagnification`` for why a plain `@State` reset only in `onEnded` is not safe here.
+    /// ## Why this never recognised, and what changed
+    ///
+    /// This shipped attached to ``detail``'s `List` with plain `.gesture(_:including:)` — SwiftUI's
+    /// *lowest*-priority attachment, which only recognises once every other gesture in the
+    /// responder chain has failed to. A `List` owns a pan recogniser of its own for scrolling, and
+    /// on device that recogniser claims a touch sequence, pinch included, before deferring to
+    /// anything lower priority — so the `MagnificationGesture` sat behind a recogniser that never
+    /// failed, and never recognised at all. That is the reported defect: the pinch does nothing,
+    /// full stop, on any log long enough to need it.
+    ///
+    /// The fix is ``detail`` attaching this with `.simultaneousGesture(_:including:)` instead —
+    /// and attaching it to the `GeometryReader` that wraps the `List`, not to the `List` itself.
+    /// Both changes matter:
+    ///
+    /// - `.simultaneousGesture` tells SwiftUI the two gestures are allowed to recognise together,
+    ///   rather than requiring the `List`'s own recogniser to fail first — which is precisely the
+    ///   dependency that made plain `.gesture(_:)` never fire.
+    /// - Attaching it one level up, to the `GeometryReader`, rather than chaining it directly onto
+    ///   the `List`: `List` bridges to a UIKit `UICollectionView`, which owns and arbitrates its
+    ///   *own* gesture-recogniser subsystem beneath whatever SwiftUI modifiers are chained onto
+    ///   the `List` value itself. A SwiftUI gesture attached to an ancestor view sits in a
+    ///   different part of the hosting hierarchy, closer to the window, rather than nested inside
+    ///   that subsystem — which is judgement about where a SwiftUI-recognised gesture is most
+    ///   likely to be let through by a UIKit-backed scroll view's own recogniser, not a
+    ///   documented Apple guarantee. It is the more conservative of the two reasonable places to
+    ///   attach this, so it is where this fix puts it.
+    ///
+    /// **What this should do to one-finger scrolling: nothing.** `MagnificationGesture` only
+    /// recognises a two-finger pinch; a one-finger drag never satisfies it regardless of which
+    /// priority it is attached with, so `.simultaneousGesture` allowing the two to run together
+    /// has nothing to arbitrate for an ordinary scroll — the `List`'s pan recogniser is the only
+    /// one that ever sees a single touch. The behaviour this change actually gambles on is what
+    /// happens on a genuine two-finger touch: before, the `List` won it outright and the pinch
+    /// never ran; now both are allowed to recognise, so the list may also register some vertical
+    /// motion for the duration of a pinch. That is the accepted cost of choosing a gesture over a
+    /// dedicated zoom control — recorded in the design spec's own "Zoom" section — not a new one
+    /// this fix introduces.
+    ///
+    /// **On verification:** nobody in this pipeline can drive a two-finger pinch — RocketSim has
+    /// no pinch verb, and this repository has no UI test harness. This was not verified against a
+    /// running app. What *is* checked automatically: this gesture's closures are ordinary Swift
+    /// code with no SwiftUI-only dependency, so `WaterfallViewModelTests` exercises
+    /// ``WaterfallViewModel/zoom(by:)`` — exactly what `onChanged` below calls — directly, and
+    /// that coverage is unaffected by any of this. What it does not and cannot show is that the
+    /// gesture recognises on a real touch sequence at all. Confirming that the pinch now responds
+    /// on device, and that one-finger scrolling still works, is on the owner.
+    ///
+    /// ## `.onChanged`/`.onEnded`, not `.updating(_:body:)`
+    ///
+    /// This also used to be driven through `.updating($lastMagnification)`, which is the safer
+    /// shape only while the gesture can be cancelled by the `List` stealing the sequence — see
+    /// ``lastMagnification``'s own documentation, which covers this in full. That risk is gone now
+    /// that the gesture recognises independently rather than behind the `List`'s own, and
+    /// `.updating(_:body:)`'s own contract — a closure meant to update only the transient gesture
+    /// state it is attached to, not to push side effects into other observed state — is what makes
+    /// `.onChanged`/`.onEnded` the better fit now, not merely an equivalent one.
     private var magnification: some Gesture {
         MagnificationGesture()
-            .updating($lastMagnification) { value, state, _ in
-                guard value.isFinite, value > 0, state > 0 else { return }
-                viewModel.zoom(by: Double(value / state))
-                state = value
+            .onChanged { value in
+                guard value.isFinite, value > 0, lastMagnification > 0 else { return }
+                viewModel.zoom(by: Double(value / lastMagnification))
+                lastMagnification = value
+            }
+            .onEnded { _ in
+                lastMagnification = 1
             }
     }
 

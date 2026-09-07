@@ -374,3 +374,29 @@ the spec instead of being misled by it.
   kept, not deleted, in [Default](#default) above, because it was not unsound reasoning — it was
   reasoning that a large enough log falsified, and that distinction is worth being able to see
   later.
+- **The zoom gesture's attachment, again.** `.simultaneousGesture(_, including:)`, not
+  `.gesture(_, including:)` — a second amendment to the same decision the previous gesture-related
+  entry above already amended once. `.gesture(_:)` is SwiftUI's *lowest*-priority attachment: it
+  only recognises once every other gesture in the responder chain has failed to. `WaterfallView`'s
+  `List` owns a pan recogniser of its own, and on device that recogniser claims a pinch's touch
+  sequence outright rather than ever failing, so the `MagnificationGesture` attached with
+  `.gesture(_:)` never recognised at all — reported by the owner as the pinch doing nothing.
+  `.simultaneousGesture(_, including:)` keeps the same `GestureMask` toggle the previous amendment
+  valued `.gesture(_, including:)` for — `including: .subviews` still switches the pinch off
+  without switching off the list's own gestures, once `WaterfallWindow.canZoom` is `false` — while
+  dropping the requirement that the list's recogniser fail first. The attachment also moved, from
+  the `List` itself to the `GeometryReader` that wraps it, on the judgement that a SwiftUI gesture
+  attached to an ancestor of a UIKit-backed `List` is less likely to be arbitrated away by that
+  `List`'s own internal `UICollectionView` gesture-recogniser subsystem — not a documented Apple
+  guarantee, the more conservative of two reasonable places to attach it. Driving
+  `WaterfallViewModel.zoom(by:)` also moved, from `.updating($lastMagnification)` to
+  `.onChanged`/`.onEnded` against a plain `@State`: `.updating(_:body:)`'s own contract expects its
+  closure to update only the gesture-state property it is attached to, not to push a side effect
+  into a `@Published` property elsewhere, and that contract only got safe to lean past while a
+  cancelled gesture could strand a plain `@State` with no `onEnded` to reset it — which stopped
+  being possible once the gesture recognises independently rather than behind the list's own. See
+  ``WaterfallView/magnification`` and ``WaterfallView/lastMagnification`` for the full reasoning.
+  Not verified against a running app: no pinch-capable automation exists in this pipeline. The
+  reasoning above, and confirmation that `WaterfallViewModel.zoom(by:)` is reachable and correct in
+  isolation, is what backs this change; that the gesture actually recognises on device is for the
+  owner to confirm.
