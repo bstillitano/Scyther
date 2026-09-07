@@ -119,4 +119,82 @@ final class WaterfallWindowTests: XCTestCase {
         XCTAssertEqual(opened.start, 0, accuracy: 0.0001,
                        "a tap near the start opens at the start, not before it")
     }
+
+    // MARK: - Non-finite input
+
+    /// The non-finite values every case below is driven with: not-a-number, positive infinity and
+    /// negative infinity.
+    private static let nonFiniteValues: [Double] = [.nan, .infinity, -.infinity]
+
+    /// Every property of `window` is finite.
+    ///
+    /// `init(start:duration:span:narrowest:)` is documented as clamping every one of its inputs
+    /// before the two `min`/`max` chains run, which is what is supposed to make NaN and infinity
+    /// unable to propagate. That claim previously rested on a reviewer's hand-trace rather than a
+    /// test, for the one type the rest of the feature leans on — so it is pinned here.
+    private func assertAllFinite(_ window: WaterfallWindow, file: StaticString = #filePath,
+                                 line: UInt = #line) {
+        XCTAssertTrue(window.start.isFinite, "start", file: file, line: line)
+        XCTAssertTrue(window.duration.isFinite, "duration", file: file, line: line)
+        XCTAssertTrue(window.span.isFinite, "span", file: file, line: line)
+        XCTAssertTrue(window.narrowest.isFinite, "narrowest", file: file, line: line)
+        XCTAssertTrue(window.end.isFinite, "end", file: file, line: line)
+        XCTAssertTrue(window.centre.isFinite, "centre", file: file, line: line)
+        XCTAssertTrue(window.startFraction.isFinite, "startFraction", file: file, line: line)
+        XCTAssertTrue(window.durationFraction.isFinite, "durationFraction", file: file, line: line)
+    }
+
+    func testInitIsFiniteAgainstNonFiniteStart() {
+        for value in Self.nonFiniteValues {
+            assertAllFinite(WaterfallWindow(start: value, duration: 10, span: 60, narrowest: 1))
+        }
+    }
+
+    func testInitIsFiniteAgainstNonFiniteDuration() {
+        for value in Self.nonFiniteValues {
+            assertAllFinite(WaterfallWindow(start: 0, duration: value, span: 60, narrowest: 1))
+        }
+    }
+
+    func testInitIsFiniteAgainstNonFiniteSpan() {
+        for value in Self.nonFiniteValues {
+            assertAllFinite(WaterfallWindow(start: 0, duration: 10, span: value, narrowest: 1))
+        }
+    }
+
+    func testInitIsFiniteAgainstNonFiniteNarrowest() {
+        for value in Self.nonFiniteValues {
+            assertAllFinite(WaterfallWindow(start: 0, duration: 10, span: 60, narrowest: value))
+        }
+    }
+
+    func testZoomedIsFiniteAgainstANonFiniteFactor() {
+        let window = WaterfallWindow(start: 20, duration: 20, span: 60, narrowest: 0.5)
+        for value in Self.nonFiniteValues {
+            assertAllFinite(window.zoomed(by: value))
+        }
+    }
+
+    /// A window that is itself built from non-finite input must still zoom to something finite.
+    func testZoomedIsFiniteWhenTheWindowItselfCameFromNonFiniteInput() {
+        for value in Self.nonFiniteValues {
+            let window = WaterfallWindow(start: value, duration: value, span: value, narrowest: value)
+            assertAllFinite(window.zoomed(by: 2))
+        }
+    }
+
+    func testMovedToCentreIsFiniteAgainstANonFiniteTime() {
+        let window = WaterfallWindow(start: 20, duration: 20, span: 60, narrowest: 0.5)
+        for value in Self.nonFiniteValues {
+            assertAllFinite(window.movedToCentre(value))
+        }
+    }
+
+    /// A window that is itself built from non-finite input must still move to something finite.
+    func testMovedToCentreIsFiniteWhenTheWindowItselfCameFromNonFiniteInput() {
+        for value in Self.nonFiniteValues {
+            let window = WaterfallWindow(start: value, duration: value, span: value, narrowest: value)
+            assertAllFinite(window.movedToCentre(10))
+        }
+    }
 }

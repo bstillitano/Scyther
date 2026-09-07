@@ -135,10 +135,13 @@ struct WaterfallWindow: Equatable, Sendable {
         return min(max(0, demanded), span)
     }
 
-    /// The window magnified by `factor`, holding its centre still.
+    /// The window magnified by `factor`, holding its centre still where the span leaves room to.
     ///
     /// Holding the centre is what stops a pinch sliding the developer through time while they are
-    /// trying to change resolution.
+    /// trying to change resolution. Near an edge there is no room: the result is still clamped
+    /// into `[0, span]`, and an edge that would otherwise overhang the log is pulled back instead
+    /// — which moves the centre. That is correct, not a bug: the alternative is a window showing
+    /// time that does not exist.
     ///
     /// - Parameter factor: Greater than 1 zooms in, between 0 and 1 zooms out. A non-finite or
     ///   non-positive factor returns the window unchanged, because a gesture in an odd state must
