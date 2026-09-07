@@ -210,13 +210,5 @@ final class PseudoLocalizationTests: XCTestCase {
 
         wait(for: [announced], timeout: 1)
     }
-
-    func testForcingRightToLeftAsksForTheForcedAttribute() {
-        XCTAssertEqual(PseudoLocalizationLayout.attribute(rightToLeft: true), .forceRightToLeft)
-    }
-
-    func testNotForcingRightToLeftLeavesTheDirectionUnspecifiedRatherThanPinnedLeftToRight() {
-        XCTAssertEqual(PseudoLocalizationLayout.attribute(rightToLeft: false), .unspecified)
-    }
 }
 #endif

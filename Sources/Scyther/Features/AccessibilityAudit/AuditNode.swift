@@ -116,17 +116,10 @@ extension AuditNode {
 /// directly, and the `"Scyther"`-prefix fallback catches anything else Scyther draws without this
 /// file having to list every one of them and rot the moment a feature is added.
 ///
-/// - Note: Internal rather than private because it is the *definition* of "this object is
-///   Scyther's own", and a second definition is the thing to avoid.
-///   ``PseudoLocalizationLayout/isScytherOwned(_:)`` asks the same question when it walks down a
-///   window resetting the layout direction of Scyther's own views, and a rule that drifted between
-///   the two would mean the accessibility audit and the pseudo-localisation refresh disagreeing
-///   about which views belong to Scyther.
-///
 /// - Parameter object: The view, controller or element to test.
 /// - Returns: `true` when `object` is itself one of Scyther's own.
 @MainActor
-internal func isScytherOwnedType(_ object: AnyObject) -> Bool {
+private func isScytherOwnedType(_ object: AnyObject) -> Bool {
     object is ScytherPresentedUI
         || object is TopLevelViewsWrapper
         || object is TopLevelView

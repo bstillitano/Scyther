@@ -63,10 +63,10 @@ struct PseudoLocalizationMode: OptionSet, Sendable, Hashable {
     /// mirrored. Unlike the other three this changes no text at all, so it is deliberately not
     /// part of ``textAffecting``.
     ///
-    /// Its reach is also unlike the other three, and narrower than it first appears: Scyther's own
-    /// interface immediately, the host app's UIKit views on the next launch, and the host app's
-    /// SwiftUI views never. ``PseudoLocalizationLayout`` explains why and what the alternative
-    /// would cost.
+    /// Its reach is also unlike the other three, and narrower than it first appears: it mirrors
+    /// **Scyther's own interface only**, immediately, in both directions, and does not affect the
+    /// host app at all. ``PseudoLocalizationLayout`` explains why reaching further was tried and
+    /// deleted, and what a developer should use instead.
     static let rightToLeft = PseudoLocalizationMode(rawValue: 1 << 2)
 
     /// Renders the catalog key in place of its translation.

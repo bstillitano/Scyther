@@ -52,7 +52,7 @@ struct PseudoLocalizationView: View {
                 Toggle(isOn: $viewModel.rightToLeft) {
                     label(
                         localizedChrome("Right to Left"),
-                        subtitle: localizedChrome("Mirrors Scyther's interface now, and your app's UIKit views on its next launch. Your app's SwiftUI views are unaffected: Scyther cannot reach their environment.")
+                        subtitle: localizedChrome("Mirrors Scyther's interface now, and your whole app — UIKit and SwiftUI — on its next launch. Switching it off restores your app on the launch after that.")
                     )
                 }
                 Toggle(isOn: $viewModel.showsKeys) {

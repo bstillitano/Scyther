@@ -17,7 +17,8 @@ import UIKit
 ///   plain ASCII was never localised.
 /// - ``lengthened`` pads strings to roughly 135%, the expansion German and Finnish bring, so
 ///   clipping and truncation appear before a translator's work does.
-/// - ``rightToLeft`` forces RTL layout, which catches hard-coded leading/trailing assumptions.
+/// - ``rightToLeft`` forces RTL layout in Scyther's own interface, which catches hard-coded
+///   leading/trailing assumptions in it.
 /// - ``showsKeys`` renders the catalog key instead of its translation.
 ///
 /// A fifth switch, ``showsBoundaries``, is a setting *about* those rather than a fifth peer of
@@ -41,10 +42,11 @@ import UIKit
 ///
 /// So on a UIKit or `NSLocalizedString`-based app the text modes apply broadly; on a SwiftUI app
 /// using `Text("…")` they apply to Scyther's own interface and nothing else.
-/// ``rightToLeft`` has a different limit rather than none. It changes no text, so it does not care
-/// how the host loads its copy — but it reaches Scyther's own interface immediately, the host app's
-/// *UIKit* views on the next launch, and the host app's *SwiftUI* views not at all. See
-/// ``PseudoLocalizationLayout`` for why, and for what an honest route to the third would cost.
+/// ``rightToLeft`` has a different shape rather than a different limit. It changes no text, so it
+/// does not care how the host loads its copy at all: Scyther's own interface mirrors immediately,
+/// in both directions, and the host app mirrors on its **next launch** — UIKit and SwiftUI alike,
+/// since the mechanism is the pair of defaults keys iOS resolves at launch rather than anything
+/// applied to a view. See ``PseudoLocalizationLayout``.
 ///
 /// ```swift
 /// PseudoLocalization.instance.accented = true
@@ -280,10 +282,14 @@ internal final class PseudoLocalization: @unchecked Sendable {
 
     /// Whether the effects that reach outside Scyther's own interface may be installed.
     ///
-    /// Both of them mutate global runtime state the host app shares — a swizzle on `NSBundle`, and
-    /// `UIView.appearance()` — so they carry a stricter guard than the string transform does.
-    /// Under XCTest there is no host app to pseudo-localise, and installing either would leak
-    /// across into unrelated tests in the same process.
+    /// Both of them mutate state the host app owns — a swizzle on `NSBundle`, and two keys in its
+    /// standard `UserDefaults` — so they carry a stricter guard than the string transform does.
+    /// Under XCTest there is no host app to pseudo-localise, and touching either would leak across
+    /// into unrelated tests in the same process.
+    ///
+    /// ``PseudoLocalizationLayout/applyToHostApp(rightToLeft:isTestCase:isAppStore:systemDefaults:)``
+    /// consults this before *setting* its keys and deliberately not before removing them; see there
+    /// for why an App Store build clearing a stale key is the safe direction to err in.
     ///
     /// A pure function of two booleans for the same reason ``AccessibilityAudit/canAuditKeyWindow(isTestCase:isAppStore:)``
     /// is: neither input can be faked in the test host, so the refusing branches are unreachable
@@ -299,22 +305,24 @@ internal final class PseudoLocalization: @unchecked Sendable {
 
     // MARK: - Effects
 
-    /// Brings the host-app hook and the forced layout direction into line with the switches.
+    /// Brings the host-app hook, the host app's launch-time layout direction, and the views
+    /// watching for a change, into line with the switches.
     ///
-    /// Called from every setter rather than from the settings screen so the two effects can never
+    /// Called from every setter rather than from the settings screen so the effects can never
     /// drift from what is persisted — including on the path that matters most, ``reset()``, whose
     /// whole job is to make an unreadable session readable again.
     ///
-    /// Hops to the main actor because both effects touch UIKit. The hop is why the setters can
-    /// stay `nonisolated`, which is what lets the toggles be driven from a `Binding` without the
-    /// view model having to await anything. It deliberately carries nothing across the hop; see
-    /// ``applyEffects(isTestCase:isAppStore:)`` for why that matters.
+    /// Hops to the main actor because installing the hook and posting to observing views both have
+    /// to happen there. The hop is why the setters can stay `nonisolated`, which is what lets the
+    /// toggles be driven from a `Binding` without the view model having to await anything. It
+    /// deliberately carries nothing across the hop; see ``applyEffects(isTestCase:isAppStore:)``
+    /// for why that matters.
     private nonisolated func synchronise() {
         Task { @MainActor in self.applyEffects() }
     }
 
-    /// Puts the host-app hook and the forced layout direction into the state the *current*
-    /// settings call for.
+    /// Puts the host-app hook and the host app's forced layout direction into the state the
+    /// *current* settings call for, and tells the views on screen that the modes have moved.
     ///
     /// The mode set is read here, on the main actor, rather than snapshotted by ``synchronise()``
     /// before it hops. That is the whole point of the split. The hops are unstructured `Task`s and
@@ -335,22 +343,25 @@ internal final class PseudoLocalization: @unchecked Sendable {
         isAppStore: Bool = AppEnvironment.isAppStore
     ) {
         let modes = activeModes
-        let allowed = Self.canAffectHostApp(isTestCase: isTestCase, isAppStore: isAppStore)
         PseudoLocalizationHostHook.shared.setEnabled(
             !modes.intersection(.textAffecting).isEmpty,
             isTestCase: isTestCase,
             isAppStore: isAppStore
         )
-        PseudoLocalizationLayout.apply(rightToLeft: modes.contains(.rightToLeft), allowed: allowed)
+        PseudoLocalizationLayout.applyToHostApp(
+            rightToLeft: modes.contains(.rightToLeft),
+            isTestCase: isTestCase,
+            isAppStore: isAppStore
+        )
         NotificationCenter.default.post(name: Self.ModesChangedNotification, object: nil)
     }
 
     /// Re-applies the persisted state at launch, so a session picks up where the last one left off.
     ///
-    /// Called from `Scyther.start(allowProductionBuilds:)`. Without it, a developer who left
-    /// right-to-left on would find it silently off after a relaunch, which is precisely when they
-    /// would be looking at it — several of the layout problems the mode exists to catch only
-    /// appear on a screen built from scratch.
+    /// Called from `Scyther.start(allowProductionBuilds:)`. Without it, a developer who left a text
+    /// mode on would find the host-app hook uninstalled after a relaunch while the switch still
+    /// read as on — the feature silently doing nothing, which is the failure that is hardest to
+    /// notice.
     internal static func setup() {
         instance.synchronise()
     }

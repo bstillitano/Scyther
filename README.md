@@ -101,7 +101,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Font Browser**: View all available system fonts
 - **Interface Previews**: Browse registered UI components
 - **Language**: Force the app's language from the debug menu (applies on next launch; Scyther's own menu switches immediately)
-- **Pseudo-localisation**: Accent, lengthen, flip to RTL, or show catalog keys, to find layout problems before a translator is briefed — see [Pseudo-localisation](#pseudo-localisation) for exactly which strings it can and cannot reach
+- **Pseudo-localisation**: Accent, lengthen, flip to RTL, or show catalog keys, to find layout problems before a translator is briefed — see [Pseudo-localisation](#pseudo-localisation) for exactly which strings it can and cannot reach, and when RTL takes effect
 
 ### Development Tools
 - **Console Logger**: Capture and view stdout/stderr output
@@ -246,49 +246,46 @@ Scyther's own menu and nothing else. That is a demonstration of the idea against
 SwiftUI interface, not a test of your screens. On a UIKit or `NSLocalizedString`-based app it is a
 test of your screens.
 
-**Right to Left is a different mechanism with a different limit.** It changes no text, so it does
-not care how your copy is loaded — but layout direction is not something that can simply be forced
-onto views that already exist, and the honest account of what flips and when is:
+**Right to Left is a different mechanism with a different shape.** It changes no text, so it does
+not care how your copy is loaded — but layout direction cannot be forced onto views that already
+exist, so the two halves run on two timescales:
 
-| Surface | When it mirrors |
-| --- | --- |
-| The Pseudo-localisation page | Immediately, as you flick the switch |
-| The rest of the Scyther menu, and every page reached from it | Immediately |
-| Your app's UIKit views created after the switch | Immediately, as you navigate to them |
-| Your app's UIKit views generally | On the next launch |
-| **Your app's SwiftUI views** | **Never** |
+| Surface | When it mirrors | Checked on a simulator |
+| --- | --- | --- |
+| The Pseudo-localisation page | Immediately, as you flick the switch | yes |
+| The rest of the Scyther menu, and every page reached from it | Immediately | yes |
+| Your app's UIKit views | On its next launch | not yet |
+| Your app's SwiftUI views | On its next launch | not yet |
 
-That last row is the important one, and it is stated on the toggle itself, not only here: *"Mirrors
-Scyther's interface now, and your app's UIKit views on its next launch. Your app's SwiftUI views are
-unaffected: Scyther cannot reach their environment."*
+Switching it **off** unwinds in the same shape: Scyther's own interface immediately, your app on
+its next launch.
 
-Switching the mode **off** needed a fix of its own, because the appearance proxy cannot undo
-itself: it stamps its value onto each view as the view joins a window and never revisits it, so
-putting the proxy back leaves everything built while the mode was on still forcing a direction the
-rest of the interface has left behind. Scyther takes that stamp back off its own views — its menu
-and everything inside it, and the overlays it installs into your window — and the only value it
-ever writes is `.unspecified`. It never forces a direction onto a view, in either direction:
-mirroring Scyther's interface is the environment value Scyther installs in its own views, and
-forcing the UIKit attribute as well makes a hosting view mirror the text it *renders*, which is
-unreadable rather than mirrored. Your app's UIKit views are untouched either way — they un-mirror
-on the next launch, for the same reason they mirror on one.
+The third column is there because this mode's reach has been claimed wrongly more than once. The
+rows marked "not yet" rest on the mechanism below being the same one Xcode's scheme option uses;
+they have not been observed here.
 
-A SwiftUI view takes its direction from `\.layoutDirection` in **its own** environment, which your
-app owns. No public API lets a library modify another view tree's environment, and
-`UIView.appearance()` — which is what mirrors UIKit — does not seed it. Being early does not help
-either: setting the proxy before any view exists still leaves SwiftUI reading a value the proxy
-never touches. Scyther's own interface mirrors instantly only because Scyther installs that
-environment value itself, in its own views, and can therefore change it.
+The asymmetry is stated on the toggle itself, not only here: *"Mirrors Scyther's interface now, and
+your whole app — UIKit and SwiftUI — on its next launch. Switching it off restores your app on the
+launch after that."*
 
-There *is* a route to a SwiftUI host app, and it is deliberately not taken. Xcode's "Right to Left
-Pseudolanguage" scheme option works by launching with `-AppleTextDirection YES` and
-`-NSForceRightToLeftWritingDirection YES`, which are resolved at launch and do reach SwiftUI;
-Scyther could write those into your standard `UserDefaults` the same way the Language page already
-writes `AppleLanguages`. It is not built because it writes into your app's defaults domain for a
-second reason, relies on an undocumented defaults key rather than a launch argument, cannot be
-undone within the session that sets it — and cannot be verified by anything in this repository. If
-you want SwiftUI mirrored today, Xcode's scheme option does it properly: **Edit Scheme → Run →
-Options → App Language → Right to Left Pseudolanguage**.
+**How each half works.** Scyther's own interface mirrors immediately because Scyther installs
+`\.layoutDirection` itself, in its own views, and can therefore change it whenever it likes. Your
+app mirrors at launch because Scyther writes `AppleTextDirection` and
+`NSForceRightToLeftWritingDirection` into your standard `UserDefaults` — the two keys Xcode's own
+**Right to Left Pseudolanguage** scheme option passes on the command line, which iOS resolves
+before any view exists and which reach UIKit and SwiftUI alike. It is the same move the Language
+page already makes with `AppleLanguages`.
+
+Switching the mode off **removes** both keys rather than setting them false, so your app goes back
+to exactly the state it was in before Scyther was asked, on its next launch. Nothing is written on
+an App Store build, and a stale key from a TestFlight build is cleared rather than kept.
+
+An earlier version tried to mirror your app through `UIView.appearance()` instead. It is gone: the
+appearance proxy stamps a view once, as the view joins a window, and never revisits it, so
+switching the mode off could not undo the views it had already stamped — and a leftover stamp
+disagreeing with SwiftUI's own layout direction makes UIKit mirror text that has already been laid
+out, which renders it backwards (`Fonts` as `stnoF`). It also never reached a SwiftUI view at all.
+The defaults keys do what it was reaching for, at the only moment it can be done properly.
 
 #### Safety and limits
 
@@ -316,17 +313,17 @@ defect the developer will spend an afternoon chasing in their own code.
   addresses. `https://example.com` stays a working link rather than becoming
   `ĥţţþš://éẋåɱþļé.çöɱ`.
 - Nothing is installed on an App Store build or under XCTest. That guard sits on the swizzle and on
-  the layout override themselves, not only on their caller, and an App Store build honours no
-  persisted mode.
+  the defaults write themselves, not only on their caller, and an App Store build honours no
+  persisted mode. The one thing an App Store build still does is *remove* a right-to-left key left
+  behind by a TestFlight build, which is the safe direction to err in.
 - The **text** of the Pseudo-localisation page and its menu row is never transformed, so the modes
   can always be switched off — there is a **Turn Everything Off** button, and a **Sample** row that
-  shows what the modes do on the one page where they do not apply. Right to Left is process-wide
-  and does flip this page along with everything else; the text stays legible, which is what the
-  exemption is for.
-- Right to Left mirrors Scyther's own interface immediately and your app's UIKit views on its next
-  launch. It does not mirror your app's SwiftUI views at all; see the table above. Switching it off
-  is immediate for Scyther's own interface too: the environment value flips back, and Scyther
-  clears the appearance proxy's stamp from its own views, which the proxy cannot do itself.
+  shows what the modes do on the one page where they do not apply. Right to Left flips this page
+  along with the rest of Scyther's interface; the text stays legible, which is what the exemption
+  is for.
+- Right to Left mirrors Scyther's own interface immediately and your whole app on its next launch,
+  in both directions; see the table above. It writes two keys into your app's standard
+  `UserDefaults` to do it, and removes them when switched off.
 
 #### Adding or correcting a translation
 
