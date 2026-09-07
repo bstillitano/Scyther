@@ -1059,17 +1059,17 @@ extension AccessibilityAuditorChecksTests {
     /// it, because the stand-in is only worth anything if it is the shape SwiftUI really produces.
     /// A `List` of `Text` vends `AccessibilityNode`s — synthetic elements, `.staticText`, no
     /// `UILabel` anywhere in the hierarchy — and every one of them has to be measured.
-    func testARealSwiftUIListIsContrastMeasuredElementByElement() {
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
-        let host = UIHostingController(rootView: List {
-            Text("Hard to read text") // scyther:unlocalised test fixture
-            Text("Another line") // scyther:unlocalised test fixture
-        })
-        window.rootViewController = host
-        window.makeKeyAndVisible()
-        host.view.frame = window.bounds
-        host.view.layoutIfNeeded()
-        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+    func testARealSwiftUIListIsContrastMeasuredElementByElement() throws {
+        // Waits for both rows to be published rather than giving SwiftUI a fixed half-second: that
+        // was long enough on the development toolchain and never long enough on CI's, which is how
+        // this test was red on every CI run since the audit landed. See `HostedSwiftUIWindow`.
+        let window = try HostedSwiftUIWindow.make(
+            hosting: List {
+                Text("Hard to read text") // scyther:unlocalised test fixture
+                Text("Another line") // scyther:unlocalised test fixture
+            },
+            isReady: { HostedSwiftUIWindow.publishedAccessibilityElementCount($0) >= 2 }
+        )
 
         let auditor = AccessibilityAuditor()
         let walked = auditor.collect(root: window)
