@@ -49,6 +49,41 @@ struct WaterfallEntry: Identifiable, Equatable, Sendable {
     /// A stub keeps its place on the timeline — it happened, and it can block or overlap real
     /// work — but its length measures the toolkit rather than the network, so the chart says so.
     let isStubbed: Bool
+
+    /// The request's host, exactly as the URL gave it, or `""` when the URL did not parse.
+    ///
+    /// Carried so the log detail page and any future grouping have the real thing to work from.
+    /// The row draws ``shortHost`` instead, because a row is 402pt wide and
+    /// `jsonplaceholder.typicode.com` is not.
+    let host: String
+
+    /// The host reduced to the one label worth reading on a row. See
+    /// ``WaterfallSeries/shortHost(for:)``.
+    let shortHost: String
+
+    /// Creates an entry.
+    ///
+    /// `host` and `shortHost` default to empty so the chart-style and time-scale tests, which
+    /// care about geometry and not about naming, can keep building entries positionally.
+    init(id: String,
+         label: String,
+         start: TimeInterval,
+         duration: TimeInterval,
+         isFailure: Bool,
+         isPending: Bool,
+         isStubbed: Bool,
+         host: String = "",
+         shortHost: String = "") {
+        self.id = id
+        self.label = label
+        self.start = start
+        self.duration = duration
+        self.isFailure = isFailure
+        self.isPending = isPending
+        self.isStubbed = isStubbed
+        self.host = host
+        self.shortHost = shortHost
+    }
 }
 
 /// The recent captured requests laid out on one shared time axis.
@@ -130,6 +165,7 @@ struct WaterfallSeries: Equatable, Sendable {
         var entries = dated.map { pair -> WaterfallEntry in
             let request = pair.request
             let didFinish = request.responseDate != nil
+            let host = request.requestURL.flatMap { URLComponents(string: $0)?.host } ?? ""
             return WaterfallEntry(
                 id: request.getRandomHash() as String,
                 label: label(for: request),
@@ -138,7 +174,9 @@ struct WaterfallSeries: Equatable, Sendable {
                 isFailure: didFinish
                     && (request.noResponse || (request.responseCode ?? 0) >= failureStatusFloor),
                 isPending: !didFinish,
-                isStubbed: request.wasStubbed
+                isStubbed: request.wasStubbed,
+                host: host,
+                shortHost: shortHost(for: host)
             )
         }
 
@@ -187,5 +225,38 @@ struct WaterfallSeries: Equatable, Sendable {
         let method = (request.requestMethod ?? "GET").uppercased()
         let path = request.requestURL.flatMap { URLComponents(string: $0)?.path } ?? ""
         return "\(method) \(path.isEmpty ? "/" : path)"
+    }
+
+    /// Host labels that name infrastructure rather than a service, so the label after them is
+    /// the one a developer recognises.
+    ///
+    /// Deliberately short. Every entry here is a label that appears in front of the real name in
+    /// ordinary deployments; a longer list starts eating names that mean something.
+    private static let genericHostLabels: Set<String> = [
+        "api", "www", "cdn", "static", "assets", "app", "m"
+    ]
+
+    /// The one label of `host` worth putting on a 402pt-wide row.
+    ///
+    /// A row has room for roughly fifteen characters of host before the path it is there to show
+    /// starts truncating, and `jsonplaceholder.typicode.com` is twenty-eight. The rule picks the
+    /// label a developer would say out loud: the first, unless the first names infrastructure
+    /// (`api.`, `cdn.`) and there is a real name behind it.
+    ///
+    /// - Parameter host: A URL's host, or `""`.
+    /// - Returns: The display label, lowercased. `""` for an empty host.
+    static func shortHost(for host: String) -> String {
+        var trimmed = host.lowercased()
+        if trimmed.hasPrefix("www.") { trimmed.removeFirst(4) }
+        guard !trimmed.isEmpty else { return "" }
+
+        let labels = trimmed.split(separator: ".").map(String.init)
+        guard labels.count > 1 else { return trimmed }
+
+        // An IPv4 address has no label worth picking — "192" names nothing.
+        if labels.allSatisfy({ $0.allSatisfy(\.isNumber) }) { return trimmed }
+
+        if labels.count >= 3, genericHostLabels.contains(labels[0]) { return labels[1] }
+        return labels[0]
     }
 }

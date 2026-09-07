@@ -271,4 +271,51 @@ final class WaterfallSeriesTests: XCTestCase {
         XCTAssertTrue(WaterfallSeries.empty.entries.isEmpty)
         XCTAssertEqual(WaterfallSeries.empty.span, 0)
     }
+
+    // MARK: - Short host
+
+    func testAGenericFirstLabelIsSkippedInFavourOfTheNameUnderIt() {
+        XCTAssertEqual(WaterfallSeries.shortHost(for: "api.ipify.org"), "ipify")
+        XCTAssertEqual(WaterfallSeries.shortHost(for: "cdn.assets.example.com"), "assets")
+    }
+
+    func testATwoLabelHostUsesItsFirstLabel() {
+        XCTAssertEqual(WaterfallSeries.shortHost(for: "httpbin.org"), "httpbin")
+    }
+
+    func testANonGenericFirstLabelIsKeptEvenWhenTheHostIsLong() {
+        XCTAssertEqual(WaterfallSeries.shortHost(for: "jsonplaceholder.typicode.com"), "jsonplaceholder")
+        XCTAssertEqual(WaterfallSeries.shortHost(for: "graphqlzero.almansi.me"), "graphqlzero")
+    }
+
+    func testALeadingWWWIsDroppedBeforeAnythingElseIsDecided() {
+        XCTAssertEqual(WaterfallSeries.shortHost(for: "www.example.com"), "example")
+    }
+
+    /// An IP address has no label worth picking — "192" names nothing.
+    func testAnIPAddressIsUsedWhole() {
+        XCTAssertEqual(WaterfallSeries.shortHost(for: "192.168.1.1"), "192.168.1.1")
+    }
+
+    func testASingleLabelHostIsUsedWhole() {
+        XCTAssertEqual(WaterfallSeries.shortHost(for: "localhost"), "localhost")
+    }
+
+    func testAnEmptyHostStaysEmptyRatherThanInventingOne() {
+        XCTAssertEqual(WaterfallSeries.shortHost(for: ""), "")
+    }
+
+    func testAnEntryCarriesTheHostItWasBuiltFrom() {
+        let request = HTTPRequest()
+        request.requestURL = "https://api.ipify.org/?format=json"
+        request.requestMethod = "GET"
+        request.requestDate = Date(timeIntervalSince1970: 0)
+        request.responseDate = Date(timeIntervalSince1970: 0.2)
+
+        let series = WaterfallSeries.build(from: [request], limit: 10,
+                                           now: Date(timeIntervalSince1970: 1))
+
+        XCTAssertEqual(series.entries.first?.host, "api.ipify.org")
+        XCTAssertEqual(series.entries.first?.shortHost, "ipify")
+    }
 }
