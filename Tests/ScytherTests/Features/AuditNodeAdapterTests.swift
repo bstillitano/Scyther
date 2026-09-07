@@ -197,8 +197,10 @@ final class AuditNodeAdapterTests: XCTestCase {
     /// anything and `accessibilityElementCount()` answers `0` for every real view in microseconds
     /// — the exact call that costs a recursive subtree walk on a device costs nothing here. This
     /// class puts the cost back where the test host removed it, by counting the calls instead of
-    /// timing them. Zero calls is the whole fix: on a device each one of them is a recursive walk
-    /// of everything below the view, paid before the auditor's node cap is ever consulted.
+    /// timing them. Note what overriding the pair *means*, though: this class is by definition a
+    /// custom accessibility container, so the walk is right to read it through the pair. What must
+    /// never happen is a *stock* class being asked, because a stock class inherits `NSObject`'s
+    /// implementation — the recursive subtree walk that hung the app.
     private final class ComputingView: UIView {
         /// How many times any instance has been asked to compute its accessibility children.
         static var computations = 0
@@ -219,9 +221,23 @@ final class AuditNodeAdapterTests: XCTestCase {
         }
     }
 
-    /// The regression test for the hang: a plain view is never asked to compute its accessibility
-    /// children, because on a device that single call recursively walks everything beneath it.
-    func testAPlainViewIsNeverAskedToComputeItsAccessibilityChildren() {
+    /// The regression test for the hang, pointed at the rule that now prevents it.
+    ///
+    /// "Has no subviews" used to be the condition for asking a view to compute its accessibility
+    /// children, and it was wrong in both directions: it missed every custom container that owns a
+    /// single subview, and it sent every ordinary leaf view — the most numerous node on any screen
+    /// — into the one call that is expensive. The condition is now whether the class implements the
+    /// `UIAccessibilityContainer` pair at all, so `ComputingView`, which does, is read through it,
+    /// and the hundred `UILabel`s here, which do not, are never asked at all. The hang is shut by
+    /// the second half of that: a class that has not overridden the pair inherits `NSObject`'s
+    /// implementation, and that is the one that walks the whole subtree.
+    ///
+    /// What this cannot assert is how many nodes came back. A bare `xctest` process has no
+    /// accessibility client, so `isAccessibilityElement` answers `false` for every real `UILabel`
+    /// here and the walk collects nothing whatever the rule is — an assertion on the count would
+    /// pass for the wrong reason. The call counter and the class predicate are the two things this
+    /// environment can actually see.
+    func testOnlyAViewWhoseClassImplementsThePairIsAskedToComputeItsChildren() {
         ComputingView.computations = 0
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
         // A hidden window is skipped whole, and this test needs the walk to actually descend.
@@ -240,8 +256,11 @@ final class AuditNodeAdapterTests: XCTestCase {
 
         _ = AccessibilityAuditor().collect(root: window)
 
-        XCTAssertEqual(ComputingView.computations, 0,
-                       "asking a UIView for its accessibility children makes UIAccessibility compute its whole subtree")
+        XCTAssertGreaterThan(ComputingView.computations, 0,
+                             "a class that implements the pair is read through it, subviews or not")
+        XCTAssertFalse(declaresAccessibilityElements(UILabel.self),
+                       "a stock class inherits the implementation that walks the whole subtree, and is never asked")
+        XCTAssertTrue(declaresAccessibilityElements(ComputingView.self))
     }
 
     /// Stopping short of `accessibilityElementCount()` must not cost the walk the elements it is

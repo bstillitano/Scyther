@@ -71,4 +71,50 @@ final class ScytherPresentationTests: XCTestCase {
     func testTheChainOverNothingIsEmpty() {
         XCTAssertTrue(ScytherPresentation.presentedControllers(over: nil).isEmpty)
     }
+
+    // MARK: - Which transform belongs to the presentation
+
+    /// The measurement correction has to be the presentation's transform and not the app's, and
+    /// the presenting view controller's root view is the line between them. A drawer, a zoom
+    /// container or any other transform the app applies sits *below* that view, so it is not a
+    /// candidate — the previous rule took the outermost transform anywhere in the chain and
+    /// therefore deleted exactly those.
+    func testATransformBelowThePresentingViewIsNotThePresentations() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        let presenting = UIView(frame: window.bounds)
+        window.addSubview(presenting)
+        let drawer = UIView(frame: window.bounds)
+        presenting.addSubview(drawer)
+        drawer.transform = CGAffineTransform(scaleX: 0.83, y: 0.83)
+
+        XCTAssertNil(ScytherPresentation.highestTransformedView(atOrAbove: presenting))
+    }
+
+    /// And what it does find: UIKit scales the presenting view controller's view, or a container
+    /// it wraps it in, so the presenting view itself and everything above it are the candidates.
+    func testTheTransformOnAndAboveThePresentingViewIsThePresentations() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        let wrapper = UIView(frame: window.bounds)
+        window.addSubview(wrapper)
+        let presenting = UIView(frame: window.bounds)
+        wrapper.addSubview(presenting)
+        presenting.transform = CGAffineTransform(scaleX: 0.92, y: 0.92)
+
+        XCTAssertTrue(ScytherPresentation.highestTransformedView(atOrAbove: presenting) === presenting)
+
+        wrapper.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+
+        XCTAssertTrue(ScytherPresentation.highestTransformedView(atOrAbove: presenting) === wrapper)
+    }
+
+    /// A window's own transform moves the whole screen rather than the app inside it, so removing
+    /// it would not be a correction of anything.
+    func testAWindowsOwnTransformIsNeverThePresentations() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.transform = CGAffineTransform(scaleX: 0.5, y: 0.5)
+        let presenting = UIView(frame: window.bounds)
+        window.addSubview(presenting)
+
+        XCTAssertNil(ScytherPresentation.highestTransformedView(atOrAbove: presenting))
+    }
 }

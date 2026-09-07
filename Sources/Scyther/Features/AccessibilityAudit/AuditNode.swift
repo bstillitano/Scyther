@@ -259,6 +259,175 @@ private func clippedRegion(for view: UIView,
     return region
 }
 
+/// How many views one occlusion query may look at before it gives up.
+///
+/// The query runs per node inside a 0.25s budget and its worst case is quadratic — for each node it
+/// looks at the siblings drawn after every ancestor — so it is bounded rather than trusted. Giving
+/// up answers "not occluded", which keeps the node: the safe direction, because an unwanted finding
+/// is a nuisance and a silently dropped element is a screen certified clean that is not.
+private let maximumOcclusionCandidates = 200
+
+/// How deep an occlusion query descends into a covering view looking for its opaque material.
+///
+/// A bar does not paint itself: `UINavigationBar` draws through a `_UIBarBackground` holding a
+/// `UIVisualEffectView`, and SwiftUI nests its materials just as deep. Four or five levels reaches
+/// every real one; a limit stops a covering view with a large subtree from being walked in full.
+private let maximumOcclusionDepth = 6
+
+/// How many subviews are considered when asking whether a non-clipping container still has content
+/// on screen.
+///
+/// Bounded because it is asked of every container the region test rejects, which on a long list is
+/// every recycled cell. A container with more subviews than this that keeps its visible content
+/// beyond the cut is pruned, exactly as it was before.
+private let maximumEscapeCandidates = 64
+
+/// Whether something opaque is drawn on top of `frame`, hiding it from the developer and from the
+/// contrast sampler alike.
+///
+/// ``clippedRegion(for:in:window:includingOwnClip:)`` handles clipping and only clipping. It has no
+/// notion of a *sibling* drawn over the node, and that is a real false positive measured on device:
+/// a SwiftUI `List` fills the window and scrolls its content under the navigation bar, so a caption
+/// behind the bar is inside the scroll view's bounds, inside the window, and reported at 1.04:1
+/// from `#0A0A0A` on `#040404` — the bar's own near-black material, faithfully sampled from a
+/// perfectly accurate frame. It is equally wrong for the other checks: a control parked behind a
+/// bar cannot be tapped, so its touch target and its missing label are not defects the developer
+/// can act on.
+///
+/// The rule is deliberately conservative, because a wrong skip is invisible in the report. A view
+/// occludes only when it is drawn *after* one of the node's ancestors in that ancestor's own
+/// `subviews` order, is unhidden and effectively opaque, **fully contains** the node's frame, and
+/// is not one of Scyther's own overlays. Partial overlap is not occlusion — culling everything a
+/// bar merely touches would throw away the top row of every scrolling screen there is.
+///
+/// Known limits, stated rather than hidden: `layer.zPosition` is not consulted, so a view reordered
+/// by z rather than by index is missed; and a cover that is neither a later sibling of an ancestor
+/// nor inside one is not found.
+///
+/// Two things keep the cost down, because this runs per node inside a 0.25s budget and its shape is
+/// quadratic. Siblings are examined topmost-first, since a bar or an overlay is the thing added
+/// last and is what the query is looking for — so the budget, when it runs out, has already spent
+/// itself on the likeliest covers rather than on the row below. And each level converts the node's
+/// frame into that level's own coordinate space *once*, so the per-sibling test is a plain `frame`
+/// read rather than a UIKit conversion; only a sibling that passes that pre-filter is measured
+/// properly. A transformed sibling's `frame` is UIKit's bounding box of its transformed bounds,
+/// which is the same rectangle the accurate test computes, so the pre-filter does not lose one.
+///
+/// - Parameters:
+///   - view: The view whose position in the hierarchy decides what is drawn over it. For a
+///     synthetic element this is the view that vends it, since that is where it is drawn.
+///   - frame: The node's frame, in `space`.
+///   - space: The coordinate space `frame` is expressed in, or `nil` for window coordinates — see
+///     ``ScytherPresentation/untransformedMeasurementSpace(for:)``.
+/// - Returns: `true` when the node is completely covered.
+@MainActor
+private func isOccluded(_ view: UIView, frame: CGRect, measuredIn space: UIView?) -> Bool {
+    guard !frame.isEmpty else { return false }
+    var budget = maximumOcclusionCandidates
+    var node = view
+    var steps = 0
+    while let parent = node.superview, steps < maximumAncestryDepth {
+        let subviews = parent.subviews
+        guard let index = subviews.firstIndex(where: { $0 === node }) else { return false }
+        let inParent = parent.convert(frame, from: space)
+        for sibling in subviews[subviews.index(after: index)...].reversed() {
+            guard sibling.frame.contains(inParent) else { continue }
+            if covers(sibling, frame: frame, measuredIn: space, budget: &budget, depth: 0) {
+                return true
+            }
+            guard budget > 0 else { return false }
+        }
+        node = parent
+        steps += 1
+    }
+    return false
+}
+
+/// Whether `view`, or something inside it, paints over the whole of `frame`.
+///
+/// Recursive because the view that *contains* the frame is rarely the view that *paints* it: a bar
+/// is a transparent container holding a background view holding a blur. The recursion only ever
+/// descends into a view that already contains the frame, so a subtree that cannot be covering it is
+/// never entered.
+///
+/// - Parameters:
+///   - view: The candidate cover.
+///   - frame: The node's frame, in `space`.
+///   - space: The coordinate space `frame` is expressed in, or `nil` for window coordinates.
+///   - budget: How many more views this query may look at; decremented as it goes.
+///   - depth: How far this call has descended into the candidate.
+/// - Returns: `true` when the candidate covers the frame with something opaque.
+@MainActor
+private func covers(_ view: UIView,
+                    frame: CGRect,
+                    measuredIn space: UIView?,
+                    budget: inout Int,
+                    depth: Int) -> Bool {
+    guard budget > 0, depth <= maximumOcclusionDepth else { return false }
+    budget -= 1
+    guard !view.isHidden, view.alpha > 0.99 else { return false }
+    guard view.auditFrame(measuredIn: space).contains(frame) else { return false }
+    guard !view.isScytherOwned else { return false }
+    if drawsOpaqueMaterial(view) { return true }
+    for subview in view.subviews where covers(subview,
+                                              frame: frame,
+                                              measuredIn: space,
+                                              budget: &budget,
+                                              depth: depth + 1) {
+        return true
+    }
+    return false
+}
+
+/// Whether a view paints something the content behind it cannot be read through.
+///
+/// `isOpaque` is not the test: it defaults to `true` on every `UIView` in the process, including
+/// the thousands that paint nothing at all, so trusting it would cull most of a screen. What a view
+/// *draws* is the honest question, and there are two answers that matter. A background colour at
+/// full alpha is one. A `UIVisualEffectView` is the other: a material blurs what is behind it into
+/// itself, which is precisely why the contrast sampler reads the material's own near-black instead
+/// of the text it was aimed at.
+///
+/// - Parameter view: The view to test.
+/// - Returns: `true` when it paints over what is behind it.
+@MainActor
+private func drawsOpaqueMaterial(_ view: UIView) -> Bool {
+    if view is UIVisualEffectView { return true }
+    guard let colour = view.backgroundColor else { return false }
+    return colour.cgColor.alpha > 0.99
+}
+
+/// Whether a container that is itself out of view still has content the developer can see.
+///
+/// The walk prunes a whole subtree when its container is not visible, justified by "a subview
+/// cannot be visible through a container that is not". ``clippedRegion(for:in:window:includingOwnClip:)``
+/// says the opposite in code, and is right to: it intersects only `clipsToBounds` ancestors,
+/// because UIKit draws the subviews of a non-clipping view wherever they are laid out. The two
+/// rules disagreed exactly where it costs something — a stretchy or parallax header laid out above
+/// the window with its content pinned back into view, or an anchor view kept off canvas for
+/// constraints, lost every child.
+///
+/// So a container that does not clip is asked one further question before its subtree is thrown
+/// away. A container that *does* clip is not: nothing inside it can be drawn beyond it, which is
+/// the same rule the region function applies.
+///
+/// - Parameters:
+///   - view: The container whose own frame missed the visible region.
+///   - region: The visible region, in `space`.
+///   - space: The coordinate space to measure in, or `nil` for window coordinates.
+/// - Returns: `true` when a subview of it can still be seen.
+@MainActor
+private func vendsContentOutsideItsOwnFrame(_ view: UIView,
+                                            region: CGRect,
+                                            measuredIn space: UIView?) -> Bool {
+    guard !view.clipsToBounds, !region.isNull, !region.isEmpty else { return false }
+    for subview in view.subviews.prefix(maximumEscapeCandidates) {
+        guard !subview.isHidden, subview.alpha > 0.01 else { continue }
+        if region.intersects(subview.auditFrame(measuredIn: space)) { return true }
+    }
+    return false
+}
+
 // MARK: - Accessibility children
 
 /// The children of a real `UIView`, without ever asking UIAccessibility to compute them.
@@ -280,14 +449,24 @@ private func clippedRegion(for view: UIView,
 /// elements has *set* it. A view that has not set it has nothing to say that `subviews` does not,
 /// so the walk descends the view hierarchy instead and lets each subview answer for itself.
 ///
-/// The one case that exception loses is a view with **no subviews at all** — Apple's documented
-/// custom-container pattern (`UIAccessibilityContainer.h`): a chart, seat map, calendar grid or
-/// keypad that draws its content in `draw(_:)` and vends one `UIAccessibilityElement` per datum
-/// from `accessibilityElement(at:)` without ever setting `accessibilityElements`. Reading only
+/// The one case that exception loses is Apple's documented custom-container pattern
+/// (`UIAccessibilityContainer.h`): a chart, seat map, calendar grid or keypad that draws its
+/// content in `draw(_:)` and vends one `UIAccessibilityElement` per datum from
+/// `accessibilityElement(at:)` without ever setting `accessibilityElements`. Reading only
 /// `subviews` there collects nothing and reports the screen clean, for precisely the kind of
-/// hand-rolled view where accessibility defects actually live. Such a view is asked, and only such
-/// a view: the cost the exception exists to avoid is UIAccessibility descending the view's
-/// *subtree*, and a view with no subviews has no subtree to descend.
+/// hand-rolled view where accessibility defects actually live.
+///
+/// Such a view is asked, and only such a view — but "such a view" is decided by
+/// ``declaresAccessibilityElements(_:)``, not by having no subviews. The subview count was the
+/// wrong discriminator in both directions. It missed every container with a single subview: a chart
+/// with a title label, a seat map with a background image, a cell that vends its drawn sub-parts
+/// while holding a selected-background view, `MKMapView`. And it sent every *other* leaf — the
+/// decorative views, spacers and drawing layers that are the most numerous nodes on any screen —
+/// into the one call that is expensive, because a view with no subviews is exactly what most nodes
+/// are. Asking whether the class overrides the pair at all is a memoised dictionary lookup, it is
+/// what "this view has something of its own to say" actually means, and it keeps the hang shut: a
+/// class that has not overridden the pair inherits `NSObject`'s implementation, which is the one
+/// that descends the whole view subtree, and it is never called.
 ///
 /// "Set" means set, including set to `[]`. Assigning an empty array is the documented way an app
 /// says "this container vends nothing, ignore what is inside me", and testing `!isEmpty` turned
@@ -303,26 +482,75 @@ private func clippedRegion(for view: UIView,
 ///
 /// - Parameter view: The view to read children from.
 /// - Returns: Nothing when the view hides its contents; its `accessibilityElements` when it has
-///   set them; the elements it declares when it has no subviews; its `subviews` otherwise.
+///   set them; the elements it declares when its class declares any; its `subviews` otherwise.
 @MainActor
 private func viewChildren(of view: UIView) -> [AuditNode] {
     if view.accessibilityElementsHidden { return [] }
     if let elements = view.accessibilityElements {
         return auditNodes(from: elements)
     }
-    let subviews = view.subviews
-    guard subviews.isEmpty else { return honouringModality(subviews) }
-    return declaredElements(of: view)
+    if declaresAccessibilityElements(type(of: view)) {
+        let declared = declaredElements(of: view)
+        if !declared.isEmpty { return declared }
+    }
+    return honouringModality(view.subviews,
+                             searchingDescendants: isWithinReachOfTheWindow(view))
+}
+
+/// The answer ``declaresAccessibilityElements(_:)`` has already worked out for a class.
+///
+/// Sound because a class's method table does not change once it is realised, and bounded because a
+/// process contains a fixed set of classes.
+@MainActor
+private var declaringClasses: [ObjectIdentifier: Bool] = [:]
+
+/// Whether a class implements the `UIAccessibilityContainer` pair itself.
+///
+/// This is the discriminator that decides whether a view is ever asked to hand over its
+/// accessibility children, and the whole hang turns on it. `accessibilityElementCount()` and
+/// `accessibilityElement(at:)` are declared on `NSObject`, so *every* object answers them — and
+/// `NSObject`'s implementation is the one that computes an accessibility subtree on the spot
+/// (`-[NSObject(AXPrivCategory) _accessibilityElements]`, the frame this repo's own hang sample is
+/// full of). A class that has overridden them answers from something it already holds instead.
+///
+/// Comparing implementation pointers against `NSObject`'s is exactly that question, asked of the
+/// runtime rather than guessed at from the shape of the hierarchy, and it is one dictionary lookup
+/// per node after the first view of each class. The selectors are built by name because
+/// `#selector` needs a Swift declaration to point at and these are informal-protocol methods on
+/// `NSObject`; the names are the ones in `UIAccessibilityContainer.h` and cannot change without
+/// breaking every app that implements them.
+///
+/// - Parameter type: The class to test.
+/// - Returns: `true` when it, or a superclass below `NSObject`, implements either method.
+@MainActor
+internal func declaresAccessibilityElements(_ type: AnyClass) -> Bool {
+    let key = ObjectIdentifier(type)
+    if let known = declaringClasses[key] { return known }
+    let declares = accessibilityContainerSelectors.contains { selector in
+        class_getMethodImplementation(type, selector) != class_getMethodImplementation(NSObject.self, selector)
+    }
+    declaringClasses[key] = declares
+    return declares
+}
+
+/// The two methods `UIAccessibilityContainer.h` documents a custom container as implementing.
+///
+/// Computed rather than stored because a `Selector` is a runtime handle rather than a value Swift 6
+/// will let a global hold across actors; it is resolved once per class, not once per node.
+private var accessibilityContainerSelectors: [Selector] {
+    [NSSelectorFromString("accessibilityElementCount"),
+     NSSelectorFromString("accessibilityElementAtIndex:")]
 }
 
 /// The children a view vends through `accessibilityElementCount()`/`accessibilityElement(at:)`.
 ///
-/// Only ever called for a view with no subviews — see `viewChildren(of:)` for why that condition
-/// is what makes asking safe. The count is sanity-checked rather than trusted: `NSObject`'s default
-/// implementation answers `NSNotFound` when it has nothing to say, and iterating that would be a
-/// hang dressed up as a loop, so anything absurd is treated as "vends nothing".
+/// Only ever called for a view whose class implements that pair — see `viewChildren(of:)` and
+/// ``declaresAccessibilityElements(_:)`` for why that condition is what makes asking safe. The
+/// count is sanity-checked rather than trusted: `NSObject`'s default implementation answers
+/// `NSNotFound` when it has nothing to say, and iterating that would be a hang dressed up as a
+/// loop, so anything absurd is treated as "vends nothing".
 ///
-/// - Parameter view: The leaf view to ask.
+/// - Parameter view: The view to ask.
 /// - Returns: The elements it vends, or `[]` when it vends none.
 @MainActor
 private func declaredElements(of view: UIView) -> [AuditNode] {
@@ -335,10 +563,15 @@ private func declaredElements(of view: UIView) -> [AuditNode] {
 /// The most elements a container is believed when it says it vends.
 ///
 /// `NSNotFound` is the value that matters — `accessibilityElementCount()`'s documented "nothing to
-/// report" answer, and `Int.max` to a `for` loop. The number itself is chosen to be far larger than
-/// any real container (``AccessibilityAuditor/maximumNodes`` would stop the walk long before) and
-/// far smaller than an accident.
-private let maximumDeclaredElements = 100_000
+/// report" answer, and `Int.max` to a `for` loop. The size is ``AccessibilityAuditor/maximumNodes``
+/// because that is the honest ceiling: the whole array is materialised inside a single
+/// ``AuditNode/children`` read, before ``AccessibilityAuditor/collect(root:)`` can count a node or
+/// read the clock even once, so a limit larger than the walk's own budget is a cap that cannot fire
+/// before the thing it is capping has already happened. A container that really does claim more
+/// elements than the entire walk can hold is not believed, and the walk would have truncated inside
+/// it in any case.
+@MainActor
+private var maximumDeclaredElements: Int { AccessibilityAuditor.maximumNodes }
 
 /// Wraps a container's accessibility children, honouring any modal among them.
 ///
@@ -362,23 +595,112 @@ private func auditNodes(from objects: [Any]) -> [AuditNode] {
 /// others.
 ///
 /// A modal that cannot be seen does not suppress anything. Apps routinely keep a dismissed dialog
-/// around hidden or at zero alpha, and honouring the flag on one of those would silently empty the
-/// audit for the whole screen — the worst possible failure for a tool whose output is a list of
-/// what is wrong, since an empty list reads as "nothing is". A non-view element has no visibility
-/// of its own to read and is taken at its word, exactly as ``AccessibilityElementNode/isVisible``
-/// takes it.
+/// around hidden, at zero alpha, animated off the window edge or laid out at zero size, and
+/// honouring the flag on one of those silently empties the audit for the whole screen — the worst
+/// possible failure for a tool whose output is a list of what is wrong, since an empty list reads
+/// as "nothing is". That is not a hypothetical: this filter used to decide a modal was live with
+/// `!isHidden && alpha > 0.01` while the walk decided visibility with a stricter rule that also
+/// culls off-window and clipped content, so a parked sheet passed the first test, discarded every
+/// sibling, and was then culled by the second — an empty report under a green tick. There is one
+/// visibility rule now, ``AuditNode/isVisible``, and this asks it.
 ///
-/// - Parameter children: One container's children, in order.
+/// - Parameters:
+///   - children: One container's children, in order.
+///   - searchingDescendants: Whether a child that merely *contains* a modal counts as one. See
+///     `containsLiveModal(_:budget:depth:)` for why that is asked only near the window.
 /// - Returns: Just the modal child when there is one, all of them otherwise.
 @MainActor
-private func honouringModality<Element: NSObject>(_ children: [Element]) -> [Element] {
+private func honouringModality<Element: NSObject>(_ children: [Element],
+                                                  searchingDescendants: Bool = false) -> [Element] {
     let modal = children.last { child in
-        guard child.accessibilityViewIsModal else { return false }
-        guard let view = child as? UIView else { return true }
-        return !view.isHidden && view.alpha > 0.01
+        if isLiveModal(child) { return true }
+        guard searchingDescendants, let view = child as? UIView else { return false }
+        var budget = maximumModalSearchNodes
+        return containsLiveModal(view, budget: &budget, depth: 0)
     }
     guard let modal else { return children }
     return [modal]
+}
+
+/// Whether an object claims modality *and* can actually be seen.
+///
+/// One rule, asked of the same ``AuditNode/isVisible`` the walk uses, so a modal this filter honours
+/// can never be a node the walk then throws away. A non-view element has no `isHidden` or `alpha` of
+/// its own; ``AccessibilityElementNode/isVisible`` answers for it on the same terms as everything
+/// else, which is where its container is drawn.
+///
+/// - Parameter object: The child to test.
+/// - Returns: `true` when it is a live modal.
+@MainActor
+private func isLiveModal(_ object: NSObject) -> Bool {
+    guard object.accessibilityViewIsModal else { return false }
+    return auditNode(wrapping: object)?.isVisible ?? true
+}
+
+/// Whether a live modal is buried somewhere inside `view`.
+///
+/// UIKit resolves modality against the whole window, and apps put the flag where it belongs — on
+/// the dialog — while adding the dialog inside a dimming container, or letting UIKit put a
+/// presented controller's view inside a `UITransitionView`. Inspecting one container's immediate
+/// children sees the flag in neither shape, so the entire screen behind a dialog was audited and
+/// boxed: findings about controls no assistive-technology user can land on, drawn behind the thing
+/// covering them.
+///
+/// Two bounds keep this from becoming the walk's dominant cost, because reading
+/// `accessibilityViewIsModal` is a string-keyed dictionary lookup behind a dispatch barrier rather
+/// than an ivar read. It is asked only of containers within `maximumModalContainerDepth` of the
+/// window — the only place a full-screen presentation can be attached — and it looks at no more
+/// than `maximumModalSearchNodes` views per container. A dialog buried deeper than that is not
+/// found, which is precisely the behaviour this replaces rather than a new loss.
+///
+/// - Parameters:
+///   - view: The subtree to search. The view itself has already been tested by the caller.
+///   - budget: How many more views this search may look at; decremented as it goes.
+///   - depth: How far this call has descended.
+/// - Returns: `true` when something inside it is a live modal.
+@MainActor
+private func containsLiveModal(_ view: UIView, budget: inout Int, depth: Int) -> Bool {
+    guard budget > 0, depth < maximumModalSearchDepth else { return false }
+    for subview in view.subviews {
+        budget -= 1
+        guard budget > 0 else { return false }
+        if isLiveModal(subview) { return true }
+        if containsLiveModal(subview, budget: &budget, depth: depth + 1) { return true }
+    }
+    return false
+}
+
+/// How deep a modal search descends into one child.
+private let maximumModalSearchDepth = 6
+
+/// How many views a modal search looks at inside one container.
+private let maximumModalSearchNodes = 64
+
+/// How far from the window a container may be and still have its descendants searched for a modal.
+///
+/// A modal presentation is attached at or near the window: the window's own subviews, or one
+/// `UITransitionView` below them, or a dimming container an app adds to the window itself. Deeper
+/// than that and a "modal" is a component's own dialog, whose siblings are its own subtree rather
+/// than the screen.
+private let maximumModalContainerDepth = 3
+
+/// Whether `view` is the window or sits within `maximumModalContainerDepth` of it.
+///
+/// A handful of pointer dereferences, and it is what keeps the descendant search off the thousands
+/// of containers deeper in a screen where it would cost an accessibility read per subview.
+///
+/// - Parameter view: The container about to have its children filtered.
+/// - Returns: `true` when a full-screen modal could be attached here.
+@MainActor
+private func isWithinReachOfTheWindow(_ view: UIView) -> Bool {
+    var current: UIView? = view
+    var steps = 0
+    while let node = current, steps <= maximumModalContainerDepth {
+        if node is UIWindow { return true }
+        current = node.superview
+        steps += 1
+    }
+    return false
 }
 
 /// The children of a synthetic accessibility element — an `NSObject` that is not a `UIView`.
@@ -467,29 +789,54 @@ extension UIView: AuditNode {
     /// app's own transforms sit below it and still apply, because a control an app really does
     /// draw at half scale really is half the size.
     var frameInWindow: CGRect {
+        auditFrame(measuredIn: ScytherPresentation.untransformedMeasurementSpace(for: self))
+    }
+
+    /// This view's geometry in an already-resolved measurement space.
+    ///
+    /// Split out of ``frameInWindow`` because resolving that space is a fact about the *screen*
+    /// that the walk was paying for three times per node — once in `isVisible`, once in the
+    /// `frameInWindow` inside it, and once in the walk's own read — and each of those went on to
+    /// walk the presented view-controller chain. Everything that needs several frames in the same
+    /// space now resolves it once and passes it down, which is also the only way the region, the
+    /// frame and any occluding view are guaranteed to be compared in the same coordinates.
+    ///
+    /// - Parameter space: The space to measure in, or `nil` for window coordinates.
+    /// - Returns: The view's bounds converted into that space.
+    fileprivate func auditFrame(measuredIn space: UIView?) -> CGRect {
         guard superview != nil else { return bounds }
-        guard let space = ScytherPresentation.untransformedMeasurementSpace(for: self) else {
-            return convert(bounds, to: nil)
-        }
+        guard let space else { return convert(bounds, to: nil) }
         return convert(bounds, to: space)
     }
 
     /// Whether any of this view can actually be seen.
     ///
     /// Hidden and near-zero alpha are the easy half: they show nothing for VoiceOver or a sighted
-    /// user to perceive, so they are excluded the same way a `0`-sized frame is. The other half is
-    /// being on screen at all — see `clippedRegion(for:in:window:includingOwnClip:)` for the
-    /// recycled cells, parked screens and clipped carousels this used to report. A node with
-    /// nothing left is skipped along with everything below it, which is sound: a subview cannot be
-    /// visible through a container that is not.
+    /// user to perceive, so they are excluded the same way a `0`-sized frame is. The rest is three
+    /// separate ways of not being on screen, and the walk prunes the whole subtree below any of
+    /// them:
+    ///
+    /// - **Clipped or off the window.** See `clippedRegion(for:in:window:includingOwnClip:)` for
+    ///   the recycled cells, parked screens and clipped carousels this used to report.
+    /// - **Laid out beyond a container that does not clip.** The subtree is *not* pruned in that
+    ///   case, because UIKit draws such a container's subviews wherever they are laid out — see
+    ///   `vendsContentOutsideItsOwnFrame(_:region:measuredIn:)`, which is what makes this rule and
+    ///   the region rule agree instead of contradict each other.
+    /// - **Covered by something drawn on top.** See `isOccluded(_:frame:measuredIn:)`; this is the
+    ///   caption scrolled under a navigation bar that was measured against the bar's own material.
     ///
     /// A view with no window is not clipped by anything and cannot be off the edge of anything, so
     /// it stays visible. That is the not-yet-installed case, and every unit test's case.
     var isVisible: Bool {
         guard !isHidden, alpha > 0.01 else { return false }
         guard let window else { return true }
-        let space = ScytherPresentation.untransformedMeasurementSpace(for: self) ?? window
-        return clippedRegion(for: self, in: space, window: window).intersects(frameInWindow)
+        let correction = ScytherPresentation.untransformedMeasurementSpace(for: self)
+        let region = clippedRegion(for: self, in: correction ?? window, window: window)
+        let frame = auditFrame(measuredIn: correction)
+        guard region.intersects(frame) else {
+            return vendsContentOutsideItsOwnFrame(self, region: region, measuredIn: correction)
+        }
+        return !isOccluded(self, frame: frame, measuredIn: correction)
     }
 
     /// Scyther's overlays live inside the app's own key window, so recognising them can't rely
@@ -562,10 +909,25 @@ struct AccessibilityElementNode: AuditNode {
               let window = container.window else {
             return element.accessibilityFrame
         }
+        return frame(in: window,
+                     measuredIn: ScytherPresentation.untransformedMeasurementSpace(for: container))
+    }
+
+    /// The element's frame, given a container's window and an already-resolved measurement space.
+    ///
+    /// Split out for the same reason `auditFrame(measuredIn:)` is: `isVisible` needs the
+    /// frame *and* the region *and* any occluding view expressed in one space, and resolving that
+    /// space — along with the container view at the top of this element's container chain — used to
+    /// be repeated for each of them. A synthetic element paid it worst: `isVisible` resolved the
+    /// container, then called `frameInWindow`, which resolved the whole chain again.
+    ///
+    /// - Parameters:
+    ///   - window: The window the container is installed in.
+    ///   - space: The space to measure in, or `nil` for window coordinates.
+    /// - Returns: The element's frame in that space.
+    private func frame(in window: UIWindow, measuredIn space: UIView?) -> CGRect {
         let inWindow = window.convert(element.accessibilityFrame, from: window.screen.coordinateSpace)
-        guard let space = ScytherPresentation.untransformedMeasurementSpace(for: container) else {
-            return inWindow
-        }
+        guard let space else { return inWindow }
         return space.convert(inWindow, from: window)
     }
 
@@ -581,14 +943,24 @@ struct AccessibilityElementNode: AuditNode {
     /// clipping, since the element is drawn *inside* it rather than beside it. An element whose
     /// container resolves to no window keeps the old answer: there is nothing to be off the edge
     /// of, and the tests build exactly that shape.
+    ///
+    /// Occlusion is asked against the container as well, and for the same reason: an element is
+    /// drawn where its container is, so anything painted over that spot hides the element too. That
+    /// is how a SwiftUI caption scrolled under a navigation bar is skipped rather than measured
+    /// against the bar's material.
     var isVisible: Bool {
         guard let container = resolveContainerView(forContainerChainOf: element),
               let window = container.window else {
             return true
         }
-        let space = ScytherPresentation.untransformedMeasurementSpace(for: container) ?? window
-        let region = clippedRegion(for: container, in: space, window: window, includingOwnClip: true)
-        return region.intersects(frameInWindow)
+        let correction = ScytherPresentation.untransformedMeasurementSpace(for: container)
+        let region = clippedRegion(for: container,
+                                   in: correction ?? window,
+                                   window: window,
+                                   includingOwnClip: true)
+        let frame = frame(in: window, measuredIn: correction)
+        guard region.intersects(frame) else { return false }
+        return !isOccluded(container, frame: frame, measuredIn: correction)
     }
 
     /// Exactly the same rule as `UIView.isScytherOwned`, and deliberately the same walk: a

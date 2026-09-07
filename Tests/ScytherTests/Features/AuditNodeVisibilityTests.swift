@@ -13,10 +13,12 @@ import XCTest
 @MainActor
 final class AuditNodeVisibilityTests: XCTestCase {
 
-    /// Puts the coverage probe back after a test has replaced it, so one test cannot leave every
-    /// later one measuring in a presentation space that is not there.
+    /// Puts the presentation probe back after a test has replaced it, so one test cannot leave
+    /// every later one measuring in a presentation space that is not there.
     override func tearDown() {
-        ScytherPresentation.isCoveringScreenProbe = { ScytherPresentation.isCoveringScreen }
+        ScytherPresentation.presentationMeasurementSpaceProbe = {
+            ScytherPresentation.presentationMeasurementSpace()
+        }
         super.tearDown()
     }
 
@@ -100,6 +102,63 @@ final class AuditNodeVisibilityTests: XCTestCase {
         XCTAssertTrue((banner as AuditNode).children.isEmpty)
     }
 
+    /// The two visibility rules had to become one. `honouringModality` decided a modal was live
+    /// with `!isHidden && alpha > 0.01`; the walk decided visibility with a stricter rule that also
+    /// culls off-window and clipped content. A custom sheet left in the hierarchy at
+    /// `translationX: 0, y: 900` passes the first and fails the second, so every sibling was
+    /// discarded in its favour and it was then culled itself — an empty report, `didHitLimit`
+    /// false, and a green "Every enabled check passed" over a screen nothing looked at.
+    func testAModalThatTheWalkWouldCullDoesNotHideItsSiblings() {
+        let window = testWindow()
+        let root = UIView(frame: window.bounds)
+        window.addSubview(root)
+        let content = UIView(frame: window.bounds)
+        let parked = UIView(frame: CGRect(x: 20, y: 900, width: 350, height: 200))
+        parked.accessibilityViewIsModal = true
+        root.addSubview(content)
+        root.addSubview(parked)
+
+        XCTAssertEqual((root as AuditNode).children.count, 2)
+    }
+
+    /// Apps set `accessibilityViewIsModal` where it belongs — on the dialog — and add the dialog
+    /// inside a dimming container, or let UIKit put a presented controller's view inside a
+    /// `UITransitionView`. A filter that only inspects one container's immediate children never
+    /// sees the flag in either shape, and audits the whole screen behind the dialog.
+    func testAModalNestedInsideAContainerHidesTheContainersSiblings() {
+        let window = testWindow()
+        let behind = UIView(frame: window.bounds)
+        let dimming = UIView(frame: window.bounds)
+        let dialog = UIView(frame: CGRect(x: 20, y: 300, width: 350, height: 200))
+        dialog.accessibilityViewIsModal = true
+        dimming.addSubview(dialog)
+        window.addSubview(behind)
+        window.addSubview(dimming)
+
+        let children = (window as AuditNode).children
+
+        XCTAssertEqual(children.count, 1)
+        XCTAssertTrue(children.first as? UIView === dimming)
+    }
+
+    /// `accessibilityElementsHidden` hides the elements *contained within* a node, not the node
+    /// itself. Characterisation rather than regression — the walk already had this right — but
+    /// nothing pinned the second half of it, and the card pattern is only correct if the card is
+    /// still checked after its six fragments are dropped.
+    func testAViewThatHidesItsContentsIsStillCheckedItself() {
+        let root = UIView(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        let card = UIView(frame: CGRect(x: 0, y: 0, width: 390, height: 120))
+        card.isAccessibilityElement = true
+        card.accessibilityElementsHidden = true
+        card.addSubview(UIView(frame: CGRect(x: 0, y: 0, width: 40, height: 40)))
+        root.addSubview(card)
+
+        let walked = AccessibilityAuditor().collect(root: root)
+
+        XCTAssertEqual(walked.nodes.count, 1)
+        XCTAssertTrue(walked.nodes.first as? UIView === card)
+    }
+
     // MARK: - Apple's documented container pattern
 
     /// A view that draws its own content and vends `UIAccessibilityElement`s from
@@ -115,16 +174,47 @@ final class AuditNodeVisibilityTests: XCTestCase {
         XCTAssertEqual((chart as AuditNode).children.map(\.accessibilityLabelText), ["Seat 3A"])
     }
 
-    /// The other side of that fix, and the reason it is conditioned on having no subviews: asking
-    /// a view with a subtree makes UIAccessibility compute the whole subtree, which is what hung
-    /// the app when this shipped. Only leaves are asked.
-    func testAViewWithSubviewsIsStillNeverAskedToComputeItsChildren() {
-        VendingLeafView.computations = 0
-        let container = VendingLeafView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
-        container.addSubview(UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10)))
+    /// "No subviews" was the wrong discriminator. A chart with a title label, a seat map with a
+    /// background image, a cell that vends its drawn sub-parts while holding a selected-background
+    /// view — every one of them has a subview and every one of them was invisible to the audit,
+    /// which is the whole class of hand-rolled view the exception exists to catch.
+    func testAContainerThatVendsElementsIsReadEvenWhenItHasSubviews() {
+        let chart = VendingLeafView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        chart.addSubview(UILabel(frame: CGRect(x: 0, y: 0, width: 200, height: 20)))
+        let point = UIAccessibilityElement(accessibilityContainer: chart)
+        point.accessibilityLabel = "Seat 3A" // scyther:unlocalised test fixture
+        chart.vended = [point]
 
-        XCTAssertEqual((container as AuditNode).children.count, 1)
-        XCTAssertEqual(VendingLeafView.computations, 0)
+        XCTAssertEqual((chart as AuditNode).children.map(\.accessibilityLabelText), ["Seat 3A"])
+    }
+
+    /// The reason the old rule existed, kept: asking a view that has *not* implemented the pair
+    /// makes UIAccessibility compute its whole subtree, which is what hung the app when this
+    /// shipped. The discriminator is now whether the class overrides the pair at all, so every
+    /// stock UIKit class — the overwhelming majority of nodes on any screen — is never asked. This
+    /// is the one test in the suite that has to run against the real Objective-C runtime, and it
+    /// does: `class_getMethodImplementation` answers about UIKit's actual method tables.
+    func testStockViewClassesAreNeverAskedToComputeTheirChildren() {
+        XCTAssertFalse(declaresAccessibilityElements(UIView.self))
+        XCTAssertFalse(declaresAccessibilityElements(UILabel.self))
+        XCTAssertFalse(declaresAccessibilityElements(UIScrollView.self))
+        XCTAssertFalse(declaresAccessibilityElements(UITableView.self))
+        XCTAssertFalse(declaresAccessibilityElements(UICollectionView.self))
+        XCTAssertFalse(declaresAccessibilityElements(UIStackView.self))
+        XCTAssertTrue(declaresAccessibilityElements(VendingLeafView.self))
+    }
+
+    /// A container is not believed when it claims to vend more elements than the walk could hold
+    /// anyway. The array was materialised inside a single `children` read, before the walk could
+    /// count a node or read the clock even once, so a claim of 100,000 was a hang the caps could
+    /// not reach.
+    func testAContainerClaimingMoreElementsThanTheWalkCanHoldVendsNothing() {
+        let absurd = VendingLeafView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        absurd.vended = (0..<(AccessibilityAuditor.maximumNodes + 1)).map { _ in
+            UIAccessibilityElement(accessibilityContainer: absurd)
+        }
+
+        XCTAssertTrue((absurd as AuditNode).children.isEmpty)
     }
 
     /// A leaf that vends nothing is the ordinary case — every `UIView` in an app — and must cost
@@ -224,6 +314,82 @@ final class AuditNodeVisibilityTests: XCTestCase {
         XCTAssertTrue(AccessibilityElementNode(element: element).isVisible)
     }
 
+    /// The r2 defect measured on device: a caption scrolled underneath a navigation bar was
+    /// measured as though it were on screen and reported as "about 1.0:1, `#0A0A0A` on `#040404`".
+    /// A `List` inside a `NavigationStack` fills the window and scrolls its content *under* the
+    /// bar, so the caption is inside the scroll view's bounds and inside the window — nothing in
+    /// the clipping rule can see a sibling drawn on top of it.
+    func testAViewScrolledUnderAnOpaqueBarIsNotVisible() {
+        let window = testWindow()
+        let scroll = UIScrollView(frame: window.bounds)
+        scroll.clipsToBounds = true
+        window.addSubview(scroll)
+        let caption = UIView(frame: CGRect(x: 32, y: 30, width: 333, height: 30))
+        scroll.addSubview(caption)
+        let navigationBar = UIView(frame: CGRect(x: 0, y: 0, width: 390, height: 100))
+        navigationBar.backgroundColor = .black
+        window.addSubview(navigationBar)
+
+        XCTAssertFalse((caption as AuditNode).isVisible)
+    }
+
+    /// The other side of it: a bar that does not actually cover the element leaves it alone. An
+    /// occlusion rule that culled anything a bar merely *overlapped* would throw away the top row
+    /// of every scrolling screen there is.
+    func testAViewOnlyPartlyUnderABarIsStillVisible() {
+        let window = testWindow()
+        let scroll = UIScrollView(frame: window.bounds)
+        window.addSubview(scroll)
+        let caption = UIView(frame: CGRect(x: 32, y: 80, width: 333, height: 60))
+        scroll.addSubview(caption)
+        let navigationBar = UIView(frame: CGRect(x: 0, y: 0, width: 390, height: 100))
+        navigationBar.backgroundColor = .black
+        window.addSubview(navigationBar)
+
+        XCTAssertTrue((caption as AuditNode).isVisible)
+    }
+
+    /// A transparent view drawn on top covers nothing. `UIView.isOpaque` defaults to `true` on
+    /// every view in the process, so it is the *material* a view draws — a background colour, a
+    /// blur — that decides, not what the view claims about its own compositing.
+    func testAColourlessViewDrawnOnTopDoesNotOccludeAnything() {
+        let window = testWindow()
+        let caption = UIView(frame: CGRect(x: 32, y: 30, width: 333, height: 30))
+        window.addSubview(caption)
+        window.addSubview(UIView(frame: window.bounds))
+
+        XCTAssertTrue((caption as AuditNode).isVisible)
+    }
+
+    /// A container that does not clip cannot bound its children, which is exactly what
+    /// `clippedRegion` says by intersecting only `clipsToBounds` ancestors. Pruning the subtree on
+    /// the container's own frame said the opposite, and lost every child of a stretchy header laid
+    /// out above the window with its content pinned back into view.
+    func testANonClippingContainerWhoseChildrenAreOnScreenIsStillWalked() {
+        let window = testWindow()
+        let header = UIView(frame: CGRect(x: 0, y: -250, width: 390, height: 200))
+        window.addSubview(header)
+        let pinned = UIView(frame: CGRect(x: 0, y: 260, width: 390, height: 44))
+        header.addSubview(pinned)
+
+        XCTAssertTrue((header as AuditNode).isVisible, "its child is on screen, so it must be walked")
+        XCTAssertTrue((pinned as AuditNode).isVisible)
+    }
+
+    /// And the case that keeps the rule honest: a non-clipping container whose children are off
+    /// screen too — a recycled table-view cell, which is what the off-screen cull was written for
+    /// — is still pruned.
+    func testANonClippingContainerWithNothingOnScreenIsStillPruned() {
+        let window = testWindow()
+        let content = UIView(frame: CGRect(x: 0, y: 0, width: 390, height: 5000))
+        window.addSubview(content)
+        let recycled = UIView(frame: CGRect(x: 0, y: 4000, width: 390, height: 44))
+        content.addSubview(recycled)
+        recycled.addSubview(UIView(frame: CGRect(x: 0, y: 0, width: 44, height: 44)))
+
+        XCTAssertFalse((recycled as AuditNode).isVisible)
+    }
+
     // MARK: - Geometry
 
     /// The systematic one. Opening the report presents a page sheet, and UIKit builds the card
@@ -231,11 +397,11 @@ final class AuditNodeVisibilityTests: XCTestCase {
     /// Measured through it, a compliant 44 × 44pt control read about 40.5pt and was reported as a
     /// touch-target error that does not exist in the app.
     func testGeometryIgnoresScythersOwnPresentationTransform() {
-        ScytherPresentation.isCoveringScreenProbe = { true }
         let window = testWindow()
         let presenting = UIView(frame: window.bounds)
         window.addSubview(presenting)
         presenting.transform = CGAffineTransform(scaleX: 0.92, y: 0.92)
+        ScytherPresentation.presentationMeasurementSpaceProbe = { presenting }
         let control = UIView(frame: CGRect(x: 40, y: 100, width: 44, height: 44))
         presenting.addSubview(control)
 
@@ -251,7 +417,7 @@ final class AuditNodeVisibilityTests: XCTestCase {
     /// the app, and a control an app really does draw at 92 % really is 40.5pt across — removing
     /// that would be inventing compliance rather than measuring it.
     func testTheAppsOwnTransformIsStillMeasuredThrough() {
-        ScytherPresentation.isCoveringScreenProbe = { false }
+        ScytherPresentation.presentationMeasurementSpaceProbe = { nil }
         let window = testWindow()
         let scaled = UIView(frame: window.bounds)
         window.addSubview(scaled)
@@ -272,7 +438,7 @@ final class AuditNodeVisibilityTests: XCTestCase {
     /// 62.2pt box around it, which is a known limitation of measuring rectangles rather than an
     /// accident — and that nothing here is reading a property Apple does not define.
     func testGeometryUnderARotationIsTheDefinedBoundingBox() {
-        ScytherPresentation.isCoveringScreenProbe = { false }
+        ScytherPresentation.presentationMeasurementSpaceProbe = { nil }
         let window = testWindow()
         let host = UIView(frame: window.bounds)
         window.addSubview(host)
@@ -286,6 +452,66 @@ final class AuditNodeVisibilityTests: XCTestCase {
         XCTAssertEqual(measured.height, 44 * CGFloat(2).squareRoot(), accuracy: 0.01)
         XCTAssertEqual(measured.midX, 122, accuracy: 0.01, "rotation is about the centre")
         XCTAssertEqual(measured.midY, 122, accuracy: 0.01)
+    }
+
+    /// The correction has to be the presentation's own transform and nothing else. UIKit does not
+    /// scale the presenting view behind a page sheet in a regular-width environment, and never for
+    /// a full-screen presentation — so "remove the outermost transform while Scyther is up" deleted
+    /// the app's own drawer or zoom transform instead, and a control an app really does draw at
+    /// 36pt was measured at 44 and its finding disappeared.
+    func testTheAppsOwnTransformSurvivesAPresentationThatTransformsNothing() {
+        ScytherPresentation.presentationMeasurementSpaceProbe = { nil }
+        let window = testWindow()
+        let presenting = UIView(frame: window.bounds)
+        window.addSubview(presenting)
+        let drawer = UIView(frame: window.bounds)
+        presenting.addSubview(drawer)
+        drawer.transform = CGAffineTransform(scaleX: 0.83, y: 0.83)
+        let control = UIView(frame: CGRect(x: 40, y: 100, width: 44, height: 44))
+        drawer.addSubview(control)
+
+        XCTAssertEqual((control as AuditNode).frameInWindow.width, 44 * 0.83, accuracy: 0.01)
+    }
+
+    /// The pass's dominant cost is asked-and-answered questions, and this one was asked three
+    /// times for a single node: once by `isVisible`, once by the `frameInWindow` inside it, and
+    /// once by the walk's own `frameInWindow` read. It is a fact about the *screen*, not about the
+    /// node, so a node resolves it once and hands it to everything that needs it.
+    func testDecidingVisibilityAsksAboutScythersPresentationOnce() {
+        var asked = 0
+        ScytherPresentation.presentationMeasurementSpaceProbe = {
+            asked += 1
+            return nil
+        }
+        let window = testWindow()
+        let host = UIView(frame: window.bounds)
+        window.addSubview(host)
+        host.transform = CGAffineTransform(scaleX: 0.92, y: 0.92)
+        let control = UIView(frame: CGRect(x: 40, y: 100, width: 44, height: 44))
+        host.addSubview(control)
+
+        _ = (control as AuditNode).isVisible
+
+        XCTAssertEqual(asked, 1)
+    }
+
+    /// The correction is the presentation's own, and it applies to what is *inside* the
+    /// presentation's space and nothing else. "Scyther is on screen somewhere" is a fact about the
+    /// process, not about this node's ancestors, and using it to authorise removing an outermost
+    /// transform deleted transforms belonging to subtrees the presentation never touched.
+    func testAViewOutsideScythersPresentationKeepsItsOwnTransform() {
+        let window = testWindow()
+        let presenting = UIView(frame: window.bounds)
+        presenting.transform = CGAffineTransform(scaleX: 0.92, y: 0.92)
+        window.addSubview(presenting)
+        let zoomed = UIView(frame: window.bounds)
+        window.addSubview(zoomed)
+        zoomed.transform = CGAffineTransform(scaleX: 0.5, y: 0.5)
+        let control = UIView(frame: CGRect(x: 40, y: 100, width: 44, height: 44))
+        zoomed.addSubview(control)
+        ScytherPresentation.presentationMeasurementSpaceProbe = { presenting }
+
+        XCTAssertEqual((control as AuditNode).frameInWindow.width, 22, accuracy: 0.01)
     }
 
     // MARK: - Ownership
