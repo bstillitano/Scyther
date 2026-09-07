@@ -135,3 +135,174 @@ extension ContrastAnalyserTests {
         }
     }
 }
+
+// MARK: - What the estimator must not be fooled by
+
+extension ContrastAnalyserTests {
+
+    /// A colour built from an 8-bit grey, the way a designer writes one.
+    private func level(_ value: Int) -> RGB {
+        RGB(red: Double(value) / 255, green: Double(value) / 255, blue: Double(value) / 255)
+    }
+
+    /// A crop of antialiased text with a chosen coverage profile.
+    ///
+    /// - Parameters:
+    ///   - ink: The text colour.
+    ///   - page: The background colour.
+    ///   - core: How many fully covered pixels.
+    ///   - surface: How many untouched background pixels.
+    ///   - edge: How many partially covered pixels, at evenly spaced coverages.
+    ///   - maximumCoverage: The highest coverage an edge pixel reaches. Below `1` this models a
+    ///     glyph the sampler's stride never lands squarely on, which has no solid core at all.
+    /// - Returns: The crop.
+    private func crop(ink: RGB,
+                      page: RGB,
+                      core: Int,
+                      surface: Int,
+                      edge: Int,
+                      maximumCoverage: Double = 1) -> [RGB] {
+        var pixels = Array(repeating: ink, count: core) + Array(repeating: page, count: surface)
+        for step in 0..<edge {
+            let coverage = maximumCoverage * (Double(step) + 0.5) / Double(edge)
+            pixels.append(RGB(red: page.red + (ink.red - page.red) * coverage,
+                              green: page.green + (ink.green - page.green) * coverage,
+                              blue: page.blue + (ink.blue - page.blue) * coverage))
+        }
+        return pixels
+    }
+
+    /// The regression the decile rewrite introduced, and the reason this file was rewritten again.
+    ///
+    /// A label's frame routinely contains a small dark thing that is not its text — an icon, a
+    /// chevron, the corner of a neighbouring view. Representing the dark group by its darkest
+    /// tenth let a `#333333` icon covering three per cent of the crop define "the ink", which
+    /// turned `#949494` text at a genuine 3.03:1 into a reported 12.63:1 and therefore into no
+    /// finding at all. The mean-based version this replaced reported 3.80:1 and *did* flag it: a
+    /// silent regression on an input the older, cruder code got right.
+    func testASmallDarkIntruderDoesNotDefineTheInk() {
+        let pixels = Array(repeating: level(0x94), count: 150)
+            + Array(repeating: level(0x33), count: 30)
+            + Array(repeating: white, count: 820)
+
+        let measured = ContrastAnalyser.measure(pixels: pixels)
+
+        XCTAssertEqual(measured?.ratio ?? 0, 3.03, accuracy: 0.05, "the text is the ink, not the icon")
+        XCTAssertLessThan(measured?.ratio ?? 99, 4.5, "a real AA failure must still be reported as one")
+        XCTAssertEqual(measured?.foreground.hexDescription, "#949494")
+        XCTAssertEqual(measured?.background.hexDescription, "#FFFFFF")
+    }
+
+    /// A gradient behind text has no background colour to quote, and quoting one is how the decile
+    /// version passed `#666666` on a `#B0B0B0`→`#FFFFFF` ramp at 5.62:1 "estimated from #666666 on
+    /// #FDFDFD" — the top of the ramp, a colour the text never sits on. The worst pairing a reader
+    /// actually sees there is 2.65:1, which fails even the relaxed threshold.
+    ///
+    /// The honest answer is that this crop cannot be read as text on a surface, and the auditor
+    /// reports that as "could not be measured" rather than as a pass.
+    func testTextOnAGradientIsRefusedRatherThanPassed() {
+        var pixels = Array(repeating: level(0x66), count: 200)
+        for step in 0..<800 {
+            let value = 0xB0 + (0xFF - 0xB0) * Double(step) / 799
+            pixels.append(RGB(red: value / 255, green: value / 255, blue: value / 255))
+        }
+
+        XCTAssertNil(ContrastAnalyser.measure(pixels: pixels),
+                     "a ramp is not a background colour; a number here would be invented")
+    }
+
+    /// Text over a photograph is the same defect in a different disguise.
+    func testTextOnAPhotographIsRefused() {
+        // A fixed linear congruential sequence rather than a random one: a test of a statistical
+        // rule must not be able to fail on a Tuesday.
+        var state: UInt64 = 0x2545F4914F6CDD1D
+        func next() -> Double {
+            state = state &* 6364136223846793005 &+ 1442695040888963407
+            return Double(state >> 40) / Double(1 << 24)
+        }
+        var pixels = Array(repeating: level(0x33), count: 200)
+        for _ in 0..<800 {
+            pixels.append(RGB(red: next(), green: next(), blue: next()))
+        }
+
+        XCTAssertNil(ContrastAnalyser.measure(pixels: pixels))
+    }
+
+    /// A glyph the sampler only ever catches at partial coverage has no ink colour in the crop at
+    /// all. The decile read the darkest partial pixel as the ink and reported WCAG's canonical
+    /// passing grey as 2.20:1 — a false failure on conformant text. There is no correct number to
+    /// give here, so none is given.
+    func testAGlyphWithNoSolidCoreIsRefusedRatherThanUnderstated() {
+        let pixels = crop(ink: level(0x76), page: white,
+                          core: 0, surface: 700, edge: 300, maximumCoverage: 0.6)
+
+        XCTAssertNil(ContrastAnalyser.measure(pixels: pixels))
+    }
+
+    /// Half a black view beside half a white one is a boundary, not a glyph on a surface: there is
+    /// no minority group, so nothing says which side is the text. 21:1 there is a pass nobody
+    /// earned, and the linear mean's 1.91:1 is a failure nobody earned either.
+    func testAnEvenlySplitCropHasNoInkToIdentify() {
+        let pixels = Array(repeating: black, count: 500) + Array(repeating: white, count: 500)
+
+        XCTAssertNil(ContrastAnalyser.measure(pixels: pixels),
+                     "neither 21:1 nor 3.98:1 is a defensible answer for a crop with no minority tone")
+    }
+
+    /// The reported ratio has to be one the finding can state. Below 1.05 it renders as
+    /// "About 1.0:1", which is a sentence with no content, on a pair the check cannot tell from an
+    /// artefact of its own capture. `#7F7F7F` on `#818181` — two 8-bit steps of dither — cleared
+    /// the old 1.02 gate and was reported as a finding.
+    func testTwoStepsOfDitherAreNotAFinding() {
+        let pixels = Array(repeating: level(0x7F), count: 600) + Array(repeating: level(0x81), count: 400)
+
+        XCTAssertNil(ContrastAnalyser.measure(pixels: pixels))
+    }
+
+    /// The measured false positive from a real device: a caption scrolled underneath a navigation
+    /// bar is sampled through the bar's near-black scroll-edge material and used to report
+    /// "About 1.0:1 … #0A0A0A on #040404" against the 4.5:1 text threshold. The occlusion itself is
+    /// `AuditNode`'s to fix; the analyser's part is never to emit a confident number from a crop
+    /// like this one.
+    func testNearBlackBarMaterialIsNotAFinding() {
+        let pixels = Array(repeating: level(0x04), count: 800) + Array(repeating: level(0x0A), count: 200)
+
+        XCTAssertNil(ContrastAnalyser.measure(pixels: pixels))
+    }
+
+    /// The constraint that sets the gate: `#000000` on `#0F0F0F` is 1.10:1, is genuinely invisible
+    /// text, and must survive. Pinned here as well as above so a future tightening of the gate
+    /// cannot pass silently.
+    func testTheDarkestRealDefectSurvivesTheGate() {
+        let pixels = Array(repeating: level(0x0F), count: 800) + Array(repeating: black, count: 200)
+        let measured = ContrastAnalyser.measure(pixels: pixels)
+
+        XCTAssertEqual(measured?.ratio ?? 0, 1.0954, accuracy: 0.005)
+    }
+
+    /// Ordinary antialiasing is unchanged by all of the above: the canonical grey still measures
+    /// 4.54:1 with a lighter glyph weight than the suite's default helper produces.
+    func testALighterGlyphWeightStillRecoversTheCanonicalGrey() {
+        let pixels = crop(ink: level(0x76), page: white, core: 100, surface: 600, edge: 300)
+        let measured = ContrastAnalyser.measure(pixels: pixels)
+
+        XCTAssertEqual(measured?.ratio ?? 0, 4.54, accuracy: 0.05)
+    }
+
+    /// A crop too small to cluster is refused: in a four-pixel group every pixel is 100% of its own
+    /// group, so the share tests would wave anything through.
+    func testACropTooSmallToClusterIsRefused() {
+        XCTAssertNil(ContrastAnalyser.measure(pixels: [black, white, black, white]))
+    }
+
+    /// Light text on a dark surface is the same problem the other way up, and the minority rule has
+    /// to identify the ink by size rather than by darkness.
+    func testLightTextOnADarkSurfaceIsMeasured() {
+        let measured = ContrastAnalyser.measure(pixels: crop(ink: white, page: level(0x1C),
+                                                             core: 200, surface: 600, edge: 200))
+
+        XCTAssertEqual(measured?.foreground.hexDescription, "#FFFFFF")
+        XCTAssertEqual(measured?.background.hexDescription, "#1C1C1C")
+        XCTAssertGreaterThan(measured?.ratio ?? 0, 15)
+    }
+}

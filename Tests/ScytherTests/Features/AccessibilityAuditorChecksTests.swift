@@ -20,7 +20,7 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
         var children: [AuditNode]
         var auditFontPointSize: CGFloat?
         var auditFontIsBold: Bool
-        var auditDrawsText: Bool
+        var auditDrawsText: Bool?
         var auditAccessibilityValue: String?
 
         init(label: String? = nil,
@@ -32,7 +32,7 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
              typeName: String = "Node",
              fontPointSize: CGFloat? = nil,
              isBold: Bool = false,
-             drawsText: Bool = false,
+             drawsText: Bool? = nil,
              value: String? = nil,
              children: [AuditNode] = []) {
             self.isAccessibilityElementNode = isElement
@@ -221,7 +221,8 @@ extension AccessibilityAuditorChecksTests {
     /// label is evidence that it is *not* text, not evidence that it is.
     func testAnIconOnlyButtonIsHeldToTheNonTextThreshold() {
         let icon = Node(label: "Share", traits: .button,
-                        frame: CGRect(x: 0, y: 0, width: 20, height: 20), isElement: true)
+                        frame: CGRect(x: 0, y: 0, width: 20, height: 20), isElement: true,
+                        drawsText: false)
         let sampler = StubSampler(pixels: midThresholdPixels)
 
         let findings = AccessibilityAuditor()
@@ -371,7 +372,7 @@ extension AccessibilityAuditorChecksTests {
 
         XCTAssertEqual(label.auditFontPointSize, 15)
         XCTAssertTrue(label.auditFontIsBold)
-        XCTAssertTrue(label.auditDrawsText)
+        XCTAssertEqual(label.auditDrawsText, true)
     }
 
     /// An icon-only button has a name and no text, and that is exactly what the threshold turns
@@ -380,7 +381,7 @@ extension AccessibilityAuditorChecksTests {
         let button = UIButton(type: .system)
         button.accessibilityLabel = "Share"
 
-        XCTAssertFalse(button.auditDrawsText)
+        XCTAssertEqual(button.auditDrawsText, false)
     }
 
     /// A contrast check that looked at candidates and could read none of them has not passed
@@ -476,5 +477,294 @@ extension AccessibilityAuditorChecksTests {
 
         XCTAssertFalse(result.didHitLimit)
         XCTAssertEqual(result.findings.count, 50)
+    }
+}
+
+// MARK: - Round two: the trait gate, the unknown default, and what a finding says
+
+@MainActor
+extension AccessibilityAuditorChecksTests {
+
+    /// A sampler that answers one nominated rectangle with one set of pixels and everything else
+    /// with another, so a test can put a failure behind exactly one label of a row.
+    private struct RegionSampler: ContrastSampling {
+        let region: CGRect
+        let inRegion: [RGB]
+        let elsewhere: [RGB]
+
+        func samples(in frame: CGRect) -> [RGB] { frame == region ? inRegion : elsewhere }
+    }
+
+    /// The single most damaging thing round two found. A `UITableViewCell` that makes itself one
+    /// VoiceOver stop carries `.none` traits; the old rule sampled only `.staticText` and
+    /// `.button`, and the walk stops at the cell so the labels inside it were never visited
+    /// either. On the most ordinary screen in iOS — a list — *nothing* was contrast-checked and
+    /// the report printed a green tick.
+    func testACombinedRowWithNoTextTraitIsStillContrastChecked() {
+        let row = Node(label: "Jane Appleseed, unread", traits: .none,
+                       frame: CGRect(x: 0, y: 0, width: 375, height: 60), isElement: true)
+
+        let result = AccessibilityAuditor()
+            .audit(root: Node(children: [row]), checks: [.contrast],
+                   sampler: StubSampler(pixels: midThresholdPixels))
+
+        XCTAssertEqual(result.findings.count, 1, "a list row is where an app's text actually lives")
+    }
+
+    /// A text field carries neither of the old traits either, and its entered text and placeholder
+    /// are exactly the low-contrast greys that need checking.
+    func testATextFieldIsContrastChecked() {
+        let field = Node(label: "Email", traits: .none,
+                         frame: CGRect(x: 0, y: 0, width: 300, height: 34), isElement: true,
+                         drawsText: true)
+
+        let result = AccessibilityAuditor()
+            .audit(root: Node(children: [field]), checks: [.contrast],
+                   sampler: StubSampler(pixels: midThresholdPixels))
+
+        XCTAssertEqual(result.findings.count, 1)
+    }
+
+    /// Unknown text-ness now resolves the way unknown point size always did: strictly. Every
+    /// SwiftUI element is a synthetic one that conforms to nothing, so `Button("Continue")` — a
+    /// `.button` trait, no `.staticText`, nothing readable — was graded at 3:1 and a 3.35:1 title
+    /// passed. The same shape covers every cell that sets `.button` to become one VoiceOver stop.
+    func testAButtonThatCannotSayWhetherItDrawsTextIsGradedAsText() {
+        let swiftUIButton = Node(label: "Continue", traits: .button,
+                                 frame: CGRect(x: 0, y: 0, width: 200, height: 44), isElement: true)
+
+        let findings = AccessibilityAuditor()
+            .audit(root: Node(children: [swiftUIButton]), checks: [.contrast],
+                   sampler: StubSampler(pixels: midThresholdPixels)).findings
+
+        XCTAssertEqual(findings.count, 1, "only an affirmative \"I draw no text\" earns 3:1")
+    }
+
+    /// The relaxation is kept for the one element SwiftUI *can* be identified by: an icon-only
+    /// button carries `.image` alongside `.button`, and a graphic is graded at 1.4.11's 3:1.
+    func testASyntheticIconButtonKeepsTheNonTextThreshold() {
+        let icon = Node(label: "Share", traits: [.button, .image],
+                        frame: CGRect(x: 0, y: 0, width: 44, height: 44), isElement: true)
+
+        XCTAssertTrue(AccessibilityAuditor()
+            .audit(root: Node(children: [icon]), checks: [.contrast],
+                   sampler: StubSampler(pixels: midThresholdPixels)).findings.isEmpty)
+    }
+
+    /// A finding that withholds the large-text allowance has to say it did. Without this a
+    /// developer sees "About 3.4:1, under 4.5:1" on a 34pt heading that conforms at 3:1 and has no
+    /// way to work out why.
+    func testAFindingSaysWhenTheLargeTextAllowanceWasWithheldForWantOfASize() {
+        let heading = Node(label: "Welcome", traits: .staticText,
+                           frame: CGRect(x: 0, y: 0, width: 300, height: 40), isElement: true)
+
+        let findings = AccessibilityAuditor()
+            .audit(root: Node(children: [heading]), checks: [.contrast],
+                   sampler: StubSampler(pixels: midThresholdPixels)).findings
+
+        XCTAssertTrue(findings.first?.detail.contains("large-text") == true,
+                      "an unexplained conservative verdict reads as a bug in the tool")
+    }
+
+    /// And it says nothing of the sort when the size really was read, or the note would appear on
+    /// every finding and mean nothing.
+    func testAFindingWithAKnownSizeCarriesNoSuchNote() {
+        let body = Node(label: "Body copy", traits: .staticText,
+                        frame: CGRect(x: 0, y: 0, width: 300, height: 20), isElement: true,
+                        fontPointSize: 13)
+
+        let findings = AccessibilityAuditor()
+            .audit(root: Node(children: [body]), checks: [.contrast],
+                   sampler: StubSampler(pixels: midThresholdPixels)).findings
+
+        XCTAssertFalse(findings.first?.detail.contains("large-text") == true)
+    }
+
+    /// The error and the warning cite different numbers, and the developer has to be shown which.
+    /// One string reading "under the 44 × 44pt minimum" for both meant the 24pt line — the whole
+    /// point of the severity split — appeared nowhere at all.
+    func testTheTwoTouchTargetSeveritiesCiteDifferentStandards() {
+        let tiny = Node(label: "Close", traits: .button,
+                        frame: CGRect(x: 0, y: 0, width: 20, height: 20), isElement: true)
+        let short = Node(label: "Close", traits: .button,
+                         frame: CGRect(x: 0, y: 0, width: 36, height: 36), isElement: true)
+        let auditor = AccessibilityAuditor()
+
+        let error = auditor.audit(root: Node(children: [tiny]), checks: [.touchTarget], sampler: nil).findings.first
+        let warning = auditor.audit(root: Node(children: [short]), checks: [.touchTarget], sampler: nil).findings.first
+
+        XCTAssertEqual(error?.severity, .error)
+        XCTAssertTrue(error?.detail.contains("24 × 24") == true, "the AA floor is the citable number")
+        XCTAssertEqual(warning?.severity, .warning)
+        XCTAssertTrue(warning?.detail.contains("44 × 44") == true)
+        XCTAssertNotEqual(error?.detail, warning?.detail)
+    }
+
+    /// An element the sampler could read nothing usable from is unmeasurable, never a pass. The
+    /// analyser refuses a gradient, a photograph and near-black bar material, and every one of
+    /// those has to arrive at the report as "could not measure".
+    func testAnUntrustworthyCropIsReportedAsUnmeasurableRatherThanPassed() {
+        // Two 8-bit steps of dither, which is what a caption behind a navigation bar looks like.
+        let dither = Array(repeating: RGB(red: 0x04 / 255, green: 0x04 / 255, blue: 0x04 / 255), count: 80)
+            + Array(repeating: RGB(red: 0x0A / 255, green: 0x0A / 255, blue: 0x0A / 255), count: 20)
+        let caption = Node(label: "Scrolled under the bar", traits: .staticText,
+                           frame: CGRect(x: 32, y: 30, width: 333, height: 30), isElement: true)
+
+        let result = AccessibilityAuditor()
+            .audit(root: Node(children: [caption]), checks: [.contrast], sampler: StubSampler(pixels: dither))
+
+        XCTAssertTrue(result.findings.isEmpty, "no confident number from an untrustworthy crop")
+        XCTAssertEqual(result.checksUnmeasurable, [.contrast], "and never silently a pass")
+    }
+}
+
+// MARK: - Sampling the text that is actually drawn
+
+@MainActor
+extension AccessibilityAuditorChecksTests {
+
+    /// A real cell, built the way UIKit apps build one: the cell is the VoiceOver stop and the
+    /// text lives in labels inside it.
+    private func combinedRow() -> (row: UIView, title: UILabel, subtitle: UILabel) {
+        let row = UIView(frame: CGRect(x: 0, y: 0, width: 375, height: 60))
+        row.isAccessibilityElement = true
+        row.accessibilityLabel = "Jane Appleseed, 2 unread" // scyther:unlocalised test fixture
+        let title = UILabel(frame: CGRect(x: 60, y: 8, width: 200, height: 20))
+        title.font = .systemFont(ofSize: 17)
+        title.text = "Jane Appleseed" // scyther:unlocalised test fixture
+        let subtitle = UILabel(frame: CGRect(x: 60, y: 32, width: 200, height: 16))
+        subtitle.font = .systemFont(ofSize: 13)
+        subtitle.text = "2 unread" // scyther:unlocalised test fixture
+        row.addSubview(title)
+        row.addSubview(subtitle)
+        return (row, title, subtitle)
+    }
+
+    /// The descent finds the text a combined element draws, and finds only that: the row itself
+    /// draws none, so measuring its whole rectangle would be measuring 95% background beside an
+    /// avatar and a chevron.
+    func testTheDescentFindsTheLabelsInsideACombinedRow() {
+        let row = combinedRow()
+
+        let regions = AccessibilityAuditor.drawnTextViews(in: row.row)
+
+        XCTAssertEqual(regions.count, 2)
+        XCTAssertTrue(regions.contains { $0 === row.title })
+        XCTAssertTrue(regions.contains { $0 === row.subtitle })
+    }
+
+    /// A hidden label is not on screen and is not sampled.
+    func testTheDescentSkipsHiddenText() {
+        let row = combinedRow()
+        row.subtitle.isHidden = true
+
+        XCTAssertEqual(AccessibilityAuditor.drawnTextViews(in: row.row).map { $0 === row.title }, [true])
+    }
+
+    /// Descending is what recovers the point size the combined element could never supply, so the
+    /// 13pt subtitle is graded at 4.5:1 rather than at the row's unknown.
+    func testEachDrawnLabelIsGradedByItsOwnPointSize() {
+        let row = combinedRow()
+
+        XCTAssertEqual(row.title.auditFontPointSize, 17)
+        XCTAssertEqual(row.subtitle.auditFontPointSize, 13)
+    }
+
+    /// The finding is reported at the failing text's own frame rather than at the row's, so the
+    /// overlay boxes the label the developer has to fix.
+    func testTheFindingBoxesTheTextThatFailedNotTheWholeRow() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 375, height: 200))
+        window.isHidden = false
+        let row = combinedRow()
+        window.addSubview(row.row)
+        let clean = Array(repeating: RGB(red: 1, green: 1, blue: 1), count: 80)
+            + Array(repeating: RGB(red: 0, green: 0, blue: 0), count: 20)
+        let sampler = RegionSampler(region: row.subtitle.frameInWindow,
+                                    inRegion: midThresholdPixels,
+                                    elsewhere: clean)
+
+        let findings = AccessibilityAuditor()
+            .audit(root: window, checks: [.contrast], sampler: sampler).findings
+
+        XCTAssertEqual(findings.count, 1, "one element still produces at most one finding")
+        XCTAssertEqual(findings.first?.frame, row.subtitle.frameInWindow)
+        XCTAssertEqual(findings.first?.elementName, "Jane Appleseed, 2 unread",
+                       "named by the element VoiceOver lands on, not by the label inside it")
+    }
+
+    /// A `UIButton` whose title was set with `setAttributedTitle(_:for:)` draws text. Reading
+    /// `currentTitle` — which is `nil` for that path and unreliable for `UIButton.Configuration` —
+    /// answered "draws no text" and quietly dropped "Forgot password?" a threshold level.
+    func testAnAttributedButtonTitleCountsAsDrawnText() {
+        let button = UIButton(type: .system)
+        button.setAttributedTitle(NSAttributedString(string: "Forgot password?"), for: .normal) // scyther:unlocalised test fixture
+
+        XCTAssertEqual(button.auditDrawsText, true)
+    }
+
+    /// `UILabel.font` is the fallback typeface and has nothing to do with the runs in
+    /// `attributedText`. A 20pt fallback over 11pt runs was graded at 3:1 and passed at 3.2:1; the
+    /// smallest run is the size the strict threshold has to hold for.
+    func testAnAttributedLabelIsGradedByItsSmallestRun() {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 20)
+        let text = NSMutableAttributedString(string: "Heading", // scyther:unlocalised test fixture
+                                             attributes: [.font: UIFont.systemFont(ofSize: 28)])
+        text.append(NSAttributedString(string: " footnote", // scyther:unlocalised test fixture
+                                       attributes: [.font: UIFont.systemFont(ofSize: 11)]))
+        label.attributedText = text
+
+        XCTAssertEqual(label.auditFontPointSize, 11)
+    }
+
+    /// UIKit shrinks a label that adjusts to fit without ever changing `font`, so a 20pt label can
+    /// be rendering at 10pt. WCAG's rule is about the size on the screen.
+    func testALabelThatShrinksToFitIsGradedAtTheSizeItCanShrinkTo() {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 20)
+        label.text = "A very long string that will not fit" // scyther:unlocalised test fixture
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.5
+
+        XCTAssertEqual(label.auditFontPointSize, 10)
+    }
+}
+
+// MARK: - Cost
+
+@MainActor
+extension AccessibilityAuditorChecksTests {
+
+    /// A node that counts how many times its frame is read.
+    private final class CountingNode: AuditNode, AuditNodeDetails {
+        var reads = 0
+        var isAccessibilityElementNode = true
+        var accessibilityLabelText: String? = "Row" // scyther:unlocalised test fixture
+        var traits: UIAccessibilityTraits = .staticText
+        var isVisible = true
+        var isScytherOwned = false
+        var typeName = "CountingNode" // scyther:unlocalised test fixture
+        var children: [AuditNode] = []
+
+        var frameInWindow: CGRect {
+            reads += 1
+            return CGRect(x: 0, y: 0, width: 20, height: 20)
+        }
+    }
+
+    /// `frameInWindow` is an ancestor climb, not a property read — two of them for a view under
+    /// Scyther's sheet, and a container-chain walk for a synthetic element. The walk read it, then
+    /// the visibility test read it again, then each of the three checks and the naming helper read
+    /// it again: up to eight climbs per node, and at the 5,000-node cap hundreds of thousands of
+    /// pointer chases inside a quarter-second budget.
+    func testAnElementsFrameIsResolvedOncePerPass() {
+        let node = CountingNode()
+        let root = Node(children: [node])
+
+        _ = AccessibilityAuditor().audit(root: root,
+                                         checks: [.missingLabel, .touchTarget, .contrast],
+                                         sampler: StubSampler(pixels: midThresholdPixels))
+
+        XCTAssertEqual(node.reads, 1, "every rule reads the frame the walk already resolved")
     }
 }

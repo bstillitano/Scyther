@@ -1459,21 +1459,50 @@ the report screen:
   `isAccessibilityElement` and never set a trait is caught, which a trait-gated rule missed.
 - **Touch Targets**: an interactive element measured against Apple's 44 × 44pt minimum — below
   24pt on its shortest side is an error, 24pt up to 44pt is a warning. 24 is WCAG 2.5.8 AA's
-  floor, the only number in this rule anyone can cite. Links are capped at a warning, since WCAG
-  2.5.8 exempts a target inline in a sentence and nobody makes body-copy links 44pt tall.
+  floor, the only number in this rule anyone can cite. The two severities say which number they
+  cite, so an error reads "under WCAG 2.5.8's 24 × 24pt minimum" and a warning "under Apple's
+  44 × 44pt guidance". Links are capped at a warning, since WCAG 2.5.8 exempts a target inline in
+  a sentence and nobody makes body-copy links 44pt tall.
 - **Contrast**: text measured against its background at 4.5:1, or 3:1 for large text (18pt, or
   14pt bold) where the point size can actually be read off the element — a `UILabel`, `UIButton`,
-  `UITextField` or `UITextView`. Where it can't, the strict threshold stands rather than being
-  guessed at, because the relaxation can only ever hide a failure. Non-text content — an
-  icon-only button, for instance — is graded at WCAG 1.4.11's 3:1 instead, and a disabled control
-  is not graded at all, since WCAG 1.4.3 exempts inactive components. **Contrast is an
-  estimate**, not a measurement: the ratio is sampled from the pixels actually drawn on screen,
-  because a glyph over a photograph, a gradient, or anything else showing through has no single
-  honest foreground/background pair to compute from. Each side of the sample is taken from its
-  extreme decile and averaged in linear light, so antialiased glyph edges don't drag the ink
-  toward the page — that's what lets `#767676` on white, WCAG's canonical exactly-passing grey,
-  report 4.54:1 rather than being failed. Treat a contrast finding as worth a look, not as a
-  certificate — it's always reported as a warning, never an error.
+  `UITextField` or `UITextView`, including the smallest run of an attributed string and the size a
+  label that `adjustsFontSizeToFitWidth` can shrink to. Where the size can't be read the strict
+  threshold stands rather than being guessed at, and the finding *says* so, because the relaxation
+  can only ever hide a failure. Non-text content — an icon-only button, or an element carrying
+  `.image` — is graded at WCAG 1.4.11's 3:1 instead; but only an element that can affirmatively
+  say it draws no text earns that, so a SwiftUI `Button("Continue")`, which can't, keeps the
+  strict grade. A disabled control is not graded at all, since WCAG 1.4.3 exempts inactive
+  components.
+
+  The check is not gated on traits. A `UITableViewCell` or a SwiftUI row that makes itself one
+  VoiceOver stop carries neither `.staticText` nor `.button`, and gating on those meant that on a
+  list screen — the most ordinary screen in iOS — no text was sampled at all and the report printed
+  a green tick. Where the element is a real view, the check descends into it *for sampling only*
+  and measures each `UILabel`/`UITextField`/`UITextView` at its own bounds, so the finding boxes
+  the label that failed rather than the whole row.
+
+  **Contrast is an estimate**, not a measurement: the ratio is sampled from the pixels actually
+  drawn on screen. Those pixels are clustered into two tonal groups and each group is represented
+  by the colour *most* of it actually is — not by its mean, which antialiased glyph edges drag
+  toward the page, and not by its darkest or lightest pixels, which any icon or gradient inside the
+  frame can define. That is what lets `#767676` on white, WCAG's canonical exactly-passing grey,
+  report 4.54:1 rather than being failed, and what stops a `#333333` icon covering 3% of a label's
+  frame hiding `#949494` text at a real 3.03:1. When a crop has no such structure — text on a
+  gradient or a photograph, an element scrolled under an opaque bar, a glyph the sampler never
+  caught at full coverage — the element is reported as **could not be measured** rather than given
+  a number nobody drew. Treat a contrast finding as worth a look, not as a certificate — it's
+  always reported as a warning, never an error.
+
+The walk reports only what is actually reachable, which is what keeps it from filing findings you
+can do nothing about. It honours `accessibilityElementsHidden` and `accessibilityViewIsModal` —
+including a modal set on a dialog nested inside a dimming container or a presented controller's
+view, which is where apps really put it — and it skips content that cannot be seen: recycled cells
+scrolled out of a table, the parked pages of a carousel, anything clipped away by an ancestor, and
+anything covered by something opaque drawn over it. That last one is why a caption scrolled under a
+navigation bar is no longer reported at 1.0:1 against the bar's own near-black material. Every one
+of those rules is asked the same single question — "can this be seen?" — so a container the walk
+skips is never one the report has already counted, and a container that does not clip is never
+pruned for content its children still draw on screen.
 
 **Show Issues On Screen** draws a box around every current finding directly over the running app,
 live, the same way `GridOverlay` and `FPSCounter` stay on screen without a manual refresh. The
@@ -1559,9 +1588,12 @@ about if a ratio ever looks wrong:
   honours the platform's non-capturable-content flags — secure text entry, DRM layers, Apple Pay.
   When it declines to render, there is no fallback: contrast is reported as a check that could not
   be measured, rather than measured through an API that ignores those flags.
-- **It is captured at no more than 2 pixels per point**, rather than a 3× device's native scale.
-  The per-element crop is capped at 64 × 64 in any case, so nothing above that is measured, and a
-  full-window bitmap re-taken every half-second in live mode is memory a host app can ill afford.
+- **It is captured at no more than 2 pixels per point**, rather than a 3× device's native scale,
+  and that number comes from the *display's* scale rather than the window's own
+  `contentScaleFactor` — which is always 1, so the cap used to never apply and every snapshot was a
+  3 → 1 downscale that measurably degraded small text. The per-element crop is capped at 64 × 64 in
+  any case, so nothing above 2× is measured, and a full-window bitmap re-taken every half-second in
+  live mode is memory a host app can ill afford.
 
 The audit also never runs on an App Store build, even with `Scyther.start(allowProductionBuilds:
 true)`. Every other Scyther feature is gated by `start()` alone; this is the only one that reads

@@ -18,8 +18,9 @@ import UIKit
 ///   as pixels does not get to opt out of the platform's privacy protection just because the
 ///   preferred API returned nothing, so when `drawHierarchy` declines there is simply no snapshot
 ///   and ``didCaptureWindow`` says so.
-/// - It is captured at no more than ``maximumCaptureScale`` pixels per point. See
-///   ``captureScale(forContentScaleFactor:)``.
+/// - It is captured at no more than ``maximumCaptureScale`` pixels per point, measured from the
+///   *display's* scale rather than the window's. See ``captureScale(forDisplayScale:)`` and
+///   ``displayScale(of:)``.
 /// - Scyther's own overlays are hidden for the duration of the draw. See
 ///   ``scytherOverlays(in:)``.
 @MainActor
@@ -62,8 +63,9 @@ struct WindowContrastSampler: ContrastSampling {
     /// How many snapshot pixels map to one window point — needed to turn ``samples(in:)``'s
     /// window-point frame into the pixel grid ``image`` is actually addressed in.
     ///
-    /// This is the *capture* scale, which is deliberately not the window's own
-    /// `contentScaleFactor`; see ``captureScale(forContentScaleFactor:)``. Readable rather than
+    /// This is the *capture* scale, which is the display's scale capped at
+    /// ``maximumCaptureScale`` — see ``displayScale(of:)`` for why the window's own
+    /// `contentScaleFactor` is the wrong thing to ask and what it cost. Readable rather than
     /// private so a test can assert that the cap is applied to a real snapshot and not only by
     /// the policy function in isolation.
     let captureScale: CGFloat
@@ -88,7 +90,7 @@ struct WindowContrastSampler: ContrastSampling {
     ///
     /// - Parameter window: The window to read pixels from, usually the key window.
     init(window: UIWindow) {
-        captureScale = Self.captureScale(forContentScaleFactor: window.contentScaleFactor)
+        captureScale = Self.captureScale(forDisplayScale: Self.displayScale(of: window))
         let capture = Self.snapshot(of: window, scale: captureScale)
         image = capture.image
         didCaptureWindow = capture.didDraw && capture.image != nil
@@ -96,18 +98,43 @@ struct WindowContrastSampler: ContrastSampling {
 
     // MARK: - Capture
 
-    /// The scale a snapshot of a window with this `contentScaleFactor` is taken at.
+    /// How many pixels per point the display this window is on actually has.
+    ///
+    /// **Not** `window.contentScaleFactor`, which is what this used to read and which is `1.0` for
+    /// every `UIWindow` there has ever been: a window's own layer draws nothing, so its
+    /// `contentsScale` is never raised from the default, while the screen behind it is 2× or 3×.
+    /// The consequence was that ``captureScale(forDisplayScale:)`` took its `<= 1` branch on every
+    /// real device, the documented two-pixels-per-point cap never once applied, and every snapshot
+    /// the audit has ever taken was a 3 → 1 *downscale* of the screen. That is the exact condition
+    /// ``maximumCaptureScale`` warns about — at 1× a body-text stem is about one pixel wide and the
+    /// 64 × 64 stride can step over the ink altogether — and it was measurable: one replay of a
+    /// real caption read 4.09:1 where the truth is about 5.4:1, a false failure at the 4.5
+    /// threshold manufactured entirely by the missing pixels.
+    ///
+    /// The trait collection is asked first because `UIScreen` is the deprecated way to ask and a
+    /// window in a scene answers `displayScale` correctly; `window.screen.scale` is the fallback
+    /// for a window that has no traits resolved yet, and `1` the fallback for neither.
+    ///
+    /// - Parameter window: The window about to be snapshotted.
+    /// - Returns: The display's scale, at least 1.
+    static func displayScale(of window: UIWindow) -> CGFloat {
+        let fromTraits = window.traitCollection.displayScale
+        if fromTraits.isFinite, fromTraits > 0 { return fromTraits }
+        let fromScreen = window.screen.scale
+        return fromScreen.isFinite && fromScreen > 0 ? fromScreen : 1
+    }
+
+    /// The scale a snapshot of a window on a display of this scale is taken at.
     ///
     /// Split out as a pure function of one number so the policy in ``maximumCaptureScale`` can be
-    /// tested: the test host has no host app, so every `UIWindow` a test can make reports a
-    /// `contentScaleFactor` of 1 and a test that went through a real window could never tell a cap
-    /// from no cap at all.
+    /// tested on any host: the number a real device supplies is 2 or 3 and a test that could only
+    /// go through a real window could never exercise the cap's edges at all.
     ///
-    /// - Parameter contentScaleFactor: The window's own scale.
+    /// - Parameter displayScale: The display's pixels per point, from ``displayScale(of:)``.
     /// - Returns: The capture scale, never above ``maximumCaptureScale`` and never below 1.
-    static func captureScale(forContentScaleFactor contentScaleFactor: CGFloat) -> CGFloat {
-        guard contentScaleFactor.isFinite, contentScaleFactor > 1 else { return 1 }
-        return min(contentScaleFactor, maximumCaptureScale)
+    static func captureScale(forDisplayScale displayScale: CGFloat) -> CGFloat {
+        guard displayScale.isFinite, displayScale > 1 else { return 1 }
+        return min(displayScale, maximumCaptureScale)
     }
 
     /// Scyther's own views sitting directly in `window`, which must not appear in the snapshot.
@@ -148,7 +175,7 @@ struct WindowContrastSampler: ContrastSampling {
     ///
     /// - Parameters:
     ///   - window: The window to render.
-    ///   - scale: The pixels-per-point to render at, from ``captureScale(forContentScaleFactor:)``.
+    ///   - scale: The pixels-per-point to render at, from ``captureScale(forDisplayScale:)``.
     /// - Returns: The rendered image, and whether the window actually drew into it. An image with
     ///   `didDraw` of `false` is not usable — see ``didCaptureWindow``.
     private static func snapshot(of window: UIWindow, scale: CGFloat) -> (image: CGImage?, didDraw: Bool) {

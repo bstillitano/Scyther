@@ -22,8 +22,16 @@ protocol AuditNodeDetails {
     /// Whether that text is bold, which lowers WCAG's large-text threshold.
     var auditFontIsBold: Bool { get }
 
-    /// Whether the node actually draws text, as opposed to having a name for one.
-    var auditDrawsText: Bool { get }
+    /// Whether the node actually draws text, as opposed to having a name for one — or `nil` when
+    /// it genuinely cannot say.
+    ///
+    /// Three-valued on purpose. The contrast threshold is 4.5:1 for text and 3:1 for everything
+    /// else, so answering `false` when the truth is "I don't know" hands the lenient grade to every
+    /// node that cannot answer — which was every SwiftUI element, every custom view and every
+    /// `UITableViewCell` on the screen. `nil` lets ``AccessibilityAuditor/contrastThreshold(for:)``
+    /// resolve the unknown in the direction that can only ever produce a warning a developer can
+    /// dismiss, rather than in the direction that hides a failure.
+    var auditDrawsText: Bool? { get }
 
     /// What VoiceOver would read as the node's value, if anything.
     var auditAccessibilityValue: String? { get }
@@ -36,8 +44,8 @@ extension AuditNodeDetails {
     /// Nothing known, so not bold.
     var auditFontIsBold: Bool { false }
 
-    /// Nothing known, so no claim that the node draws text.
-    var auditDrawsText: Bool { false }
+    /// Nothing known, and saying so — see ``auditDrawsText`` for why this is not `false`.
+    var auditDrawsText: Bool? { nil }
 
     /// Nothing known, so no value.
     var auditAccessibilityValue: String? { nil }
@@ -46,7 +54,11 @@ extension AuditNodeDetails {
 extension UIView: AuditNodeDetails {
     /// The font of the view's own text, for the handful of UIKit views that draw text directly.
     ///
-    /// A `UIButton`'s title label rather than the button, because that is where the font lives.
+    /// A `UIButton`'s title label rather than the button, because that is where the font lives —
+    /// and `titleLabel` is populated whichever of the three authoring paths set the title, so a
+    /// `setAttributedTitle(_:for:)` or `UIButton.Configuration` title is read here as well as a
+    /// plain one.
+    ///
     /// Anything else — a container, a custom view drawing text itself, a SwiftUI backing view —
     /// reports nothing rather than a guess.
     private var auditFont: UIFont? {
@@ -57,32 +69,90 @@ extension UIView: AuditNodeDetails {
         return nil
     }
 
+    /// The smallest point size found in an attributed string's runs, or `nil` when it has none.
+    ///
+    /// `UILabel.font` is documented as the fallback typeface and has nothing to do with the fonts
+    /// inside `attributedText`: a label whose `font` is 20pt but whose runs are all 11pt was graded
+    /// at 3:1 and passed at 3.2:1. The *minimum* run is the right reading rather than the first or
+    /// the commonest one, because the strict threshold has to hold for the smallest text present —
+    /// grading a paragraph by its heading run is the same silent relaxation in a different place.
+    ///
+    /// - Parameter text: The attributed string to inspect.
+    /// - Returns: The smallest run's point size, or `nil` when no run names a font.
+    private static func smallestRunPointSize(in text: NSAttributedString) -> CGFloat? {
+        var smallest: CGFloat?
+        text.enumerateAttribute(.font, in: NSRange(location: 0, length: text.length)) { value, _, _ in
+            guard let font = value as? UIFont else { return }
+            smallest = min(smallest ?? font.pointSize, font.pointSize)
+        }
+        return smallest
+    }
+
+    /// The attributed text this view draws, if it draws any.
+    private var auditAttributedText: NSAttributedString? {
+        if let label = self as? UILabel { return label.attributedText }
+        if let field = self as? UITextField { return field.attributedText }
+        if let textView = self as? UITextView { return textView.attributedText }
+        if let button = self as? UIButton { return button.currentAttributedTitle }
+        return nil
+    }
+
     /// The point size the view draws its text at, already scaled by Dynamic Type — which is what
     /// WCAG's rule is about, since the size on screen is the size the reader reads.
-    public var auditFontPointSize: CGFloat? { auditFont?.pointSize }
+    ///
+    /// Three readings, each of which `font.pointSize` alone gets wrong, and all three resolved in
+    /// the strict direction because a threshold that is one level too strict costs a warning and
+    /// one that is too lenient costs a defect:
+    ///
+    /// - the smallest run of an attributed string, rather than the fallback `font` those runs do
+    ///   not use;
+    /// - `adjustsFontSizeToFitWidth`, where UIKit shrinks the drawn glyphs as far as
+    ///   `minimumScaleFactor` without ever touching `font`, so a 20pt label can be rendering at
+    ///   11pt and WCAG's rule is about what is on the screen;
+    /// - `nil` rather than a guess for every view that is not one of the four UIKit text views.
+    var auditFontPointSize: CGFloat? {
+        guard let base = auditAttributedText.flatMap({ Self.smallestRunPointSize(in: $0) }) ?? auditFont?.pointSize else {
+            return nil
+        }
+        guard let label = self as? UILabel, label.adjustsFontSizeToFitWidth else { return base }
+        let floorFactor = label.minimumScaleFactor
+        guard floorFactor > 0, floorFactor < 1 else { return base }
+        return base * floorFactor
+    }
 
     /// Whether the resolved font is bold, read from the descriptor's symbolic traits so a bold
     /// text style counts as well as an explicitly bold face.
-    public var auditFontIsBold: Bool {
+    var auditFontIsBold: Bool {
         auditFont?.fontDescriptor.symbolicTraits.contains(.traitBold) ?? false
     }
 
-    /// Whether the view has text in it right now.
+    /// Whether the view has text in it right now, or `nil` for a view that cannot know.
     ///
     /// An icon-only `UIButton` has a name and no title, which is exactly the distinction the
     /// contrast threshold turns on: WCAG grades text at 4.5:1 and non-text content at 3:1, and
     /// "has an accessibility label" is evidence of the former only if you confuse a name with
     /// content.
-    public var auditDrawsText: Bool {
+    ///
+    /// A button is asked through `titleLabel?.text` rather than `currentTitle`. `currentTitle` is
+    /// `nil` when the title was set with `setAttributedTitle(_:for:)` and is not dependable for a
+    /// `UIButton.Configuration` title either, so "Forgot password?" as an underlined attributed
+    /// title, and every modern `.plain`/`.borderless` configuration button, answered "draws no
+    /// text" and dropped a threshold level. `UILabel.text` returns the plain string of whatever the
+    /// label is showing, and UIKit populates `titleLabel` in all three authoring paths.
+    ///
+    /// Anything that is not one of the four UIKit text views answers `nil`, not `false`: a
+    /// `UIStackView`, a custom view drawing its own string and a SwiftUI backing view all draw text
+    /// routinely and none of them can be asked.
+    var auditDrawsText: Bool? {
         if let label = self as? UILabel { return label.text?.isEmpty == false }
         if let field = self as? UITextField { return field.text?.isEmpty == false }
         if let textView = self as? UITextView { return textView.text?.isEmpty == false }
-        if let button = self as? UIButton { return button.currentTitle?.isEmpty == false }
-        return false
+        if let button = self as? UIButton { return button.titleLabel?.text?.isEmpty == false }
+        return nil
     }
 
     /// Direct read of `accessibilityValue`.
-    public var auditAccessibilityValue: String? { accessibilityValue }
+    var auditAccessibilityValue: String? { accessibilityValue }
 }
 
 /// Walks a tree of ``AuditNode`` and reports what is wrong with it.
@@ -126,7 +196,29 @@ struct AccessibilityAuditor {
     /// hand, and costs production nothing: the default is `Date.init` itself.
     var now: () -> Date = Date.init
 
+    /// One element the walk found, with the geometry every rule downstream needs.
+    ///
+    /// `frameInWindow` is not a property read: for a `UIView` it converts through the superview
+    /// chain and, when Scyther's own sheet is up, walks that chain a second time to find the
+    /// untransformed measurement space; for a synthetic element it first walks an
+    /// `accessibilityContainer` chain to resolve a window. The walk needs it, the visibility test
+    /// needs it, and then each of the three checks and the element-naming helper read it again —
+    /// up to eight full ancestor climbs per node, and at the 5,000-node cap that is hundreds of
+    /// thousands of pointer chases inside a 0.25s budget. Computing it once at the point the node
+    /// is admitted and carrying it is the whole of this type.
+    struct AuditCandidate {
+        /// The element itself.
+        let node: AuditNode
+
+        /// Where it is, in the space the audit measures in. Read once, here.
+        let frameInWindow: CGRect
+    }
+
     /// Every element worth checking, in tree order.
+    ///
+    /// Kept as a thin projection of ``collectCandidates(root:deadline:)`` because a caller that
+    /// only wants to know *which* nodes were found — every test of the walk's caps, ordering and
+    /// skip rules — should not have to know about the geometry the pass caches for the rules.
     ///
     /// - Parameters:
     ///   - root: The node to walk from, usually the key window.
@@ -134,7 +226,20 @@ struct AccessibilityAuditor {
     ///     fresh ``budget`` from now, which is what a caller walking a tree on its own wants.
     /// - Returns: The elements found, and whether a cap stopped the walk before it finished.
     func collect(root: AuditNode, deadline: Date? = nil) -> (nodes: [AuditNode], didHitLimit: Bool) {
-        var found: [AuditNode] = []
+        let walked = collectCandidates(root: root, deadline: deadline)
+        return (walked.candidates.map(\.node), walked.didHitLimit)
+    }
+
+    /// Every element worth checking, in tree order, each with its frame already resolved.
+    ///
+    /// - Parameters:
+    ///   - root: The node to walk from, usually the key window.
+    ///   - deadline: When the walk must stop, shared with the rest of the pass. `nil` starts a
+    ///     fresh ``budget`` from now.
+    /// - Returns: The candidates found, and whether a cap stopped the walk before it finished.
+    func collectCandidates(root: AuditNode,
+                           deadline: Date? = nil) -> (candidates: [AuditCandidate], didHitLimit: Bool) {
+        var found: [AuditCandidate] = []
         var didHitLimit = false
         var visited = 0
         let deadline = deadline ?? now().addingTimeInterval(Self.budget)
@@ -180,10 +285,14 @@ struct AccessibilityAuditor {
                 }
             }
 
-            guard !node.isScytherOwned, node.isVisible, !node.frameInWindow.isEmpty else { return }
+            // The frame is resolved once, here, and carried on the candidate rather than being
+            // read again by the visibility guard and by every rule that follows.
+            guard !node.isScytherOwned else { return }
+            let frame = node.frameInWindow
+            guard !frame.isEmpty, node.isVisible else { return }
 
             if node.isAccessibilityElementNode {
-                found.append(node)
+                found.append(AuditCandidate(node: node, frameInWindow: frame))
                 return
             }
 
@@ -276,9 +385,6 @@ struct AccessibilityAuditor {
     /// standard, and not something a developer can be told is broken.
     private static let belowAnyGuidelineSide: CGFloat = 24
 
-    /// The traits that mark an element that draws something worth measuring the contrast of.
-    private static let textTraits: UIAccessibilityTraits = [.staticText, .button]
-
     /// WCAG 1.4.3's ratio for ordinary text.
     private static let textRatio: Double = 4.5
 
@@ -327,13 +433,13 @@ struct AccessibilityAuditor {
                checksUnmeasurable: Set<AccessibilityCheck> = [],
                deadline: Date? = nil) -> Result {
         let passDeadline = deadline ?? now().addingTimeInterval(Self.budget)
-        let walked = collect(root: root, deadline: passDeadline)
+        let walked = collectCandidates(root: root, deadline: passDeadline)
         var findings: [AccessibilityFinding] = []
         var didHitLimit = walked.didHitLimit
         var contrastCandidates = 0
         var contrastMeasurements = 0
 
-        for node in walked.nodes {
+        for candidate in walked.candidates {
             // The same deadline the walk ran under. Every iteration below can crop and rasterise
             // a region of a window bitmap, so this loop is the expensive half of the pass and
             // the half a budget checked only inside the walk never reached.
@@ -342,14 +448,21 @@ struct AccessibilityAuditor {
                 break
             }
 
-            if checks.contains(.missingLabel), let finding = missingLabelFinding(for: node) {
+            if checks.contains(.missingLabel), let finding = missingLabelFinding(for: candidate) {
                 findings.append(finding)
             }
-            if checks.contains(.touchTarget), let finding = touchTargetFinding(for: node) {
+            if checks.contains(.touchTarget), let finding = touchTargetFinding(for: candidate) {
                 findings.append(finding)
             }
             if checks.contains(.contrast), let sampler {
-                switch contrastOutcome(for: node, sampler: sampler) {
+                // Each sample crops a `CGImage`, allocates a `CGContext` and fills a buffer of up
+                // to 64 × 64 RGBA pixels — a quarter of a megabyte of autoreleased Core Graphics
+                // objects per candidate, and at the node cap nothing drained until the whole pass
+                // returned. Draining per element keeps the pass's peak flat instead of linear in
+                // the number of text elements on screen, which matters most on exactly the
+                // memory-heavy screens somebody runs an audit over.
+                let outcome = autoreleasepool { contrastOutcome(for: candidate, sampler: sampler) }
+                switch outcome {
                 case .notApplicable:
                     break
                 case .unmeasurable:
@@ -388,9 +501,10 @@ struct AccessibilityAuditor {
     /// defect whatever its traits; the two things that make it not a defect are that the element
     /// reads its own content (`.staticText`) or that it has a value to read instead.
     ///
-    /// - Parameter node: The element to check.
+    /// - Parameter candidate: The element to check, with its frame already resolved.
     /// - Returns: The finding, or `nil` when the element is named or exempt.
-    private func missingLabelFinding(for node: AuditNode) -> AccessibilityFinding? {
+    private func missingLabelFinding(for candidate: AuditCandidate) -> AccessibilityFinding? {
+        let node = candidate.node
         guard node.isAccessibilityElementNode else { return nil }
         let trimmed = node.accessibilityLabelText?.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed?.isEmpty ?? true else { return nil }
@@ -403,19 +517,27 @@ struct AccessibilityAuditor {
         return AccessibilityFinding(
             check: .missingLabel,
             severity: .error,
-            frame: node.frameInWindow,
-            elementName: Self.name(for: node),
+            frame: candidate.frameInWindow,
+            elementName: Self.name(for: node, frame: candidate.frameInWindow),
             detail: localized("VoiceOver reads this element with no name.")
         )
     }
 
     /// The finding for a target smaller than a finger, if there is one.
     ///
-    /// - Parameter node: The element to check.
+    /// The two severities carry two different sentences, because they cite two different numbers
+    /// and the developer cannot act on a number they are not shown. One string reading "under the
+    /// 44 × 44pt minimum" for both meant the 24pt line — the entire point of the severity split,
+    /// and the only figure in this rule anyone can cite a standard for — appeared nowhere a
+    /// developer could see it: a 20pt element and a 43pt element differed only by the colour of a
+    /// dot.
+    ///
+    /// - Parameter candidate: The element to check, with its frame already resolved.
     /// - Returns: The finding, or `nil` when the target is big enough or is not a target.
-    private func touchTargetFinding(for node: AuditNode) -> AccessibilityFinding? {
+    private func touchTargetFinding(for candidate: AuditCandidate) -> AccessibilityFinding? {
+        let node = candidate.node
         guard !node.traits.intersection(Self.interactiveTraits).isEmpty else { return nil }
-        let size = node.frameInWindow.size
+        let size = candidate.frameInWindow.size
         guard size.width < Self.minimumTargetSide || size.height < Self.minimumTargetSide else {
             return nil
         }
@@ -428,15 +550,18 @@ struct AccessibilityAuditor {
         // developer to stop reading them. It stays a warning rather than disappearing because a
         // standalone link styled as a button is a real miss and this cannot tell the two apart.
         let isCappedAtWarning = node.traits.contains(.link)
-        let severity: AccessibilitySeverity =
-            !isCappedAtWarning && shortest < Self.belowAnyGuidelineSide ? .error : .warning
+        let isError = !isCappedAtWarning && shortest < Self.belowAnyGuidelineSide
+        let width = Self.points(size.width)
+        let height = Self.points(size.height)
 
         return AccessibilityFinding(
             check: .touchTarget,
-            severity: severity,
-            frame: node.frameInWindow,
-            elementName: Self.name(for: node),
-            detail: localized("\(Self.points(size.width)) × \(Self.points(size.height))pt, under the 44 × 44pt minimum.")
+            severity: isError ? .error : .warning,
+            frame: candidate.frameInWindow,
+            elementName: Self.name(for: node, frame: candidate.frameInWindow),
+            detail: isError
+                ? localized("\(width) × \(height)pt, under WCAG 2.5.8's 24 × 24pt minimum.")
+                : localized("\(width) × \(height)pt, under Apple's 44 × 44pt guidance.")
         )
     }
 
@@ -445,13 +570,15 @@ struct AccessibilityAuditor {
     /// An element with no label is named by what it is and where it is, because the finding that
     /// says "this has nothing to call it" cannot then have nothing to call it.
     ///
-    /// - Parameter node: The element to name.
+    /// - Parameters:
+    ///   - node: The element to name.
+    ///   - frame: Its already-resolved frame, so naming an element does not cost another climb up
+    ///     its ancestor chain.
     /// - Returns: Its label, or its type and origin.
-    private static func name(for node: AuditNode) -> String {
+    private static func name(for node: AuditNode, frame: CGRect) -> String {
         let trimmed = node.accessibilityLabelText?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let trimmed, !trimmed.isEmpty { return trimmed }
-        let origin = node.frameInWindow.origin
-        return localized("\(node.typeName) at \(points(origin.x)), \(points(origin.y))")
+        return localized("\(node.typeName) at \(points(frame.origin.x)), \(points(frame.origin.y))")
     }
 
     /// A measurement, to one decimal place.
@@ -476,66 +603,224 @@ struct AccessibilityAuditor {
         case measured(AccessibilityFinding?)
     }
 
+    /// One rectangle of an element worth sampling, and the standard the text in it is held to.
+    private struct TextRegion {
+        /// Where to sample, in window coordinates.
+        let frame: CGRect
+
+        /// The minimum acceptable ratio for whatever is drawn there.
+        let threshold: Double
+
+        /// Whether the point size behind that threshold was actually readable, so a finding can
+        /// say when the large-text allowance was withheld for want of a size rather than applied
+        /// and failed.
+        let pointSizeWasKnown: Bool
+    }
+
+    /// How deep the sampling descent goes inside one combined element.
+    ///
+    /// The descent is not the accessibility walk — it deliberately goes *past* the leaf VoiceOver
+    /// stops at — so it needs its own bound. A cell's own view hierarchy is a handful of levels;
+    /// twelve covers a stack view inside a container inside a content view without ever
+    /// approaching the cost of a second full tree walk.
+    private static let maximumTextRegionDepth = 12
+
+    /// How many text regions one element is sampled at.
+    ///
+    /// A row with an icon, a title, a subtitle and a trailing value is four. The cap exists for
+    /// the pathological case — a custom "cell" that is really a whole screen — where sampling
+    /// every label would spend the pass's entire budget on one element.
+    private static let maximumTextRegions = 8
+
+    /// The views inside `view` that actually draw text, including `view` itself.
+    ///
+    /// The reason this exists is the single most damaging thing round two found. Contrast used to
+    /// be gated on the element carrying `.staticText` or `.button`; a `UITableViewCell` or
+    /// `UICollectionViewCell` with `isAccessibilityElement = true` carries neither, nor does a
+    /// SwiftUI row using `.accessibilityElement(children: .combine)`, nor does a `UITextField`. The
+    /// walk stops at the combined element, so the `UILabel`s inside it were never visited either,
+    /// and on the most ordinary screen in iOS — a list — *no text was contrast-checked at all* and
+    /// the report printed a green tick. Every other gap in this tool produces a missing finding;
+    /// that one produced a certificate.
+    ///
+    /// Descending fixes more than the gate. The combined element's rectangle is mostly background,
+    /// so measuring it asks the analyser to find a glyph in a crop that is 95% fill, next to an
+    /// avatar and a chevron; each label's own bounds is nearly all text and background and nothing
+    /// else. And a `UILabel` can answer ``UIView/auditFontPointSize``, so descending also recovers
+    /// the real threshold for text the combined element could never have supplied a size for.
+    ///
+    /// This is for *sampling only*: nothing found here becomes a finding of its own, is counted as
+    /// an element, or appears in the report as a separate row. The element the developer sees is
+    /// still the one VoiceOver lands on.
+    ///
+    /// Hidden and transparent subviews are skipped for the same reason the walk skips them — they
+    /// are not on screen — and a text view is not descended into, since a `UILabel`'s internals
+    /// are UIKit's business.
+    ///
+    /// - Parameter view: The view the accessibility walk stopped at.
+    /// - Returns: The text-drawing views inside it, outermost first, at most
+    ///   ``maximumTextRegions`` of them.
+    static func drawnTextViews(in view: UIView) -> [UIView] {
+        var found: [UIView] = []
+
+        func descend(_ current: UIView, depth: Int) {
+            guard found.count < maximumTextRegions, depth <= maximumTextRegionDepth else { return }
+            guard !current.isHidden, current.alpha > 0.01 else { return }
+            if current.auditDrawsText == true {
+                found.append(current)
+                return
+            }
+            for subview in current.subviews {
+                descend(subview, depth: depth + 1)
+            }
+        }
+
+        descend(view, depth: 0)
+        return found
+    }
+
+    /// Where to sample one element, and what standard each of those places is held to.
+    ///
+    /// - Parameter candidate: The element, with its frame already resolved.
+    /// - Returns: One region per piece of text actually drawn inside a real view, or the element's
+    ///   own rectangle when nothing can be descended into — a synthetic SwiftUI element, or a view
+    ///   that draws its own string with no `UILabel` in it.
+    private static func textRegions(for candidate: AuditCandidate) -> [TextRegion] {
+        if let view = candidate.node as? UIView {
+            let drawn = drawnTextViews(in: view)
+            if !drawn.isEmpty {
+                return drawn.map { text in
+                    TextRegion(frame: text.frameInWindow,
+                               threshold: contrastThreshold(drawsText: true,
+                                                            traits: text.accessibilityTraits,
+                                                            details: text),
+                               pointSizeWasKnown: text.auditFontPointSize != nil)
+                }
+            }
+        }
+        let details = candidate.node as? AuditNodeDetails
+        return [TextRegion(frame: candidate.frameInWindow,
+                           threshold: contrastThreshold(for: candidate.node),
+                           pointSizeWasKnown: details?.auditFontPointSize != nil)]
+    }
+
     /// Measures one element's contrast.
     ///
+    /// Every region the element draws text in is measured, and the worst of them — the one
+    /// furthest below its own threshold — becomes the finding, reported at that region's frame so
+    /// the overlay boxes the text that failed rather than the whole row. One element still
+    /// produces at most one finding.
+    ///
     /// - Parameters:
-    ///   - node: The element to measure.
+    ///   - candidate: The element to measure, with its frame already resolved.
     ///   - sampler: Where the pixels come from.
     /// - Returns: What happened, per ``ContrastOutcome``.
-    private func contrastOutcome(for node: AuditNode, sampler: ContrastSampling) -> ContrastOutcome {
-        guard !node.traits.intersection(Self.textTraits).isEmpty else { return .notApplicable }
-        let trimmed = node.accessibilityLabelText?.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let trimmed, !trimmed.isEmpty else { return .notApplicable }
-
+    private func contrastOutcome(for candidate: AuditCandidate,
+                                 sampler: ContrastSampling) -> ContrastOutcome {
+        let node = candidate.node
         // WCAG 1.4.3 exempts "text or images of text that are part of an inactive user interface
         // component" outright. A greyed-out button measures 2–3:1 by design and is on screen
         // constantly, so this is not a threshold argument — the success criterion does not apply,
         // and every finding of that class was wrong.
         guard !node.traits.contains(.notEnabled) else { return .notApplicable }
 
-        guard let measured = ContrastAnalyser.measure(pixels: sampler.samples(in: node.frameInWindow)) else {
-            return .unmeasurable
+        let details = node as? AuditNodeDetails
+        let trimmed = node.accessibilityLabelText?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let isNamed = !(trimmed?.isEmpty ?? true)
+        guard isNamed || details?.auditDrawsText == true else { return .notApplicable }
+
+        // An element whose only trait is `.image` is a picture. WCAG grades those under 1.4.11,
+        // which this tool does not implement and says so in its documentation; measuring one under
+        // 1.4.3 would report a photograph as failing body-text contrast.
+        if node.traits.contains(.image), node.traits.subtracting([.image, .selected]).isEmpty,
+           details?.auditDrawsText != true {
+            return .notApplicable
         }
 
-        let threshold = Self.contrastThreshold(for: node)
-        guard measured.ratio < threshold else { return .measured(nil) }
+        var worst: (finding: AccessibilityFinding, shortfall: Double)?
+        var didMeasureAnything = false
 
-        return .measured(AccessibilityFinding(
-            check: .contrast,
-            severity: .warning,
-            frame: node.frameInWindow,
-            elementName: Self.name(for: node),
-            detail: localized("About \(Self.ratio(measured.ratio)):1, under \(Self.ratio(threshold)):1. Estimated from \(measured.foreground.hexDescription) on \(measured.background.hexDescription).")
-        ))
+        for region in Self.textRegions(for: candidate) {
+            guard let measured = ContrastAnalyser.measure(pixels: sampler.samples(in: region.frame)) else {
+                continue
+            }
+            didMeasureAnything = true
+            guard measured.ratio < region.threshold else { continue }
+
+            let shortfall = measured.ratio / region.threshold
+            guard shortfall < (worst?.shortfall ?? .greatestFiniteMagnitude) else { continue }
+
+            var detail = localized("About \(Self.ratio(measured.ratio)):1, under \(Self.ratio(region.threshold)):1. Estimated from \(measured.foreground.hexDescription) on \(measured.background.hexDescription).")
+            if !region.pointSizeWasKnown, region.threshold == Self.textRatio {
+                detail += " " + localized("Point size unknown, so the large-text allowance was not applied.")
+            }
+            worst = (AccessibilityFinding(check: .contrast,
+                                          severity: .warning,
+                                          frame: region.frame,
+                                          elementName: Self.name(for: node, frame: candidate.frameInWindow),
+                                          detail: detail),
+                     shortfall)
+        }
+
+        // Nothing legible anywhere in the element. That is "could not measure", never a pass —
+        // an occluded element, a gradient, a photograph and a crop the sampler never painted all
+        // land here, and every one of them used to come back as a confident number or as silence.
+        guard didMeasureAnything else { return .unmeasurable }
+        return .measured(worst?.finding)
     }
 
     /// The ratio `node` has to clear.
-    ///
-    /// Three rules, in order of how much is known about the element:
-    ///
-    /// - **It does not draw text.** WCAG 1.4.11 grades graphical objects and the visual
-    ///   boundaries of components at 3:1, not 1.4.3's 4.5:1. An icon-only button satisfies the
-    ///   old gate — a `.button` trait and a non-empty label — while containing no text at all,
-    ///   so a conformant grey chevron at 3.4:1 was reported as a failure. Having a *name* is
-    ///   evidence that an element is not text, not evidence that it is.
-    /// - **It draws text at a size that can be read.** Then WCAG's real large-text rule applies:
-    ///   18pt, or 14pt bold.
-    /// - **It draws text and the size cannot be read** — a synthetic element, a custom view. Then
-    ///   the strict threshold, with no relaxation, because the relaxation can only ever hide a
-    ///   failure.
-    ///
-    /// What this replaces was a 24pt *frame height* proxy, which is not a proxy for point size:
-    /// it is a proxy for line count plus padding. Every label that wrapped to two lines, and
-    /// every button a developer had just padded to 44pt to satisfy this auditor's own touch
-    /// target check, was silently regraded from 4.5:1 to 3:1 — the two checks pulling against
-    /// each other, in the direction of silence, on ordinary body copy.
     ///
     /// - Parameter node: The element to grade.
     /// - Returns: The minimum acceptable ratio.
     private static func contrastThreshold(for node: AuditNode) -> Double {
         let details = node as? AuditNodeDetails
-        let drawsText = node.traits.contains(.staticText) || (details?.auditDrawsText ?? false)
-        guard drawsText else { return relaxedRatio }
+        return contrastThreshold(drawsText: details?.auditDrawsText,
+                                 traits: node.traits,
+                                 details: details)
+    }
+
+    /// The ratio a piece of content has to clear.
+    ///
+    /// Three rules, in order of how much is known:
+    ///
+    /// - **It can say it draws no text, or it is a graphic.** WCAG 1.4.11 grades graphical objects
+    ///   and the visual boundaries of components at 3:1, not 1.4.3's 4.5:1. An icon-only `UIButton`
+    ///   satisfies the old gate — a `.button` trait and a non-empty label — while containing no
+    ///   text at all, so a conformant grey chevron at 3.4:1 was reported as a failure. Having a
+    ///   *name* is evidence that an element is not text, not evidence that it is.
+    /// - **It draws text at a size that can be read.** Then WCAG's real large-text rule applies:
+    ///   18pt, or 14pt bold.
+    /// - **Anything else.** The strict threshold, with no relaxation.
+    ///
+    /// That last rule is the one that changed, and it changed because the previous version
+    /// resolved the same unknown two opposite ways one line apart. An unknown *point size* fell
+    /// back to strict, correctly reasoned as "the relaxation can only ever hide a failure"; an
+    /// unknown *text-ness* fell back to lenient — and since `AccessibilityElementNode` conforms to
+    /// nothing, "unknown" was every element SwiftUI has ever produced. A SwiftUI `Button("Continue")`
+    /// carries `.button` and not `.staticText`, so its 13pt title was graded at 3:1 and passed at
+    /// 3.4:1; so was every `UITableViewCell` that makes itself one VoiceOver stop. Only a node that
+    /// can *affirmatively* answer "I draw no text" now earns 3:1, which keeps the icon-only
+    /// `UIButton` fixed because a `UIButton` can answer, and `.image` keeps the SwiftUI icon-only
+    /// button lenient because that is the one trait SwiftUI does supply for it.
+    ///
+    /// What all of this replaces was a 24pt *frame height* proxy, which is not a proxy for point
+    /// size: it is a proxy for line count plus padding. Every label that wrapped to two lines, and
+    /// every button a developer had just padded to 44pt to satisfy this auditor's own touch target
+    /// check, was silently regraded from 4.5:1 to 3:1.
+    ///
+    /// - Parameters:
+    ///   - drawsText: Whether text is drawn, or `nil` when that cannot be established.
+    ///   - traits: The element's accessibility traits.
+    ///   - details: What can be read about the font, if anything.
+    /// - Returns: The minimum acceptable ratio.
+    private static func contrastThreshold(drawsText: Bool?,
+                                          traits: UIAccessibilityTraits,
+                                          details: AuditNodeDetails?) -> Double {
+        if drawsText == false { return relaxedRatio }
+        if drawsText == nil, !traits.contains(.staticText), traits.contains(.image) {
+            return relaxedRatio
+        }
 
         guard let pointSize = details?.auditFontPointSize else { return textRatio }
         let isLarge = pointSize >= largeTextPointSize

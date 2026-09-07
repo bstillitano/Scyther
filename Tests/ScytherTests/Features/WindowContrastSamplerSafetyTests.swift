@@ -22,31 +22,49 @@ final class WindowContrastSamplerSafetyTests: XCTestCase {
     /// roughly 14 MB, re-taken every half-second in live mode. The crop is capped at 64 × 64 per
     /// element, so nothing above the cap survives to be measured anyway.
     func testANativeScaleAboveTheCapIsCapped() {
-        XCTAssertEqual(WindowContrastSampler.captureScale(forContentScaleFactor: 3), 2)
-        XCTAssertEqual(WindowContrastSampler.captureScale(forContentScaleFactor: 4), 2)
+        XCTAssertEqual(WindowContrastSampler.captureScale(forDisplayScale: 3), 2)
+        XCTAssertEqual(WindowContrastSampler.captureScale(forDisplayScale: 4), 2)
     }
 
     /// Capping must not *raise* the scale on a device below the cap — that would cost memory to
     /// invent detail the window does not have.
     func testAScaleAtOrBelowTheCapIsLeftAlone() {
-        XCTAssertEqual(WindowContrastSampler.captureScale(forContentScaleFactor: 2), 2)
-        XCTAssertEqual(WindowContrastSampler.captureScale(forContentScaleFactor: 1), 1)
+        XCTAssertEqual(WindowContrastSampler.captureScale(forDisplayScale: 2), 2)
+        XCTAssertEqual(WindowContrastSampler.captureScale(forDisplayScale: 1), 1)
     }
 
     /// A nonsense scale must not produce a zero-pixel or infinite bitmap.
     func testAnUnusableScaleFallsBackToOneToOne() {
-        XCTAssertEqual(WindowContrastSampler.captureScale(forContentScaleFactor: 0), 1)
-        XCTAssertEqual(WindowContrastSampler.captureScale(forContentScaleFactor: -3), 1)
-        XCTAssertEqual(WindowContrastSampler.captureScale(forContentScaleFactor: .infinity), 1)
-        XCTAssertEqual(WindowContrastSampler.captureScale(forContentScaleFactor: .nan), 1)
+        XCTAssertEqual(WindowContrastSampler.captureScale(forDisplayScale: 0), 1)
+        XCTAssertEqual(WindowContrastSampler.captureScale(forDisplayScale: -3), 1)
+        XCTAssertEqual(WindowContrastSampler.captureScale(forDisplayScale: .infinity), 1)
+        XCTAssertEqual(WindowContrastSampler.captureScale(forDisplayScale: .nan), 1)
     }
 
     /// The capped scale really is what the snapshot is taken at, not just what the policy says.
     func testTheSamplerAddressesItsSnapshotAtTheCappedScale() {
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
-        window.contentScaleFactor = 3
 
-        XCTAssertEqual(WindowContrastSampler(window: window).captureScale, 2)
+        XCTAssertEqual(WindowContrastSampler(window: window).captureScale,
+                       min(window.traitCollection.displayScale, WindowContrastSampler.maximumCaptureScale))
+    }
+
+    /// The scale is read from the *display*, not from the window.
+    ///
+    /// A `UIWindow`'s own `contentScaleFactor` is 1 — its layer draws nothing, so `contentsScale`
+    /// is never raised — while the screen behind it is 2× or 3×. Reading the window's value meant
+    /// `captureScale(forDisplayScale:)` took its "below the cap" branch on every real device, the
+    /// documented two-pixels-per-point cap never once applied, and every snapshot the audit has
+    /// ever taken was a downscale of the screen. This asserts the two numbers really are different
+    /// on this host and that the sampler follows the display.
+    func testTheCaptureScaleFollowsTheDisplayRatherThanTheWindowsOwnScaleFactor() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+        let display = window.traitCollection.displayScale
+
+        XCTAssertGreaterThan(display, 1, "this host must be a retina display for the test to mean anything")
+        XCTAssertEqual(window.contentScaleFactor, 1, "a window's own scale factor is the trap being tested")
+        XCTAssertGreaterThan(WindowContrastSampler(window: window).captureScale, 1,
+                             "a 1x capture is the downscale that degraded every small-text measurement")
     }
 
     // MARK: - Scyther's Own Pixels
