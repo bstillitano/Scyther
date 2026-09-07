@@ -48,6 +48,16 @@ struct AccessibilityAuditor {
         /// hierarchies of containers from bypassing the node cap, and enforcing the depth, node
         /// and time limits.
         ///
+        /// "Every node visited" means every node the walk *touches*, which is why the counter sits
+        /// above the skip guard rather than below it. A skipped node is not a free node: deciding
+        /// to skip it costs an ownership walk up its responder chain and a frame conversion up its
+        /// superview chain, which is most of what a node costs at all. Counting only the survivors
+        /// let a container of 200,000 pooled, hidden or off-screen subviews — a cell cache, a
+        /// pre-built calendar of hidden day cells, a reuse pool held as subviews — pay all of that
+        /// and count as one, leaving only the wall clock to stop it. The developer was then told a
+        /// perfectly ordinary screen was too big to audit, which is the failure the node cap exists
+        /// to make legible rather than to hide.
+        ///
         /// The root is not counted towards the visit budget — only its descendants are — so
         /// that the test's expectation of collecting exactly `maximumNodes` elements from a
         /// root and N children can be met without inflating the limit.
@@ -67,8 +77,6 @@ struct AccessibilityAuditor {
                 didHitLimit = true
                 return
             }
-            guard !node.isScytherOwned, node.isVisible, !node.frameInWindow.isEmpty else { return }
-
             if depth > 0 {
                 visited += 1
                 guard visited <= Self.maximumNodes else {
@@ -76,6 +84,8 @@ struct AccessibilityAuditor {
                     return
                 }
             }
+
+            guard !node.isScytherOwned, node.isVisible, !node.frameInWindow.isEmpty else { return }
 
             if node.isAccessibilityElementNode {
                 found.append(node)
