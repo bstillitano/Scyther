@@ -104,21 +104,6 @@
     "ru": "Справа налево",
     "ar": "من اليمين إلى اليسار"
   },
-  "Forces right-to-left layout, which catches hard-coded leading and trailing assumptions.": {
-    "comment": "Subtitle under the Right to Left switch explaining what it catches",
-    "fr": "Force la mise en page de droite à gauche, ce qui révèle les hypothèses codées en dur sur les bords avant et arrière.",
-    "de": "Erzwingt ein Layout von rechts nach links und deckt damit fest verdrahtete Annahmen über führende und nachgestellte Kanten auf.",
-    "es": "Fuerza el diseño de derecha a izquierda, lo que descubre suposiciones fijas sobre los bordes inicial y final.",
-    "it": "Forza il layout da destra a sinistra, scoprendo le ipotesi cablate sui bordi iniziale e finale.",
-    "pt-BR": "Força o layout da direita para a esquerda, revelando suposições fixas sobre as bordas inicial e final.",
-    "nl": "Forceert een rechts-naar-links-lay-out en legt zo hardgecodeerde aannames over begin- en eindranden bloot.",
-    "ja": "右から左のレイアウトを強制し、先頭・末尾を決め打ちした実装を洗い出します。",
-    "zh-Hans": "强制从右到左布局，从而暴露对前缘和后缘的硬编码假设。",
-    "zh-Hant": "強制從右到左版面配置，藉此揭露對前緣與後緣的硬編碼假設。",
-    "ko": "오른쪽에서 왼쪽 레이아웃을 강제하여 선행·후행 가장자리에 대한 하드코딩된 가정을 드러냅니다.",
-    "ru": "Принудительно включает раскладку справа налево и выявляет жёстко заданные предположения о начальном и конечном краях.",
-    "ar": "يفرض تخطيطًا من اليمين إلى اليسار، فيكشف الافتراضات المثبتة حول الحافتين البادئة والخاتمة."
-  },
   "Show Keys": {
     "comment": "Switch label for the mode that renders catalog keys instead of translations",
     "fr": "Afficher les clés",
@@ -268,5 +253,20 @@
     "ko": "Scyther 자체 인터페이스는 항상 변환됩니다. 여러분의 앱에서는 NSLocalizedString으로 불러온 문자열만 해당합니다. String(localized:)과 SwiftUI Text는 후킹 가능한 메서드를 거치지 않고 Foundation이 해석합니다.",
     "ru": "Собственный интерфейс Scyther преобразуется всегда. В вашем приложении — только строки, загруженные через NSLocalizedString: String(localized:) и Text из SwiftUI Foundation разрешает, не проходя ни через один перехватываемый метод.",
     "ar": "تُحوَّل واجهة Scyther نفسها دائمًا. أما في تطبيقك فتُحوَّل السلاسل المحمّلة عبر NSLocalizedString فقط: إذ يحلّ Foundation كلًا من String(localized:) وText في SwiftUI دون المرور بأي دالة قابلة للاعتراض."
+  },
+  "Mirrors Scyther's interface now, and your app on its next launch. Catches hard-coded leading and trailing assumptions.": {
+    "comment": "Subtitle under the Right to Left switch, stating which surfaces flip and when",
+    "fr": "Met en miroir l’interface de Scyther maintenant, et votre app au prochain lancement. Révèle les hypothèses codées en dur sur les bords avant et arrière.",
+    "de": "Spiegelt Scythers Oberfläche sofort und deine App beim nächsten Start. Deckt fest verdrahtete Annahmen über führende und nachgestellte Kanten auf.",
+    "es": "Refleja la interfaz de Scyther ahora, y tu app en el próximo arranque. Descubre suposiciones fijas sobre los bordes inicial y final.",
+    "it": "Rispecchia subito l’interfaccia di Scyther, e la tua app al prossimo avvio. Scopre le ipotesi cablate sui bordi iniziale e finale.",
+    "pt-BR": "Espelha a interface do Scyther agora, e o seu app na próxima abertura. Revela suposições fixas sobre as bordas inicial e final.",
+    "nl": "Spiegelt Scythers interface nu, en je app bij de volgende start. Legt hardgecodeerde aannames over begin- en eindranden bloot.",
+    "ja": "ScytherのUIを今すぐ、Appは次回起動時にミラーリングします。先頭・末尾を決め打ちした実装を洗い出します。",
+    "zh-Hans": "立即镜像 Scyther 界面，你的 App 在下次启动时生效。暴露对前缘和后缘的硬编码假设。",
+    "zh-Hant": "立即鏡像 Scyther 介面，你的 App 於下次啟動時生效。揭露對前緣與後緣的硬編碼假設。",
+    "ko": "Scyther 인터페이스를 지금, 앱은 다음 실행 시 좌우 반전합니다. 선행·후행 가장자리에 대한 하드코딩된 가정을 드러냅니다.",
+    "ru": "Отражает интерфейс Scyther сразу, а ваше приложение — при следующем запуске. Выявляет жёстко заданные предположения о начальном и конечном краях.",
+    "ar": "يعكس واجهة Scyther الآن، ويعكس تطبيقك عند التشغيل التالي. يكشف الافتراضات المثبتة حول الحافتين البادئة والخاتمة."
   }
 }

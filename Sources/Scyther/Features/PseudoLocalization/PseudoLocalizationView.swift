@@ -18,6 +18,13 @@ import SwiftUI
 /// catalog keys laid out backwards, and the switch to undo it would be among them. The sample row
 /// exists so the page can still show what the modes do while remaining the one place they do not
 /// apply.
+///
+/// The exemption covers *text* only. This page installs the forced layout direction on itself, the
+/// same way ``MenuView`` does, so it mirrors along with the rest of Scyther — deliberately, since
+/// plain English reads perfectly well mirrored and insulating this one screen would misrepresent
+/// what the mode does. Installing it here as well as on ``MenuView`` is not redundant: it is what
+/// makes the page the developer is looking at flip at the moment the switch moves, rather than
+/// whenever SwiftUI next happens to hand it a fresh environment.
 struct PseudoLocalizationView: View {
     /// The view model mirroring ``PseudoLocalization``'s switches.
     @StateObject private var viewModel = PseudoLocalizationViewModel()
@@ -40,7 +47,7 @@ struct PseudoLocalizationView: View {
                 Toggle(isOn: $viewModel.rightToLeft) {
                     label(
                         localizedChrome("Right to Left"),
-                        subtitle: localizedChrome("Forces right-to-left layout, which catches hard-coded leading and trailing assumptions.")
+                        subtitle: localizedChrome("Mirrors Scyther's interface now, and your app on its next launch. Catches hard-coded leading and trailing assumptions.")
                     )
                 }
                 Toggle(isOn: $viewModel.showsKeys) {
@@ -80,6 +87,10 @@ struct PseudoLocalizationView: View {
             }
         }
         .navigationTitle(localizedChrome("Pseudo-localisation"))
+        .environment(\.layoutDirection, PseudoLocalizationLayout.layoutDirection(
+            forcingRightToLeft: viewModel.rightToLeft,
+            languageIdentifier: LanguageOverride.shared.namingLocale.identifier
+        ))
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }

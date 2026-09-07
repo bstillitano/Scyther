@@ -7,6 +7,7 @@
 
 #if !os(macOS)
 @testable import Scyther
+import SwiftUI
 import XCTest
 
 @MainActor
@@ -131,6 +132,46 @@ final class PseudoLocalizationTests: XCTestCase {
     }
 
     // MARK: - Layout
+
+    func testForcingRightToLeftMirrorsAnEnglishInterface() {
+        XCTAssertEqual(
+            PseudoLocalizationLayout.layoutDirection(forcingRightToLeft: true, languageIdentifier: "en"),
+            .rightToLeft
+        )
+    }
+
+    func testAnEnglishInterfaceStaysLeftToRightWithTheModeOff() {
+        XCTAssertEqual(
+            PseudoLocalizationLayout.layoutDirection(forcingRightToLeft: false, languageIdentifier: "en"),
+            .leftToRight
+        )
+    }
+
+    func testAnArabicInterfaceIsStillRightToLeftWithTheModeOff() {
+        XCTAssertEqual(
+            PseudoLocalizationLayout.layoutDirection(forcingRightToLeft: false, languageIdentifier: "ar"),
+            .rightToLeft
+        )
+    }
+
+    func testForcingRightToLeftDoesNotFightAnArabicInterface() {
+        XCTAssertEqual(
+            PseudoLocalizationLayout.layoutDirection(forcingRightToLeft: true, languageIdentifier: "ar"),
+            .rightToLeft
+        )
+    }
+
+    func testApplyingEffectsAnnouncesTheChangeSoViewsAlreadyOnScreenCanReRender() {
+        let announced = expectation(
+            forNotification: PseudoLocalization.ModesChangedNotification,
+            object: nil,
+            handler: nil
+        )
+        settings.rightToLeft = true
+        settings.applyEffects(isTestCase: true, isAppStore: true)
+
+        wait(for: [announced], timeout: 1)
+    }
 
     func testForcingRightToLeftAsksForTheForcedAttribute() {
         XCTAssertEqual(PseudoLocalizationLayout.attribute(rightToLeft: true), .forceRightToLeft)

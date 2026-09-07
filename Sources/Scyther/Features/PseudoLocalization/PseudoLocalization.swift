@@ -65,6 +65,9 @@ import UIKit
 /// - ``resolvedModes(stored:isAppStore:)``
 /// - ``canAffectHostApp(isTestCase:isAppStore:)``
 ///
+/// ### Notifications
+/// - ``ModesChangedNotification``
+///
 /// ### UserDefaults Keys
 /// - ``AccentedDefaultsKey``
 /// - ``LengthenedDefaultsKey``
@@ -73,6 +76,21 @@ import UIKit
 @MainActor
 internal final class PseudoLocalization: @unchecked Sendable {
     // MARK: - Static Data (nonisolated for cross-thread access)
+
+    /// Posted on the main actor whenever the switches change, so SwiftUI views that are already on
+    /// screen can re-render.
+    ///
+    /// Needed only by ``PseudoLocalizationMode/rightToLeft``, and only because SwiftUI takes its
+    /// layout direction from the environment: ``MenuView`` installs that value, and without a
+    /// signal it would go on installing the old one until something else happened to invalidate
+    /// it — which, for a menu the developer is looking at while flicking the switch, is never. The
+    /// text modes need nothing like this, because every string is re-resolved through
+    /// ``localized(_:comment:)`` on the next render anyway.
+    ///
+    /// A notification rather than `ObservableObject`, matching ``InterfaceToolkit``'s existing
+    /// change notifications, so this type stays a plain settings singleton readable from any
+    /// thread rather than acquiring a publisher and an isolation story to go with it.
+    nonisolated static let ModesChangedNotification = NSNotification.Name("Scyther.PseudoLocalization.ModesChanged")
 
     /// UserDefaults key for storing whether accented glyphs are substituted.
     nonisolated static let AccentedDefaultsKey: String = "Scyther_pseudo_localization_accented"
@@ -281,6 +299,7 @@ internal final class PseudoLocalization: @unchecked Sendable {
             isAppStore: isAppStore
         )
         PseudoLocalizationLayout.apply(rightToLeft: modes.contains(.rightToLeft), allowed: allowed)
+        NotificationCenter.default.post(name: Self.ModesChangedNotification, object: nil)
     }
 
     /// Re-applies the persisted state at launch, so a session picks up where the last one left off.

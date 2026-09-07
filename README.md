@@ -210,7 +210,7 @@ by default and all combinable:
 | --- | --- | --- |
 | Accented | `Hello` becomes `Ĥéļļö` | Text still in plain ASCII was never localised |
 | Lengthened | `[Hello··]`, about 135% of the original | Clipping and truncation |
-| Right to Left | Forces RTL layout | Hard-coded leading/trailing assumptions |
+| Right to Left | Mirrors the layout | Hard-coded leading/trailing assumptions |
 | Show Keys | Renders `Selected %lld items` instead of `Selected 5 items` | Which catalog entry produced a piece of copy |
 
 The brackets Lengthened adds are the point of it: a label missing its closing `]` was truncated,
@@ -239,8 +239,27 @@ Scyther's own menu and nothing else. That is a demonstration of the idea against
 SwiftUI interface, not a test of your screens. On a UIKit or `NSLocalizedString`-based app it is a
 test of your screens.
 
-**Right to Left has no such limit.** It is a UIKit semantic attribute rather than a string lookup,
-so it applies to the host app either way.
+**Right to Left is a different mechanism with a different limit.** It changes no text, so it does
+not care how your copy is loaded — but layout direction is not something that can simply be forced
+onto views that already exist, and the honest account of what flips and when is:
+
+| Surface | When it mirrors |
+| --- | --- |
+| The Pseudo-localisation page | Immediately, as you flick the switch |
+| The rest of the Scyther menu, and every page reached from it | Immediately |
+| Your app's UIKit views created after the switch | Immediately, as you navigate to them |
+| Your app's SwiftUI views | **Not until the next launch** |
+| Your whole app, UIKit and SwiftUI alike | On the next launch |
+
+SwiftUI takes its direction from the `\.layoutDirection` environment value, seeded when a hosting
+view is built; `UIView.appearance()` reaches views created after it changes, and neither reaches
+back into a SwiftUI hierarchy already on screen. Scyther's own interface flips instantly because
+Scyther installs that environment value itself and can therefore change it. Your app's cannot be
+reached the same way, so the toggle's own subtitle says so — "mirrors Scyther's interface now, and
+your app on its next launch" — rather than leaving it for you to discover here.
+
+On the next launch it is complete: `Scyther.start()` sets the appearance proxy before any of your
+app's views exist, so every one of them is built mirrored.
 
 #### Safety and limits
 
@@ -273,9 +292,8 @@ defect the developer will spend an afternoon chasing in their own code.
   shows what the modes do on the one page where they do not apply. Right to Left is process-wide
   and does flip this page along with everything else; the text stays legible, which is what the
   exemption is for.
-- Flipping Right to Left on a screen that has already laid itself out can leave it half-flipped;
-  relaunching settles it, because the persisted switch is re-applied before the app's own views
-  exist.
+- Right to Left mirrors Scyther's own interface immediately and your app on its next launch; see
+  the table above for exactly which surface moves when.
 
 #### Adding or correcting a translation
 

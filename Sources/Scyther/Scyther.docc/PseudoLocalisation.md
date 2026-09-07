@@ -21,7 +21,7 @@ freely combinable:
 | --- | --- | --- |
 | Accented | `Hello` becomes `Ĥéļļö` | Text still in plain ASCII was never localised |
 | Lengthened | `[Hello··]`, about 135% of the original | Clipping and truncation |
-| Right to Left | Forces RTL layout | Hard-coded leading/trailing assumptions |
+| Right to Left | Mirrors the layout | Hard-coded leading/trailing assumptions |
 | Show Keys | Renders `Selected %lld items` instead of `Selected 5 items` | Which catalog entry produced a piece of copy |
 
 The bracketing in Lengthened is the point of it: a label that has lost its closing `]` was
@@ -58,8 +58,29 @@ pseudo-localisation looks like, and Scyther's menu is a real, fully localised Sw
 at it on — but it is a demonstration, not a test of your screens. On a UIKit or
 `NSLocalizedString`-based app it is a test of your screens.
 
-Right to Left has no such limit. It is a UIKit semantic attribute, not a string lookup, so it
-applies to the host app regardless of how its copy is loaded.
+Right to Left is a different mechanism, and it has a different limit rather than none. It changes
+no text, so it does not care how your copy is loaded — but a layout direction cannot simply be
+forced onto views that already exist. What flips, and when:
+
+| Surface | When it mirrors |
+| --- | --- |
+| The Pseudo-localisation page | Immediately |
+| The rest of the Scyther menu, and every page reached from it | Immediately |
+| The host app's UIKit views created after the switch | Immediately, on navigating to them |
+| The host app's SwiftUI views | Not until the next launch |
+| The whole host app, UIKit and SwiftUI alike | On the next launch |
+
+The reason is ``PseudoLocalizationLayout``'s two halves. SwiftUI reads `\.layoutDirection` from its
+environment, seeded when a hosting view is built; `UIView.appearance()` governs views created after
+it changes. Neither reaches back into a SwiftUI hierarchy already on screen. Scyther's interface
+flips instantly because Scyther installs that environment value itself, in ``MenuView`` and
+``PseudoLocalizationView``, and can therefore change it — which is also why the first version of
+this mode appeared to do nothing at all: ``MenuView`` was pinning the direction to the language and
+overruling the appearance proxy every time.
+
+The toggle's own subtitle carries this, not just these docs. A developer looking at a switch that
+says "forces right-to-left layout" and sees nothing move has been told something false, and no
+amount of accurate prose elsewhere repairs that.
 
 ## Safety
 
@@ -107,10 +128,8 @@ mean there was nothing to see.
 
 ## Known limits
 
-- A screen that has already laid itself out does not always re-resolve its constraints when the
-  layout direction changes, so flipping Right to Left on a visible screen can leave it
-  half-flipped. Relaunching settles it: the persisted switch is re-applied before any of the app's
-  own views exist.
+- Right to Left reaches the host app's SwiftUI views only after a relaunch, and its UIKit views
+  only as they are recreated. See the table above; the toggle says so too.
 - Strings the app has already resolved and cached are not revisited. A label rendered before the
   mode was switched on keeps its old text until something re-renders it.
 - Show Keys recovers the catalog key by reflecting on `String.LocalizationValue`, whose layout is
