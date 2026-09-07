@@ -60,6 +60,43 @@ struct WaterfallView: View {
     /// The page's own view model, which owns the laid-out log and the current time window.
     @StateObject private var viewModel: WaterfallViewModel
 
+    /// The detail row's label column, scaled against the reader's text size, before
+    /// ``WaterfallDetailRowMetrics`` decides whether the row still has room to draw it at that
+    /// width. See ``WaterfallChartStyle/detailLabelWidth``.
+    ///
+    /// Owned here rather than by `WaterfallDetailRow` itself — which is where it lived before this
+    /// fix — because ``rowLayout(in:)`` needs the exact same scaled number `WaterfallDetailRow`
+    /// draws its column at. A `@ScaledMetric` in the row and the unscaled `WaterfallChartStyle`
+    /// constant the page's old `plotWidth(in:)` function subtracted were free to disagree the
+    /// moment either one changed independently, and that disagreement is exactly the defect this
+    /// fix exists to close. Hoisting both `@ScaledMetric`s here and
+    /// passing the results down to `WaterfallDetailRow` as plain `let` properties makes the two
+    /// uses read the same property, so they cannot drift again without deleting this one. Reading
+    /// it from the parent rather than the child costs nothing extra: `@ScaledMetric` resolves from
+    /// the environment, which a view and its children already share, so the value is identical
+    /// either way — only which type declares the property differs.
+    @ScaledMetric(relativeTo: .caption) private var scaledLabelWidth: CGFloat = WaterfallChartStyle.detailLabelWidth
+
+    /// The detail row's duration column, scaled against the reader's text size, for the same
+    /// reason and in the same way ``scaledLabelWidth`` is. See
+    /// ``WaterfallChartStyle/detailDurationWidth``.
+    @ScaledMetric(relativeTo: .caption) private var scaledDurationWidth: CGFloat = WaterfallChartStyle.detailDurationWidth
+
+    /// The reader's current Dynamic Type setting, watched only so ``detail`` can recompute the
+    /// zoom limit when it changes while the page is already open.
+    ///
+    /// `@ScaledMetric` itself already keeps ``scaledLabelWidth`` and ``scaledDurationWidth`` — and
+    /// therefore what `WaterfallDetailRow` actually draws — correct on every body evaluation,
+    /// because SwiftUI re-evaluates a view's body whenever an environment value one of its
+    /// property wrappers reads changes. What does *not* happen automatically is
+    /// ``WaterfallViewModel/configureWindow(plotWidth:)`` running again: it is called from
+    /// `.onAppear` and from `.onChange(of: proxy.size.width)`, neither of which fires just because
+    /// the *columns'* width changed while the row's own outer width did not. Without this, opening
+    /// the page, then changing text size in Settings and returning to it, would leave the zoom
+    /// limit computed against the previous text size until the next rotation or resize happened to
+    /// trigger a recompute.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     /// The magnification the pinch gesture last reported, so each change applies only the delta
     /// since the previous callback rather than the whole gesture again.
     ///
@@ -220,6 +257,7 @@ struct WaterfallView: View {
     @ViewBuilder
     private var detail: some View {
         GeometryReader { proxy in
+            let layout = rowLayout(in: proxy.size.width)
             List {
                 if viewModel.isWindowEmpty {
                     Text(localized("No requests in this part of the log."))
@@ -230,15 +268,20 @@ struct WaterfallView: View {
                             LogDetailsView(httpRequest: row.request)
                         } label: {
                             WaterfallDetailRow(row: row, window: viewModel.window,
-                                               showsHost: viewModel.showsHost)
+                                               showsHost: viewModel.showsHost,
+                                               labelWidth: layout.labelWidth,
+                                               durationWidth: layout.durationWidth)
                         }
                     }
                 }
             }
             .listStyle(.plain)
-            .onAppear { viewModel.configureWindow(plotWidth: plotWidth(in: proxy.size.width)) }
+            .onAppear { viewModel.configureWindow(plotWidth: layout.plotWidth) }
             .onChange(of: proxy.size.width) { _ in
-                viewModel.configureWindow(plotWidth: plotWidth(in: proxy.size.width))
+                viewModel.configureWindow(plotWidth: rowLayout(in: proxy.size.width).plotWidth)
+            }
+            .onChange(of: dynamicTypeSize) { _ in
+                viewModel.configureWindow(plotWidth: rowLayout(in: proxy.size.width).plotWidth)
             }
             // `.subviews` rather than `.all` when zoom is impossible: it disables the pinch this
             // modifier adds while still letting the `List` recognise its own scroll and press
@@ -249,30 +292,27 @@ struct WaterfallView: View {
         }
     }
 
-    /// The width a bar actually gets, which is the row less the label and duration columns.
+    /// How one row divides its width between the label column, the plot, and the duration column,
+    /// and therefore also the width the plot's zoom limit is computed from.
     ///
-    /// The zoom limit is computed from this rather than from the screen's width, so the shortest
-    /// request really is close to 24pt at maximum zoom instead of 24pt-minus-the-chrome. The
-    /// trailing `48` is the row's own overhead that ``WaterfallChartStyle/detailLabelWidth`` and
-    /// ``WaterfallChartStyle/detailDurationWidth`` do not already account for: the two 8pt gaps
-    /// ``WaterfallDetailRow``'s `HStack` puts between its three columns, plus the 16pt leading and
-    /// trailing insets a plain `List` gives every row.
-    ///
-    /// It does not additionally subtract the `NavigationLink` disclosure chevron's own width and
-    /// inset, which a plain `List` row reserves beyond its 16pt trailing inset — around 24pt more.
-    /// That means this slightly over-estimates the plot the row actually has, so the zoom limit is
-    /// a little looser than the true geometry: the shortest measured request lands at roughly
-    /// 21pt when fully zoomed in rather than the full 24pt ``WaterfallWindow/targetShortestBarWidth``
-    /// names. Left uncorrected because 3pt of slack on a legibility target is not worth a second
-    /// magic number tied to a chevron's width, which UIKit does not publish and which changes with
-    /// Dynamic Type in its own right; if the gap is ever felt on a device, this is where to account
-    /// for it.
+    /// A thin wrapper around `WaterfallDetailRowMetrics.layout(rowWidth:scaledLabelWidth:scaledDurationWidth:)`,
+    /// which does the actual arithmetic and carries its own documentation of the rule this applies.
+    /// This exists only to supply that function with the two values only a view can produce —
+    /// ``scaledLabelWidth`` and ``scaledDurationWidth``, each a `@ScaledMetric` — so every caller
+    /// in this file reads the columns' width from the same two properties `WaterfallDetailRow` is
+    /// handed, rather than each recomputing its own `@ScaledMetric`, which is exactly how the
+    /// value ``detail`` fed ``WaterfallViewModel/configureWindow(plotWidth:)`` and the value the
+    /// row actually drew its columns at used to disagree: this function and `WaterfallDetailRow`
+    /// now both terminate at the same two stored properties, so there is only one number for
+    /// either of them to be wrong about.
     ///
     /// - Parameter rowWidth: The full width one row is given, from the list's own geometry.
-    /// - Returns: The width left for the bar, never below ``WaterfallChartStyle/minimumPlotWidth``.
-    private func plotWidth(in rowWidth: CGFloat) -> CGFloat {
-        max(WaterfallChartStyle.minimumPlotWidth,
-            rowWidth - WaterfallChartStyle.detailLabelWidth - WaterfallChartStyle.detailDurationWidth - 48)
+    /// - Returns: The label, plot and duration widths the row should draw at, none of which put
+    ///   together ever exceed `rowWidth`.
+    private func rowLayout(in rowWidth: CGFloat) -> WaterfallDetailRowMetrics.Layout {
+        WaterfallDetailRowMetrics.layout(rowWidth: rowWidth,
+                                         scaledLabelWidth: scaledLabelWidth,
+                                         scaledDurationWidth: scaledDurationWidth)
     }
 
     /// Pinch to zoom, running alongside the list's scrolling rather than instead of it.
@@ -374,6 +414,128 @@ enum WaterfallDetailGeometry {
     }
 }
 
+/// How the detail row divides its width between the label column, the plot, and the duration
+/// column, given the row's own width and how wide Dynamic Type wants the two fixed columns to be.
+///
+/// Exists because ``WaterfallView/rowLayout(in:)`` — the function feeding
+/// ``WaterfallViewModel/configureWindow(plotWidth:)`` the width the zoom limit is computed against
+/// — used to subtract ``WaterfallChartStyle/detailLabelWidth`` and
+/// ``WaterfallChartStyle/detailDurationWidth``'s *unscaled* base values, while `WaterfallDetailRow`
+/// drew its columns at their own, separately computed `@ScaledMetric` widths. The two agreed at
+/// the default text size, where a `@ScaledMetric` barely moves off its base value, and diverged
+/// the moment Dynamic Type grew past it: the zoom limit kept assuming 132pt and 62pt columns while
+/// the row actually drew columns that could be more than three times that wide at the largest
+/// accessibility category. That is a single value computed two different ways in two different
+/// places, which is the shape every drift in this feature has taken — see ``WaterfallDetailGeometry``
+/// and ``WaterfallStripGeometry`` for the same lesson applied to bar position. The fix is the same
+/// one those types apply: there is now exactly one function that computes the three widths, and
+/// both the plot-width calculation and the row's own columns read its answer instead of each
+/// deriving their own.
+///
+/// ## The rule once the columns no longer fit
+///
+/// At the largest accessibility category the two `@ScaledMetric` columns alone can demand more
+/// width than an ordinary row has — roughly 421pt and 198pt together against a content width near
+/// 358pt, measured at AX5 — which a plain `.frame(width:)` does not shrink to accommodate. Left
+/// uncorrected, the flexible plot column between them is squeezed to nothing and the row overflows
+/// past the screen's edge.
+///
+/// This caps the two columns' combined width, proportionally, at whatever is left of the row after
+/// its fixed chrome (``WaterfallChartStyle/detailRowInteriorChrome``,
+/// ``WaterfallChartStyle/detailRowDisclosureReserve``) and ``WaterfallChartStyle/minimumPlotWidth``
+/// are both reserved — rather than the alternative of dropping the plot column past some threshold
+/// once it would otherwise be squeezed. The plot is what makes this page a *waterfall* rather than
+/// a plain list of durations: it is the one place two requests' overlap is visible at a glance,
+/// which the label and duration columns do not carry between them however much room they are
+/// given. A reader at an accessibility text size has, if anything, more reason to want that
+/// picture, not less — losing fine motor control or reading a shrunk screen from a distance are
+/// common reasons to raise text size, and neither one makes "did these two requests overlap"
+/// stop mattering. So the plot keeps its floor and the two text columns give way instead, split
+/// proportionally to how wide `@ScaledMetric` wanted each of them so neither one is starved
+/// disproportionately: the label and duration text still truncates or wraps rather than clipping
+/// outright — see `WaterfallDetailRow`'s own `.lineLimit`/`.truncationMode` — so a reader loses
+/// some characters at the extreme end of Dynamic Type rather than losing the chart entirely.
+///
+/// - Note: This only guarantees ``WaterfallChartStyle/minimumPlotWidth`` when the row is at least
+///   that wide plus its fixed chrome — true of every iPhone and iPad screen width the toolkit
+///   supports, including Slide Over's narrowest multitasking width. A row narrower even than the
+///   chrome and the floor together — theoretical, not something any supported device produces —
+///   still cannot overflow, because ``layout(rowWidth:scaledLabelWidth:scaledDurationWidth:)``
+///   never reports a plot wider than what is actually left once the (now possibly zero) columns
+///   and the chrome are subtracted; it simply can no longer promise the floor in that case.
+enum WaterfallDetailRowMetrics {
+
+    /// The three widths one row should draw its columns at.
+    struct Layout: Equatable {
+        /// The label column's width, in points.
+        let labelWidth: CGFloat
+
+        /// The plot column's width, in points. Never wider than the space actually left after
+        /// ``labelWidth``, ``durationWidth`` and the row's fixed chrome are accounted for.
+        let plotWidth: CGFloat
+
+        /// The duration column's width, in points.
+        let durationWidth: CGFloat
+    }
+
+    /// The row's fixed horizontal overhead beyond the label and duration columns: the row's own
+    /// `HStack` gaps and `List` insets, plus the `NavigationLink` disclosure chevron's reserve.
+    /// See ``WaterfallChartStyle/detailRowInteriorChrome`` and
+    /// ``WaterfallChartStyle/detailRowDisclosureReserve`` for what each term covers.
+    static var fixedChrome: CGFloat {
+        WaterfallChartStyle.detailRowInteriorChrome + WaterfallChartStyle.detailRowDisclosureReserve
+    }
+
+    /// Computes the row's three column widths for a row of `rowWidth`.
+    ///
+    /// - Parameters:
+    ///   - rowWidth: The full width one row is given, from the list's own geometry — the same
+    ///     value ``WaterfallView/rowLayout(in:)`` passes through unchanged.
+    ///   - scaledLabelWidth: ``WaterfallChartStyle/detailLabelWidth`` after `@ScaledMetric` has
+    ///     scaled it for the reader's current text size.
+    ///   - scaledDurationWidth: ``WaterfallChartStyle/detailDurationWidth``, scaled the same way.
+    /// - Returns: The label, plot and duration widths the row should draw at. Their sum plus
+    ///   ``fixedChrome`` never exceeds `rowWidth`, so the row this feeds can never overflow it.
+    static func layout(rowWidth: CGFloat, scaledLabelWidth: CGFloat, scaledDurationWidth: CGFloat) -> Layout {
+        let safeRowWidth = max(0, rowWidth)
+        let naiveLabelWidth = max(0, scaledLabelWidth)
+        let naiveDurationWidth = max(0, scaledDurationWidth)
+        let naiveColumnsWidth = naiveLabelWidth + naiveDurationWidth
+
+        // What the two columns may spend together while still leaving the plot its floor. `0`
+        // when the row is too narrow even for the chrome and the floor alone — see this type's
+        // own documentation for what happens then.
+        let columnsBudget = max(0, safeRowWidth - fixedChrome - WaterfallChartStyle.minimumPlotWidth)
+
+        let labelWidth: CGFloat
+        let durationWidth: CGFloat
+        if naiveColumnsWidth <= columnsBudget || naiveColumnsWidth <= 0 {
+            // The columns already fit alongside a full-floor plot at their natural scaled width —
+            // the ordinary case at every text size up to roughly AX2 on a typical iPhone width —
+            // so nothing is capped.
+            labelWidth = naiveLabelWidth
+            durationWidth = naiveDurationWidth
+        } else {
+            // Scale both columns down by the same factor, so the ratio `@ScaledMetric` chose
+            // between them — the label wider than the duration, matching their base 132:62 split
+            // — survives the cap instead of one column being starved to save the other.
+            let scale = columnsBudget / naiveColumnsWidth
+            labelWidth = naiveLabelWidth * scale
+            durationWidth = naiveDurationWidth * scale
+        }
+
+        // Derived from what is actually left, not re-floored to `minimumPlotWidth`: whenever
+        // `columnsBudget` was reachable above, this equals `minimumPlotWidth` exactly (or more, if
+        // the columns didn't need the whole budget). In the narrower-than-the-floor-itself case
+        // `columnsBudget` already collapsed to `0`, so this reports whatever genuinely remains —
+        // which is the promise this type's own documentation makes: the plot is never reported as
+        // wider than it actually is.
+        let plotWidth = max(0, safeRowWidth - fixedChrome - labelWidth - durationWidth)
+
+        return Layout(labelWidth: labelWidth, plotWidth: plotWidth, durationWidth: durationWidth)
+    }
+}
+
 /// One request in the waterfall's detail list: who it went to, what it was, when it happened
 /// inside the window, and how long it took.
 ///
@@ -410,15 +572,28 @@ private struct WaterfallDetailRow: View {
     /// Scaled rather than constant for the same reason the old page's rows were: the label beside
     /// the bar grows with Dynamic Type, and a constant height would clip it at exactly the sizes
     /// where it most needs to be legible.
+    ///
+    /// Still this row's own `@ScaledMetric`, unlike ``labelWidth`` and ``durationWidth`` below:
+    /// height does not compete with siblings the way the row's three *horizontal* columns do, so
+    /// there is no budget for ``WaterfallDetailRowMetrics`` to arbitrate and nothing for this to
+    /// disagree with anywhere else in the page.
     @ScaledMetric(relativeTo: .caption) private var rowHeight: CGFloat = WaterfallChartStyle.rowHeight
 
-    /// The row's label column, scaled against the reader's text size for the same reason
-    /// ``rowHeight`` is. See ``WaterfallChartStyle/detailLabelWidth``.
-    @ScaledMetric(relativeTo: .caption) private var labelWidth: CGFloat = WaterfallChartStyle.detailLabelWidth
+    /// The row's label column width, already scaled and, where the row is too narrow for its full
+    /// scaled width, already capped — see ``WaterfallDetailRowMetrics``.
+    ///
+    /// A plain `let` rather than this row's own `@ScaledMetric`, unlike before this fix: the width
+    /// ``WaterfallView`` feeds ``WaterfallViewModel/configureWindow(plotWidth:)`` for the zoom
+    /// limit has to be computed from the *same* number this frame is drawn at, and a `@ScaledMetric`
+    /// declared here could never be read from outside this type to make that guarantee. See
+    /// ``WaterfallDetailRowMetrics`` for the full reasoning and ``WaterfallChartStyle/detailLabelWidth``
+    /// for the base value it starts from.
+    let labelWidth: CGFloat
 
-    /// The row's duration column, scaled against the reader's text size for the same reason
-    /// ``rowHeight`` is. See ``WaterfallChartStyle/detailDurationWidth``.
-    @ScaledMetric(relativeTo: .caption) private var durationWidth: CGFloat = WaterfallChartStyle.detailDurationWidth
+    /// The row's duration column width, already scaled and possibly capped, for the same reason
+    /// and in the same way ``labelWidth`` is. See ``WaterfallChartStyle/detailDurationWidth`` for
+    /// the base value it starts from.
+    let durationWidth: CGFloat
 
     var body: some View {
         HStack(spacing: 8) {
@@ -448,6 +623,17 @@ private struct WaterfallDetailRow: View {
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .frame(width: durationWidth, alignment: .trailing)
+                // `WaterfallDetailRowMetrics` can hand this a `durationWidth` narrower than the
+                // text's own natural width once the row is too narrow for the full scaled column
+                // — see that type's own documentation. Without a line limit, `Text` would wrap
+                // onto a second line rather than truncate, which `rowHeight` has no budget for and
+                // which would overflow the row vertically instead of the horizontal overflow this
+                // whole fix exists to prevent. Truncated to a leading ellipsis rather than
+                // `WaterfallDetailRowLayoutTests`'s middle for the path: a duration like "1.38 s"
+                // is read right-to-left for its meaning — the unit at the end matters most — so
+                // losing digits off the front is more honest than losing the unit off the back.
+                .lineLimit(1)
+                .truncationMode(.head)
         }
         .frame(height: rowHeight)
         // The bar itself conveys length by width, which is nothing to a screen reader, so the

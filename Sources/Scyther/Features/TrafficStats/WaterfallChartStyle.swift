@@ -64,40 +64,27 @@ enum WaterfallChartStyle {
     /// draws the overview strip, not rows.
     static let rowHeight: CGFloat = 44
 
-    /// The narrowest a bar is ever *rendered*, in points.
-    ///
-    /// A width, not a duration, and that distinction is the whole point. Expressing this as a
-    /// fraction of the axis — which is what it was — made the floor grow with the session: over a
-    /// five minute span it inflated every bar to three and a quarter seconds, so a 5 ms request
-    /// and a 3 s request drew identically and a floored bar could reach across a request it never
-    /// ran alongside. That contradicts the one claim the chart makes.
-    ///
-    /// One point is the smallest mark that is still drawn, and it is below the resolution at which
-    /// the chart could have shown a gap anyway: two bars whose real separation is under a point
-    /// cannot be told apart whether or not the floor is applied, so the floor cannot invent an
-    /// overlap a reader could otherwise have ruled out.
-    ///
-    /// Its remaining job is smaller than it used to be, not gone: the overview strip still
-    /// compresses the *entire* log into one short band, so a bar's real width can still fall well
-    /// under a point there whatever slice of the log the detail list's own ``WaterfallWindow`` is
-    /// showing. This is that floor for the strip alone — see ``detailMinimumBarWidth`` for the
-    /// detail list's own, deliberately different, floor.
-    static let minimumBarWidth: CGFloat = 1
-
     /// The narrowest a bar is ever *rendered* in the full-log page's detail list, in points.
     ///
-    /// Not ``minimumBarWidth``. That floor belongs to the overview strip, which compresses an
-    /// entire session — sometimes hours of it — into one short band, so almost every bar sits at
-    /// or near the floor and a hairline is the honest picture. The detail list draws only the
-    /// requests inside the current ``WaterfallWindow``, a slice the reader has already zoomed to
-    /// the resolution they want, so a bar there earns real space: three points is wide enough to
-    /// register as a rectangle rather than a hairline lost against the row's own separator, while
-    /// still being far short of the `24pt` ``WaterfallWindow/targetShortestBarWidth`` zoom limit
-    /// aims the *shortest* bar at once zoom is exhausted. A fix round once replaced this literal
-    /// `3` believing it was an undocumented magic number matching the strip's `1pt` floor; it is
-    /// the design's own figure — see the detail list's own section of
+    /// Not `WaterfallStripGeometry.minimumBarWidth`, the overview strip's own `1pt` floor for the
+    /// same idea. That strip compresses an entire session — sometimes hours of it — into one
+    /// short band, so almost every bar sits at or near its floor and a hairline is the honest
+    /// picture. The detail list draws only the requests inside the current ``WaterfallWindow``, a
+    /// slice the reader has already zoomed to the resolution they want, so a bar there earns real
+    /// space: three points is wide enough to register as a rectangle rather than a hairline lost
+    /// against the row's own separator, while still being far short of the `24pt`
+    /// ``WaterfallWindow/targetShortestBarWidth`` zoom limit aims the *shortest* bar at once zoom
+    /// is exhausted. A fix round once replaced this literal `3` believing it was an undocumented
+    /// magic number matching the strip's `1pt` floor; it is the design's own figure — see the
+    /// detail list's own section of
     /// `docs/superpowers/specs/2026-09-07-waterfall-window-design.md`, "minimum width `3pt`" — and
     /// the two floors are required to differ, not accidentally different.
+    ///
+    /// This type declares no strip floor of its own to contrast against: the strip's bar and
+    /// window geometry live in ``WaterfallStripGeometry`` instead — see this type's own
+    /// documentation for which of the waterfall's geometry lives where — and an earlier
+    /// `WaterfallChartStyle.minimumBarWidth` duplicating that constant was removed once nothing in
+    /// `Sources/`, `Tests/`, `Example/` or `docs/` still read it.
     static let detailMinimumBarWidth: CGFloat = 3
 
     /// The narrowest plot the page will draw, in points.
@@ -121,23 +108,53 @@ enum WaterfallChartStyle {
     /// each row's own text would start every bar at a different x and undercut the one claim the
     /// chart makes, that bars sharing a moment on the window were genuinely in flight together.
     ///
-    /// A base value, not the width the row actually draws at: ``WaterfallDetailRow`` reads this
-    /// through its own `@ScaledMetric`, the same way it already scales ``rowHeight``. The column
-    /// holds a `.caption` line over a `.subheadline` line, both of which grow with the reader's
-    /// text size, and the spec this page was rebuilt from opens by naming exactly this failure —
-    /// "Duration text runs off the right edge" — at the *default* size; leaving this column fixed
-    /// reintroduces it at the accessibility sizes instead, where `.caption1` alone grows from 11pt
-    /// to 26pt at AX5.
+    /// A base value, not the width the row actually draws at: ``WaterfallView`` reads this through
+    /// its own `@ScaledMetric` and hands the scaled result down to ``WaterfallDetailRow`` — see
+    /// `WaterfallDetailRowMetrics` for why that scaling happens in the parent rather than in the
+    /// row itself. The column holds a `.caption` line over a `.subheadline` line, both of which
+    /// grow with the reader's text size, and the spec this page was rebuilt from opens by naming
+    /// exactly this failure — "Duration text runs off the right edge" — at the *default* size;
+    /// leaving this column fixed reintroduces it at the accessibility sizes instead, where
+    /// `.caption1` alone grows from 11pt to 26pt at AX5.
+    ///
+    /// `WaterfallDetailRowMetrics.layout(rowWidth:scaledLabelWidth:scaledDurationWidth:)` may draw
+    /// the column narrower than the scaled value this produces, once the row itself no longer has
+    /// room for it — see that type's own documentation for the rule and why the plot column, not
+    /// this one, has to be the one that gives way first.
     static let detailLabelWidth: CGFloat = 132
 
     /// The detail list row's duration column, in points, before Dynamic Type scales it. Sized for
     /// "1.25 s" plus a little at the default text size, which is what the row's fixed-width label
     /// column left for the figure beside it.
     ///
-    /// Scaled by ``WaterfallDetailRow`` through its own `@ScaledMetric`, for the same reason
-    /// ``detailLabelWidth`` is: "1.38 sec." needs roughly 130pt at AX5 against this 62pt base, and
-    /// a column that did not grow with it would clip the very figure the spec calls out by name.
+    /// Scaled the same way ``detailLabelWidth`` is, for the same reason: "1.38 sec." needs roughly
+    /// 130pt at AX5 against this 62pt base, and a column that did not grow with it would clip the
+    /// very figure the spec calls out by name. Subject to the same possible narrowing
+    /// `WaterfallDetailRowMetrics.layout(rowWidth:scaledLabelWidth:scaledDurationWidth:)` can apply
+    /// to ``detailLabelWidth``.
     static let detailDurationWidth: CGFloat = 62
+
+    /// Fixed horizontal space the detail row's own `HStack` and the enclosing `List` take up
+    /// around its three columns, in points, other than the label and duration columns themselves.
+    ///
+    /// Two 8pt gaps `WaterfallDetailRow`'s `HStack(spacing: 8)` puts between its three columns,
+    /// plus the 16pt leading and trailing insets a plain `List` gives every row: `2 * 8 + 16 + 16`.
+    /// Named so `WaterfallDetailRowMetrics` and ``WaterfallView`` add it up the same way rather
+    /// than each carrying their own copy of the arithmetic.
+    static let detailRowInteriorChrome: CGFloat = 48
+
+    /// The width a plain `List` row reserves for a `NavigationLink`'s disclosure chevron, in
+    /// points, beyond ``detailRowInteriorChrome``'s trailing inset.
+    ///
+    /// UIKit does not publish this figure, so it is an estimate, not a measurement: roughly 13pt
+    /// for the chevron glyph itself plus about 8pt of spacing a `List` leaves before it. Left
+    /// uncorrected — and undocumented — for a full fix round after ``detailLabelWidth`` and
+    /// ``detailDurationWidth`` first grew with Dynamic Type, because on its own it cost the plot
+    /// only a few points of slack in the zoom limit. It stopped being safe to ignore once those
+    /// same two columns could grow past the row's own width at accessibility sizes: leaving the
+    /// chevron out of the row's width budget would mean the row still overflows by exactly this
+    /// much even after the columns are capped to fit everything *else*.
+    static let detailRowDisclosureReserve: CGFloat = 21
 
     /// The padding between the page's edge and its content, in points.
     ///
