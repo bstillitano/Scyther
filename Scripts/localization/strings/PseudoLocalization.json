@@ -254,19 +254,19 @@
     "ru": "Собственный интерфейс Scyther преобразуется всегда. В вашем приложении — только строки, загруженные через NSLocalizedString: String(localized:) и Text из SwiftUI Foundation разрешает, не проходя ни через один перехватываемый метод.",
     "ar": "تُحوَّل واجهة Scyther نفسها دائمًا. أما في تطبيقك فتُحوَّل السلاسل المحمّلة عبر NSLocalizedString فقط: إذ يحلّ Foundation كلًا من String(localized:) وText في SwiftUI دون المرور بأي دالة قابلة للاعتراض."
   },
-  "Mirrors Scyther's interface now, and your app on its next launch. Catches hard-coded leading and trailing assumptions.": {
-    "comment": "Subtitle under the Right to Left switch, stating which surfaces flip and when",
-    "fr": "Met en miroir l’interface de Scyther maintenant, et votre app au prochain lancement. Révèle les hypothèses codées en dur sur les bords avant et arrière.",
-    "de": "Spiegelt Scythers Oberfläche sofort und deine App beim nächsten Start. Deckt fest verdrahtete Annahmen über führende und nachgestellte Kanten auf.",
-    "es": "Refleja la interfaz de Scyther ahora, y tu app en el próximo arranque. Descubre suposiciones fijas sobre los bordes inicial y final.",
-    "it": "Rispecchia subito l’interfaccia di Scyther, e la tua app al prossimo avvio. Scopre le ipotesi cablate sui bordi iniziale e finale.",
-    "pt-BR": "Espelha a interface do Scyther agora, e o seu app na próxima abertura. Revela suposições fixas sobre as bordas inicial e final.",
-    "nl": "Spiegelt Scythers interface nu, en je app bij de volgende start. Legt hardgecodeerde aannames over begin- en eindranden bloot.",
-    "ja": "ScytherのUIを今すぐ、Appは次回起動時にミラーリングします。先頭・末尾を決め打ちした実装を洗い出します。",
-    "zh-Hans": "立即镜像 Scyther 界面，你的 App 在下次启动时生效。暴露对前缘和后缘的硬编码假设。",
-    "zh-Hant": "立即鏡像 Scyther 介面，你的 App 於下次啟動時生效。揭露對前緣與後緣的硬編碼假設。",
-    "ko": "Scyther 인터페이스를 지금, 앱은 다음 실행 시 좌우 반전합니다. 선행·후행 가장자리에 대한 하드코딩된 가정을 드러냅니다.",
-    "ru": "Отражает интерфейс Scyther сразу, а ваше приложение — при следующем запуске. Выявляет жёстко заданные предположения о начальном и конечном краях.",
-    "ar": "يعكس واجهة Scyther الآن، ويعكس تطبيقك عند التشغيل التالي. يكشف الافتراضات المثبتة حول الحافتين البادئة والخاتمة."
+  "Mirrors Scyther's interface now, and your app's UIKit views on its next launch. Your app's SwiftUI views are unaffected: Scyther cannot reach their environment.": {
+    "comment": "Subtitle under the Right to Left switch, stating exactly which surfaces mirror and when",
+    "fr": "Met en miroir l’interface de Scyther maintenant, et les vues UIKit de votre app au prochain lancement. Les vues SwiftUI de votre app ne sont pas affectées : Scyther ne peut pas atteindre leur environnement.",
+    "de": "Spiegelt Scythers Oberfläche sofort und die UIKit-Views deiner App beim nächsten Start. Die SwiftUI-Views deiner App bleiben unberührt: Scyther kommt an ihre Environment nicht heran.",
+    "es": "Refleja la interfaz de Scyther ahora, y las vistas UIKit de tu app en el próximo arranque. Las vistas SwiftUI de tu app no se ven afectadas: Scyther no puede acceder a su entorno.",
+    "it": "Rispecchia subito l’interfaccia di Scyther, e le view UIKit della tua app al prossimo avvio. Le view SwiftUI della tua app non sono interessate: Scyther non può raggiungere il loro environment.",
+    "pt-BR": "Espelha a interface do Scyther agora, e as views UIKit do seu app na próxima abertura. As views SwiftUI do seu app não são afetadas: o Scyther não alcança o environment delas.",
+    "nl": "Spiegelt Scythers interface nu, en de UIKit-views van je app bij de volgende start. De SwiftUI-views van je app blijven ongemoeid: Scyther kan hun environment niet bereiken.",
+    "ja": "ScytherのUIは今すぐ、AppのUIKitビューは次回起動時にミラーリングされます。AppのSwiftUIビューは対象外です。Scytherはそのenvironmentに介入できません。",
+    "zh-Hans": "立即镜像 Scyther 界面，你的 App 的 UIKit 视图在下次启动时生效。你的 App 的 SwiftUI 视图不受影响：Scyther 无法访问它们的 environment。",
+    "zh-Hant": "立即鏡像 Scyther 介面，你的 App 的 UIKit 視圖於下次啟動時生效。你的 App 的 SwiftUI 視圖不受影響：Scyther 無法存取它們的 environment。",
+    "ko": "Scyther 인터페이스는 지금, 앱의 UIKit 뷰는 다음 실행 시 좌우 반전됩니다. 앱의 SwiftUI 뷰는 영향을 받지 않습니다. Scyther가 그 environment에 접근할 수 없기 때문입니다.",
+    "ru": "Отражает интерфейс Scyther сразу, а UIKit-представления вашего приложения — при следующем запуске. SwiftUI-представления не затрагиваются: Scyther не может добраться до их environment.",
+    "ar": "يعكس واجهة Scyther الآن، ويعكس عروض UIKit في تطبيقك عند التشغيل التالي. أما عروض SwiftUI في تطبيقك فلا تتأثر: إذ لا يمكن لـ Scyther الوصول إلى بيئتها."
   }
 }

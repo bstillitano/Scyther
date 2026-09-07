@@ -59,6 +59,11 @@ struct PseudoLocalizationMode: OptionSet, Sendable, Hashable {
     /// was really meant as "the far edge", a manual `frame(x:)`, an image that should have been
     /// mirrored. Unlike the other three this changes no text at all, so it is deliberately not
     /// part of ``textAffecting``.
+    ///
+    /// Its reach is also unlike the other three, and narrower than it first appears: Scyther's own
+    /// interface immediately, the host app's UIKit views on the next launch, and the host app's
+    /// SwiftUI views never. ``PseudoLocalizationLayout`` explains why and what the alternative
+    /// would cost.
     static let rightToLeft = PseudoLocalizationMode(rawValue: 1 << 2)
 
     /// Renders the catalog key in place of its translation.

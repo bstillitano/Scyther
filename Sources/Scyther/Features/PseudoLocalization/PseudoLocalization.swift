@@ -37,8 +37,10 @@ import UIKit
 ///
 /// So on a UIKit or `NSLocalizedString`-based app the text modes apply broadly; on a SwiftUI app
 /// using `Text("…")` they apply to Scyther's own interface and nothing else.
-/// ``rightToLeft`` has no such limit — it is a layout attribute, not a string lookup, and applies
-/// to the host app either way.
+/// ``rightToLeft`` has a different limit rather than none. It changes no text, so it does not care
+/// how the host loads its copy — but it reaches Scyther's own interface immediately, the host app's
+/// *UIKit* views on the next launch, and the host app's *SwiftUI* views not at all. See
+/// ``PseudoLocalizationLayout`` for why, and for what an honest route to the third would cost.
 ///
 /// ```swift
 /// PseudoLocalization.instance.accented = true

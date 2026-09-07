@@ -34,8 +34,28 @@ import UIKit
 /// The mode therefore has two halves. ``layoutDirection(forcingRightToLeft:languageIdentifier:)``
 /// is the SwiftUI half: it decides the environment value ``MenuView`` and ``PseudoLocalizationView``
 /// install, which is what makes Scyther's own interface flip the instant the switch moves. It is
-/// pure, and it is tested. ``apply(rightToLeft:allowed:)`` is the UIKit half, and it is slower by
-/// nature: the host app follows on its next launch.
+/// pure, and it is tested. ``apply(rightToLeft:allowed:)`` is the UIKit half: it reaches the host
+/// app's UIKit views on the next launch, and its SwiftUI views not at all.
+///
+/// ## What would reach a SwiftUI host app, and what it would cost
+///
+/// Nothing here can, and the reason is structural rather than a missing trick: a SwiftUI view's
+/// direction comes from `\.layoutDirection` in *its own* environment, which the host app owns.
+/// There is no public API for a library to modify another view tree's environment, and the
+/// appearance proxy — measured, twice — does not seed it.
+///
+/// One route does exist and is deliberately *not* taken. Xcode's own "Right to Left
+/// Pseudolanguage" scheme option works by launching the process with `-AppleTextDirection YES` and
+/// `-NSForceRightToLeftWritingDirection YES`, which are resolved at launch and do reach SwiftUI.
+/// Scyther could write those into the host's standard `UserDefaults` the same way
+/// ``LanguageOverride`` already writes `AppleLanguages`, and they would take effect on the next
+/// launch. The cost is why it is not built: it writes into the host app's own defaults domain for
+/// a second reason, it is undocumented as a defaults key rather than a launch argument, it cannot
+/// be undone within the session that set it, and — the decisive one — nothing in this repository
+/// can verify it, since `ScytherTests` has no host app and the example app would have to be driven
+/// by hand. This feature has already shipped three claims about reach that were reasoned from
+/// mechanism and turned out to be wrong on a simulator. A fourth, resting on an undocumented
+/// defaults key, is not worth an accurate limit.
 ///
 /// Testing the UIKit half is honest only up to a point, and the point is `UIView.appearance()`: it
 /// is process-wide state with no reliable way to read the applied value back, and `ScytherTests`
@@ -105,11 +125,16 @@ internal enum PseudoLocalizationLayout {
     /// its environment, seeded when its hosting view was built, and nothing here reaches back into
     /// it.
     ///
-    /// The reliable route for the host app is therefore a relaunch, which is what the toggle's own
-    /// subtitle now says rather than leaving it to the README:
+    /// A relaunch makes the UIKit half complete but no more than that.
     /// ``PseudoLocalization/setup()`` sets the proxy from `Scyther.start(allowProductionBuilds:)`,
-    /// before any of the app's views exist, so every one of them — SwiftUI included — is built
-    /// mirrored.
+    /// before any of the app's views exist, so every *UIKit* view is built mirrored. A SwiftUI
+    /// view is not, measured on a simulator after a relaunch with the switch left on: SwiftUI does
+    /// not consult the proxy at any point in its life, so being early does not help.
+    ///
+    /// This is the one part of the mode whose behaviour has not been observed directly here, and
+    /// it should be read as such: the example app is SwiftUI, so what a relaunch does for a UIKit
+    /// host rests on documented appearance-proxy behaviour rather than on a screenshot. The
+    /// difference is why the surface table in the DocC article marks which rows were checked.
     ///
     /// Like ``PseudoLocalizationHostHook/setEnabled(_:isTestCase:isAppStore:)``, it carries the
     /// production guard itself rather than trusting its caller, because the promise that Scyther

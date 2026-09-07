@@ -62,25 +62,35 @@ Right to Left is a different mechanism, and it has a different limit rather than
 no text, so it does not care how your copy is loaded — but a layout direction cannot simply be
 forced onto views that already exist. What flips, and when:
 
-| Surface | When it mirrors |
-| --- | --- |
-| The Pseudo-localisation page | Immediately |
-| The rest of the Scyther menu, and every page reached from it | Immediately |
-| The host app's UIKit views created after the switch | Immediately, on navigating to them |
-| The host app's SwiftUI views | Not until the next launch |
-| The whole host app, UIKit and SwiftUI alike | On the next launch |
+| Surface | When it mirrors | Checked on a simulator |
+| --- | --- | --- |
+| The Pseudo-localisation page | Immediately | yes |
+| The rest of the Scyther menu, and every page reached from it | Immediately | yes |
+| The host app's UIKit views created after the switch | On navigating to them | no |
+| The host app's UIKit views generally | On the next launch | no |
+| **The host app's SwiftUI views** | **Never** | yes — confirmed not to |
 
-The reason is ``PseudoLocalizationLayout``'s two halves. SwiftUI reads `\.layoutDirection` from its
-environment, seeded when a hosting view is built; `UIView.appearance()` governs views created after
-it changes. Neither reaches back into a SwiftUI hierarchy already on screen. Scyther's interface
-flips instantly because Scyther installs that environment value itself, in ``MenuView`` and
-``PseudoLocalizationView``, and can therefore change it — which is also why the first version of
-this mode appeared to do nothing at all: ``MenuView`` was pinning the direction to the language and
-overruling the appearance proxy every time.
+The third column is there because this mode's reach has now been claimed wrongly three times on the
+strength of how the mechanism *ought* to behave. The rows marked "no" rest on documented
+appearance-proxy behaviour and have not been observed here: the example app is SwiftUI, so there is
+no UIKit host in this repository to look at.
 
-The toggle's own subtitle carries this, not just these docs. A developer looking at a switch that
-says "forces right-to-left layout" and sees nothing move has been told something false, and no
-amount of accurate prose elsewhere repairs that.
+The reason for the split is ``PseudoLocalizationLayout``'s two halves. SwiftUI reads
+`\.layoutDirection` from **its own** environment, which the host app owns; `UIView.appearance()`
+governs UIKit views created after it changes and does not seed that environment at any point.
+Scyther's interface mirrors instantly because Scyther installs that environment value itself, in
+``MenuView`` and ``PseudoLocalizationView``, and can therefore change it — which is also why the
+first version of this mode appeared to do nothing at all: ``MenuView`` was pinning the direction to
+the language and overruling the appearance proxy every time. Being early does not rescue the host
+app either; a relaunch mirrors its UIKit views and leaves its SwiftUI views exactly as they were.
+
+There is a route to a SwiftUI host app, described in ``PseudoLocalizationLayout`` and deliberately
+not taken — Xcode's own scheme option does the same job properly, without Scyther writing an
+undocumented key into the host's defaults.
+
+The toggle's own subtitle carries all of this, not just these docs. A developer looking at a switch
+that says "forces right-to-left layout" and seeing nothing move has been told something false, and
+no amount of accurate prose elsewhere repairs that.
 
 ## Safety
 
@@ -128,8 +138,10 @@ mean there was nothing to see.
 
 ## Known limits
 
-- Right to Left reaches the host app's SwiftUI views only after a relaunch, and its UIKit views
-  only as they are recreated. See the table above; the toggle says so too.
+- Right to Left never reaches the host app's SwiftUI views, and reaches its UIKit views only as
+  they are recreated or after a relaunch. Scyther's own interface is the only surface it mirrors
+  immediately. See the table above; the toggle says so too. For a SwiftUI app, Xcode's **Edit
+  Scheme → Run → Options → App Language → Right to Left Pseudolanguage** is the tool that works.
 - Strings the app has already resolved and cached are not revisited. A label rendered before the
   mode was switched on keeps its old text until something re-renders it.
 - Show Keys recovers the catalog key by reflecting on `String.LocalizationValue`, whose layout is
