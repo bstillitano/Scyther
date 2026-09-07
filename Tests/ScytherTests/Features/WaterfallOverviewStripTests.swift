@@ -58,6 +58,16 @@ final class WaterfallOverviewStripTests: XCTestCase {
         XCTAssertLessThanOrEqual(rect.maxX, size.width + 0.001)
     }
 
+    /// A single bar has no neighbours to stack against, so it is centred in the strip rather than
+    /// pinned to either edge.
+    func testASingleBarIsVerticallyCentred() {
+        let rect = WaterfallStripGeometry.barRect(index: 0, count: 1,
+                                                  start: 0, duration: 1, span: 60,
+                                                  size: size)
+        // height = min(3, max(1, 90/1)) = 3; centred: (90 - 3) / 2 = 43.5
+        XCTAssertEqual(rect.minY, 43.5, accuracy: 0.001)
+    }
+
     func testAZeroSpanDoesNotDivideByZero() {
         let rect = WaterfallStripGeometry.barRect(index: 0, count: 1,
                                                   start: 0, duration: 0, span: 0,
@@ -65,5 +75,35 @@ final class WaterfallOverviewStripTests: XCTestCase {
         XCTAssertTrue(rect.width.isFinite)
         XCTAssertTrue(rect.minX.isFinite)
         XCTAssertTrue(rect.minY.isFinite)
+    }
+
+    /// The right-edge clamp used to be applied after the minimum-width floor, so a request
+    /// starting in the log's last fraction of a second could still be clamped down to a sliver a
+    /// fraction of a point wide — invisible, in exactly the moment the floor exists to protect.
+    /// `x` must be pulled back first so the two clamps cannot fight.
+    func testAVeryShortRequestAtTheVeryEndStillKeepsTheMinimumWidth() {
+        let rect = WaterfallStripGeometry.barRect(index: 0, count: 1,
+                                                  start: 59.99, duration: 0.001, span: 60,
+                                                  size: size)
+        XCTAssertEqual(rect.width, WaterfallStripGeometry.minimumBarWidth, accuracy: 0.001)
+        XCTAssertLessThanOrEqual(rect.maxX, size.width + 0.001)
+    }
+
+    func testWindowRectSitsAtItsFractionMidStrip() {
+        let rect = WaterfallStripGeometry.windowRect(startFraction: 0.25, durationFraction: 0.5,
+                                                      size: size)
+        XCTAssertEqual(rect.minX, 75, accuracy: 0.001)
+        XCTAssertEqual(rect.width, 150, accuracy: 0.001)
+        XCTAssertEqual(rect.height, size.height, accuracy: 0.001)
+    }
+
+    /// A window can be a tiny fraction of a long session at deep zoom. Sitting near the trailing
+    /// edge, its un-pulled-back offset used to draw its rect — and the edge rule marking its
+    /// end — past the strip's width, silently cropped by the surrounding `clipShape`.
+    func testWindowRectPullsBackAtTheEndSoTheMinimumWidthFits() {
+        let rect = WaterfallStripGeometry.windowRect(startFraction: 0.995, durationFraction: 0.001,
+                                                      size: size)
+        XCTAssertEqual(rect.width, WaterfallStripGeometry.minimumWindowWidth, accuracy: 0.001)
+        XCTAssertLessThanOrEqual(rect.maxX, size.width + 0.001)
     }
 }
