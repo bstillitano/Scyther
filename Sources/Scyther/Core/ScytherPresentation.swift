@@ -112,6 +112,80 @@ internal enum ScytherPresentation {
         isScytherPresented(in: presentedControllers(over: keyWindow?.rootViewController))
     }
 
+    /// How ``untransformedMeasurementSpace(for:)`` asks whether Scyther is covering the app.
+    ///
+    /// A seam, for the same reason `AccessibilityAuditor.now` is one: the real answer needs a key
+    /// window, a scene and a live presentation, none of which a unit-test process has, so a test
+    /// that could not replace it could only ever exercise the "not covering" branch — and the
+    /// branch that matters is the other one. Production is unaffected: the default is
+    /// ``isCoveringScreen`` itself.
+    static var isCoveringScreenProbe: () -> Bool = { isCoveringScreen }
+
+    /// How far ``untransformedMeasurementSpace(for:)`` climbs before giving up.
+    ///
+    /// A view hierarchy is not cyclic, so this is belt-and-braces rather than a fix — but the
+    /// property that calls this runs once per node inside a walk that is already fighting for its
+    /// 0.25s budget, and a bounded loop costs one integer compare per link.
+    private static let maximumAncestorSteps = 100
+
+    /// The coordinate space a node's geometry should be measured in, when window coordinates would
+    /// be a lie.
+    ///
+    /// The audit measures touch targets, and a touch target is geometry rather than a property of
+    /// the accessibility tree — which means anything that transforms the app's views changes the
+    /// audit's answer. One thing reliably does: Scyther itself. Both routes into the report present
+    /// a page sheet, and UIKit builds the card behind a page sheet by scaling and translating the
+    /// *presenting* view controller's view — the app under audit. Every frame read while the report
+    /// is up therefore came through roughly a 0.92 scale, so 44 × 44pt controls measured about
+    /// 40.5pt and were reported as errors that do not exist, on the primary path a developer reads
+    /// touch-target numbers by.
+    ///
+    /// Of the two fixes available — refuse to report geometry while the window is transformed, or
+    /// measure somewhere the transform cannot reach — this is the second. Refusing would have made
+    /// the touch-target check unrunnable from the report screen, which is the only screen it is
+    /// read from; the check would be correct and useless. Measuring in the transformed ancestor's
+    /// own coordinate space is exactly as honest and keeps the check working: converting *into* a
+    /// view's bounds space stops below that view's own transform, so the sheet's scale is removed
+    /// and everything below it — including any transform the app itself applies — still counts.
+    ///
+    /// The order of the two tests is the cost argument. Walking to the top of the ancestor chain
+    /// looking for a transform is pointer-chasing with no allocation, and on an untransformed
+    /// screen — every screen, nearly always — it answers `nil` without ever asking the more
+    /// expensive question. Only a node that really does sit under a transform pays for
+    /// ``isCoveringScreen``.
+    ///
+    /// - Parameter view: The node whose geometry is being measured.
+    /// - Returns: The ancestor to measure in, or `nil` when window coordinates are honest.
+    static func untransformedMeasurementSpace(for view: UIView) -> UIView? {
+        guard let transformed = highestTransformedAncestor(of: view) else { return nil }
+        guard isCoveringScreenProbe() else { return nil }
+        return transformed
+    }
+
+    /// The transformed ancestor closest to the window, if any.
+    ///
+    /// The *highest* one rather than the nearest, because it is the outermost transform that the
+    /// presentation applies and every transform below it belongs to the app and must survive.
+    /// Windows are skipped: a window's own transform moves the whole screen, so removing it would
+    /// not be a correction of anything.
+    ///
+    /// - Parameter view: The view to walk up from. Its own transform is not considered — a view is
+    ///   not measured through its own transform, only through the ones above it.
+    /// - Returns: The highest transformed ancestor, or `nil` when there is none.
+    private static func highestTransformedAncestor(of view: UIView) -> UIView? {
+        var highest: UIView?
+        var current = view.superview
+        var steps = 0
+        while let ancestor = current, steps < maximumAncestorSteps {
+            if !(ancestor is UIWindow), !ancestor.transform.isIdentity {
+                highest = ancestor
+            }
+            current = ancestor.superview
+            steps += 1
+        }
+        return highest
+    }
+
     /// Every controller presented over `root`, innermost first.
     ///
     /// `root` itself is deliberately not included: the app's own root controller is the app, not
