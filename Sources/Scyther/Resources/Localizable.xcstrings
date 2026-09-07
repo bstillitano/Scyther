@@ -5862,6 +5862,83 @@
         }
       }
     },
+    "Accented": {
+      "comment": "Switch label for the mode that replaces letters with accented look-alikes",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "بعلامات التشكيل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mit Akzenten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Con acentos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Accentué"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Con accenti"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "アクセント付き"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "악센트 적용"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Met accenten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Com acentos"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "С диакритикой"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "带重音符号"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "帶重音符號"
+          }
+        }
+      }
+    },
     "Access Group": {
       "comment": "Keychain attribute row label for kSecAttrAccessGroup",
       "localizations": {
@@ -30582,6 +30659,83 @@
         }
       }
     },
+    "Lengthened": {
+      "comment": "Switch label for the mode that pads strings to simulate translation expansion",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "مُطوَّل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Verlängert"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alargado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Allongé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Allungato"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "長さ拡張"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "길이 확장"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Verlengd"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alongado"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Удлинение"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "加长"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "加長"
+          }
+        }
+      }
+    },
     "Light": {
       "comment": "Colour scheme option forcing light appearance",
       "localizations": {
@@ -32199,6 +32353,83 @@
         }
       }
     },
+    "Mirrors Scyther's interface now, and your app's UIKit views on its next launch. Your app's SwiftUI views are unaffected: Scyther cannot reach their environment.": {
+      "comment": "Subtitle under the Right to Left switch, stating exactly which surfaces mirror and when",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يعكس واجهة Scyther الآن، ويعكس عروض UIKit في تطبيقك عند التشغيل التالي. أما عروض SwiftUI في تطبيقك فلا تتأثر: إذ لا يمكن لـ Scyther الوصول إلى بيئتها."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Spiegelt Scythers Oberfläche sofort und die UIKit-Views deiner App beim nächsten Start. Die SwiftUI-Views deiner App bleiben unberührt: Scyther kommt an ihre Environment nicht heran."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Refleja la interfaz de Scyther ahora, y las vistas UIKit de tu app en el próximo arranque. Las vistas SwiftUI de tu app no se ven afectadas: Scyther no puede acceder a su entorno."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Met en miroir l’interface de Scyther maintenant, et les vues UIKit de votre app au prochain lancement. Les vues SwiftUI de votre app ne sont pas affectées : Scyther ne peut pas atteindre leur environnement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rispecchia subito l’interfaccia di Scyther, e le view UIKit della tua app al prossimo avvio. Le view SwiftUI della tua app non sono interessate: Scyther non può raggiungere il loro environment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ScytherのUIは今すぐ、AppのUIKitビューは次回起動時にミラーリングされます。AppのSwiftUIビューは対象外です。Scytherはそのenvironmentに介入できません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther 인터페이스는 지금, 앱의 UIKit 뷰는 다음 실행 시 좌우 반전됩니다. 앱의 SwiftUI 뷰는 영향을 받지 않습니다. Scyther가 그 environment에 접근할 수 없기 때문입니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Spiegelt Scythers interface nu, en de UIKit-views van je app bij de volgende start. De SwiftUI-views van je app blijven ongemoeid: Scyther kan hun environment niet bereiken."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Espelha a interface do Scyther agora, e as views UIKit do seu app na próxima abertura. As views SwiftUI do seu app não são afetadas: o Scyther não alcança o environment delas."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Отражает интерфейс Scyther сразу, а UIKit-представления вашего приложения — при следующем запуске. SwiftUI-представления не затрагиваются: Scyther не может добраться до их environment."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "立即镜像 Scyther 界面，你的 App 的 UIKit 视图在下次启动时生效。你的 App 的 SwiftUI 视图不受影响：Scyther 无法访问它们的 environment。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "立即鏡像 Scyther 介面，你的 App 的 UIKit 視圖於下次啟動時生效。你的 App 的 SwiftUI 視圖不受影響：Scyther 無法存取它們的 environment。"
+          }
+        }
+      }
+    },
     "Missing Labels": {
       "comment": "Name of the accessibility audit check for elements VoiceOver cannot name, shown in the report and the settings screen",
       "localizations": {
@@ -32426,6 +32657,160 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "對符合的請求進行模擬、重新導向、重寫或限速。新增一條覆寫即可開始。"
+          }
+        }
+      }
+    },
+    "Modes": {
+      "comment": "Section header above the four pseudo-localisation switches",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "الأوضاع"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Modi"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Modos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Modes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Modalità"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "モード"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "모드"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Modi"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Modos"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Режимы"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "模式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "模式"
+          }
+        }
+      }
+    },
+    "Modes combine. Showing keys wins over accenting and lengthening, so a key stays readable.": {
+      "comment": "Footer under the modes section explaining how the switches interact",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يمكن الجمع بين الأوضاع. وإظهار المفاتيح يتقدم على التشكيل والتطويل كي يبقى المفتاح مقروءًا."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Die Modi lassen sich kombinieren. Schlüssel anzeigen hat Vorrang vor Akzenten und Verlängerung, damit ein Schlüssel lesbar bleibt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Los modos se combinan. Mostrar claves prevalece sobre los acentos y el alargado, para que una clave siga siendo legible."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Les modes se combinent. L’affichage des clés l’emporte sur l’accentuation et l’allongement, pour qu’une clé reste lisible."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Le modalità si combinano. Mostra chiavi prevale su accenti e allungamento, così una chiave resta leggibile."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "モードは組み合わせられます。キーを読めるようにするため、キー表示はアクセントと長さ拡張より優先されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "모드는 조합할 수 있습니다. 키를 읽을 수 있도록 키 표시가 악센트와 길이 확장보다 우선합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Modi zijn combineerbaar. Sleutels tonen gaat voor accenten en verlenging, zodat een sleutel leesbaar blijft."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Os modos se combinam. Mostrar chaves prevalece sobre acentos e alongamento, para que a chave continue legível."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Режимы сочетаются. Показ ключей имеет приоритет над диакритикой и удлинением, чтобы ключ оставался читаемым."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "模式可以组合。为保持键名可读，显示键名优先于重音和加长。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "模式可以組合。為保持鍵名可讀，顯示鍵名優先於重音與加長。"
           }
         }
       }
@@ -38051,6 +38436,83 @@
         }
       }
     },
+    "One line of ordinary copy, with the modes you have switched on applied to it.": {
+      "comment": "Footer under the Sample section",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "سطر واحد من النص العادي، مطبَّقة عليه الأوضاع التي فعّلتها."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Eine Zeile gewöhnlicher Text, auf die die von dir aktivierten Modi angewendet werden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Una línea de texto corriente, con los modos que has activado aplicados."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Une ligne de texte ordinaire, à laquelle sont appliqués les modes que vous avez activés."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Una riga di testo ordinario, con applicate le modalità che hai attivato."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "有効にしたモードを適用した、ごく普通の一行のテキストです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "켜 놓은 모드를 적용한 평범한 한 줄의 문구입니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Eén regel gewone tekst, met de door jou ingeschakelde modi toegepast."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Uma linha de texto comum, com os modos que você ativou aplicados."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Одна строка обычного текста с применёнными включёнными режимами."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "一行普通文案，已应用你开启的模式。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "一行普通文案，已套用你開啟的模式。"
+          }
+        }
+      }
+    },
     "Opacity: %lld%%": {
       "comment": "Label above the grid opacity slider, showing a percentage",
       "localizations": {
@@ -39818,6 +40280,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "主鍵"
+          }
+        }
+      }
+    },
+    "Pads text to about 135%, the expansion German and Finnish bring.": {
+      "comment": "Subtitle under the Lengthened switch explaining the expansion ratio",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يمدّ النص إلى نحو ١٣٥٪، وهي نسبة التمدد التي تجلبها الألمانية والفنلندية."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Verlängert Text auf rund 135 %, die Ausdehnung, die Deutsch und Finnisch mitbringen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alarga el texto hasta cerca del 135 %, la expansión que traen el alemán y el finés."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rallonge le texte à environ 135 %, l’expansion qu’apportent l’allemand et le finnois."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Allunga il testo a circa il 135%, l’espansione che portano tedesco e finlandese."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "テキストを約135%に伸ばします。ドイツ語やフィンランド語で生じる伸長率です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "텍스트를 약 135%로 늘립니다. 독일어와 핀란드어에서 나타나는 확장 비율입니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Verlengt tekst tot ongeveer 135%, de uitbreiding die Duits en Fins met zich meebrengen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alonga o texto para cerca de 135%, a expansão que o alemão e o finlandês trazem."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Удлиняет текст примерно до 135% — так расширяются немецкий и финский."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "将文本加长到约135%，即德语和芬兰语带来的膨胀比例。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "將文字加長至約135%，即德語和芬蘭語帶來的膨脹比例。"
           }
         }
       }
@@ -42306,6 +42845,83 @@
         }
       }
     },
+    "Pseudo-localisation": {
+      "comment": "Menu row and navigation title for the pseudo-localisation page",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "الترجمة الزائفة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Pseudo-Lokalisierung"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Pseudolocalización"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Pseudo-localisation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Pseudolocalizzazione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "疑似ローカライズ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "의사 현지화"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Pseudolokalisatie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Pseudolocalização"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Псевдолокализация"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "伪本地化"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "偽本地化"
+          }
+        }
+      }
+    },
     "Push Notifications": {
       "comment": "Section header above the notification permission rows",
       "localizations": {
@@ -43226,6 +43842,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "重新執行"
+          }
+        }
+      }
+    },
+    "Reach": {
+      "comment": "Section header above the explanation of which strings the feature can reach",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "النطاق"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Reichweite"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alcance"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Portée"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Portata"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "適用範囲"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "적용 범위"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Bereik"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alcance"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Охват"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "适用范围"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "適用範圍"
           }
         }
       }
@@ -44689,6 +45382,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "移除的標頭"
+          }
+        }
+      }
+    },
+    "Renders the catalog key instead of its translation.": {
+      "comment": "Subtitle under the Show Keys switch",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يعرض مفتاح الفهرس بدلًا من ترجمته."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Zeigt den Katalogschlüssel statt seiner Übersetzung an."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Muestra la clave del catálogo en lugar de su traducción."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Affiche la clé du catalogue au lieu de sa traduction."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostra la chiave del catalogo invece della sua traduzione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "翻訳の代わりにカタログのキーを表示します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "번역 대신 카탈로그 키를 표시합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Toont de catalogussleutel in plaats van de vertaling."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Exibe a chave do catálogo em vez da tradução."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Показывает ключ каталога вместо перевода."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "显示目录键名而非其译文。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "顯示目錄鍵名而非其譯文。"
           }
         }
       }
@@ -47465,6 +48235,83 @@
         }
       }
     },
+    "Right to Left": {
+      "comment": "Switch label for the mode that forces right-to-left layout",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "من اليمين إلى اليسار"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Von rechts nach links"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "De derecha a izquierda"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "De droite à gauche"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Da destra a sinistra"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "右から左"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "오른쪽에서 왼쪽"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rechts naar links"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Da direita para a esquerda"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Справа налево"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "从右到左"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "從右到左"
+          }
+        }
+      }
+    },
     "Rio de Janeiro, Brazil": {
       "comment": "Location preset name",
       "localizations": {
@@ -48081,6 +48928,83 @@
         }
       }
     },
+    "Sample": {
+      "comment": "Section header above a live example of the transformation",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "عيّنة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Beispiel"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ejemplo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Exemple"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Esempio"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "サンプル"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "샘플"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Voorbeeld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Exemplo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Пример"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "示例"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "範例"
+          }
+        }
+      }
+    },
     "San Francisco, USA": {
       "comment": "Location preset name",
       "localizations": {
@@ -48389,6 +49313,83 @@
         }
       }
     },
+    "Save changes to your profile": {
+      "comment": "The example string transformed live in the Sample section; ordinary app copy",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "حفظ التغييرات في ملفك الشخصي"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Änderungen an deinem Profil sichern"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Guardar los cambios en tu perfil"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Enregistrer les modifications de votre profil"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Salva le modifiche al tuo profilo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "プロフィールの変更を保存"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "프로필 변경 사항 저장"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Wijzigingen in je profiel bewaren"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Salvar as alterações no seu perfil"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Сохранить изменения профиля"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "保存对个人资料的更改"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "儲存對個人檔案的更動"
+          }
+        }
+      }
+    },
     "Scan QR Code": {
       "comment": "Navigation title of the QR code scanner sheet",
       "localizations": {
@@ -48693,6 +49694,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "Scyther 不會攔截此 URL，因此重送會送出但不會出現在記錄中。"
+          }
+        }
+      }
+    },
+    "Scyther's own interface is always transformed. In your app, only strings loaded through NSLocalizedString are: String(localized:) and SwiftUI Text are resolved by Foundation without going through any hookable method.": {
+      "comment": "Footer stating plainly which of the host app's strings the feature can and cannot reach",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تُحوَّل واجهة Scyther نفسها دائمًا. أما في تطبيقك فتُحوَّل السلاسل المحمّلة عبر NSLocalizedString فقط: إذ يحلّ Foundation كلًا من String(localized:) وText في SwiftUI دون المرور بأي دالة قابلة للاعتراض."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scythers eigene Oberfläche wird immer transformiert. In deiner App nur Zeichenketten, die über NSLocalizedString geladen werden: String(localized:) und SwiftUIs Text löst Foundation ohne jede abfangbare Methode auf."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "La interfaz de Scyther siempre se transforma. En tu app, solo las cadenas cargadas con NSLocalizedString: String(localized:) y Text de SwiftUI los resuelve Foundation sin pasar por ningún método interceptable."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "L’interface de Scyther est toujours transformée. Dans votre app, seules les chaînes chargées via NSLocalizedString le sont : String(localized:) et Text de SwiftUI sont résolus par Foundation sans passer par une méthode interceptable."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "L’interfaccia di Scyther viene sempre trasformata. Nella tua app solo le stringhe caricate con NSLocalizedString: String(localized:) e Text di SwiftUI sono risolti da Foundation senza passare per alcun metodo intercettabile."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther自身のUIは常に変換されます。あなたのAppではNSLocalizedString経由の文字列のみです。String(localized:)とSwiftUIのTextは、フックできるメソッドを経由せずFoundationが解決します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther 자체 인터페이스는 항상 변환됩니다. 여러분의 앱에서는 NSLocalizedString으로 불러온 문자열만 해당합니다. String(localized:)과 SwiftUI Text는 후킹 가능한 메서드를 거치지 않고 Foundation이 해석합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scythers eigen interface wordt altijd getransformeerd. In je app alleen strings die via NSLocalizedString worden geladen: String(localized:) en Text van SwiftUI lost Foundation op zonder enige onderschepbare methode."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "A interface do Scyther é sempre transformada. No seu app, apenas as strings carregadas por NSLocalizedString: String(localized:) e Text do SwiftUI são resolvidos pelo Foundation sem passar por nenhum método interceptável."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Собственный интерфейс Scyther преобразуется всегда. В вашем приложении — только строки, загруженные через NSLocalizedString: String(localized:) и Text из SwiftUI Foundation разрешает, не проходя ни через один перехватываемый метод."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther 自身的界面始终会被转换。在你的 App 中，只有通过 NSLocalizedString 加载的字符串会：String(localized:) 和 SwiftUI 的 Text 由 Foundation 解析，不经过任何可挂钩的方法。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther 自身的介面一律會被轉換。在你的 App 中，只有透過 NSLocalizedString 載入的字串會：String(localized:) 與 SwiftUI 的 Text 由 Foundation 解析，不經過任何可掛鉤的方法。"
           }
         }
       }
@@ -50853,6 +51931,83 @@
         }
       }
     },
+    "Show Keys": {
+      "comment": "Switch label for the mode that renders catalog keys instead of translations",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "إظهار المفاتيح"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Schlüssel anzeigen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostrar claves"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Afficher les clés"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostra chiavi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "キーを表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "키 표시"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Sleutels tonen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostrar chaves"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Показывать ключи"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "显示键名"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "顯示鍵名"
+          }
+        }
+      }
+    },
     "Show Screen Touches": {
       "comment": "Searchable row inside the Touch Visualiser page",
       "localizations": {
@@ -52697,6 +53852,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "已成功打開：%@"
+          }
+        }
+      }
+    },
+    "Swaps letters for accented look-alikes. Anything still in plain ASCII was never localised.": {
+      "comment": "Subtitle under the Accented switch explaining what it reveals",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يستبدل الحروف بأشباهها المزودة بعلامات التشكيل. أي نص يبقى بترميز ASCII البسيط لم يُترجم قط."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ersetzt Buchstaben durch akzentuierte Doppelgänger. Was noch reines ASCII ist, wurde nie lokalisiert."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Sustituye las letras por sosias acentuados. Todo lo que siga en ASCII simple nunca se localizó."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Remplace les lettres par des sosies accentués. Tout ce qui reste en ASCII simple n’a jamais été localisé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Sostituisce le lettere con sosia accentati. Tutto ciò che resta in ASCII semplice non è mai stato localizzato."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "文字をアクセント付きの類似文字に置き換えます。プレーンASCIIのままの文字列はローカライズされていません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "문자를 악센트가 붙은 유사 문자로 바꿉니다. 여전히 순수 ASCII인 문자열은 현지화된 적이 없습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Vervangt letters door gelijkende letters met accenten. Alles wat nog gewone ASCII is, is nooit gelokaliseerd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Troca as letras por sósias acentuados. Tudo que continuar em ASCII simples nunca foi localizado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Заменяет буквы похожими символами с диакритикой. Всё, что осталось обычным ASCII, никогда не локализовалось."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "将字母替换为带重音符号的相似字符。仍为纯ASCII的文本从未本地化。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "將字母替換為帶重音符號的相似字元。仍為純ASCII的文字從未被本地化。"
           }
         }
       }
@@ -56283,6 +57515,83 @@
         }
       }
     },
+    "This page is never pseudo-localised, so you can always switch the modes off again.": {
+      "comment": "Footer under the Turn Everything Off button explaining the escape hatch",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لا تخضع هذه الصفحة للترجمة الزائفة أبدًا، لذا يمكنك دائمًا إيقاف الأوضاع."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Diese Seite wird nie pseudo-lokalisiert, du kannst die Modi also immer wieder ausschalten."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Esta página nunca se pseudolocaliza, así que siempre puedes volver a desactivar los modos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Cette page n’est jamais pseudo-localisée : vous pouvez toujours désactiver les modes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Questa pagina non viene mai pseudolocalizzata, così puoi sempre disattivare le modalità."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "このページは疑似ローカライズされないため、いつでもモードをオフに戻せます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "이 페이지는 절대 의사 현지화되지 않으므로 언제든 모드를 다시 끌 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Deze pagina wordt nooit gepseudolokaliseerd, dus je kunt de modi altijd weer uitschakelen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Esta página nunca é pseudolocalizada, então você sempre pode desativar os modos."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Эта страница никогда не псевдолокализуется, поэтому режимы всегда можно выключить."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "本页永远不会被伪本地化，因此你随时可以关闭这些模式。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "本頁永遠不會被偽本地化，因此你隨時可以關閉這些模式。"
+          }
+        }
+      }
+    },
     "This response was synthesised by an override, not received from the network.": {
       "comment": "Banner on the request details page when the response came from a mock or map local override",
       "localizations": {
@@ -58127,6 +59436,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "真"
+          }
+        }
+      }
+    },
+    "Turn Everything Off": {
+      "comment": "Button that switches all four pseudo-localisation modes off at once",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "إيقاف كل شيء"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alles ausschalten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Desactivar todo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Tout désactiver"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Disattiva tutto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "すべてオフにする"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "모두 끄기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alles uitschakelen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Desativar tudo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Выключить всё"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "全部关闭"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "全部關閉"
           }
         }
       }

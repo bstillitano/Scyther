@@ -5,6 +5,7 @@
 //  Created by Brandon Stillitano on 16/6/2025.
 //
 
+import Combine
 import SwiftUI
 
 /// The main menu interface for the Scyther developer toolkit.
@@ -38,6 +39,14 @@ public struct MenuView: View {
     /// The live language override, so the whole menu re-renders the moment a language is picked
     /// on the Language page rather than waiting for the next launch.
     @ObservedObject private var languageOverride = LanguageOverride.shared
+
+    /// Whether pseudo-localisation is currently forcing right-to-left layout.
+    ///
+    /// Held as state and refreshed from ``PseudoLocalization/ModesChangedNotification`` rather
+    /// than read inline, because the menu is on screen while the switch is flicked: SwiftUI has no
+    /// reason to re-evaluate this body unless something it observes changes, so an inline read
+    /// would go on returning the value from when the menu was opened.
+    @State private var forcesRightToLeft: Bool = PseudoLocalization.instance.rightToLeft
 
     public init() {}
 
@@ -76,7 +85,13 @@ public struct MenuView: View {
         .navigationTitle("Scyther") // scyther:unlocalised product name
         .interactiveDismissDisabled()
         .environment(\.locale, languageOverride.namingLocale)
-        .environment(\.layoutDirection, Locale.Language(identifier: languageOverride.namingLocale.identifier).characterDirection == .rightToLeft ? .rightToLeft : .leftToRight)
+        .onReceive(NotificationCenter.default.publisher(for: PseudoLocalization.ModesChangedNotification)) { _ in
+            forcesRightToLeft = PseudoLocalization.instance.rightToLeft
+        }
+        .environment(\.layoutDirection, PseudoLocalizationLayout.layoutDirection(
+            forcingRightToLeft: forcesRightToLeft,
+            languageIdentifier: languageOverride.namingLocale.identifier
+        ))
     }
 
     /// The normal browsing content: device header, Pinned, and every menu section.
@@ -376,6 +391,7 @@ public struct MenuView: View {
         case .accessibilityAudit: AccessibilityAuditView()
         case .appearance: AppearanceOverridesView()
         case .language: LanguageView(viewModel: LanguageViewModel())
+        case .pseudoLocalization: PseudoLocalizationView()
         default: EmptyView()
         }
     }
@@ -559,6 +575,8 @@ public struct MenuView: View {
         case .appearance:
             navigationRow(for: item)
         case .language:
+            navigationRow(for: item)
+        case .pseudoLocalization:
             navigationRow(for: item)
         case .slowAnimations:
             toggleRow(item.title, icon: item.icon, tint: item.tint, isOn: $viewModel.slowAnimationsEnabled)

@@ -101,6 +101,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Font Browser**: View all available system fonts
 - **Interface Previews**: Browse registered UI components
 - **Language**: Force the app's language from the debug menu (applies on next launch; Scyther's own menu switches immediately)
+- **Pseudo-localisation**: Accent, lengthen, flip to RTL, or show catalog keys, to find layout problems before a translator is briefed — see [Pseudo-localisation](#pseudo-localisation) for exactly which strings it can and cannot reach
 
 ### Development Tools
 - **Console Logger**: Capture and view stdout/stderr output
@@ -199,6 +200,112 @@ sample notification copy instead of English placeholder text.
 The example app at `Example/ScytherExample` ships its own
 `Example/ScytherExample/Resources/Localizable.xcstrings`, so it is fully localised in the same
 languages independently of the package's own catalog.
+
+### Pseudo-localisation
+
+**UI/UX → Pseudo-localisation** renders the interface with copy that behaves like a translation
+without being one, to find layout problems before any translation exists. Four switches, all off
+by default and all combinable:
+
+| Mode | What it does | What it finds |
+| --- | --- | --- |
+| Accented | `Hello` becomes `Ĥéļļö` | Text still in plain ASCII was never localised |
+| Lengthened | `[Hello··]`, about 135% of the original | Clipping and truncation |
+| Right to Left | Mirrors the layout | Hard-coded leading/trailing assumptions |
+| Show Keys | Renders `Selected %lld items` instead of `Selected 5 items` | Which catalog entry produced a piece of copy |
+
+The brackets Lengthened adds are the point of it: a label missing its closing `]` was truncated,
+which is easier to see than judging whether accented text looks a few characters short.
+
+#### What it reaches, and what it does not
+
+Scyther's own interface is always transformed, because every string in the package is resolved
+through `localized(_:)` and the transform sits in that path.
+
+Your app is a different question, and the honest answer depends on how your code loads its
+strings:
+
+- **`NSLocalizedString` is reached.** It is a thin wrapper over
+  `-[NSBundle localizedStringForKey:value:table:]`, an Objective-C method, which Scyther swizzles
+  while a text mode is on. That covers UIKit apps, storyboard and XIB strings, and Swift code
+  written the traditional way.
+- **`String(localized:)`, `LocalizedStringResource` and SwiftUI's `Text("Some key")` are not
+  reached.** This was measured, not assumed: with that method hooked, none of those paths ever
+  reached the hook — including a `Text` rendered all the way to a bitmap with `ImageRenderer`.
+  Foundation's Swift-native lookup does not go through `NSBundle` at all, and no other selector on
+  the class sees them either.
+
+So on a SwiftUI app whose copy is written as `Text("…")`, the three text modes pseudo-localise
+Scyther's own menu and nothing else. That is a demonstration of the idea against a real localised
+SwiftUI interface, not a test of your screens. On a UIKit or `NSLocalizedString`-based app it is a
+test of your screens.
+
+**Right to Left is a different mechanism with a different limit.** It changes no text, so it does
+not care how your copy is loaded — but layout direction is not something that can simply be forced
+onto views that already exist, and the honest account of what flips and when is:
+
+| Surface | When it mirrors |
+| --- | --- |
+| The Pseudo-localisation page | Immediately, as you flick the switch |
+| The rest of the Scyther menu, and every page reached from it | Immediately |
+| Your app's UIKit views created after the switch | Immediately, as you navigate to them |
+| Your app's UIKit views generally | On the next launch |
+| **Your app's SwiftUI views** | **Never** |
+
+That last row is the important one, and it is stated on the toggle itself, not only here: *"Mirrors
+Scyther's interface now, and your app's UIKit views on its next launch. Your app's SwiftUI views are
+unaffected: Scyther cannot reach their environment."*
+
+A SwiftUI view takes its direction from `\.layoutDirection` in **its own** environment, which your
+app owns. No public API lets a library modify another view tree's environment, and
+`UIView.appearance()` — which is what mirrors UIKit — does not seed it. Being early does not help
+either: setting the proxy before any view exists still leaves SwiftUI reading a value the proxy
+never touches. Scyther's own interface mirrors instantly only because Scyther installs that
+environment value itself, in its own views, and can therefore change it.
+
+There *is* a route to a SwiftUI host app, and it is deliberately not taken. Xcode's "Right to Left
+Pseudolanguage" scheme option works by launching with `-AppleTextDirection YES` and
+`-NSForceRightToLeftWritingDirection YES`, which are resolved at launch and do reach SwiftUI;
+Scyther could write those into your standard `UserDefaults` the same way the Language page already
+writes `AppleLanguages`. It is not built because it writes into your app's defaults domain for a
+second reason, relies on an undocumented defaults key rather than a launch argument, cannot be
+undone within the session that sets it — and cannot be verified by anything in this repository. If
+you want SwiftUI mirrored today, Xcode's scheme option does it properly: **Edit Scheme → Run →
+Options → App Language → Right to Left Pseudolanguage**.
+
+#### Safety and limits
+
+The rule Scyther holds itself to here is that it must never produce broken text that is not a
+localisation problem. A mangled link or a plural that stops expanding is not a finding; it is a
+defect the developer will spend an afternoon chasing in their own code.
+
+- Off by default, persisted under `Scyther_pseudo_localization_*` in `UserDefaults.scyther`.
+- The swizzle is installed only while a text mode is on and removed when the last one is switched
+  off. An app that never opens the page never has its string loading touched.
+- Only `Bundle.main` is transformed, so UIKit's own "Cancel" and "Done" are left alone — and
+  within it, **only the default `Localizable` table**. A table your app named on purpose is left
+  alone too, because teams routinely keep things there that are per-locale but are not copy:
+  analytics identifiers, feature-flag names, segment keys. The cost is real and worth knowing: if
+  your copy lives in a named table, the text modes will not reach it.
+- **`.stringsdict` plurals are left alone entirely.** A plural format resolves to
+  `%#@count@ items` carrying configuration that Foundation expands later; Scyther can preserve
+  neither the variable name through accenting nor the attached configuration through any transform
+  at all, so it returns the string Foundation produced, untouched, whatever the modes say. A plural
+  label is therefore one of the few places pseudo-localisation shows nothing.
+- Accenting preserves anything that is not copy: format specifiers (`%@`, `%lld`, `%1$@`, `%.2f`),
+  `.stringsdict` variables (`%#@count@`), brace placeholders (`{name}`), and URLs and email
+  addresses. `https://example.com` stays a working link rather than becoming
+  `ĥţţþš://éẋåɱþļé.çöɱ`.
+- Nothing is installed on an App Store build or under XCTest. That guard sits on the swizzle and on
+  the layout override themselves, not only on their caller, and an App Store build honours no
+  persisted mode.
+- The **text** of the Pseudo-localisation page and its menu row is never transformed, so the modes
+  can always be switched off — there is a **Turn Everything Off** button, and a **Sample** row that
+  shows what the modes do on the one page where they do not apply. Right to Left is process-wide
+  and does flip this page along with everything else; the text stays legible, which is what the
+  exemption is for.
+- Right to Left mirrors Scyther's own interface immediately and your app's UIKit views on its next
+  launch. It does not mirror your app's SwiftUI views at all; see the table above.
 
 #### Adding or correcting a translation
 

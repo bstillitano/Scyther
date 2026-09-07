@@ -132,6 +132,8 @@ Scyther is fully compatible with Swift 6 strict concurrency. Key components use 
 
 - <doc:Localisation>
 - ``LanguageOverride``
+- <doc:PseudoLocalisation>
+- ``PseudoLocalization``
 
 ### Customization
 

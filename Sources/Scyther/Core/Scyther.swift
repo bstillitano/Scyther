@@ -222,6 +222,7 @@ public enum Scyther {
         Interface.shared.setup()
         LocationSpoofing.shared.setup()
         Appearance.shared.setup()
+        PseudoLocalization.setup()
         Crashes.shared.startCapturing()
     }
 

@@ -97,7 +97,7 @@ struct MenuSection: Identifiable {
             ]),
             MenuSection(id: MenuSectionID.uiux, title: localized("UI/UX"), items: [
                 .fonts, .interfaceComponents, .gridOverlay, .fpsCounter,
-                .touchVisualiser, .accessibilityAudit, .appearance, .language,
+                .touchVisualiser, .accessibilityAudit, .appearance, .language, .pseudoLocalization,
                 .slowAnimations, .showViewFrames, .showViewSizes
             ])
         ])
