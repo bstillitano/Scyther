@@ -33,6 +33,13 @@ struct TrafficStatsView: View {
     /// The screen's own view model.
     @StateObject private var viewModel: TrafficStatsViewModel
 
+    /// The height of one bar's row, scaled against the reader's text size.
+    ///
+    /// Held here rather than in the view model because `@ScaledMetric` needs a view's environment.
+    /// The chart's own axis labels grow with Dynamic Type, so a chart sized from the unscaled
+    /// figure clips them.
+    @ScaledMetric(relativeTo: .caption) private var waterfallRowHeight: CGFloat = WaterfallChartStyle.rowHeight
+
     /// Creates the screen.
     ///
     /// - Parameter logs: The network log view model whose filtered requests the figures cover.
@@ -141,29 +148,25 @@ struct TrafficStatsView: View {
     }
 
     /// The timeline, one bar per request on a shared seconds axis.
+    ///
+    /// The bars, the colour scale and the outcome names come from ``WaterfallChartStyle`` rather
+    /// than from here, because the **See all** page draws the same chart over the whole log and
+    /// the two are meant to be indistinguishable. Only the layout is this section's own: it
+    /// stacks every bar into one chart, where the page gives each bar a row it can be tapped in.
     private var waterfallSection: some View {
         Section {
             Chart(viewModel.chartRows) { row in
-                BarMark(
-                    xStart: .value(localized("Start"), row.entry.start),
-                    xEnd: .value(localized("End"), row.entry.start + row.entry.duration),
-                    y: .value(localized("Request"), row.id),
-                    height: .fixed(TrafficStatsViewModel.barThickness)
+                WaterfallChartStyle.bar(
+                    id: row.id,
+                    entry: row.entry,
+                    upperBound: viewModel.chartUpperBound,
+                    // Zero: Charts sizes this chart's leading axis to its own labels, so the
+                    // section cannot state its plot width without measuring the chart it is about
+                    // to build. Bars are drawn at their true lengths, exactly as they shipped.
+                    plotWidth: 0
                 )
-                .foregroundStyle(by: .value(localized("Outcome"), viewModel.outcomeTitle(for: row.entry)))
-                .annotation(position: .trailing, alignment: .leading, spacing: 4) {
-                    Text(viewModel.valueLabel(for: row.entry))
-                        .font(.caption2)
-                        .monospacedDigit()
-                        .foregroundStyle(Color.secondary)
-                }
             }
-            .chartForegroundStyleScale([
-                localized("Succeeded"): Color.green,
-                localized("Failed"): Color.red,
-                localized("Pending"): Color.orange,
-                localized("Stubbed"): Color.purple,
-            ])
+            .chartForegroundStyleScale(WaterfallChartStyle.styleScale)
             .chartXScale(domain: 0...viewModel.chartUpperBound)
             .chartXAxisLabel(localized("Seconds"))
             // The x axis is left entirely to Charts. It was hand-coloured to secondary grid
@@ -175,9 +178,23 @@ struct TrafficStatsView: View {
                         .font(.caption2)
                 }
             }
-            .frame(height: viewModel.chartHeight)
+            .frame(height: viewModel.chartHeight(rowHeight: waterfallRowHeight))
         } header: {
-            Text(localized("Waterfall"))
+            HStack {
+                Text(localized("Waterfall"))
+                Spacer()
+                // A trailing header link, the way iOS opens the full version of a summarised
+                // list everywhere else. It pushes onto the stack this screen was pushed onto,
+                // so Back returns here rather than to the log.
+                NavigationLink(localized("See all")) {
+                    WaterfallView(logs: logs)
+                }
+                // A section header styles its content as chrome — small, secondary, uppercased.
+                // These three put the link back to being a control the way iOS's own "See All" is.
+                .textCase(nil)
+                .font(.subheadline)
+                .buttonStyle(.borderless)
+            }
         } footer: {
             Text(viewModel.waterfallCaption)
         }

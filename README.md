@@ -59,7 +59,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **cURL Export**: Generate cURL commands for any captured request
 - **Log Export**: Share the captured requests as a zip containing a HAR 1.2 file, raw bodies, and a cURL command per request, with best-effort redaction and a sensitivity warning
 - **Filter Chips**: Narrow the network log by method, status class, host, content type, API kind, GraphQL operation, duration, exact status code, or recency from glass chips pinned above the list, or edit every filter at once from the all-filters sheet
-- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall of the recent requests on a shared axis
+- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall preview of the seven most recent requests on a shared axis, with a scrollable **See all** page covering the whole log where each bar opens its request
 - **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests — combined on one override — from the menu or from code
 - **Save as Mock**: Turn any captured response into a disabled mock override in one tap, and import a HAR file as a whole set of them
 - **Request Replay**: Reopen any captured request in an editor, change its method, URL, headers or body, and send it again — the resent request is logged with a `REPLAY` badge and listed on the original with its status, duration and size deltas
@@ -576,12 +576,29 @@ instead.
 
 #### The waterfall
 
-One bar per request, the most recent forty, on a shared seconds axis: bars that overlap were in
-flight at the same time, and a staircase means the calls were serialised. Each bar is labelled
-with its duration and coloured by outcome — succeeded, failed, pending or stubbed. A request that
-has not come back yet runs to the end of the axis, which is the moment the chart was computed,
-because its real end is not known. A request that failed is drawn for as long as it actually ran,
-not as one still running.
+One bar per request on a shared seconds axis: bars that overlap were in flight at the same time,
+and a staircase means the calls were serialised. Each bar is labelled with its duration and
+coloured by outcome — succeeded, failed, pending or stubbed. A request that has not come back yet
+runs to the end of the axis, which is the moment the chart was computed, because its real end is
+not known. A request that failed is drawn for as long as it actually ran, not as one still running.
+
+The section is a **preview**: it draws the seven most recent requests, at a fixed row height, so
+it reads at a glance. Its caption says so, and points at the rest.
+
+**See all** opens the same chart over the whole log. Rows run oldest first so time reads downward,
+each row keeps that same fixed height — so a hundred requests are a hundred readable rows to
+scroll rather than a hundred hairlines squeezed onto one screen — and the seconds ruler and the
+legend stay pinned to the top however far you scroll. Tapping a bar opens that request's details.
+The axis is shared across the whole log, so overlap still means "in flight at the same time".
+
+Both surfaces follow the log's search and filter chips, and the page's caption says which it is —
+`Every request in the log…` or `21 of 340 requests…` when a filter is on.
+
+A bar too narrow to see is drawn one point wide so it can be found. That is a minimum *rendered
+width*, not a minimum duration: it adds at most one point of ink whatever the session's length, and
+the bar's label still reports the duration it really took. The preview draws every bar at its true
+length — Charts sizes that chart's axis, so the section cannot know how many seconds a point is
+worth.
 
 #### The breakdowns
 

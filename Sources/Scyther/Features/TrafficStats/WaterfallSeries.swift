@@ -80,9 +80,12 @@ struct WaterfallSeries: Equatable, Sendable {
 
     /// How many requests a series covers unless a caller says otherwise.
     ///
-    /// Forty bars is about as many as stay legible at eighteen points apiece, and the newest
-    /// forty are the ones a developer is looking at.
-    static let defaultLimit = 40
+    /// Seven, because the only caller that takes the default is the preview section on
+    /// **Traffic Stats**, and a preview has to read as one. It was forty, which at a readable row
+    /// height filled the card and then some: a log of twenty-two requests drew all twenty-two, so
+    /// the preview already showed everything and the **See all** page it links to was showing the
+    /// same picture. Seven is a glance; the page carries the rest.
+    static let defaultLimit = 7
 
     /// The status code at and above which a response counts as a failure.
     private static let failureStatusFloor = 400
