@@ -77,17 +77,28 @@ import UIKit
 /// way too, and usefully: a view set back to `.unspecified` lays out left-to-right even while its
 /// superview is still forced right-to-left, so only the views that were stamped have to be found.
 ///
-/// ``applyToOwnedViews(rightToLeft:in:)`` is the answer, and it is deliberately narrow. Scyther
-/// resets the views *Scyther owns* — its menu, everything presented from it, and its overlays —
-/// because those it is entitled to reach into. The host app's views are left to the proxy and the
-/// next launch, exactly as documented, and the walk reads them only to find its own.
+/// ``clearForcedDirection(in:)`` is the answer, and it is narrow in three ways at once. It runs on
+/// the way *off* only; it writes only `.unspecified`, and only to a view that currently reads
+/// `.forceRightToLeft`; and it never touches a view SwiftUI hosts.
+///
+/// ## Why it does nothing on the way on
+///
+/// Because forcing the attribute onto Scyther's own views broke the rendering, which is worth
+/// recording precisely. Switching the mode on already worked through the environment half, and
+/// adding the UIKit half to the same views gave them two signals saying the same thing. A hosting
+/// view told to force a direction mirrors what it *renders* rather than reordering what it lays
+/// out, so the menu came back with every label reversed glyph by glyph — `Fonts` drawn as `stnoF`
+/// — while every unit test still passed, because the attribute values were exactly what the tests
+/// asked for. An attribute being set is not evidence that the result is readable. Switching on is
+/// therefore left entirely to the environment half, which is where it always worked.
 ///
 /// Testing ``apply(rightToLeft:allowed:)`` itself is honest only up to a point, and the point is
 /// `UIView.appearance()`: it is process-wide state with no reliable way to read the applied value
 /// back, and `ScytherTests` has no host app whose windows could be inspected. It is therefore
-/// driven only through ``attribute(rightToLeft:)`` and ``applyToOwnedViews(rightToLeft:in:)``,
-/// which are pure enough to be tested against a hierarchy built by hand — which is what the view
-/// walk is tested against.
+/// driven only through ``attribute(rightToLeft:)`` and ``clearForcedDirection(in:)``, which are
+/// pure enough to be tested against a hierarchy built by hand. What those tests can prove is
+/// bounded, and this file has now been the proof: they can say which attribute a view carries;
+/// they cannot say what the screen looks like.
 ///
 /// ## Topics
 ///
@@ -97,8 +108,9 @@ import UIKit
 ///
 /// ### Applying
 /// - ``apply(rightToLeft:allowed:)``
-/// - ``applyToOwnedViews(rightToLeft:in:)``
-/// - ``isScytherOwned(_:)``
+/// - ``clearForcedDirection(in:)``
+/// - ``role(of:)``
+/// - ``ViewRole``
 @MainActor
 internal enum PseudoLocalizationLayout {
     /// The layout direction Scyther's own SwiftUI interface should be laid out in.
@@ -154,10 +166,12 @@ internal enum PseudoLocalizationLayout {
     /// its environment, seeded when its hosting view was built, and nothing here reaches back into
     /// it.
     ///
-    /// It then hands off to ``applyToOwnedViews(rightToLeft:in:)`` for the views Scyther itself
-    /// owns, which the proxy cannot help with in either direction — it stamps a view once, as the
-    /// view joins a window, and never revisits it. Nothing about the host app changes because of
-    /// that step.
+    /// On the way *off* it then hands to ``clearForcedDirection(in:)``, which takes the proxy's
+    /// stamp back off the UIKit chrome Scyther owns — the proxy cannot do that itself, since it
+    /// stamps a view once as the view joins a window and never revisits it. There is no matching
+    /// step on the way on: forcing the attribute onto Scyther's own views is what made a hosting
+    /// view mirror its rendered text, and the environment half already flips Scyther's interface
+    /// the moment the switch moves. Nothing about the host app changes because of either.
     ///
     /// A relaunch makes the UIKit half complete but no more than that.
     /// ``PseudoLocalization/setup()`` sets the proxy from `Scyther.start(allowProductionBuilds:)`,
@@ -196,112 +210,147 @@ internal enum PseudoLocalizationLayout {
                 windows.append(window)
             }
         }
-        applyToOwnedViews(rightToLeft: rightToLeft, in: windows)
+        guard !rightToLeft else { return }
+        clearForcedDirection(in: windows)
     }
 
-    /// Puts the views *Scyther* owns into the direction the mode now calls for, instead of waiting
-    /// for them to be built again.
+    /// Clears the forced direction the appearance proxy stamped onto Scyther's own UIKit chrome
+    /// while the mode was on.
     ///
-    /// This is the half of the UIKit story the proxy cannot do, in either direction. Off is the
-    /// case that shipped broken — a mirrored menu that stayed mirrored for the rest of the session
-    /// — and on had the same weakness wearing better clothes: it happened to look right only
-    /// because a developer switching it on usually navigates somewhere afterwards, and the views
-    /// they arrive at are new. Both directions now go through here, so both behave the same and
-    /// neither depends on when a view happened to be created.
+    /// ## Why only this direction, and only a clear
     ///
-    /// The walk descends from `roots`, and the only views it *writes* to are Scyther's own: a
-    /// subtree recognised by ``isScytherOwned(_:)`` is stamped whole and not descended into again,
-    /// and everything else is passed over and its subviews examined instead. The host app's views
-    /// are read to find Scyther's and never written, which is the line this feature draws
-    /// everywhere else too: the app's UIKit views mirror through the appearance proxy on their next
-    /// launch, and its SwiftUI views not at all.
+    /// The two directions are not symmetric, and an earlier attempt to make them symmetric was
+    /// worse than the bug it replaced. Switching the mode **on** already works, through the
+    /// `\.layoutDirection` environment value ``MenuView`` and ``PseudoLocalizationView`` install:
+    /// Scyther's interface mirrors the instant the switch moves and its text stays readable.
+    /// Forcing `.forceRightToLeft` onto Scyther's view tree as well added a second, contradictory
+    /// signal to the same views, and a hosting view told to force a direction mirrors what it
+    /// *renders* rather than reordering what it lays out: on a device the menu came back with
+    /// every label reversed glyph by glyph — `Fonts` as `stnoF` — which no assertion about an
+    /// attribute value can detect. So nothing here forces anything on. Switching on is left
+    /// entirely to the environment half.
     ///
-    /// Each stamped view is marked for layout and each owned root is laid out immediately, because
-    /// the point of the fix is that the screen the developer is looking at changes *now*. Without
-    /// the forced pass the attribute would sit correct-but-unrendered until something else
-    /// invalidated the layout, which on a menu nobody is scrolling is indefinitely.
+    /// Switching **off** is the half that genuinely needed fixing, because the proxy cannot undo
+    /// itself: it stamps `.forceRightToLeft` onto each view as the view joins a window and never
+    /// revisits it, so views built while the mode was on stay mirrored for the rest of the session.
+    /// The narrowest repair is to take the stamp back off, which is what this does — write
+    /// `.unspecified` to a view that currently reads `.forceRightToLeft`, and nothing else. A view
+    /// holding any other value was never stamped by this feature and is left exactly as it is.
     ///
-    /// Cost is a full descent of the window's view tree with a responder climb per view, which is
-    /// far too much to do per frame and entirely fine here: it runs when a switch moves, and the
-    /// alternative — tracking every view Scyther creates — would be a registry to keep correct
-    /// forever in exchange for microseconds nobody is waiting on.
+    /// ## What it does not touch
+    ///
+    /// Anything SwiftUI hosts. The descent stops at the root view of a ``ScytherPresentedUI``
+    /// controller — the hosting view of every screen Scyther presents — and neither clears it nor
+    /// looks below it. The environment half already governs what SwiftUI draws there, and the
+    /// evidence that reaching into it is dangerous is the reversed text above. What is left for
+    /// this to correct is exactly the UIKit chrome *around* that view: the navigation controller
+    /// Scyther's menu is presented in, its navigation bar, and the overlays Scyther installs
+    /// straight into the app's key window.
+    ///
+    /// The host app's views are read to find Scyther's and never written, in either direction. Its
+    /// UIKit views still mirror on the next launch and un-mirror on the one after, through the
+    /// proxy alone, and its SwiftUI views still never.
+    ///
+    /// Cost is a descent of the window's view tree with a responder climb per view. Far too much
+    /// per frame, entirely fine when a switch moves.
     ///
     /// Carries no production guard of its own, unlike ``apply(rightToLeft:allowed:)``: it writes
     /// only to views Scyther owns, which on an App Store build do not exist, and its caller has
     /// already refused. Not carrying one is also what makes it testable — the XCTest half of that
-    /// guard would otherwise make every test below assert that nothing happened.
+    /// guard would otherwise make every test of it assert that nothing happened.
     ///
-    /// - Parameters:
-    ///   - rightToLeft: Whether right-to-left is being forced.
-    ///   - roots: The views to descend from. In production the app's windows; in a test, a
-    ///     hierarchy built by hand.
-    internal static func applyToOwnedViews(rightToLeft: Bool, in roots: [UIView]) {
-        let attribute = attribute(rightToLeft: rightToLeft)
+    /// - Parameter roots: The views to descend from. In production the app's windows; in a test, a
+    ///   hierarchy built by hand.
+    internal static func clearForcedDirection(in roots: [UIView]) {
         for root in roots {
-            applyToOwnedSubtrees(of: root, attribute: attribute)
+            clearForcedDirection(below: root)
+            root.layoutIfNeeded()
         }
     }
 
-    /// Finds Scyther's own subtrees below `view` and stamps them.
+    /// Clears `view` if it qualifies, then examines its subviews.
     ///
-    /// Stops descending the moment it finds one, because everything inside a view of Scyther's is
-    /// Scyther's too and asking again per descendant would be the same answer bought at the price
-    /// of a responder climb each time.
+    /// Every view is asked individually rather than a subtree being cleared wholesale once its
+    /// root qualifies. That is the difference between undoing a stamp and applying one: the walk
+    /// must be able to leave a view alone, and a subtree sweep cannot, since it would also write
+    /// to views that were never stamped and to the hosting view it is supposed to stop at.
     ///
-    /// - Parameters:
-    ///   - view: The view to examine.
-    ///   - attribute: The attribute to stamp onto anything owned.
-    private static func applyToOwnedSubtrees(of view: UIView, attribute: UISemanticContentAttribute) {
-        if isScytherOwned(view) {
-            stamp(view, with: attribute)
-            view.layoutIfNeeded()
+    /// - Parameter view: The view to examine.
+    private static func clearForcedDirection(below view: UIView) {
+        switch role(of: view) {
+        case .swiftUIHosted:
             return
+        case .scytherChrome:
+            if view.semanticContentAttribute == .forceRightToLeft {
+                view.semanticContentAttribute = .unspecified
+                view.setNeedsLayout()
+            }
+        case .foreign:
+            break
         }
         for subview in view.subviews {
-            applyToOwnedSubtrees(of: subview, attribute: attribute)
+            clearForcedDirection(below: subview)
         }
     }
 
-    /// Sets `attribute` on `view` and everything below it.
+    /// What a view is, as far as clearing a forced direction is concerned.
     ///
-    /// Every descendant, not just the root, because the stamp the appearance proxy leaves is on
-    /// each view individually rather than inherited: a subtree whose root alone was reset would
-    /// keep every mirrored label, button and image view it already had.
+    /// ## Topics
     ///
-    /// - Parameters:
-    ///   - view: The root of the subtree to stamp.
-    ///   - attribute: The attribute to apply.
-    private static func stamp(_ view: UIView, with attribute: UISemanticContentAttribute) {
-        view.semanticContentAttribute = attribute
-        view.setNeedsLayout()
-        for subview in view.subviews {
-            stamp(subview, with: attribute)
-        }
+    /// ### Cases
+    /// - ``swiftUIHosted``
+    /// - ``scytherChrome``
+    /// - ``foreign``
+    internal enum ViewRole {
+        /// A view SwiftUI hosts for Scyther, and everything below it.
+        ///
+        /// Never written to and never descended into. What SwiftUI draws inside a hosting view is
+        /// governed by the `\.layoutDirection` environment value ``MenuView`` and
+        /// ``PseudoLocalizationView`` install, and the one time this walk reached in and set an
+        /// attribute there the menu came back with its text reversed glyph by glyph.
+        case swiftUIHosted
+
+        /// Scyther's own UIKit chrome: its overlays, and the containers around a screen it
+        /// presents.
+        ///
+        /// The only views a `.forceRightToLeft` stamp is Scyther's to remove.
+        case scytherChrome
+
+        /// A view belonging to the app being debugged.
+        ///
+        /// Read to find Scyther's own, never written to. Its direction is the appearance proxy's
+        /// business and the next launch's.
+        case foreign
     }
 
-    /// Whether a view belongs to Scyther rather than to the app being debugged.
+    /// Which of the three a view is.
     ///
-    /// Two questions, because Scyther's UI arrives on screen two ways. `isScytherOwnedType(_:)` —
-    /// the same rule the accessibility audit uses, deliberately shared rather than restated —
-    /// catches the overlays Scyther installs straight into the app's key window, which are its own
-    /// classes and have no view controller. The controller question catches everything Scyther
-    /// *presents*, whose views are SwiftUI's `_UIHostingView` and name Scyther nowhere; they are
-    /// recognised by the controller that owns them instead.
+    /// Asked once per view and answered from the *owning controller* rather than the view's class,
+    /// because Scyther's presented screens are SwiftUI: the view a screen hangs off is
+    /// `_UIHostingView`, a private type that names Scyther nowhere, so a class test could never
+    /// find it. The controller can be asked instead, and is.
     ///
-    /// Ownership is asked of the controller through ``ScytherPresentation/containsScytherUI(_:)``
-    /// rather than by testing it against ``ScytherPresentedUI`` directly, and that is what makes
-    /// the menu's navigation bar come with it: `Scyther.showMenu(from:)` presents a stock
-    /// `UINavigationController` whose child is the ``ScytherHostingController``, so the navigation
-    /// bar's owning controller is a UIKit container and only its children give it away. A
-    /// navigation bar left mirrored above an un-mirrored list would be a half-fix a developer
-    /// would report as the same bug.
+    /// The order of the three tests is the whole rule:
     ///
-    /// - Parameter view: The view to test.
-    /// - Returns: `true` when the view is Scyther's own.
-    internal static func isScytherOwned(_ view: UIView) -> Bool {
-        if isScytherOwnedType(view) { return true }
-        guard let controller = owningController(of: view) else { return false }
-        return ScytherPresentation.containsScytherUI(controller)
+    /// - A ``ScytherPresentedUI`` owner means SwiftUI is hosting this view for Scyther, and the
+    ///   answer is ``ViewRole/swiftUIHosted`` before anything else is considered.
+    /// - `isScytherOwnedType(_:)` — the same rule the accessibility audit uses, shared rather than
+    ///   restated — recognises the overlays Scyther installs straight into the app's key window,
+    ///   which have no controller at all and can only be known by class.
+    /// - ``ScytherPresentation/containsScytherUI(_:)`` recognises the chrome around a presented
+    ///   screen. `Scyther.showMenu(from:)` presents a stock `UINavigationController` whose child
+    ///   is the ``ScytherHostingController``, so the navigation bar's owning controller is a UIKit
+    ///   container and only its children give it away. A navigation bar left mirrored above a
+    ///   correctly laid-out menu is the same bug reported again.
+    ///
+    /// - Parameter view: The view to classify.
+    /// - Returns: The view's role.
+    internal static func role(of view: UIView) -> ViewRole {
+        let controller = owningController(of: view)
+        if controller is ScytherPresentedUI { return .swiftUIHosted }
+        if isScytherOwnedType(view) { return .scytherChrome }
+        guard let controller, ScytherPresentation.containsScytherUI(controller) else { return .foreign }
+        return .scytherChrome
     }
 
     /// How far ``owningController(of:)`` climbs before giving up.

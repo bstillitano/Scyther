@@ -11,35 +11,44 @@ import SwiftUI
 import UIKit
 import XCTest
 
-/// Covers the half of ``PseudoLocalizationLayout`` that resets the views Scyther owns.
+/// Covers the half of ``PseudoLocalizationLayout`` that takes the appearance proxy's stamp back
+/// off Scyther's own UIKit chrome.
 ///
 /// The appearance proxy cannot be tested here — it is process-wide state with no reliable way to
 /// read the applied value back — but the walk that undoes its work can be, because it takes the
 /// views it should visit rather than going looking for windows. Every hierarchy below is real
-/// `UIView`s under a real `UIViewController`, so the responder chain the ownership rule climbs is
-/// the one UIKit builds rather than a stand-in for it.
+/// `UIView`s under a real `UIViewController`, so the responder chain the classifier climbs is the
+/// one UIKit builds rather than a stand-in for it.
+///
+/// What these tests can and cannot say is worth stating, because a previous version of this file
+/// said more than it could. They can say which attribute a view carries afterwards. They cannot
+/// say what the screen looks like: an earlier fix forced `.forceRightToLeft` onto Scyther's own
+/// views, passed every assertion here, and rendered the menu's text reversed glyph by glyph on a
+/// device. Hence ``testNothingSwiftUIHostsIsEverWrittenTo``, which is the assertion that would
+/// have caught it.
 @MainActor
 final class PseudoLocalizationLayoutTests: XCTestCase {
 
-    /// Stands in for a ``ScytherHostingController``: the marker is what ownership is decided by,
+    /// Stands in for a ``ScytherHostingController``: the marker is what the classifier decides on,
     /// and a plain controller carrying it exercises the same rule without needing SwiftUI to build
     /// a hosting view first.
-    private final class OwnedController: UIViewController, ScytherPresentedUI { }
+    private final class HostingController: UIViewController, ScytherPresentedUI { }
 
-    /// The attribute a view stamped by the appearance proxy while the mode was on would be left
-    /// holding once the mode is switched off — the state the fix exists to clear.
-    private let stale: UISemanticContentAttribute = .forceRightToLeft
+    /// The attribute the appearance proxy leaves on a view built while the mode was on, and the
+    /// only value the walk is allowed to overwrite.
+    private let stamped: UISemanticContentAttribute = .forceRightToLeft
 
-    /// A value neither switch position ever produces, so a view that still holds it was genuinely
-    /// left alone rather than coincidentally reset to the value "off" happens to use.
-    private let untouched: UISemanticContentAttribute = .forceLeftToRight
+    /// A value the walk must never produce or overwrite, so a view still holding it was genuinely
+    /// left alone rather than coincidentally reset to the value a clear happens to write.
+    private let foreignValue: UISemanticContentAttribute = .forceLeftToRight
 
     // MARK: - Helpers
 
-    /// A controller whose root view holds two nested subviews, all three stamped with `attribute`.
+    /// A controller whose root view holds two nested subviews, all three set to `attribute`.
+    @discardableResult
     private func hierarchy(
         _ controller: UIViewController,
-        stampedWith attribute: UISemanticContentAttribute
+        setTo attribute: UISemanticContentAttribute
     ) -> (root: UIView, child: UIView, grandchild: UIView) {
         let child = UIView()
         let grandchild = UIView()
@@ -51,132 +60,152 @@ final class PseudoLocalizationLayoutTests: XCTestCase {
         return (controller.view, child, grandchild)
     }
 
-    // MARK: - Ownership
+    // MARK: - Roles
 
-    func testAViewOwnedByAScytherControllerIsScythers() {
-        let controller = OwnedController()
-        let views = hierarchy(controller, stampedWith: .unspecified)
-        XCTAssertTrue(PseudoLocalizationLayout.isScytherOwned(views.root))
-        XCTAssertTrue(PseudoLocalizationLayout.isScytherOwned(views.grandchild))
+    func testAViewSwiftUIHostsForScytherIsRecognisedAsSuch() {
+        let controller = HostingController()
+        let views = hierarchy(controller, setTo: .unspecified)
+        XCTAssertEqual(PseudoLocalizationLayout.role(of: views.root), .swiftUIHosted)
+        XCTAssertEqual(PseudoLocalizationLayout.role(of: views.grandchild), .swiftUIHosted)
     }
 
-    func testAViewOwnedByTheAppIsNotScythers() {
-        let controller = UIViewController()
-        let views = hierarchy(controller, stampedWith: .unspecified)
-        XCTAssertFalse(PseudoLocalizationLayout.isScytherOwned(views.root))
-        XCTAssertFalse(PseudoLocalizationLayout.isScytherOwned(views.grandchild))
-    }
-
-    func testAContainerHostingAScytherControllerIsScythers() {
+    func testTheChromeAroundAPresentedScytherScreenIsRecognisedAsScythers() {
         let container = UIViewController()
-        let scyther = OwnedController()
-        container.addChild(scyther)
-        container.view.addSubview(scyther.view)
-        XCTAssertTrue(PseudoLocalizationLayout.isScytherOwned(container.view))
+        let bar = UIView()
+        container.view.addSubview(bar)
+        let hosting = HostingController()
+        container.addChild(hosting)
+        container.view.addSubview(hosting.view)
+        XCTAssertEqual(PseudoLocalizationLayout.role(of: container.view), .scytherChrome)
+        XCTAssertEqual(PseudoLocalizationLayout.role(of: bar), .scytherChrome)
     }
 
-    func testScythersOwnOverlayViewsAreScythers() {
-        XCTAssertTrue(PseudoLocalizationLayout.isScytherOwned(TopLevelViewsWrapper()))
-        XCTAssertTrue(PseudoLocalizationLayout.isScytherOwned(TopLevelView()))
+    func testScythersOwnOverlayViewsAreRecognisedAsScythers() {
+        XCTAssertEqual(PseudoLocalizationLayout.role(of: TopLevelViewsWrapper()), .scytherChrome)
+        XCTAssertEqual(PseudoLocalizationLayout.role(of: TopLevelView()), .scytherChrome)
     }
 
-    // MARK: - Switching on
-
-    func testSwitchingOnForcesRightToLeftOnEveryViewScytherOwns() {
-        let controller = OwnedController()
-        let views = hierarchy(controller, stampedWith: .unspecified)
-        PseudoLocalizationLayout.applyToOwnedViews(rightToLeft: true, in: [views.root])
-        XCTAssertEqual(views.root.semanticContentAttribute, .forceRightToLeft)
-        XCTAssertEqual(views.child.semanticContentAttribute, .forceRightToLeft)
-        XCTAssertEqual(views.grandchild.semanticContentAttribute, .forceRightToLeft)
+    func testAViewOwnedByTheAppIsForeign() {
+        let controller = UIViewController()
+        let views = hierarchy(controller, setTo: .unspecified)
+        XCTAssertEqual(PseudoLocalizationLayout.role(of: views.root), .foreign)
+        XCTAssertEqual(PseudoLocalizationLayout.role(of: views.grandchild), .foreign)
     }
 
-    // MARK: - Switching off
+    // MARK: - Clearing
 
-    func testSwitchingOffClearsEveryViewScytherOwns() {
-        let controller = OwnedController()
-        let views = hierarchy(controller, stampedWith: stale)
-        PseudoLocalizationLayout.applyToOwnedViews(rightToLeft: false, in: [views.root])
+    func testClearingTakesTheStampOffScythersChrome() {
+        let container = UIViewController()
+        let views = hierarchy(container, setTo: stamped)
+        let hosting = HostingController()
+        container.addChild(hosting)
+        PseudoLocalizationLayout.clearForcedDirection(in: [views.root])
         XCTAssertEqual(views.root.semanticContentAttribute, .unspecified)
         XCTAssertEqual(views.child.semanticContentAttribute, .unspecified)
         XCTAssertEqual(views.grandchild.semanticContentAttribute, .unspecified)
     }
 
-    /// The defect as reported: on, then off, and the menu is still mirrored.
-    func testSwitchingOnThenOffLeavesNothingOfScythersMirrored() {
-        let controller = OwnedController()
-        let views = hierarchy(controller, stampedWith: .unspecified)
-        PseudoLocalizationLayout.applyToOwnedViews(rightToLeft: true, in: [views.root])
-        for view in [views.root, views.child, views.grandchild] {
-            XCTAssertEqual(view.semanticContentAttribute, .forceRightToLeft)
-            XCTAssertEqual(view.effectiveUserInterfaceLayoutDirection, .rightToLeft)
+    /// `.unspecified` rather than `.forceLeftToRight`, so a genuinely Arabic device is handed back
+    /// to its own language rather than pinned the other way.
+    func testClearingWritesUnspecifiedRatherThanForcingTheOtherDirection() {
+        let container = UIViewController()
+        let views = hierarchy(container, setTo: stamped)
+        let hosting = HostingController()
+        container.addChild(hosting)
+        PseudoLocalizationLayout.clearForcedDirection(in: [views.root])
+        XCTAssertNotEqual(views.root.semanticContentAttribute, .forceLeftToRight)
+        XCTAssertEqual(views.root.effectiveUserInterfaceLayoutDirection, .leftToRight)
+    }
+
+    /// The walk exists to undo one specific stamp, so a view holding anything else was never this
+    /// feature's to touch.
+    func testClearingLeavesAViewHoldingAnyOtherValueAlone() {
+        let container = UIViewController()
+        let views = hierarchy(container, setTo: foreignValue)
+        let hosting = HostingController()
+        container.addChild(hosting)
+        PseudoLocalizationLayout.clearForcedDirection(in: [views.root])
+        XCTAssertEqual(views.root.semanticContentAttribute, foreignValue)
+        XCTAssertEqual(views.child.semanticContentAttribute, foreignValue)
+        XCTAssertEqual(views.grandchild.semanticContentAttribute, foreignValue)
+    }
+
+    /// The assertion the earlier fix would have failed: the walk must not write to a view SwiftUI
+    /// hosts, even one the appearance proxy stamped, because forcing a direction on a hosting view
+    /// mirrors the text it renders.
+    func testNothingSwiftUIHostsIsEverWrittenTo() {
+        let hosting = HostingController()
+        let views = hierarchy(hosting, setTo: stamped)
+        PseudoLocalizationLayout.clearForcedDirection(in: [views.root])
+        XCTAssertEqual(views.root.semanticContentAttribute, stamped)
+        XCTAssertEqual(views.child.semanticContentAttribute, stamped)
+        XCTAssertEqual(views.grandchild.semanticContentAttribute, stamped)
+    }
+
+    func testTheWalkStopsAtAHostingViewWhileClearingTheChromeAroundIt() {
+        let container = UIViewController()
+        let bar = UIView()
+        container.view.addSubview(bar)
+        let hosting = HostingController()
+        container.addChild(hosting)
+        container.view.addSubview(hosting.view)
+        let hosted = UIView()
+        hosting.view.addSubview(hosted)
+        for view in [container.view!, bar, hosting.view!, hosted] {
+            view.semanticContentAttribute = stamped
         }
-        PseudoLocalizationLayout.applyToOwnedViews(rightToLeft: false, in: [views.root])
-        for view in [views.root, views.child, views.grandchild] {
-            XCTAssertEqual(view.semanticContentAttribute, .unspecified)
-            XCTAssertEqual(view.effectiveUserInterfaceLayoutDirection, .leftToRight)
-        }
+
+        PseudoLocalizationLayout.clearForcedDirection(in: [container.view])
+
+        XCTAssertEqual(container.view.semanticContentAttribute, .unspecified)
+        XCTAssertEqual(bar.semanticContentAttribute, .unspecified)
+        XCTAssertEqual(hosting.view.semanticContentAttribute, stamped)
+        XCTAssertEqual(hosted.semanticContentAttribute, stamped)
     }
 
     // MARK: - Descending from a window
 
-    func testTheWalkFindsScythersViewsBelowViewsThatAreNot() {
+    func testTheWalkFindsScythersChromeBelowViewsThatAreNot() {
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
         let app = UIViewController()
-        let appViews = hierarchy(app, stampedWith: untouched)
+        let appViews = hierarchy(app, setTo: stamped)
         window.rootViewController = app
-        let scyther = OwnedController()
-        let scytherViews = hierarchy(scyther, stampedWith: stale)
-        window.addSubview(scyther.view)
 
-        PseudoLocalizationLayout.applyToOwnedViews(rightToLeft: false, in: [window])
+        let container = UIViewController()
+        let scytherViews = hierarchy(container, setTo: stamped)
+        let hosting = HostingController()
+        container.addChild(hosting)
+        window.addSubview(container.view)
+
+        PseudoLocalizationLayout.clearForcedDirection(in: [window])
 
         XCTAssertEqual(scytherViews.root.semanticContentAttribute, .unspecified)
         XCTAssertEqual(scytherViews.child.semanticContentAttribute, .unspecified)
         XCTAssertEqual(scytherViews.grandchild.semanticContentAttribute, .unspecified)
-        XCTAssertEqual(appViews.root.semanticContentAttribute, untouched)
-        XCTAssertEqual(appViews.child.semanticContentAttribute, untouched)
-        XCTAssertEqual(appViews.grandchild.semanticContentAttribute, untouched)
+        XCTAssertEqual(appViews.root.semanticContentAttribute, stamped)
+        XCTAssertEqual(appViews.child.semanticContentAttribute, stamped)
+        XCTAssertEqual(appViews.grandchild.semanticContentAttribute, stamped)
     }
 
-    func testTheWalkReachesAContainersOwnViewsAndNotTheAppsAroundIt() {
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
-        let app = UIViewController()
-        let appViews = hierarchy(app, stampedWith: untouched)
-        window.rootViewController = app
-
-        let container = UIViewController()
-        let bar = UIView()
-        container.view.addSubview(bar)
-        let scyther = OwnedController()
-        container.addChild(scyther)
-        container.view.addSubview(scyther.view)
-        for view in [container.view!, bar, scyther.view!] {
-            view.semanticContentAttribute = stale
-        }
-        window.addSubview(container.view)
-
-        PseudoLocalizationLayout.applyToOwnedViews(rightToLeft: false, in: [window])
-
-        XCTAssertEqual(bar.semanticContentAttribute, .unspecified)
-        XCTAssertEqual(container.view.semanticContentAttribute, .unspecified)
-        XCTAssertEqual(scyther.view.semanticContentAttribute, .unspecified)
-        XCTAssertEqual(appViews.root.semanticContentAttribute, untouched)
-    }
-
-    // MARK: - The host app
-
-    func testTheWalkLeavesTheHostAppsViewsAloneInBothDirections() {
+    /// The host app's UIKit views un-mirror on their next launch through the appearance proxy, the
+    /// same way they mirror on one. Nothing here may bring that forward.
+    func testTheWalkNeverWritesToTheHostAppsViews() {
         let controller = UIViewController()
-        let views = hierarchy(controller, stampedWith: untouched)
-        PseudoLocalizationLayout.applyToOwnedViews(rightToLeft: true, in: [views.root])
-        XCTAssertEqual(views.root.semanticContentAttribute, untouched)
-        XCTAssertEqual(views.child.semanticContentAttribute, untouched)
-        XCTAssertEqual(views.grandchild.semanticContentAttribute, untouched)
-        PseudoLocalizationLayout.applyToOwnedViews(rightToLeft: false, in: [views.root])
-        XCTAssertEqual(views.root.semanticContentAttribute, untouched)
-        XCTAssertEqual(views.child.semanticContentAttribute, untouched)
-        XCTAssertEqual(views.grandchild.semanticContentAttribute, untouched)
+        let views = hierarchy(controller, setTo: stamped)
+        PseudoLocalizationLayout.clearForcedDirection(in: [views.root])
+        XCTAssertEqual(views.root.semanticContentAttribute, stamped)
+        XCTAssertEqual(views.child.semanticContentAttribute, stamped)
+        XCTAssertEqual(views.grandchild.semanticContentAttribute, stamped)
+    }
+
+    func testClearingAnAlreadyClearHierarchyChangesNothing() {
+        let container = UIViewController()
+        let views = hierarchy(container, setTo: .unspecified)
+        let hosting = HostingController()
+        container.addChild(hosting)
+        PseudoLocalizationLayout.clearForcedDirection(in: [views.root])
+        XCTAssertEqual(views.root.semanticContentAttribute, .unspecified)
+        XCTAssertEqual(views.grandchild.semanticContentAttribute, .unspecified)
     }
 }
 #endif
