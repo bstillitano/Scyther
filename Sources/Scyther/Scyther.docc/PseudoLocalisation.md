@@ -15,7 +15,7 @@ edge that ends up on the wrong side in Arabic, a string somebody forgot to put t
 rendering the app with copy that *behaves* like a translation without *being* one.
 
 **UI/UX → Pseudo-localisation** offers four modes, each a switch, each off by default, and all
-freely combinable:
+freely combinable — plus a fifth switch that is a setting about them rather than a mode of its own:
 
 | Mode | What it does | What it finds |
 | --- | --- | --- |
@@ -27,6 +27,14 @@ freely combinable:
 The bracketing in Lengthened is the point of it: a label that has lost its closing `]` was
 truncated, which is far easier to see in a screenshot than judging whether some accented text
 looks a few characters short.
+
+That is also why **Show Boundaries** — the fifth switch, and the only one that ships **on** —
+exists at all. The padding dots say a string grew; only the closing bracket says whether the end of
+it was cut off. Switching it off keeps the expansion and drops the delimiters, giving their two
+characters back to the padding so both forms grow a string by the same amount. It transforms
+nothing itself, so with every text mode off it does nothing whichever way it is set, and it reads
+as on when nothing has been stored for it — an install that predates it keeps the brackets it has
+always had. See ``PseudoLocalizationMode/showsBoundaries``.
 
 ## What it can reach, and what it cannot
 
@@ -108,7 +116,12 @@ spend an afternoon chasing in their own code, and a diagnostic tool that manufac
 worse than no tool.
 
 - Every mode is off by default and persisted under `Scyther_pseudo_localization_*` in
-  `UserDefaults.scyther`.
+  `UserDefaults.scyther`. ``PseudoLocalization/showsBoundaries`` is the one switch that reads as on
+  with nothing stored, and ``PseudoLocalization/reset()`` restores it to on rather than clearing
+  it, because that is its shipped state.
+- Show Boundaries changes how another mode renders and nothing else. It is deliberately absent from
+  ``PseudoLocalizationMode/textAffecting``, so it can never install the hook into the host app's
+  string loading on its own.
 - The swizzle is installed only while a text mode is on, and removed the moment the last one is
   switched off. An app that never opens the page never has its string loading touched.
 - Only `Bundle.main` is transformed, and within it only the default `Localizable` table. UIKit's

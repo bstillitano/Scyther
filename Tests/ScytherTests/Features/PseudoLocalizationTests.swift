@@ -42,8 +42,23 @@ final class PseudoLocalizationTests: XCTestCase {
         XCTAssertFalse(settings.showsKeys)
     }
 
-    func testNoModesAreStoredByDefault() {
-        XCTAssertTrue(settings.storedModes.isEmpty)
+    func testNoTextModeIsStoredByDefault() {
+        XCTAssertTrue(settings.storedModes.intersection(.textAffecting).isEmpty)
+        XCTAssertFalse(settings.storedModes.contains(.rightToLeft))
+    }
+
+    /// The one switch that is on with nothing stored, so an install that predates it keeps the
+    /// brackets it has always had.
+    func testShowingBoundariesIsOnByDefault() {
+        XCTAssertTrue(settings.showsBoundaries)
+        XCTAssertNil(defaults.object(forKey: "Scyther_pseudo_localization_show_boundaries"))
+        XCTAssertEqual(settings.storedModes, .showsBoundaries)
+    }
+
+    func testShowingBoundariesCanBeSwitchedOff() {
+        settings.showsBoundaries = false
+        XCTAssertFalse(settings.showsBoundaries)
+        XCTAssertFalse(settings.storedModes.contains(.showsBoundaries))
     }
 
     // MARK: - Persistence
@@ -72,6 +87,15 @@ final class PseudoLocalizationTests: XCTestCase {
         XCTAssertTrue(settings.showsKeys)
     }
 
+    func testShowsBoundariesPersistsUnderItsNamespacedKey() {
+        settings.showsBoundaries = false
+        XCTAssertEqual(defaults.object(forKey: "Scyther_pseudo_localization_show_boundaries") as? Bool, false)
+        XCTAssertFalse(settings.showsBoundaries)
+        settings.showsBoundaries = true
+        XCTAssertEqual(defaults.object(forKey: "Scyther_pseudo_localization_show_boundaries") as? Bool, true)
+        XCTAssertTrue(settings.showsBoundaries)
+    }
+
     func testASecondInstanceReadsWhatTheFirstWrote() {
         settings.accented = true
         XCTAssertTrue(PseudoLocalization(defaults: defaults).accented)
@@ -80,6 +104,7 @@ final class PseudoLocalizationTests: XCTestCase {
     // MARK: - Stored modes
 
     func testStoredModesReflectsEachSwitchIndependently() {
+        settings.showsBoundaries = false
         settings.accented = true
         XCTAssertEqual(settings.storedModes, .accented)
         settings.showsKeys = true
@@ -87,6 +112,11 @@ final class PseudoLocalizationTests: XCTestCase {
         settings.lengthened = true
         settings.rightToLeft = true
         XCTAssertEqual(settings.storedModes, [.accented, .showsKeys, .lengthened, .rightToLeft])
+        settings.showsBoundaries = true
+        XCTAssertEqual(
+            settings.storedModes,
+            [.accented, .showsKeys, .lengthened, .rightToLeft, .showsBoundaries]
+        )
     }
 
     // MARK: - Reset
@@ -99,11 +129,19 @@ final class PseudoLocalizationTests: XCTestCase {
 
         settings.reset()
 
-        XCTAssertTrue(settings.storedModes.isEmpty)
+        XCTAssertEqual(settings.storedModes, .showsBoundaries)
         XCTAssertFalse(defaults.bool(forKey: "Scyther_pseudo_localization_accented"))
         XCTAssertFalse(defaults.bool(forKey: "Scyther_pseudo_localization_lengthened"))
         XCTAssertFalse(defaults.bool(forKey: "Scyther_pseudo_localization_right_to_left"))
         XCTAssertFalse(defaults.bool(forKey: "Scyther_pseudo_localization_show_keys"))
+    }
+
+    /// Reset restores the shipped state rather than clearing every switch, and for the brackets
+    /// the shipped state is on.
+    func testResetPutsTheBoundariesBackOn() {
+        settings.showsBoundaries = false
+        settings.reset()
+        XCTAssertTrue(settings.showsBoundaries)
     }
 
     // MARK: - Production guard

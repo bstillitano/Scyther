@@ -9,8 +9,8 @@ import Foundation
 
 /// The pseudo-localisation behaviours currently switched on, as one value.
 ///
-/// Modelled as an `OptionSet` rather than four loose `Bool`s because every consumer cares about
-/// the *combination*: ``PseudoLocalizationTransform`` needs to know the order to apply them in,
+/// Modelled as an `OptionSet` rather than a handful of loose `Bool`s because every consumer cares
+/// about the *combination*: ``PseudoLocalizationTransform`` needs to know the order to apply them in,
 /// ``PseudoLocalization`` needs to know whether *any* text mode is on before it installs a hook
 /// into the host app, and ``localized(_:comment:override:)`` needs a single cheap emptiness check
 /// on the hot path where every string in Scyther's UI is resolved.
@@ -25,6 +25,9 @@ import Foundation
 /// - ``lengthened``
 /// - ``rightToLeft``
 /// - ``showsKeys``
+///
+/// ### Presentation
+/// - ``showsBoundaries``
 ///
 /// ### Grouping
 /// - ``textAffecting``
@@ -73,11 +76,32 @@ struct PseudoLocalizationMode: OptionSet, Sendable, Hashable {
     /// fastest way to spot a key that resolved to the wrong entry entirely.
     static let showsKeys = PseudoLocalizationMode(rawValue: 1 << 3)
 
+    /// Keeps the `[` and `]` that mark where a transformed string starts and ends.
+    ///
+    /// The odd one out, and deliberately so: it transforms nothing by itself and switches nothing
+    /// on. It is a setting *about* the other modes — the only delimiters pseudo-localisation
+    /// produces are the ones ``lengthened`` puts around a padded string, and this decides whether
+    /// they are drawn. With no text mode on it therefore does nothing at all, which
+    /// ``PseudoLocalizationTransform/apply(to:key:modes:)`` gets for free from the guard it
+    /// already had.
+    ///
+    /// Not part of ``textAffecting`` for the same reason ``rightToLeft`` is not: that set decides
+    /// whether the hook into the host app's string loading is worth installing, and a mode that
+    /// only changes how another mode renders must never install it on its own.
+    ///
+    /// It is also the one mode that is on unless a developer has turned it off. The brackets are
+    /// the diagnostic rather than decoration — the padding dots say a string grew, but only the
+    /// closing bracket says whether the end of it was cut off — so the default keeps them and the
+    /// switch exists for the developer who has seen enough of them.
+    static let showsBoundaries = PseudoLocalizationMode(rawValue: 1 << 4)
+
     /// The modes that change the characters of a string, as opposed to the direction it is laid
     /// out in.
     ///
     /// The distinction is load-bearing: the hook into the host app's string loading is worth
-    /// installing only when one of these is on, and ``PseudoLocalizationMode/rightToLeft`` alone
-    /// must not install it.
+    /// installing only when one of these is on, and neither ``PseudoLocalizationMode/rightToLeft``
+    /// nor ``PseudoLocalizationMode/showsBoundaries`` alone must install it — the first changes a
+    /// layout attribute rather than a string, and the second only decides how one of these three
+    /// renders.
     static let textAffecting: PseudoLocalizationMode = [.accented, .lengthened, .showsKeys]
 }

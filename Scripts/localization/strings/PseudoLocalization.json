@@ -15,7 +15,7 @@
     "ar": "الترجمة الزائفة"
   },
   "Modes": {
-    "comment": "Section header above the four pseudo-localisation switches",
+    "comment": "Section header above the pseudo-localisation mode switches",
     "fr": "Modes",
     "de": "Modi",
     "es": "Modos",
@@ -268,5 +268,50 @@
     "ko": "Scyther 인터페이스는 지금, 앱의 UIKit 뷰는 다음 실행 시 좌우 반전됩니다. 앱의 SwiftUI 뷰는 영향을 받지 않습니다. Scyther가 그 environment에 접근할 수 없기 때문입니다.",
     "ru": "Отражает интерфейс Scyther сразу, а UIKit-представления вашего приложения — при следующем запуске. SwiftUI-представления не затрагиваются: Scyther не может добраться до их environment.",
     "ar": "يعكس واجهة Scyther الآن، ويعكس عروض UIKit في تطبيقك عند التشغيل التالي. أما عروض SwiftUI في تطبيقك فلا تتأثر: إذ لا يمكن لـ Scyther الوصول إلى بيئتها."
+  },
+  "Boundaries": {
+    "comment": "Section header above the switch that keeps the brackets around a lengthened string",
+    "fr": "Délimiteurs",
+    "de": "Begrenzungen",
+    "es": "Delimitadores",
+    "it": "Delimitatori",
+    "pt-BR": "Delimitadores",
+    "nl": "Begrenzingen",
+    "ja": "区切り",
+    "zh-Hans": "边界标记",
+    "zh-Hant": "邊界標記",
+    "ko": "경계",
+    "ru": "Границы",
+    "ar": "الحدود"
+  },
+  "Show Boundaries": {
+    "comment": "Switch label for keeping the brackets that mark where a transformed string starts and ends",
+    "fr": "Afficher les délimiteurs",
+    "de": "Begrenzungen anzeigen",
+    "es": "Mostrar delimitadores",
+    "it": "Mostra delimitatori",
+    "pt-BR": "Mostrar delimitadores",
+    "nl": "Begrenzingen tonen",
+    "ja": "区切りを表示",
+    "zh-Hans": "显示边界标记",
+    "zh-Hant": "顯示邊界標記",
+    "ko": "경계 표시",
+    "ru": "Показывать границы",
+    "ar": "إظهار الحدود"
+  },
+  "Marks where each string starts and ends, so you can see when one has been cut off. Only shows up when another text mode is on.": {
+    "comment": "Subtitle for the Show Boundaries switch",
+    "fr": "Marque le début et la fin de chaque chaîne, pour repérer celles qui sont tronquées. N’apparaît que si un autre mode de texte est activé.",
+    "de": "Markiert Anfang und Ende jeder Zeichenkette, damit sichtbar wird, wenn eine abgeschnitten wurde. Erscheint nur, wenn ein anderer Textmodus aktiv ist.",
+    "es": "Marca dónde empieza y termina cada cadena, para que veas cuándo se ha cortado alguna. Solo aparece cuando hay otro modo de texto activado.",
+    "it": "Segna dove inizia e finisce ogni stringa, così vedi quando ne viene troncata una. Compare solo quando è attiva un’altra modalità di testo.",
+    "pt-BR": "Marca onde cada texto começa e termina, para você ver quando algum foi cortado. Só aparece quando outro modo de texto está ativado.",
+    "nl": "Markeert waar elke tekst begint en eindigt, zodat je ziet wanneer er een is afgekapt. Verschijnt alleen als een andere tekstmodus aanstaat.",
+    "ja": "各文字列の始まりと終わりを示し、途中で切れているかどうかを確認できます。ほかのテキストモードがオンのときのみ表示されます。",
+    "zh-Hans": "标出每条字符串的开头和结尾，便于发现被截断的文本。仅在开启其他文本模式时显示。",
+    "zh-Hant": "標出每條字串的開頭和結尾，便於發現被截斷的文字。僅在開啟其他文字模式時顯示。",
+    "ko": "각 문자열의 시작과 끝을 표시해 잘린 문자열을 확인할 수 있습니다. 다른 텍스트 모드가 켜져 있을 때만 나타납니다.",
+    "ru": "Отмечает начало и конец каждой строки, чтобы было видно, когда строка обрезана. Появляется только при включённом другом текстовом режиме.",
+    "ar": "يحدّد بداية كل نص ونهايته، لتلاحظ ما إذا كان قد اقتُطع. لا يظهر إلا عند تفعيل وضع نصي آخر."
   }
 }

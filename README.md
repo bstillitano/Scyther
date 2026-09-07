@@ -204,8 +204,8 @@ languages independently of the package's own catalog.
 ### Pseudo-localisation
 
 **UI/UX → Pseudo-localisation** renders the interface with copy that behaves like a translation
-without being one, to find layout problems before any translation exists. Four switches, all off
-by default and all combinable:
+without being one, to find layout problems before any translation exists. Four modes, all off by
+default and all combinable:
 
 | Mode | What it does | What it finds |
 | --- | --- | --- |
@@ -216,6 +216,12 @@ by default and all combinable:
 
 The brackets Lengthened adds are the point of it: a label missing its closing `]` was truncated,
 which is easier to see than judging whether accented text looks a few characters short.
+
+A fifth switch, **Show Boundaries**, decides whether those brackets are drawn, and it is the one
+switch that ships **on**. The padding dots already say a string grew; only the closing bracket says
+whether the end of it was cut off, which is the thing Lengthened exists to reveal — so the brackets
+stay by default, and the switch is there for when you want the expansion without the punctuation.
+It transforms nothing itself, so with every text mode off it does nothing at all.
 
 #### What it reaches, and what it does not
 
@@ -286,7 +292,9 @@ The rule Scyther holds itself to here is that it must never produce broken text 
 localisation problem. A mangled link or a plural that stops expanding is not a finding; it is a
 defect the developer will spend an afternoon chasing in their own code.
 
-- Off by default, persisted under `Scyther_pseudo_localization_*` in `UserDefaults.scyther`.
+- Off by default, persisted under `Scyther_pseudo_localization_*` in `UserDefaults.scyther`. Show
+  Boundaries is the one exception: it reads as on when nothing has been stored for it, so an
+  existing install behaves exactly as it did before the switch existed.
 - The swizzle is installed only while a text mode is on and removed when the last one is switched
   off. An app that never opens the page never has its string loading touched.
 - Only `Bundle.main` is transformed, so UIKit's own "Cancel" and "Done" are left alone — and

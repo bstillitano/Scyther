@@ -21,7 +21,7 @@ import Foundation
 ///
 /// ### Individual transformations
 /// - ``accentuate(_:)``
-/// - ``lengthen(_:)``
+/// - ``lengthen(_:showingBoundaries:)``
 ///
 /// ### Tuning
 /// - ``expansionFactor``
@@ -46,14 +46,18 @@ enum PseudoLocalizationTransform {
     /// read as real words and make it hard to tell padding from copy at a glance.
     static let paddingCharacter: Character = "·"
 
-    /// Marks the start of a lengthened string.
+    /// Marks the start of a lengthened string, when
+    /// ``PseudoLocalizationMode/showsBoundaries`` is on.
     static let openingDelimiter: Character = "["
 
-    /// Marks the end of a lengthened string.
+    /// Marks the end of a lengthened string, when ``PseudoLocalizationMode/showsBoundaries`` is on.
     ///
     /// The delimiters are the actual diagnostic: a missing closing bracket means the label was
     /// truncated, which is far easier to spot in a screenshot than judging whether some accented
-    /// text looks a few characters short.
+    /// text looks a few characters short. That is why they are on by default — and why they are a
+    /// switch rather than a certainty, since a developer who has read a hundred bracketed labels
+    /// and only wants to see the expansion should not have to give up lengthening to stop seeing
+    /// them.
     static let closingDelimiter: Character = "]"
 
     // MARK: - Applying
@@ -72,6 +76,11 @@ enum PseudoLocalizationTransform {
     ///   read past.
     /// - ``PseudoLocalizationMode/rightToLeft`` is ignored here entirely: it is a layout
     ///   attribute applied by ``PseudoLocalizationLayout``, not a property of any string.
+    /// - ``PseudoLocalizationMode/showsBoundaries`` switches nothing on. It reaches only
+    ///   ``lengthen(_:showingBoundaries:)``, because the brackets that mode governs are the only
+    ///   delimiters anything here produces, and the guard on the first line means it cannot do
+    ///   anything at all unless a text mode is already on. That is the whole of its behaviour:
+    ///   with every text mode off, the string comes back untouched whichever way it is set.
     ///
     /// A string carrying plural configuration is returned untouched whatever the modes say — see
     /// ``carriesPluralConfiguration(_:)``. That refusal cannot live in ``accentuate(_:)`` alone,
@@ -91,7 +100,9 @@ enum PseudoLocalizationTransform {
 
         var result = value
         if modes.contains(.accented) { result = accentuate(result) }
-        if modes.contains(.lengthened) { result = lengthen(result) }
+        if modes.contains(.lengthened) {
+            result = lengthen(result, showingBoundaries: modes.contains(.showsBoundaries))
+        }
         return result
     }
 
@@ -362,7 +373,8 @@ enum PseudoLocalizationTransform {
 
     // MARK: - Lengthening
 
-    /// Pads a string to roughly ``expansionFactor`` of its length, bracketed at both ends.
+    /// Pads a string to roughly ``expansionFactor`` of its length, bracketed at both ends unless
+    /// the developer has switched the brackets off.
     ///
     /// The brackets are counted towards the target rather than added on top of it, so the result
     /// really is about 135% and not 135% plus two. They cost the padding two characters, which
@@ -371,19 +383,28 @@ enum PseudoLocalizationTransform {
     /// bracket that fits is worth more than an exact ratio, because it is the bracket, not the
     /// length, that tells the developer whether the label was clipped.
     ///
+    /// Without them the two characters go back to the padding rather than being lost, so both
+    /// forms expand a string by the same amount and a layout that survives one survives the other.
+    /// What is given up is the diagnostic: a padded label with no closing bracket is a label that
+    /// grew, and there is no longer any way to tell from it whether the end was cut off. That is
+    /// the trade the switch exists to offer, and the reason it ships on.
+    ///
     /// An empty string is returned untouched. Bracketing nothing would turn every blank
     /// accessibility value and every empty placeholder into a visible `[]`, which reads as a
     /// rendering bug rather than as a measurement.
     ///
-    /// - Parameter value: The string to pad.
-    /// - Returns: The padded, bracketed string.
-    static func lengthen(_ value: String) -> String {
+    /// - Parameters:
+    ///   - value: The string to pad.
+    ///   - showingBoundaries: Whether to mark the ends with ``openingDelimiter`` and
+    ///     ``closingDelimiter``.
+    /// - Returns: The padded string.
+    static func lengthen(_ value: String, showingBoundaries: Bool = true) -> String {
         guard !value.isEmpty else { return value }
         let target = Int((Double(value.count) * expansionFactor).rounded())
-        let padding = max(0, target - value.count - 2)
-        return String(openingDelimiter)
-            + value
-            + String(repeating: String(paddingCharacter), count: padding)
-            + String(closingDelimiter)
+        let delimiters = showingBoundaries ? 2 : 0
+        let padding = max(0, target - value.count - delimiters)
+        let body = value + String(repeating: String(paddingCharacter), count: padding)
+        guard showingBoundaries else { return body }
+        return String(openingDelimiter) + body + String(closingDelimiter)
     }
 }

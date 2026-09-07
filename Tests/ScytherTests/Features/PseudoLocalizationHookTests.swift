@@ -36,6 +36,7 @@ final class PseudoLocalizationHookTests: XCTestCase {
             PseudoLocalization.LengthenedDefaultsKey: PseudoLocalization.instance.lengthened,
             PseudoLocalization.RightToLeftDefaultsKey: PseudoLocalization.instance.rightToLeft,
             PseudoLocalization.ShowsKeysDefaultsKey: PseudoLocalization.instance.showsKeys,
+            PseudoLocalization.ShowsBoundariesDefaultsKey: PseudoLocalization.instance.showsBoundaries,
         ]
     }
 

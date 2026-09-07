@@ -20,6 +20,10 @@ import UIKit
 /// - ``rightToLeft`` forces RTL layout, which catches hard-coded leading/trailing assumptions.
 /// - ``showsKeys`` renders the catalog key instead of its translation.
 ///
+/// A fifth switch, ``showsBoundaries``, is a setting *about* those rather than a fifth peer of
+/// them: it keeps the `[` and `]` around a lengthened string, transforms nothing on its own, and
+/// is the one switch that is **on** unless a developer has turned it off.
+///
 /// ## What this can and cannot reach
 ///
 /// Every string in Scyther's own interface goes through ``localized(_:comment:override:)``, so the
@@ -56,6 +60,7 @@ import UIKit
 /// - ``lengthened``
 /// - ``rightToLeft``
 /// - ``showsKeys``
+/// - ``showsBoundaries``
 /// - ``reset()``
 ///
 /// ### Effects
@@ -75,6 +80,7 @@ import UIKit
 /// - ``LengthenedDefaultsKey``
 /// - ``RightToLeftDefaultsKey``
 /// - ``ShowsKeysDefaultsKey``
+/// - ``ShowsBoundariesDefaultsKey``
 @MainActor
 internal final class PseudoLocalization: @unchecked Sendable {
     // MARK: - Static Data (nonisolated for cross-thread access)
@@ -106,7 +112,10 @@ internal final class PseudoLocalization: @unchecked Sendable {
     /// UserDefaults key for storing whether catalog keys are shown in place of translations.
     nonisolated static let ShowsKeysDefaultsKey: String = "Scyther_pseudo_localization_show_keys"
 
-    /// Where the four switches are persisted.
+    /// UserDefaults key for storing whether transformed strings keep their delimiters.
+    nonisolated static let ShowsBoundariesDefaultsKey: String = "Scyther_pseudo_localization_show_boundaries"
+
+    /// Where the switches are persisted.
     ///
     /// Injected rather than read from `UserDefaults.scyther` at each call site so a test can hand
     /// in a throwaway suite and assert on persistence without writing to — or having to clean up
@@ -179,16 +188,47 @@ internal final class PseudoLocalization: @unchecked Sendable {
         }
     }
 
+    /// Whether a lengthened string keeps the `[` and `]` marking where it starts and ends.
+    ///
+    /// The one switch here that reads as `true` with nothing stored, which is why it cannot use
+    /// `UserDefaults.bool(forKey:)` — that method answers absence with `false`, the opposite of
+    /// what is wanted for a setting that ships on. It is the same read
+    /// ``AccessibilityAudit/isEnabled(_:)`` does, for the same reason: an existing install where
+    /// nothing has been written must keep behaving exactly as it did before the switch existed.
+    ///
+    /// On rather than off because the brackets are the diagnostic. The padding dots already say a
+    /// string grew; only the closing bracket says whether the end of it was cut off, which is the
+    /// thing ``lengthened`` exists to reveal. The switch is for the developer who has seen enough
+    /// of them and wants the expansion without the punctuation.
+    ///
+    /// The value is persisted to `UserDefaults.scyther` and restored on app launch.
+    internal nonisolated var showsBoundaries: Bool {
+        get {
+            guard let stored = defaults.object(forKey: Self.ShowsBoundariesDefaultsKey) as? Bool else { return true }
+            return stored
+        }
+        set {
+            defaults.setValue(newValue, forKey: Self.ShowsBoundariesDefaultsKey)
+            synchronise()
+        }
+    }
+
     /// Switches every mode off and tears down the effects they installed.
     ///
     /// Exists as one call rather than four assignments so the settings screen's escape hatch — and
     /// anything recovering from a session left in an unreadable state — cannot half-succeed and
     /// leave, say, the host-app hook installed with no mode to justify it.
+    ///
+    /// ``showsBoundaries`` is restored to `true` rather than cleared to `false`, because "off" is
+    /// not its shipped state. This is the button that puts the page back the way it was found; a
+    /// developer who pressed it and then switched lengthening on again would otherwise get an
+    /// unbracketed sample and no reason to connect it to a button they pressed a minute ago.
     internal nonisolated func reset() {
         defaults.setValue(false, forKey: Self.AccentedDefaultsKey)
         defaults.setValue(false, forKey: Self.LengthenedDefaultsKey)
         defaults.setValue(false, forKey: Self.RightToLeftDefaultsKey)
         defaults.setValue(false, forKey: Self.ShowsKeysDefaultsKey)
+        defaults.setValue(true, forKey: Self.ShowsBoundariesDefaultsKey)
         synchronise()
     }
 
@@ -205,6 +245,7 @@ internal final class PseudoLocalization: @unchecked Sendable {
         if lengthened { modes.insert(.lengthened) }
         if rightToLeft { modes.insert(.rightToLeft) }
         if showsKeys { modes.insert(.showsKeys) }
+        if showsBoundaries { modes.insert(.showsBoundaries) }
         return modes
     }
 

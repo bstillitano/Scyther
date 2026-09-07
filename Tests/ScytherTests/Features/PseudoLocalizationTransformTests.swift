@@ -211,7 +211,11 @@ final class PseudoLocalizationTransformTests: XCTestCase {
     }
 
     func testAccentingRunsBeforeLengtheningSoDelimitersStayPlain() {
-        let result = PseudoLocalizationTransform.apply(to: "Hello", key: "Hello", modes: [.accented, .lengthened])
+        let result = PseudoLocalizationTransform.apply(
+            to: "Hello",
+            key: "Hello",
+            modes: [.accented, .lengthened, .showsBoundaries]
+        )
         XCTAssertTrue(result.hasPrefix("["), "\(result) does not start with a plain bracket")
         XCTAssertTrue(result.hasSuffix("]"), "\(result) does not end with a plain bracket")
         XCTAssertTrue(result.contains("Ĥéļļö"), "\(result) does not contain the accented original")
@@ -221,7 +225,98 @@ final class PseudoLocalizationTransformTests: XCTestCase {
         XCTAssertFalse(PseudoLocalizationTransform.apply(to: "Hello", key: "Hello", modes: .accented).contains("["))
     }
 
+    // MARK: - Boundaries
+
+    func testLengtheningWithoutBoundariesDropsTheBrackets() {
+        let result = PseudoLocalizationTransform.apply(to: "Save changes", key: "Save changes", modes: .lengthened)
+        XCTAssertFalse(result.contains("["))
+        XCTAssertFalse(result.contains("]"))
+        XCTAssertTrue(result.contains("Save changes"))
+        XCTAssertTrue(result.contains(String(PseudoLocalizationTransform.paddingCharacter)))
+    }
+
+    func testLengtheningWithBoundariesKeepsTheBrackets() {
+        let result = PseudoLocalizationTransform.apply(
+            to: "Save changes",
+            key: "Save changes",
+            modes: [.lengthened, .showsBoundaries]
+        )
+        XCTAssertTrue(result.hasPrefix("["))
+        XCTAssertTrue(result.hasSuffix("]"))
+    }
+
+    /// The brackets are counted towards the target either way, so switching them off gives their
+    /// two characters back to the padding rather than shortening the result.
+    func testBothFormsExpandByTheSameAmount() {
+        for source in ["Save changes to your profile", "Network logs are empty"] {
+            XCTAssertEqual(
+                PseudoLocalizationTransform.lengthen(source, showingBoundaries: true).count,
+                PseudoLocalizationTransform.lengthen(source, showingBoundaries: false).count,
+                "\(source) expanded differently with and without its boundaries"
+            )
+        }
+    }
+
+    func testAccentingWithoutBoundariesIsUnchanged() {
+        let withBoundaries = PseudoLocalizationTransform.apply(
+            to: "Hello",
+            key: "Hello",
+            modes: [.accented, .showsBoundaries]
+        )
+        let without = PseudoLocalizationTransform.apply(to: "Hello", key: "Hello", modes: .accented)
+        XCTAssertEqual(withBoundaries, "Ĥéļļö")
+        XCTAssertEqual(without, "Ĥéļļö")
+    }
+
+    func testShowingKeysIsUnaffectedByBoundaries() {
+        for modes: PseudoLocalizationMode in [.showsKeys, [.showsKeys, .showsBoundaries]] {
+            XCTAssertEqual(
+                PseudoLocalizationTransform.apply(to: "Selected 5 items", key: "Selected %lld items", modes: modes),
+                "Selected %lld items"
+            )
+        }
+    }
+
+    func testAccentingAndLengtheningWithoutBoundariesKeepsTheAccentedOriginal() {
+        let result = PseudoLocalizationTransform.apply(to: "Hello", key: "Hello", modes: [.accented, .lengthened])
+        XCTAssertTrue(result.hasPrefix("Ĥéļļö"), "\(result) does not start with the accented original")
+        XCTAssertFalse(result.contains("["))
+    }
+
+    /// The mode modifies the others rather than transforming anything itself, so on its own — and
+    /// alongside a mode that changes no text — it must do nothing at all.
+    func testBoundariesAloneChangeNothing() {
+        let combinations: [PseudoLocalizationMode] = [
+            .showsBoundaries,
+            [],
+            [.showsBoundaries, .rightToLeft],
+            .rightToLeft,
+        ]
+        for modes in combinations {
+            XCTAssertEqual(
+                PseudoLocalizationTransform.apply(to: "Save changes", key: "Save changes", modes: modes),
+                "Save changes",
+                "modes \(modes.rawValue) transformed a string with no text mode on"
+            )
+        }
+    }
+
+    func testSwitchingBoundariesOffChangesNothingWhenNoTextModeIsOn() {
+        XCTAssertEqual(
+            PseudoLocalizationTransform.apply(to: "Save changes", key: "Save changes", modes: .showsBoundaries),
+            PseudoLocalizationTransform.apply(to: "Save changes", key: "Save changes", modes: [])
+        )
+    }
+
+    func testLengtheningWithoutBoundariesLeavesAnEmptyStringAlone() {
+        XCTAssertEqual(PseudoLocalizationTransform.lengthen("", showingBoundaries: false), "")
+    }
+
     // MARK: - Modes
+
+    func testShowingBoundariesIsNotATextMode() {
+        XCTAssertFalse(PseudoLocalizationMode.textAffecting.contains(.showsBoundaries))
+    }
 
     func testTextAffectingExcludesRightToLeft() {
         XCTAssertFalse(PseudoLocalizationMode.textAffecting.contains(.rightToLeft))

@@ -10599,6 +10599,83 @@
         }
       }
     },
+    "Boundaries": {
+      "comment": "Section header above the switch that keeps the brackets around a lengthened string",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "الحدود"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Begrenzungen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Delimitadores"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Délimiteurs"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Delimitatori"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "区切り"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "경계"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Begrenzingen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Delimitadores"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Границы"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "边界标记"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "邊界標記"
+          }
+        }
+      }
+    },
     "Boxes missing labels and touch targets over the running app. Contrast is measured when you open this report, because it costs a snapshot of the whole screen.": {
       "comment": "Footer under the settings section of the accessibility audit report screen, explaining that the live overlay runs only the two checks that need no pixels and that contrast is measured when the report is opened",
       "localizations": {
@@ -31583,6 +31660,83 @@
         }
       }
     },
+    "Marks where each string starts and ends, so you can see when one has been cut off. Only shows up when another text mode is on.": {
+      "comment": "Subtitle for the Show Boundaries switch",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يحدّد بداية كل نص ونهايته، لتلاحظ ما إذا كان قد اقتُطع. لا يظهر إلا عند تفعيل وضع نصي آخر."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Markiert Anfang und Ende jeder Zeichenkette, damit sichtbar wird, wenn eine abgeschnitten wurde. Erscheint nur, wenn ein anderer Textmodus aktiv ist."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Marca dónde empieza y termina cada cadena, para que veas cuándo se ha cortado alguna. Solo aparece cuando hay otro modo de texto activado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Marque le début et la fin de chaque chaîne, pour repérer celles qui sont tronquées. N’apparaît que si un autre mode de texte est activé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Segna dove inizia e finisce ogni stringa, così vedi quando ne viene troncata una. Compare solo quando è attiva un’altra modalità di testo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "各文字列の始まりと終わりを示し、途中で切れているかどうかを確認できます。ほかのテキストモードがオンのときのみ表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "각 문자열의 시작과 끝을 표시해 잘린 문자열을 확인할 수 있습니다. 다른 텍스트 모드가 켜져 있을 때만 나타납니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Markeert waar elke tekst begint en eindigt, zodat je ziet wanneer er een is afgekapt. Verschijnt alleen als een andere tekstmodus aanstaat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Marca onde cada texto começa e termina, para você ver quando algum foi cortado. Só aparece quando outro modo de texto está ativado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Отмечает начало и конец каждой строки, чтобы было видно, когда строка обрезана. Появляется только при включённом другом текстовом режиме."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "标出每条字符串的开头和结尾，便于发现被截断的文本。仅在开启其他文本模式时显示。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "標出每條字串的開頭和結尾，便於發現被截斷的文字。僅在開啟其他文字模式時顯示。"
+          }
+        }
+      }
+    },
     "Marseille, France": {
       "comment": "Location preset name",
       "localizations": {
@@ -32662,7 +32816,7 @@
       }
     },
     "Modes": {
-      "comment": "Section header above the four pseudo-localisation switches",
+      "comment": "Section header above the pseudo-localisation mode switches",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -51850,6 +52004,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "分享"
+          }
+        }
+      }
+    },
+    "Show Boundaries": {
+      "comment": "Switch label for keeping the brackets that mark where a transformed string starts and ends",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "إظهار الحدود"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Begrenzungen anzeigen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostrar delimitadores"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Afficher les délimiteurs"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostra delimitatori"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "区切りを表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "경계 표시"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Begrenzingen tonen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostrar delimitadores"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Показывать границы"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "显示边界标记"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "顯示邊界標記"
           }
         }
       }

@@ -9,8 +9,13 @@ import SwiftUI
 
 /// The settings page for pseudo-localisation.
 ///
-/// Four stock `Toggle`s in one `Section`, a live sample of the transformation, and a button that
-/// switches everything off.
+/// Four stock `Toggle`s in one `Section`, a fifth in a section of its own, a live sample of the
+/// transformation, and a button that switches everything off.
+///
+/// The fifth is separated deliberately. ``PseudoLocalizationMode/showsBoundaries`` is not a peer of
+/// the other four — it switches nothing on, it changes how one of them renders, and it is the only
+/// one that ships on — so listing it as a fifth equal would invite a developer to flick it looking
+/// for an effect and find none.
 ///
 /// Every string on this page is resolved through ``localizedChrome(_:comment:override:)`` rather
 /// than ``localized(_:comment:override:)``. That is not a stylistic choice: with "Show keys" and
@@ -63,6 +68,17 @@ struct PseudoLocalizationView: View {
             }
 
             Section {
+                Toggle(isOn: $viewModel.showsBoundaries) {
+                    label(
+                        localizedChrome("Show Boundaries"),
+                        subtitle: localizedChrome("Marks where each string starts and ends, so you can see when one has been cut off. Only shows up when another text mode is on.")
+                    )
+                }
+            } header: {
+                Text(localizedChrome("Boundaries"))
+            }
+
+            Section {
                 Text(viewModel.sampleText)
             } header: {
                 Text(localizedChrome("Sample"))
@@ -99,8 +115,8 @@ struct PseudoLocalizationView: View {
     /// A two-line switch label: title above, explanation below.
     ///
     /// Matches the rest of the menu's two-line rows rather than pushing the explanation into a
-    /// section footer, because each of the four modes needs its own explanation and four footers
-    /// would separate every switch from the sentence describing it.
+    /// section footer, because every switch on this page needs its own explanation and a footer
+    /// each would separate them from the sentences describing them.
     ///
     /// - Parameters:
     ///   - title: The mode's name.

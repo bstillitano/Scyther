@@ -10,7 +10,7 @@ import SwiftUI
 
 /// View model backing the pseudo-localisation settings page.
 ///
-/// Mirrors the four switches on ``PseudoLocalization`` into `@Published` properties so SwiftUI can
+/// Mirrors the switches on ``PseudoLocalization`` into `@Published` properties so SwiftUI can
 /// bind to them, and writes every change straight back through `didSet` — the pattern
 /// ``GridOverlayViewModel`` uses, for the same reason: the singleton, not the view model, is the
 /// source of truth, and a mode has to take effect the instant it is switched on rather than when
@@ -41,6 +41,9 @@ import SwiftUI
 /// - ``lengthened``
 /// - ``rightToLeft``
 /// - ``showsKeys``
+///
+/// ### Presentation
+/// - ``showsBoundaries``
 ///
 /// ### Sample
 /// - ``sampleSource``
@@ -81,6 +84,18 @@ class PseudoLocalizationViewModel: ViewModel {
         }
     }
 
+    /// Whether a lengthened string keeps the brackets marking where it starts and ends.
+    ///
+    /// Seeded to `true` rather than `false` like the others, so the first render of the page — the
+    /// one drawn before ``loadSettings()`` has run — already shows the switch in the position it
+    /// ships in, rather than flicking on a moment later in front of the developer.
+    @Published var showsBoundaries: Bool = true {
+        didSet {
+            guard !isLoading else { return }
+            PseudoLocalization.instance.showsBoundaries = showsBoundaries
+        }
+    }
+
     /// Suppresses the `didSet` write-back while the published properties are being seeded.
     ///
     /// Without it, ``loadSettings()`` assigning the persisted value back into each property would
@@ -111,6 +126,7 @@ class PseudoLocalizationViewModel: ViewModel {
         if accented { modes.insert(.accented) }
         if lengthened { modes.insert(.lengthened) }
         if showsKeys { modes.insert(.showsKeys) }
+        if showsBoundaries { modes.insert(.showsBoundaries) }
         return PseudoLocalizationTransform.apply(
             to: sampleSource,
             key: "Save changes to your profile",
@@ -132,14 +148,19 @@ class PseudoLocalizationViewModel: ViewModel {
         lengthened = PseudoLocalization.instance.lengthened
         rightToLeft = PseudoLocalization.instance.rightToLeft
         showsKeys = PseudoLocalization.instance.showsKeys
+        showsBoundaries = PseudoLocalization.instance.showsBoundaries
         isLoading = false
     }
 
     /// Switches every mode off, in the singleton and in the UI.
     ///
-    /// Goes through ``PseudoLocalization/reset()`` rather than assigning `false` to the four
-    /// published properties, so the effects are torn down in one pass instead of four, and so a
-    /// mode added later cannot be left behind by a screen that forgot to clear it.
+    /// Goes through ``PseudoLocalization/reset()`` rather than assigning `false` to the published
+    /// properties, so the effects are torn down in one pass instead of one per mode, and so a mode
+    /// added later cannot be left behind by a screen that forgot to clear it.
+    ///
+    /// ``showsBoundaries`` goes back to `true` here, not `false`, because it mirrors what
+    /// ``PseudoLocalization/reset()`` has just written: the button restores the shipped state, and
+    /// the shipped state for the brackets is on.
     @MainActor
     func turnEverythingOff() {
         PseudoLocalization.instance.reset()
@@ -148,6 +169,7 @@ class PseudoLocalizationViewModel: ViewModel {
         lengthened = false
         rightToLeft = false
         showsKeys = false
+        showsBoundaries = true
         isLoading = false
     }
 }
