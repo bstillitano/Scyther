@@ -55,13 +55,17 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
                         didHitLimit: Bool = false,
                         checksRun: Set<AccessibilityCheck> = Set(AccessibilityCheck.allCases),
                         checksSkippedWhileCovered: Set<AccessibilityCheck> = [],
-                        checksUnmeasurable: Set<AccessibilityCheck> = [])
+                        checksUnmeasurable: Set<AccessibilityCheck> = [],
+                        contrastCandidates: Int = 0,
+                        contrastMeasurements: Int = 0)
     -> AccessibilityAuditor.Result {
         AccessibilityAuditor.Result(findings: findings,
                                     didHitLimit: didHitLimit,
                                     checksRun: checksRun,
                                     checksSkippedWhileCovered: checksSkippedWhileCovered,
-                                    checksUnmeasurable: checksUnmeasurable)
+                                    checksUnmeasurable: checksUnmeasurable,
+                                    contrastCandidates: contrastCandidates,
+                                    contrastMeasurements: contrastMeasurements)
     }
 
     /// A pass the report can open onto, taken at `takenAt`.
@@ -242,6 +246,70 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
                        "a screen that captured fine and read as flat colour is not an uncaptured screen")
         XCTAssertFalse(description.contains("no pixels"),
                        "there were pixels; they could not be read")
+    }
+
+    // MARK: - Partial Coverage
+
+    /// The defect this wave fixes. A pass that could read one element out of eleven and found a
+    /// real defect in that one used to be described as a check that had not run: the finding was
+    /// listed under a banner saying contrast could not read enough of the screen to report on it,
+    /// which is a statement that the report contains no contrast result. It contains one, and it is
+    /// a defect in the developer's app.
+    func testAPassThatMeasuredOneElementStillReportsItsFinding() async {
+        let viewModel = viewModel {
+            self.result([self.finding(.contrast, .warning, "caption")],
+                        contrastCandidates: 11, contrastMeasurements: 1)
+        }
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.visibleGroups.first?.check, .contrast)
+        XCTAssertEqual(viewModel.visibleGroups.first?.findings.count, 1)
+        XCTAssertTrue(viewModel.checksUnmeasurable.isEmpty,
+                      "a check that measured something has not failed to measure")
+        XCTAssertEqual(viewModel.partiallyMeasuredChecks, [.contrast])
+    }
+
+    /// And it says how much it read, in numbers. "Some of this screen" is not something a developer
+    /// can act on; the difference between one element in eleven and ten in eleven is the difference
+    /// between a report with a hole in it and a report worth trusting.
+    func testThePartialCoverageBannerStatesTheCountsItRead() async {
+        let viewModel = viewModel {
+            self.result([], contrastCandidates: 11, contrastMeasurements: 3)
+        }
+        await viewModel.load()
+
+        let description = viewModel.partialMeasurementDescription
+        XCTAssertTrue(description.contains(AccessibilityCheck.contrast.title), description)
+        XCTAssertTrue(description.contains("3"), description)
+        XCTAssertTrue(description.contains("11"), description)
+        XCTAssertTrue(description.contains("not passing it"),
+                      "the consequence is the same one the unmeasurable banner states, in the same words")
+    }
+
+    /// The property the loosened rule must not cost: a clean result is never a guarantee. A pass
+    /// that read three elements out of eleven and found nothing wrong in those three has not
+    /// checked this screen, and must not open with a tick.
+    func testAPartlyMeasuredCleanPassIsNotACompleteOne() async {
+        let viewModel = viewModel {
+            self.result([], contrastCandidates: 11, contrastMeasurements: 3)
+        }
+        await viewModel.load()
+
+        XCTAssertFalse(viewModel.isComplete)
+        XCTAssertEqual(viewModel.emptyStateSymbol, "questionmark.circle")
+        XCTAssertEqual(viewModel.emptyStateTitle, localized("No Issues In What Was Checked"))
+    }
+
+    /// A pass that read everything it was asked about carries no banner at all, or the report would
+    /// hedge every result it ever produced and the hedge would stop meaning anything.
+    func testAFullyMeasuredPassSaysNothingAboutCoverage() async {
+        let viewModel = viewModel {
+            self.result([], contrastCandidates: 11, contrastMeasurements: 11)
+        }
+        await viewModel.load()
+
+        XCTAssertTrue(viewModel.partiallyMeasuredChecks.isEmpty)
+        XCTAssertTrue(viewModel.isComplete)
     }
 
     // MARK: - The Age Of The Pass

@@ -359,47 +359,45 @@ internal final class AccessibilityAudit: Sendable {
         return enabled.intersection(checksNeedingAnUncoveredScreen)
     }
 
-    /// The share of its candidates a check has to have measured before it counts as having run.
-    ///
-    /// Half. The line has to be drawn somewhere and there is no standard to cite, so it is drawn at
-    /// the point where the sentence "this check ran" stops being defensible: below half, most of
-    /// what the check looked at was never read, and what came back is a minority report about a
-    /// screen rather than a result for it. Drawing it any stricter would put a banner on every
-    /// screen with a photograph or a video layer on it, where a real minority of elements genuinely
-    /// cannot be measured and the rest were measured perfectly well.
-    ///
-    /// The rule this replaces was "every single candidate failed", which meant one successful
-    /// measurement out of two hundred left the check counted as having run, ``isComplete`` true, and
-    /// a green tick over a screen 199 of whose elements nobody looked at.
-    internal nonisolated static let measuredFractionForACheckToHaveRun: Double = 0.5
-
-    /// Which of `enabled` looked at candidates and read too few of them to call the check run.
+    /// Which of `enabled` read some of what they were asked about, but not all of it.
     ///
     /// Contrast only, because it is the only check that reads pixels; the other two read the
     /// accessibility tree, where there is no such thing as a candidate it could not look at.
     ///
-    /// A screen with nothing to measure — no text, no buttons — is silent rather than unmeasurable.
-    /// "There was nothing to read" and "there was something and it could not be read" are different
-    /// facts, and only the second says anything is missing from the report.
+    /// **This is coverage, not a verdict.** The rule it replaces declared the whole check
+    /// unmeasurable — banner, no tick, and the report worded as though nothing had been read —
+    /// whenever fewer than half its candidates could be measured. Combined with the analyser's
+    /// (correct) refusal of a crop it cannot trust — a gradient, a photograph, a glyph it only
+    /// caught at partial coverage — that threshold threw away real findings' standing: a screen
+    /// where contrast measured a handful of elements and *found a genuine defect* was described in
+    /// the same words as one where the capture had failed outright. A measurement that was made is
+    /// a fact about the app whatever fraction of its neighbours could not be made, so the check now
+    /// reports what it found and says separately how much of the screen it read.
+    ///
+    /// "Could not measure" is left to the one case that really is an absence of any answer —
+    /// nothing measured at all — which ``AccessibilityAuditor/audit(root:checks:sampler:checksSkippedWhileCovered:checksUnmeasurable:deadline:)``
+    /// raises for itself from the same counts.
+    ///
+    /// A screen every element of which was read is silent here, and so is a screen with nothing to
+    /// measure: neither has anything missing from its report.
     ///
     /// The counts come from ``AccessibilityAuditor/Result/contrastCandidates`` and
     /// ``AccessibilityAuditor/Result/contrastMeasurements`` — the pass's own tally, one per element,
     /// taken from the same call the findings came from. They are deliberately not re-derived from a
     /// probe of the sampler's crops: a probe answers a slightly different question from the
-    /// analyser, and this threshold's whole job is to say what the *report* may claim about what the
+    /// analyser, and this rule's whole job is to say what the *report* may claim about what the
     /// analyser did.
     ///
     /// - Parameters:
     ///   - enabled: The checks that ran.
     ///   - candidates: How many elements contrast was asked about.
     ///   - measured: How many of those it could actually read.
-    /// - Returns: The checks that did not measure enough of the screen to have run.
-    internal nonisolated static func checksUnmeasurableFromPartialMeasurement(from enabled: Set<AccessibilityCheck>,
-                                                                             candidates: Int,
-                                                                             measured: Int) -> Set<AccessibilityCheck> {
+    /// - Returns: The checks that read part of the screen, which is at most `[.contrast]`.
+    internal nonisolated static func checksPartiallyMeasured(from enabled: Set<AccessibilityCheck>,
+                                                            candidates: Int,
+                                                            measured: Int) -> Set<AccessibilityCheck> {
         guard enabled.contains(.contrast), candidates > 0 else { return [] }
-        let fraction = Double(measured) / Double(candidates)
-        guard fraction < measuredFractionForACheckToHaveRun else { return [] }
+        guard measured > 0, measured < candidates else { return [] }
         return [.contrast]
     }
 
@@ -486,20 +484,13 @@ internal final class AccessibilityAudit: Sendable {
                                    checksUnmeasurable: unmeasurable,
                                    deadline: deadline)
 
-        // How much of the screen the check actually read, taken from the pass's own counts rather
-        // than re-derived from a probe of its own — see ``AccessibilityAuditor/Result/contrastCandidates``
-        // for the three ways re-deriving it disagreed with the answer the findings came from.
-        let partial = Self.checksUnmeasurableFromPartialMeasurement(from: checks,
-                                                                    candidates: result.contrastCandidates,
-                                                                    measured: result.contrastMeasurements)
-        guard !partial.isEmpty else { return result }
-        return AccessibilityAuditor.Result(findings: result.findings,
-                                           didHitLimit: result.didHitLimit,
-                                           checksRun: result.checksRun,
-                                           checksSkippedWhileCovered: result.checksSkippedWhileCovered,
-                                           checksUnmeasurable: result.checksUnmeasurable.union(partial),
-                                           contrastCandidates: result.contrastCandidates,
-                                           contrastMeasurements: result.contrastMeasurements)
+        // How much of the screen the check read is carried on the result as two counts and read by
+        // the report — see ``checksPartiallyMeasured(from:candidates:measured:)``. It used to be
+        // turned into a verdict here, by rewriting the result to call contrast unmeasurable
+        // whenever it had read fewer than half its candidates, which discarded the standing of
+        // every finding it *had* made. Nothing is rewritten now: the pass says what it measured and
+        // what it could not, and the report says both.
+        return result
     }
 
     /// The app's key window, resolved the same way `InterfaceToolkit` and `Scyther` itself do.

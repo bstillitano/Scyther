@@ -1479,7 +1479,11 @@ the report screen:
   list screen — the most ordinary screen in iOS — no text was sampled at all and the report printed
   a green tick. Where the element is a real view, the check descends into it *for sampling only*
   and measures each `UILabel`/`UITextField`/`UITextView` at its own bounds, so the finding boxes
-  the label that failed rather than the whole row.
+  the label that failed rather than the whole row. Where there is nothing to descend into it
+  measures the element's own frame instead — which is every SwiftUI screen, since SwiftUI draws its
+  text into private layers and hangs synthetic accessibility elements off the hosting view, with no
+  `UILabel` anywhere. An element with a non-empty label that isn't an image is text as far as this
+  check is concerned, whatever framework drew it.
 
   **Contrast is an estimate**, not a measurement: the ratio is sampled from the pixels actually
   drawn on screen. Those pixels are clustered into two tonal groups and each group is represented
@@ -1579,8 +1583,8 @@ rather than asserting you had just switched it on.
 
 An empty report never claims more than the pass supports. A green tick and "No Issues Found" appear
 only when every enabled check ran over the whole screen and found nothing. A walk that stopped
-early, or a check that was switched off, skipped or unmeasurable, gets "No Issues In What Was
-Checked"; nothing having run at all gets "Nothing Was Checked"; a pass whose every finding the
+early, or a check that was switched off, skipped, unmeasurable or able to read only part of the
+screen, gets "No Issues In What Was Checked"; nothing having run at all gets "Nothing Was Checked"; a pass whose every finding the
 toggles are hiding gets "Findings Hidden" rather than pretending it found nothing. "Nothing was
 wrong", "nothing was looked at", "this could not be measured" and "you are not being shown this"
 never read the same way.
@@ -1610,11 +1614,17 @@ budget inside the table, and the toolbar and tab bar after it are then never wal
 missing from a truncated report is unchecked, not clean — which is what the banner says, rather than
 blaming the screen for being too big.
 
-A check that ran but could not read enough of the screen is reported as exactly that, not as a check
-that passed. That covers all three ways it happens: a window capture the system refused, a screen
-captured fine on which nothing was legible, and a screen where fewer than half the elements contrast
-looked at could be read. The count behind that last one is the pass's own tally of what it measured,
-element by element, taken from the same call the findings come from.
+A check that could read *nothing at all* is reported as exactly that, not as a check that passed —
+a window capture the system refused, or a screen captured fine on which nothing was legible.
+
+A check that read *some* of the screen is a different report, and the distinction matters because
+the analyser refuses any crop it cannot trust: on a screen of photographs and gradients, contrast
+can legitimately measure a handful of elements and find a real defect in one of them. So a partial
+pass keeps its findings and states its coverage instead — "Contrast read 3 of 41 elements on this
+screen" — with the same closing sentence the unmeasurable banner uses, because the consequence is
+the same: what was not measured is missing from the report, not passing it. Partial coverage still
+costs the green tick, so a clean result can never be mistaken for a guarantee. The counts are the
+pass's own tally, element by element, taken from the same call the findings come from.
 
 The audit skips Scyther's own UI, so its menu, its report and its overlays are never reported as
 findings about your app. Ownership is decided structurally — a view is walked up its responder

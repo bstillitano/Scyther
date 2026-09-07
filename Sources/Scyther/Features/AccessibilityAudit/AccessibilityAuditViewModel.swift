@@ -156,6 +156,17 @@ final class AccessibilityAuditViewModel: ViewModel {
     /// nothing here says anything at all about whether their screen is fine.
     @Published private(set) var checksUnmeasurable: [AccessibilityCheck] = []
 
+    /// How many elements the contrast check was asked about in this pass.
+    ///
+    /// Published rather than folded into a single "did it read enough" flag because the report has
+    /// to be able to *say* how much of the screen was read — see ``partialMeasurementDescription``.
+    /// A developer told only that some of the screen is missing cannot tell one unreadable element
+    /// from forty.
+    @Published private(set) var contrastCandidates = 0
+
+    /// How many of ``contrastCandidates`` the contrast check could actually read.
+    @Published private(set) var contrastMeasurements = 0
+
     /// Whether a pass is in flight right now, so the screen can show a progress indicator
     /// instead of an empty report it does not yet have an answer for.
     ///
@@ -358,17 +369,39 @@ final class AccessibilityAuditViewModel: ViewModel {
         }
     }
 
+    /// Every check that read part of what it was asked about, but not all of it.
+    ///
+    /// The fourth thing that can be true of a check, and the one that is *not* a failure to run:
+    /// contrast measured some elements, found whatever it found in them, and could not read the
+    /// rest. It is deliberately kept out of ``checksUnmeasurable`` — the findings it did make are
+    /// real, and describing the pass as though nothing had been read would throw them away — but it
+    /// is equally not silence, because what was not read is missing from this report rather than
+    /// passing it. See ``AccessibilityAudit/checksPartiallyMeasured(from:candidates:measured:)``.
+    var partiallyMeasuredChecks: [AccessibilityCheck] {
+        let partial = AccessibilityAudit.checksPartiallyMeasured(from: checksRun,
+                                                                 candidates: contrastCandidates,
+                                                                 measured: contrastMeasurements)
+        return AccessibilityCheck.allCases.filter(partial.contains)
+    }
+
     /// Whether this report covers the whole screen and every check the developer has switched on.
     ///
     /// The one state in which an empty report may lead with a tick and the words "No Issues
     /// Found". Everything else — a check switched off, a check Scyther declined to measure, a check
-    /// that could not be measured, a walk that stopped early, a toggle switched on since the pass —
-    /// means something on this screen has not been looked at, and a tick would say the opposite.
+    /// that could not be measured, a check that read only part of the screen, a walk that stopped
+    /// early, a toggle switched on since the pass — means something on this screen has not been
+    /// looked at, and a tick would say the opposite.
+    ///
+    /// ``partiallyMeasuredChecks`` is in that list for exactly the reason the coverage rule was
+    /// loosened at all: contrast no longer calls itself unmeasurable when it read a minority of the
+    /// screen, so without this a pass that read three elements out of forty and happened to find
+    /// nothing wrong in those three would open with a tick and the words "No Issues Found".
     var isComplete: Bool {
         !didHitLimit
             && switchedOffChecks.isEmpty
             && checksSkippedWhileCovered.isEmpty
             && checksUnmeasurable.isEmpty
+            && partiallyMeasuredChecks.isEmpty
             && checksAwaitingRerun.isEmpty
     }
 
@@ -532,6 +565,24 @@ final class AccessibilityAuditViewModel: ViewModel {
         return localized("\(names) ran but could not read enough of this screen to report on it. What it did not measure is missing from this report, not passing it.")
     }
 
+    /// The partial-coverage banner's wording: how much of the screen the check read, and that the
+    /// rest is missing rather than fine.
+    ///
+    /// It shares its second sentence, word for word, with ``unmeasurableDescription``, because the
+    /// consequence for the reader is identical — what was not measured is absent from the report,
+    /// not passing it — and the two banners must not appear to be making different claims about the
+    /// same gap. What differs is the first sentence, and it is the whole reason this is a separate
+    /// sentence rather than a fourth producer of the unmeasurable banner: this check *did* read the
+    /// screen, and anything it reported is a finding about the app that stands on its own.
+    ///
+    /// The counts are stated rather than described. "Some of this screen" is not something a
+    /// developer can act on; "3 of 41" tells them whether they are looking at a report with a hole
+    /// in it or at a report of a screen that is mostly photographs.
+    var partialMeasurementDescription: String {
+        let names = ListFormatter.localizedString(byJoining: partiallyMeasuredChecks.map(\.title))
+        return localized("\(names) read \(contrastMeasurements) of \(contrastCandidates) elements on this screen. What it did not measure is missing from this report, not passing it.")
+    }
+
     /// The truncation banner's wording: that the walk stopped at a limit, and what that leaves out.
     ///
     /// The old sentence — "there was too much to check" — was a diagnosis the walk cannot support
@@ -607,8 +658,8 @@ final class AccessibilityAuditViewModel: ViewModel {
         return localized("\(names) measured at \(time).")
     }
 
-    /// Replaces ``groups``, ``didHitLimit``, ``checksRun``, ``checksSkippedWhileCovered`` and
-    /// ``checksUnmeasurable`` with what `result` found.
+    /// Replaces ``groups``, ``didHitLimit``, ``checksRun``, ``checksSkippedWhileCovered``,
+    /// ``checksUnmeasurable`` and the two contrast coverage counts with what `result` found.
     ///
     /// The two lists of skipped checks are ordered by ``AccessibilityCheck/allCases`` rather than
     /// left in whatever order a `Set` iterates in, so the screen names them the same way twice
@@ -631,6 +682,8 @@ final class AccessibilityAuditViewModel: ViewModel {
         checksRun = result.checksRun
         checksSkippedWhileCovered = AccessibilityCheck.allCases.filter(result.checksSkippedWhileCovered.contains)
         checksUnmeasurable = AccessibilityCheck.allCases.filter(result.checksUnmeasurable.contains)
+        contrastCandidates = result.contrastCandidates
+        contrastMeasurements = result.contrastMeasurements
         passTakenAt = takenAt
         passPredatesThisScreen = predatesThisScreen
     }

@@ -59,6 +59,21 @@
     "zh-Hans": "%@已运行，但无法读取此界面的足够内容来给出结论。未测量的部分只是不在本报告中，并不代表通过。",
     "zh-Hant": "%@已執行，但無法讀取此畫面的足夠內容來給出結論。未測量的部分只是不在本報告中，並不代表通過。"
   },
+  "%@ read %lld of %lld elements on this screen. What it did not measure is missing from this report, not passing it.": {
+    "ar": "قرأ %@ %lld عنصرًا من أصل %lld في هذه الشاشة. ما لم يُقَس غائب عن هذا التقرير، وليس ناجحًا.",
+    "comment": "Banner on the accessibility audit report: %@ is the list of checks that read only part of the screen (in practice 'Contrast'), the first %lld is how many elements the check could read and the second how many it was asked about (always two or more). Its second sentence is deliberately identical to the 'ran but could not read enough' banner's.",
+    "de": "%@ hat %lld von %lld Elementen auf diesem Bildschirm gelesen. Was nicht gemessen wurde, fehlt in diesem Bericht — es ist nicht bestanden.",
+    "es": "%@ ha leído %lld de %lld elementos de esta pantalla. Lo que no se midió falta en este informe; no está aprobado.",
+    "fr": "%@ a lu %lld des %lld éléments de cet écran. Ce qui n'a pas été mesuré est absent de ce rapport, pas validé.",
+    "it": "%@ ha letto %lld elementi su %lld in questa schermata. Ciò che non è stato misurato manca da questo rapporto, non è stato approvato.",
+    "ja": "%@はこの画面の要素 %lld 個（全 %lld 個中）を読み取りました。測定できなかった部分はこのレポートに含まれていません。合格したわけではありません。",
+    "ko": "%@은(는) 이 화면의 요소 %lld개(전체 %lld개)를 읽었습니다. 측정하지 못한 부분은 이 보고서에 없을 뿐, 통과한 것이 아닙니다.",
+    "nl": "%@ heeft %lld van de %lld elementen op dit scherm gelezen. Wat niet is gemeten ontbreekt in dit rapport; het is niet goedgekeurd.",
+    "pt-BR": "%@ leu %lld de %lld elementos desta tela. O que não foi medido está ausente deste relatório, não aprovado.",
+    "ru": "%@ прочитала %lld из %lld элементов на этом экране. То, что не измерено, отсутствует в отчёте, а не пройдено.",
+    "zh-Hans": "%@已读取此界面 %lld 个元素（共 %lld 个）。未测量的部分只是不在本报告中，并不代表通过。",
+    "zh-Hant": "%@已讀取此畫面 %lld 個元素（共 %lld 個）。未測量的部分只是不在本報告中，並不代表通過。"
+  },
   "%@ was not run in this pass. Tap %@ to include it.": {
     "ar": "لم يتم تشغيل %@ في هذا المسح. اضغط %@ لتضمينه.",
     "comment": "Banner on the accessibility audit report: the first %@ is the list of checks that are switched on but were not part of this pass (either switched on since it ran, or deferred because a live pass does not run contrast), the second is the localized title of the Re-run toolbar button",

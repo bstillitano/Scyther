@@ -772,6 +772,17 @@ struct AccessibilityAuditor {
 
     /// Where to sample one element, and what standard each of those places is held to.
     ///
+    /// **Descend when there is something to descend into; otherwise measure the element itself.**
+    /// The fallback is not a rare tail case, and it must never be dropped in favour of the descent
+    /// alone: SwiftUI draws its text into private layers and hangs synthetic
+    /// `UIAccessibilityElement`s off the hosting view, so ``drawnTextViews(in:)`` finds nothing at
+    /// all on a `List` of `Text` — the shape `AccessibilityAuditorChecksTests` pins against both a
+    /// hand-built stand-in and a real `UIHostingController`. An element that reaches here has
+    /// already been established as text by ``contrastOutcome(for:sampler:)``: a non-empty label, or
+    /// an affirmative "I draw text", and not a bare image. Measuring its own rectangle is the only
+    /// thing left to do with it, and the alternative is contrast going silent on the commonest UI
+    /// framework in use while the report shows a green tick.
+    ///
     /// - Parameter candidate: The element, with its frame already resolved.
     /// - Returns: One region per piece of text actually drawn inside a real view, or the element's
     ///   own rectangle when nothing can be descended into — a synthetic SwiftUI element, or a view

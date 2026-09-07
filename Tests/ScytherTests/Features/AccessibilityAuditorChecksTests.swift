@@ -1,4 +1,5 @@
 @testable import Scyther
+import SwiftUI
 import UIKit
 import XCTest
 
@@ -502,16 +503,19 @@ extension AccessibilityAuditorChecksTests {
                                                   sampler: StubSampler(pixels: pixels))
 
         XCTAssertEqual(result.contrastMeasurements, 1, "the analyser accepts this crop, so the count must too")
-        XCTAssertTrue(AccessibilityAudit.checksUnmeasurableFromPartialMeasurement(
+        XCTAssertTrue(AccessibilityAudit.checksPartiallyMeasured(
             from: [.contrast],
             candidates: result.contrastCandidates,
             measured: result.contrastMeasurements
-        ).isEmpty, "and a check that read everything it was asked about has run")
+        ).isEmpty, "and a check that read everything it was asked about has full coverage")
     }
 
-    /// The other side of the same join: a pass that could read almost nothing is reported as a
-    /// check that did not run, from the pass's own counts.
-    func testAPassThatCouldReadAlmostNothingIsReportedAsACheckThatDidNotRun() {
+    /// The other side of the same join, and the rule that changed: a pass that could read only one
+    /// crop out of four **keeps the finding it made** and reports its coverage. It used to be
+    /// declared unmeasurable outright — banner, no tick, worded as though nothing had been read —
+    /// which threw away the standing of a real defect because the elements *around* it happened to
+    /// be a photograph.
+    func testAPassThatCouldReadOnePartOfTheScreenStillReportsWhatItFound() {
         let readable = CGRect(x: 0, y: 0, width: 100, height: 16)
         let root = Node(children: (0..<4).map { index in
             Node(label: "row \(index)", traits: .staticText,
@@ -523,11 +527,33 @@ extension AccessibilityAuditorChecksTests {
 
         XCTAssertEqual(result.contrastCandidates, 4)
         XCTAssertEqual(result.contrastMeasurements, 1)
-        XCTAssertEqual(AccessibilityAudit.checksUnmeasurableFromPartialMeasurement(
+        XCTAssertEqual(result.findings.count, 1, "the one crop it could read failed, and that is a defect")
+        XCTAssertTrue(result.checksUnmeasurable.isEmpty,
+                      "a check that measured something has not failed to measure")
+        XCTAssertEqual(AccessibilityAudit.checksPartiallyMeasured(
             from: [.contrast],
             candidates: result.contrastCandidates,
             measured: result.contrastMeasurements
-        ), [.contrast], "one crop out of four is a minority report, not a result")
+        ), [.contrast], "and the report has to say how much of the screen that was")
+    }
+
+    /// Nothing measured at all is still an absence of an answer rather than a result, and stays
+    /// out of the coverage rule: it is the unmeasurable banner's case, not this one's.
+    func testAPassThatMeasuredNothingIsUnmeasurableRatherThanPartlyMeasured() {
+        let root = Node(children: [Node(label: "Body copy", traits: .staticText,
+                                        frame: CGRect(x: 0, y: 0, width: 100, height: 16),
+                                        isElement: true)])
+
+        let result = AccessibilityAuditor().audit(root: root,
+                                                  checks: [.contrast],
+                                                  sampler: StubSampler(pixels: []))
+
+        XCTAssertEqual(result.checksUnmeasurable, [.contrast])
+        XCTAssertTrue(AccessibilityAudit.checksPartiallyMeasured(
+            from: [.contrast],
+            candidates: result.contrastCandidates,
+            measured: result.contrastMeasurements
+        ).isEmpty, "the two states are exclusive, or the report shows two banners for one gap")
     }
 }
 
@@ -989,5 +1015,75 @@ extension AccessibilityAuditorChecksTests {
                                          sampler: StubSampler(pixels: midThresholdPixels))
 
         XCTAssertEqual(node.reads, 1, "every rule reads the frame the walk already resolved")
+    }
+}
+
+// MARK: - The shape SwiftUI actually puts on screen
+
+@MainActor
+extension AccessibilityAuditorChecksTests {
+
+    /// The descent added to sample a combined UIKit cell label by label looks for text-drawing
+    /// `UIView`s, and SwiftUI has none: it draws its text into private layers and hangs synthetic
+    /// `UIAccessibilityElement`s off the hosting view. Nothing may be allowed to make that descent
+    /// the *only* way an element becomes measurable, or contrast goes dark on the commonest UI
+    /// framework in use and the report says so in a banner rather than in findings.
+    ///
+    /// The rule this pins: descend when there is something to descend into, otherwise measure the
+    /// element's own frame. An element with a non-empty label that is not an image is text as far
+    /// as this check is concerned, whatever drew it.
+    func testASyntheticElementOverAViewWithNoTextViewsIsStillMeasured() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 375, height: 400))
+        window.isHidden = false
+        let host = UIView(frame: CGRect(x: 0, y: 0, width: 375, height: 400))
+        window.addSubview(host)
+        let text = UIAccessibilityElement(accessibilityContainer: host)
+        text.accessibilityLabel = "Hard to read text" // scyther:unlocalised test fixture
+        text.accessibilityTraits = .staticText
+        text.accessibilityFrame = CGRect(x: 16, y: 40, width: 200, height: 20)
+        host.accessibilityElements = [text]
+
+        XCTAssertTrue(AccessibilityAuditor.drawnTextViews(in: host).isEmpty,
+                      "the fixture is only meaningful with no drawn text view to find")
+
+        let result = AccessibilityAuditor().audit(root: window,
+                                                  checks: [.contrast],
+                                                  sampler: StubSampler(pixels: midThresholdPixels))
+
+        XCTAssertEqual(result.contrastCandidates, 1, "a labelled synthetic element is text")
+        XCTAssertEqual(result.contrastMeasurements, 1)
+        XCTAssertEqual(result.findings.count, 1)
+    }
+
+    /// The same claim, made against SwiftUI itself rather than against a hand-built stand-in for
+    /// it, because the stand-in is only worth anything if it is the shape SwiftUI really produces.
+    /// A `List` of `Text` vends `AccessibilityNode`s — synthetic elements, `.staticText`, no
+    /// `UILabel` anywhere in the hierarchy — and every one of them has to be measured.
+    func testARealSwiftUIListIsContrastMeasuredElementByElement() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        let host = UIHostingController(rootView: List {
+            Text("Hard to read text") // scyther:unlocalised test fixture
+            Text("Another line") // scyther:unlocalised test fixture
+        })
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        host.view.frame = window.bounds
+        host.view.layoutIfNeeded()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+
+        let auditor = AccessibilityAuditor()
+        let walked = auditor.collect(root: window)
+        XCTAssertFalse(walked.nodes.isEmpty, "SwiftUI put no accessibility elements on screen at all")
+        XCTAssertTrue(walked.nodes.allSatisfy { !($0 is UIView) },
+                      "the fixture is only meaningful while SwiftUI's elements are synthetic")
+
+        let result = auditor.audit(root: window,
+                                   checks: [.contrast],
+                                   sampler: StubSampler(pixels: midThresholdPixels))
+
+        XCTAssertEqual(result.contrastCandidates, walked.nodes.count,
+                       "every element SwiftUI drew text into is a candidate")
+        XCTAssertEqual(result.contrastMeasurements, result.contrastCandidates)
+        XCTAssertEqual(result.findings.count, result.contrastCandidates)
     }
 }

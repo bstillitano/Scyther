@@ -166,6 +166,15 @@ measures each `UILabel`/`UITextField`/`UITextView` at its own bounds, so the fin
 that failed rather than the whole row. One element still produces at most one finding: the worst
 region.
 
+Where there is nothing to descend into, the element's **own frame** is measured. That is not an edge
+case — it is every SwiftUI screen. SwiftUI draws text into private layers and hangs synthetic
+`UIAccessibilityElement`s off the hosting view, so a descent looking for text-drawing `UIView`s
+finds nothing on a `List` of `Text`, and making the descent the only route to a measurement would
+take contrast off the commonest UI framework in use entirely. The rule is: descend when there is
+something to descend into, otherwise measure the element itself. An accessibility element carrying a
+non-empty label that is not an image is text as far as this check is concerned, whatever framework
+drew it.
+
 ### Contrast Is an Estimate
 
 **The reported ratio is sampled from pixels already on screen, not computed from any colour the code
@@ -263,12 +272,22 @@ An empty report can mean four different things, and the screen never lets them r
 - **Findings hidden.** The pass found things and the toggles are hiding all of them.
 - **Nothing was checked.** Every check switched off, or every check refused.
 - **No issues in what was checked.** Something ran, but not everything: a check switched off,
-  skipped while Scyther covered the app, or unmeasurable — or a walk a limit stopped early.
+  skipped while Scyther covered the app, unmeasurable, or able to read only part of the screen — or
+  a walk a limit stopped early.
 - **No issues found.** The one case that earns a tick, and even it says what the audit cannot see.
 
-A check that ran but could not read enough of the screen — a capture the system refused, a screen it
-could read nothing legible on, or one where too few elements came back readable — is reported as
-exactly that. What it did not measure is missing from the report, not passing it.
+A check that could read **nothing at all** — a capture the system refused, or a screen captured fine
+on which nothing was legible — is reported as exactly that, never as a pass.
+
+A check that read **some** of the screen keeps what it found and states its coverage: *Contrast read
+3 of 41 elements on this screen.* The two are separated deliberately. The analyser refuses any crop
+it cannot trust — a gradient, a photograph, a glyph it only caught at partial coverage — so on a
+screen made mostly of those, contrast can measure a handful of elements and find a genuine defect in
+one of them. Calling that pass unmeasurable, as an earlier rule did whenever fewer than half the
+candidates came back readable, described a report containing a real finding as one containing no
+result at all. Both banners close on the same sentence, because the consequence for the reader is
+the same: what was not measured is missing from the report, not passing it. Partial coverage still
+costs the tick, so a clean result is never mistaken for a guarantee.
 
 ## What the Audit Cannot See
 

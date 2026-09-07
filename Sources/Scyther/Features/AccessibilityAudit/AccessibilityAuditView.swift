@@ -62,6 +62,10 @@ struct AccessibilityAuditView: View {
                 unmeasurableBanner
             }
 
+            if !viewModel.partiallyMeasuredChecks.isEmpty {
+                partialMeasurementBanner
+            }
+
             if !viewModel.checksAwaitingRerun.isEmpty {
                 awaitingRerunBanner
             }
@@ -230,6 +234,24 @@ struct AccessibilityAuditView: View {
     private var unmeasurableBanner: some View {
         Section {
             Label(viewModel.unmeasurableDescription, systemImage: "exclamationmark.triangle")
+                .foregroundStyle(.orange)
+        }
+    }
+
+    // MARK: - Partly Measured Screen
+
+    /// Shown when a check read some of what it was asked about but not all of it.
+    ///
+    /// Drawn exactly like ``unmeasurableBanner`` — same symbol, same colour — because the reader's
+    /// takeaway is the same one: part of this screen is not in the report and must not be read as
+    /// having passed. It is a separate banner rather than a fourth producer of that one because the
+    /// two cannot appear together and say the same thing: this check *did* read the screen and
+    /// anything above it is a finding about the app, where the unmeasurable banner is an admission
+    /// that there is no answer at all. Never both: a pass either measured nothing, which is that
+    /// banner, or measured some of what it was asked about, which is this one.
+    private var partialMeasurementBanner: some View {
+        Section {
+            Label(viewModel.partialMeasurementDescription, systemImage: "exclamationmark.triangle")
                 .foregroundStyle(.orange)
         }
     }
