@@ -6,12 +6,16 @@
 @testable import Scyther
 import XCTest
 
-/// Covers the rules both waterfall surfaces draw by.
+/// Covers the rules ``WaterfallChartStyle`` still owns.
 ///
 /// These used to live inside ``TrafficStatsViewModel``, where only the Traffic Stats section
-/// could reach them. The full-log page draws the same chart, so the moment the rules were shared
-/// they became worth pinning on their own: a change here changes both surfaces at once, and the
-/// owner's requirement is that the two never diverge.
+/// could reach them, and for a while afterward they really were shared between both waterfall
+/// surfaces. That is no longer the shape: the overview strip — the one view both
+/// ``TrafficStatsView`` and the full-log page draw — gets its geometry from
+/// ``WaterfallStripGeometry`` instead, covered by its own `WaterfallOverviewStripTests`. What
+/// stays here is what genuinely is still shared, or belongs to the full-log page's detail list
+/// and legend alone — see ``WaterfallChartStyle``'s own type documentation for exactly which is
+/// which.
 @MainActor
 final class WaterfallChartStyleTests: XCTestCase {
 
@@ -54,7 +58,11 @@ final class WaterfallChartStyleTests: XCTestCase {
         XCTAssertGreaterThan(WaterfallChartStyle.rowHeight, WaterfallChartStyle.barThickness * 2)
     }
 
-    /// Twenty-two requests must not fit on one screen, or the page is the preview again.
+    /// Twenty-two requests must not fit on one screen, or the page is the cramped,
+    /// everything-squeezed-in picture the owner's defect report was written from again — see
+    /// ``testARowIsTallEnoughToReadAndToTap`` above. The section it was once compared against, a
+    /// `Chart` of its own most recent seven bars, is gone; the comparison that survives is against
+    /// this row height, not against that section any more.
     func testATypicalLogIsTallerThanAScreen() {
         let screenHeight: CGFloat = 852
         XCTAssertGreaterThan(22 * WaterfallChartStyle.rowHeight, screenHeight,

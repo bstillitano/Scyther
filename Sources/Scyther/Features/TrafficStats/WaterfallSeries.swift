@@ -232,16 +232,20 @@ struct WaterfallSeries: Equatable, Sendable {
         "api", "www", "cdn", "static", "assets", "app", "m"
     ]
 
-    /// The one label of `host` worth putting on a 402pt-wide row.
+    /// The one label of `host` worth putting on the detail row's own line above the path.
     ///
-    /// A row has room for roughly fifteen characters of host before the path it is there to show
-    /// starts truncating, and `jsonplaceholder.typicode.com` is twenty-eight. The rule picks the
-    /// label a developer would say out loud: the first, unless the first names infrastructure
-    /// (`api.`, `cdn.`) and there is a real name behind it — and unless *that* label also names
-    /// infrastructure, which a host like `static.cdn.example.com` puts back to back. Skipping
-    /// only once left that host reading `"cdn"`, precisely the meaningless label this function
-    /// exists to avoid, so the skip repeats for as long as a generic label is in front and a
-    /// non-generic one is still behind it.
+    /// The host and the path no longer share a line — ``WaterfallDetailRow`` stacks the host over
+    /// the path rather than setting them side by side, so this is not picking a label short
+    /// enough to leave the path room the way it once had to. What it still has to do is pick the
+    /// label a developer would actually say out loud: `jsonplaceholder.typicode.com` read in full
+    /// names the provider through a fragment few readers parse at a glance, and `api.` or `cdn.`
+    /// at the front of a host name infrastructure rather than a service, which is not what the
+    /// row is there to identify. The rule picks the first label, unless it names infrastructure
+    /// and there is a real name behind it — and unless *that* label also names infrastructure,
+    /// which a host like `static.cdn.example.com` puts back to back. Skipping only once left that
+    /// host reading `"cdn"`, precisely the meaningless label this function exists to avoid, so the
+    /// skip repeats for as long as a generic label is in front and a non-generic one is still
+    /// behind it.
     ///
     /// - Parameter host: A URL's host, or `""`.
     /// - Returns: The display label, lowercased. `""` for an empty host.

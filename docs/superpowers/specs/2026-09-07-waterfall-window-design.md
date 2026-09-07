@@ -148,7 +148,8 @@ shown, clipped, rather than missing.
 Each row is 44 pt, matching the menu's rows, and is a `NavigationLink` to `LogDetailsView` as the
 page's rows already are. Left to right:
 
-- The short host, dimmed, then the existing label: `ipify · GET /?format=json`.
+- The short host, dimmed, then the existing label: `ipify · GET /?format=json`. **Amended** — see
+  [Amendments](#amendments): shipped as the host stacked above the path instead.
 - The bar, positioned within the window, minimum width `3pt`, clipped at the window's edges. A
   request continuing past an edge is drawn flush to it, so the clipping reads as continuation
   rather than as a short request.
@@ -167,15 +168,17 @@ harder to spot, which is the one thing the colour must do.
    `m` and there are three or more labels, use the second label. Otherwise use the first.
 
 So `api.ipify.org` → `ipify`, `httpbin.org` → `httpbin`,
-`jsonplaceholder.typicode.com` → `jsonplaceholder`, `cdn.assets.example.com` → `assets`. A host
-that is an IP address, or has no dots, is used as-is. The full host stays on the entry for the
-log detail page to show.
+`jsonplaceholder.typicode.com` → `jsonplaceholder`, `cdn.assets.example.com` → `assets`
+(**amended** — see [Amendments](#amendments): shipped as `example`). A host that is an IP
+address, or has no dots, is used as-is. The full host stays on the entry for the log detail page
+to show.
 
 ## Zoom
 
 `MagnificationGesture` — not `MagnifyGesture`, which is iOS 17 and the package floor is iOS 16 —
 attached to the detail list and combined with `.simultaneously(with:)` so it does not take the
-list's vertical scrolling away from it. The gesture's magnitude goes to
+list's vertical scrolling away from it. **Amended** — see [Amendments](#amendments): shipped
+attached with `.gesture(_, including:)` instead. The gesture's magnitude goes to
 `WaterfallWindow.zoomed(by:)`, which clamps; the view installs whatever comes back.
 
 Zooming keeps the window's centre fixed, so pinching does not slide the developer through time
@@ -207,7 +210,9 @@ not discovered:
 - The two-axis `ScrollView` and the ruler pinned inside it as a sticky header.
 - `WaterfallTimeScale`'s global points-per-second rule — the median-at-24 pt scale, the tail
   floor, and the 50,000 pt ceiling. The median-and-tail measurements survive; what goes is
-  choosing one scale for the whole series.
+  choosing one scale for the whole series. **Amended** — see [Amendments](#amendments): the
+  median and tail measurements did not survive after all; only the zoom limit's shortest-measured
+  reading did.
 
 The preview waterfall's own drawing survives inside `WaterfallChartStyle` for the legend and
 colours.
@@ -261,3 +266,38 @@ Before the work is called done, on the simulator, with the example app's traffic
 5. Tap a row and confirm it opens that request's log detail.
 6. Open the page from the Traffic Stats strip and confirm it arrives centred on the tapped point.
 7. With VoiceOver on, confirm the strip's adjustable action zooms.
+
+## Amendments
+
+Recorded here, against the sections above, rather than silently edited into them: each is a
+deliberate, reviewed drift between this document and what shipped, kept so the next reader trusts
+the spec instead of being misled by it.
+
+- **`shortHost`'s worked example.** `cdn.assets.example.com` yields `example`, not `assets`. The
+  rule as written — "unless *that* label also names infrastructure" — already says the skip
+  repeats past a second generic label; `cdn.assets.example.com` is exactly that case (`cdn`, then
+  `assets`, both generic, three labels still ahead), and the implementation and its tests were
+  built from the rule, not from this worked example. The example was wrong the day it was
+  written; the rule it illustrates was not.
+- **The detail row's layout.** The host is stacked above the path, not set beside it as
+  `ipify · GET /?format=json` reads. Tried side by side first, exactly as specced; it read worse
+  than not showing the host at all, because a host capped to a fixed width truncated to a
+  different length on every row and the paths beneath them stopped starting at a common x. See
+  `WaterfallDetailRow`'s own documentation in `WaterfallView.swift` for the full account. The
+  spec's own goals — the host identifying, the path still scannable — are what the amendment
+  serves; the layout named to reach them was not load-bearing.
+- **The zoom gesture's attachment.** `.gesture(_, including:)`, not
+  `.simultaneously(with:)`. The two solve the same problem stated here — a pinch and the list's
+  own scroll must not compete for the same fingers — but `.gesture(_, including:)` additionally
+  lets the pinch itself be switched off, via `including: .subviews`, once
+  `WaterfallWindow.canZoom` is `false`, so a request the window cannot narrow any further loses
+  the gesture without also losing the list's scroll. `.simultaneously(with:)` has no equivalent
+  toggle. See ``WaterfallView/magnification`` and ``WaterfallView/detail`` for where this is done.
+- **The median and tail measurements.** "What is removed" above says they survive the
+  `WaterfallTimeScale` → `WaterfallDurations` rename; they did not, and a later commit kept them
+  regardless on the mistaken belief that the caption and the zoom limit still needed them. Neither
+  does: `WaterfallViewModel.windowCaption` is built from counts alone, and the zoom limit is built
+  from the shortest measured duration, not the median or the tail. Both fields, and the
+  nearest-rank `percentile(_:of:)` function that computed them, were removed in the final fix wave
+  this document's own review produced — see `WaterfallDurations`' type documentation for the full
+  account.
