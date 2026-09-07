@@ -31,6 +31,65 @@ protocol AuditNode {
 
     /// The nodes below this one: accessibility children where there are any, subviews otherwise.
     var children: [AuditNode] { get }
+
+    /// Where the node is, or `nil` when nothing of it can be seen.
+    ///
+    /// One question rather than the two — ``frameInWindow`` and ``isVisible`` — that the walk used
+    /// to ask, because on a real node those two are not independent: deciding visibility needs the
+    /// frame, and both need the coordinate space Scyther's own presentation may have transformed.
+    /// Asked separately, every node resolved that space twice and converted its own bounds twice,
+    /// for two answers computed from the same inputs one line apart. At the 5,000-node cap that is
+    /// two redundant ancestor climbs per node inside a budget measured in milliseconds.
+    ///
+    /// The default implementation composes the two originals, so a test double — or any conformer
+    /// with no geometry of its own to share — needs to say nothing. ``UIView`` and
+    /// ``AccessibilityElementNode`` override it to resolve the space once and hand it to
+    /// everything that needs it.
+    var frameInWindowIfVisible: CGRect? { get }
+
+    /// The object this node stands for, so the walk can hand it to the node's children as a
+    /// boundary for their own ownership climb. `nil` for a node that is not backed by one.
+    ///
+    /// - SeeAlso: ``isScytherOwned(below:)``.
+    var ownershipIdentity: AnyObject? { get }
+
+    /// Whether this node, or anything above it, belongs to Scyther — given that `boundary` and
+    /// everything above `boundary` is already known not to.
+    ///
+    /// Scyther-ownership is inherited: the walk never descends into a node it has decided is
+    /// Scyther's, so by the time a child is tested its parent chain has already been cleared all
+    /// the way to the top. Climbing that chain again for every child made the question quadratic
+    /// in the depth of the screen — and it is the one question whose answer is `false` for every
+    /// node in the app being debugged.
+    ///
+    /// `boundary` is only ever an early exit: a chain that never reaches it — a synthetic element
+    /// whose `accessibilityContainer` points somewhere else entirely — is climbed in full exactly
+    /// as before, so nothing of Scyther's can be missed by stopping early at something that was
+    /// checked already.
+    ///
+    /// - Parameter boundary: A node already known to be clean, or `nil` to climb the whole chain.
+    /// - Returns: `true` when this node or an ancestor below `boundary` is Scyther's.
+    func isScytherOwned(below boundary: AnyObject?) -> Bool
+}
+
+extension AuditNode {
+    /// Composes ``frameInWindow`` and ``isVisible``, which is the honest answer for a node that
+    /// has no shared work between them to save.
+    var frameInWindowIfVisible: CGRect? {
+        let frame = frameInWindow
+        guard !frame.isEmpty, isVisible else { return nil }
+        return frame
+    }
+
+    /// Nothing to hand a child, which is the right answer for a node with no object behind it.
+    var ownershipIdentity: AnyObject? { nil }
+
+    /// Ignores the boundary and answers the whole question, which is what a node that cannot
+    /// climb an ancestor chain has to do anyway.
+    ///
+    /// - Parameter boundary: Ignored.
+    /// - Returns: ``isScytherOwned``.
+    func isScytherOwned(below boundary: AnyObject?) -> Bool { isScytherOwned }
 }
 
 // MARK: - Scyther ownership
@@ -158,13 +217,24 @@ private func ownershipAncestor(of object: NSObject) -> NSObject? {
 /// `false` — "not Scyther's" — which is the safe direction: at worst a cycle inside Scyther's own
 /// UI gets audited, where the honest failure is a spurious finding rather than a frozen app.
 ///
-/// - Parameter start: The node to start from; it is tested too, not only its ancestors.
-/// - Returns: `true` when `start` or any node above it is Scyther's.
+/// The climb also stops the moment it reaches `boundary`, a node the caller has already cleared.
+/// The walk descends from parent to child and never descends into anything of Scyther's, so a
+/// child's parent — and everything above it — has been tested before the child is reached; the
+/// only links that still need testing are the ones between the two. Re-climbing the whole chain
+/// per node made this quadratic in the depth of the screen for an answer that is `false`
+/// throughout an app. A chain that never reaches `boundary` is climbed in full, so the shortcut
+/// can only ever skip links a previous climb has already looked at.
+///
+/// - Parameters:
+///   - start: The node to start from; it is tested too, not only its ancestors.
+///   - boundary: A node already known not to be Scyther's, or `nil` to climb the whole chain.
+/// - Returns: `true` when `start` or any node above it and below `boundary` is Scyther's.
 @MainActor
-private func isAncestryScytherOwned(startingAt start: NSObject) -> Bool {
+private func isAncestryScytherOwned(startingAt start: NSObject, stoppingAt boundary: AnyObject? = nil) -> Bool {
     var current: NSObject? = start
     var steps = 0
     while let node = current, steps < maximumAncestryDepth {
+        if let boundary, node === boundary { return false }
         if isScytherOwnedType(node) { return true }
         current = ownershipAncestor(of: node)
         steps += 1
@@ -827,6 +897,13 @@ extension UIView: AuditNode {
     ///
     /// A view with no window is not clipped by anything and cannot be off the edge of anything, so
     /// it stays visible. That is the not-yet-installed case, and every unit test's case.
+    ///
+    /// The walk does not ask this: it asks ``frameInWindowIfVisible``, which applies the same three
+    /// rules in the same order while sharing the measurement space and the converted frame with the
+    /// answer it hands back. This stays as the standalone question — "can any of this be seen" — for
+    /// callers that want it without a frame, and because it is the shape every rule here is tested
+    /// through. The one thing it does not fold in is the walk's own emptiness guard: a zero-sized
+    /// container is still *visible* by this rule, and still not a candidate.
     var isVisible: Bool {
         guard !isHidden, alpha > 0.01 else { return false }
         guard let window else { return true }
@@ -847,6 +924,43 @@ extension UIView: AuditNode {
     /// controller — see `ownershipAncestor(of:)`.
     var isScytherOwned: Bool {
         isAncestryScytherOwned(startingAt: self)
+    }
+
+    /// The same climb, stopped at an ancestor the walk has already cleared — see
+    /// ``AuditNode/isScytherOwned(below:)``.
+    ///
+    /// - Parameter boundary: A node already known not to be Scyther's.
+    /// - Returns: `true` when this view or something above it and below `boundary` is Scyther's.
+    func isScytherOwned(below boundary: AnyObject?) -> Bool {
+        isAncestryScytherOwned(startingAt: self, stoppingAt: boundary)
+    }
+
+    /// The view itself, which is what its children's responder chains climb through.
+    var ownershipIdentity: AnyObject? { self }
+
+    /// The view's frame, or `nil` when nothing of it can be seen.
+    ///
+    /// The same three rules as ``isVisible``, in the same order, with the measurement space and the
+    /// converted frame resolved once and shared between the visibility decision and the answer —
+    /// see ``AuditNode/frameInWindowIfVisible`` for why asking the two questions separately cost
+    /// two ancestor climbs per node for one pair of answers.
+    ///
+    /// The cheap tests come first on purpose: a hidden or fully transparent view is decided before
+    /// any geometry is resolved at all, which on a screen holding a pool of hidden or recycled
+    /// subviews is most of the nodes the walk touches.
+    var frameInWindowIfVisible: CGRect? {
+        guard !isHidden, alpha > 0.01 else { return nil }
+        let space = ScytherPresentation.untransformedMeasurementSpace(for: self)
+        let frame = auditFrame(measuredIn: space)
+        guard !frame.isEmpty else { return nil }
+        // A view with no window is not clipped by anything and cannot be off the edge of anything.
+        // That is the not-yet-installed case, and every unit test's case.
+        guard let window else { return frame }
+        let region = clippedRegion(for: self, in: space ?? window, window: window)
+        guard region.intersects(frame) else {
+            return vendsContentOutsideItsOwnFrame(self, region: region, measuredIn: space) ? frame : nil
+        }
+        return isOccluded(self, frame: frame, measuredIn: space) ? nil : frame
     }
 
     /// Direct read of the dynamic type name, used when a node has no label to identify it by.
@@ -971,6 +1085,45 @@ struct AccessibilityElementNode: AuditNode {
     /// the `UIView` beside it is not.
     var isScytherOwned: Bool {
         isAncestryScytherOwned(startingAt: element)
+    }
+
+    /// The same climb, stopped at an ancestor the walk has already cleared.
+    ///
+    /// A synthetic element's chain is `accessibilityContainer` links, which an app sets and which
+    /// need not lead back to the node that vended this one — so the boundary is often never
+    /// reached and the climb runs in full, exactly as it did before. That is the safe direction:
+    /// stopping early can only skip links a previous climb has already tested.
+    ///
+    /// - Parameter boundary: A node already known not to be Scyther's.
+    /// - Returns: `true` when this element or something above it and below `boundary` is Scyther's.
+    func isScytherOwned(below boundary: AnyObject?) -> Bool {
+        isAncestryScytherOwned(startingAt: element, stoppingAt: boundary)
+    }
+
+    /// The wrapped element, which is what its own children's container chains climb through.
+    var ownershipIdentity: AnyObject? { element }
+
+    /// The element's frame, or `nil` when nothing of it can be seen.
+    ///
+    /// The fused form of ``frameInWindow`` and ``isVisible`` — see
+    /// ``AuditNode/frameInWindowIfVisible``. A synthetic element paid for the split worse than a
+    /// view did: `isVisible` resolved the container chain and the measurement space, then called
+    /// `frameInWindow`, which resolved both again from scratch.
+    var frameInWindowIfVisible: CGRect? {
+        guard let container = resolveContainerView(forContainerChainOf: element),
+              let window = container.window else {
+            let frame = element.accessibilityFrame
+            return frame.isEmpty ? nil : frame
+        }
+        let correction = ScytherPresentation.untransformedMeasurementSpace(for: container)
+        let frame = frame(in: window, measuredIn: correction)
+        guard !frame.isEmpty else { return nil }
+        let region = clippedRegion(for: container,
+                                   in: correction ?? window,
+                                   window: window,
+                                   includingOwnClip: true)
+        guard region.intersects(frame) else { return nil }
+        return isOccluded(container, frame: frame, measuredIn: correction) ? nil : frame
     }
 
     /// Direct read of the wrapped element's dynamic type name.

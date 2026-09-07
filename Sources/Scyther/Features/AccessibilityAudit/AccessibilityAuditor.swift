@@ -12,7 +12,7 @@ import UIKit
 /// with questions most nodes must answer `nil` to would push the "I don't know" case into every
 /// adapter instead of into the one rule that has to handle it. A rule asks for this with `as?`
 /// and has to have an answer ready for `nil`, which is the honest shape — see
-/// ``AccessibilityAuditor/contrastThreshold(for:)``, which stays at the strict threshold rather
+/// ``AccessibilityAuditor/contrastThreshold(drawsText:traits:details:)``, which stays at the strict threshold rather
 /// than guessing when no size can be read.
 @MainActor
 protocol AuditNodeDetails {
@@ -28,7 +28,7 @@ protocol AuditNodeDetails {
     /// Three-valued on purpose. The contrast threshold is 4.5:1 for text and 3:1 for everything
     /// else, so answering `false` when the truth is "I don't know" hands the lenient grade to every
     /// node that cannot answer — which was every SwiftUI element, every custom view and every
-    /// `UITableViewCell` on the screen. `nil` lets ``AccessibilityAuditor/contrastThreshold(for:)``
+    /// `UITableViewCell` on the screen. `nil` lets ``AccessibilityAuditor/contrastThreshold(drawsText:traits:details:)``
     /// resolve the unknown in the direction that can only ever produce a warning a developer can
     /// dismiss, rather than in the direction that hides a failure.
     var auditDrawsText: Bool? { get }
@@ -187,7 +187,8 @@ struct AccessibilityAuditor {
     /// deadline that expired only inside the walk bounded the cheap part and left the costly
     /// part to run for as long as it liked, which is the same defect the budget was added to
     /// fix — so the deadline is created once, at the top of the pass, and carried through both.
-    static let budget: TimeInterval = 0.25
+    nonisolated static let budget: TimeInterval = 0.25
+
 
     /// Reads the current time, so a test can spend the budget deterministically.
     ///
@@ -212,6 +213,37 @@ struct AccessibilityAuditor {
 
         /// Where it is, in the space the audit measures in. Read once, here.
         let frameInWindow: CGRect
+
+        /// What VoiceOver is told this element is. Read once, here.
+        ///
+        /// Every accessibility property on `NSObject` is a string-keyed lookup into an associated
+        /// dictionary, taken behind a dispatch barrier. The two rules and the element-naming helper
+        /// between them read this three times and ``accessibilityLabelText`` three times for a
+        /// single candidate, for values that cannot change inside one pass. Reading them where the
+        /// candidate is built costs the same as the first read did and makes the other four free.
+        let traits: UIAccessibilityTraits
+
+        /// The label VoiceOver would read, already trimmed of whitespace, or `nil` when there is
+        /// none to read.
+        ///
+        /// Trimmed here rather than at each of the three places that used to ask, because every one
+        /// of them wanted the same question answered — "is there a name" — and answered it with its
+        /// own `trimmingCharacters(in:)` over the same string.
+        let label: String?
+
+        /// Creates a candidate, reading everything the rules will need from the node exactly once.
+        ///
+        /// - Parameters:
+        ///   - node: The element the walk found.
+        ///   - frameInWindow: Its already-resolved frame.
+        @MainActor
+        init(node: AuditNode, frameInWindow: CGRect) {
+            self.node = node
+            self.frameInWindow = frameInWindow
+            self.traits = node.traits
+            let trimmed = node.accessibilityLabelText?.trimmingCharacters(in: .whitespacesAndNewlines)
+            self.label = (trimmed?.isEmpty ?? true) ? nil : trimmed
+        }
     }
 
     /// Every element worth checking, in tree order.
@@ -280,7 +312,7 @@ struct AccessibilityAuditor {
         /// stopped at a limit and never reached the rest of the screen, and that what is missing is
         /// unchecked rather than clean. All three limits raise the same flag because that one
         /// sentence is true of all three; the report does not need to learn which fired.
-        func walk(_ node: AuditNode, depth: Int) {
+        func walk(_ node: AuditNode, depth: Int, clearedAncestor: AnyObject?) {
             guard !didHitLimit else { return }
             guard now() < deadline else {
                 didHitLimit = true
@@ -298,23 +330,25 @@ struct AccessibilityAuditor {
                 }
             }
 
-            // The frame is resolved once, here, and carried on the candidate rather than being
-            // read again by the visibility guard and by every rule that follows.
-            guard !node.isScytherOwned else { return }
-            let frame = node.frameInWindow
-            guard !frame.isEmpty, node.isVisible else { return }
+            // The ownership climb stops at the parent, which this walk cleared on the way down —
+            // see ``AuditNode/isScytherOwned(below:)``. The frame and the visibility answer come
+            // from one question, resolved once here and carried on the candidate rather than being
+            // read again by every rule that follows.
+            guard !node.isScytherOwned(below: clearedAncestor) else { return }
+            guard let frame = node.frameInWindowIfVisible else { return }
 
             if node.isAccessibilityElementNode {
                 found.append(AuditCandidate(node: node, frameInWindow: frame))
                 return
             }
 
+            let cleared = node.ownershipIdentity ?? clearedAncestor
             for child in node.children {
-                walk(child, depth: depth + 1)
+                walk(child, depth: depth + 1, clearedAncestor: cleared)
             }
         }
 
-        walk(root, depth: 0)
+        walk(root, depth: 0, clearedAncestor: nil)
         return (found, didHitLimit)
     }
 
@@ -548,13 +582,13 @@ struct AccessibilityAuditor {
     /// - Parameter candidate: The element to check, with its frame already resolved.
     /// - Returns: The finding, or `nil` when the element is named or exempt.
     private func missingLabelFinding(for candidate: AuditCandidate) -> AccessibilityFinding? {
-        let node = candidate.node
-        guard node.isAccessibilityElementNode else { return nil }
-        let trimmed = node.accessibilityLabelText?.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed?.isEmpty ?? true else { return nil }
-        guard !node.traits.contains(.staticText) else { return nil }
+        // No `isAccessibilityElementNode` guard: a candidate exists only because the walk already
+        // asked that question and got `true`, and asking it again was a second string-keyed
+        // accessibility read per element for an answer that cannot have changed.
+        guard candidate.label == nil else { return nil }
+        guard !candidate.traits.contains(.staticText) else { return nil }
 
-        let value = (node as? AuditNodeDetails)?.auditAccessibilityValue?
+        let value = (candidate.node as? AuditNodeDetails)?.auditAccessibilityValue?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard value?.isEmpty ?? true else { return nil }
 
@@ -562,7 +596,7 @@ struct AccessibilityAuditor {
             check: .missingLabel,
             severity: .error,
             frame: candidate.frameInWindow,
-            elementName: Self.name(for: node, frame: candidate.frameInWindow),
+            elementName: Self.name(for: candidate),
             detail: localized("VoiceOver reads this element with no name.")
         )
     }
@@ -579,8 +613,7 @@ struct AccessibilityAuditor {
     /// - Parameter candidate: The element to check, with its frame already resolved.
     /// - Returns: The finding, or `nil` when the target is big enough or is not a target.
     private func touchTargetFinding(for candidate: AuditCandidate) -> AccessibilityFinding? {
-        let node = candidate.node
-        guard !node.traits.intersection(Self.interactiveTraits).isEmpty else { return nil }
+        guard !candidate.traits.intersection(Self.interactiveTraits).isEmpty else { return nil }
         let size = candidate.frameInWindow.size
         guard size.width < Self.minimumTargetSide || size.height < Self.minimumTargetSide else {
             return nil
@@ -593,7 +626,7 @@ struct AccessibilityAuditor {
         // one an error is an unactionable red box, and unactionable red boxes are what teach a
         // developer to stop reading them. It stays a warning rather than disappearing because a
         // standalone link styled as a button is a real miss and this cannot tell the two apart.
-        let isCappedAtWarning = node.traits.contains(.link)
+        let isCappedAtWarning = candidate.traits.contains(.link)
         let isError = !isCappedAtWarning && shortest < Self.belowAnyGuidelineSide
         let width = Self.points(size.width)
         let height = Self.points(size.height)
@@ -602,7 +635,7 @@ struct AccessibilityAuditor {
             check: .touchTarget,
             severity: isError ? .error : .warning,
             frame: candidate.frameInWindow,
-            elementName: Self.name(for: node, frame: candidate.frameInWindow),
+            elementName: Self.name(for: candidate),
             detail: isError
                 ? localized("\(width) × \(height)pt, under WCAG 2.5.8's 24 × 24pt minimum.")
                 : localized("\(width) × \(height)pt, under Apple's 44 × 44pt guidance.")
@@ -614,15 +647,14 @@ struct AccessibilityAuditor {
     /// An element with no label is named by what it is and where it is, because the finding that
     /// says "this has nothing to call it" cannot then have nothing to call it.
     ///
-    /// - Parameters:
-    ///   - node: The element to name.
-    ///   - frame: Its already-resolved frame, so naming an element does not cost another climb up
-    ///     its ancestor chain.
+    /// - Parameter candidate: The element to name, with its label and frame already resolved — so
+    ///   naming an element costs neither another accessibility read nor another climb up its
+    ///   ancestor chain.
     /// - Returns: Its label, or its type and origin.
-    private static func name(for node: AuditNode, frame: CGRect) -> String {
-        let trimmed = node.accessibilityLabelText?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let trimmed, !trimmed.isEmpty { return trimmed }
-        return localized("\(node.typeName) at \(points(frame.origin.x)), \(points(frame.origin.y))")
+    private static func name(for candidate: AuditCandidate) -> String {
+        if let label = candidate.label { return label }
+        let frame = candidate.frameInWindow
+        return localized("\(candidate.node.typeName) at \(points(frame.origin.x)), \(points(frame.origin.y))")
     }
 
     /// A measurement, to one decimal place.
@@ -744,7 +776,9 @@ struct AccessibilityAuditor {
         }
         let details = candidate.node as? AuditNodeDetails
         return [TextRegion(frame: candidate.frameInWindow,
-                           threshold: contrastThreshold(for: candidate.node),
+                           threshold: contrastThreshold(drawsText: details?.auditDrawsText,
+                                                        traits: candidate.traits,
+                                                        details: details),
                            pointSizeWasKnown: details?.auditFontPointSize != nil)]
     }
 
@@ -762,21 +796,20 @@ struct AccessibilityAuditor {
     private func contrastOutcome(for candidate: AuditCandidate,
                                  sampler: ContrastSampling) -> ContrastOutcome {
         let node = candidate.node
+        let traits = candidate.traits
         // WCAG 1.4.3 exempts "text or images of text that are part of an inactive user interface
         // component" outright. A greyed-out button measures 2–3:1 by design and is on screen
         // constantly, so this is not a threshold argument — the success criterion does not apply,
         // and every finding of that class was wrong.
-        guard !node.traits.contains(.notEnabled) else { return .notApplicable }
+        guard !traits.contains(.notEnabled) else { return .notApplicable }
 
         let details = node as? AuditNodeDetails
-        let trimmed = node.accessibilityLabelText?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let isNamed = !(trimmed?.isEmpty ?? true)
-        guard isNamed || details?.auditDrawsText == true else { return .notApplicable }
+        guard candidate.label != nil || details?.auditDrawsText == true else { return .notApplicable }
 
         // An element whose only trait is `.image` is a picture. WCAG grades those under 1.4.11,
         // which this tool does not implement and says so in its documentation; measuring one under
         // 1.4.3 would report a photograph as failing body-text contrast.
-        if node.traits.contains(.image), node.traits.subtracting([.image, .selected]).isEmpty,
+        if traits.contains(.image), traits.subtracting([.image, .selected]).isEmpty,
            details?.auditDrawsText != true {
             return .notApplicable
         }
@@ -801,7 +834,7 @@ struct AccessibilityAuditor {
             worst = (AccessibilityFinding(check: .contrast,
                                           severity: .warning,
                                           frame: region.frame,
-                                          elementName: Self.name(for: node, frame: candidate.frameInWindow),
+                                          elementName: Self.name(for: candidate),
                                           detail: detail),
                      shortfall)
         }
@@ -811,17 +844,6 @@ struct AccessibilityAuditor {
         // land here, and every one of them used to come back as a confident number or as silence.
         guard didMeasureAnything else { return .unmeasurable }
         return .measured(worst?.finding)
-    }
-
-    /// The ratio `node` has to clear.
-    ///
-    /// - Parameter node: The element to grade.
-    /// - Returns: The minimum acceptable ratio.
-    private static func contrastThreshold(for node: AuditNode) -> Double {
-        let details = node as? AuditNodeDetails
-        return contrastThreshold(drawsText: details?.auditDrawsText,
-                                 traits: node.traits,
-                                 details: details)
     }
 
     /// The ratio a piece of content has to clear.
