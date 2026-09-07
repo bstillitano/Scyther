@@ -45,8 +45,10 @@ import UIKit
 ///
 /// ### Running the Audit
 /// - ``auditKeyWindow()``
+/// - ``canAuditKeyWindow(isTestCase:isAppStore:)``
 /// - ``checksNeedingAnUncoveredScreen``
 /// - ``checksSkippedWhileCovered(from:isCovering:)``
+/// - ``checksSkippedWithoutASnapshot(from:didCaptureWindow:)``
 @MainActor
 internal final class AccessibilityAudit: Sendable {
     // MARK: - Static Data (nonisolated for cross-thread access)
@@ -170,34 +172,105 @@ internal final class AccessibilityAudit: Sendable {
         return enabled.intersection(checksNeedingAnUncoveredScreen)
     }
 
+    /// Whether the audit is allowed to look at this build's screen at all.
+    ///
+    /// Two builds it must refuse, for opposite reasons.
+    ///
+    /// A **test** build, because a test's `UIWindow` is a fabricated one with no relation to the
+    /// app the developer is actually debugging: walking it would either report meaningless
+    /// findings about test scaffolding or waste time on a window no developer will ever look at
+    /// through this overlay.
+    ///
+    /// An **App Store** build, because this is the one Scyther feature that reads the user's
+    /// screen as pixels. Every other entry point into the audit is already gated: `start()`
+    /// returns early on an App Store build, and `InterfaceToolkit.instance` is never constructed
+    /// otherwise. The hole is `Scyther.start(allowProductionBuilds: true)` — a documented,
+    /// supported option — combined with ``liveEnabled``, which persists in the
+    /// `com.scyther.settings` suite and survives sign-out and a standard-defaults clear by design.
+    /// A host that shipped both would rasterise real users' screens every half-second. So the
+    /// audit carries its own belt-and-braces guard, in the shape ``TouchVisualiserConfiguration``
+    /// already uses for its logging: an App Store build refuses regardless of what is persisted.
+    ///
+    /// Split out as a pure function of two booleans because neither can be faked in the test host
+    /// — `isTestCase` is unconditionally `true` there and `isAppStore` unconditionally `false` —
+    /// so a test going in through ``auditKeyWindow()`` could never reach, let alone fail on, the
+    /// App Store branch.
+    ///
+    /// - Parameters:
+    ///   - isTestCase: Whether the process is running under XCTest, per ``AppEnvironment/isTestCase``.
+    ///   - isAppStore: Whether this is an App Store build, per ``AppEnvironment/isAppStore``.
+    /// - Returns: `true` only when the screen may be walked and snapshotted.
+    internal nonisolated static func canAuditKeyWindow(isTestCase: Bool, isAppStore: Bool) -> Bool {
+        !isTestCase && !isAppStore
+    }
+
+    /// Which of `enabled` must be skipped because the window could not be snapshotted.
+    ///
+    /// Contrast is the only check that needs pixels, and `drawHierarchy(in:afterScreenUpdates:)`
+    /// can decline to produce them — for a window the system has never presented, or for content
+    /// iOS refuses to let anything capture. Scyther used to answer that by falling back to
+    /// `CALayer.render(in:)`, which is not subject to those refusals and so rasterised secure text
+    /// entry along with everything else. The fallback is gone, which means the failure is now
+    /// real and has to be reported: with no pixels, every element reads as one flat colour,
+    /// ``ContrastAnalyser/measure(pixels:)`` returns `nil` for each, and an unmeasured screen
+    /// would otherwise be reported as a clean one.
+    ///
+    /// The result joins ``checksSkippedWhileCovered(from:isCovering:)``'s set rather than simply
+    /// being left out of `checksRun`. Of the two buckets the report has, that one says Scyther
+    /// declined to measure; the other is rendered as "switched off", which would state something
+    /// false about a setting the developer never touched.
+    ///
+    /// - Parameters:
+    ///   - enabled: The checks that would otherwise run.
+    ///   - didCaptureWindow: Whether the snapshot succeeded, per
+    ///     ``WindowContrastSampler/didCaptureWindow``.
+    /// - Returns: The checks to skip, which is empty whenever the snapshot succeeded.
+    internal nonisolated static func checksSkippedWithoutASnapshot(from enabled: Set<AccessibilityCheck>,
+                                                                  didCaptureWindow: Bool) -> Set<AccessibilityCheck> {
+        guard !didCaptureWindow else { return [] }
+        return enabled.intersection(checksNeedingAnUncoveredScreen)
+    }
+
     /// Audits the key window right now.
     ///
-    /// Returns an empty result — no findings, no truncation, no checks run — while a test is
-    /// running. A test's `UIWindow` is a fabricated one with no relation to the app the
-    /// developer is actually debugging, so walking it would either report meaningless findings
-    /// about test scaffolding or, worse, waste time on a window that no developer will ever look
-    /// at through this overlay. Production and the example app always audit the real key window.
+    /// Returns an empty result — no findings, no truncation, no checks run — on any build that
+    /// may not be looked at; see ``canAuditKeyWindow(isTestCase:isAppStore:)``.
     ///
     /// A check that cannot be measured honestly from here is not measured at all: see
-    /// ``checksNeedingAnUncoveredScreen``. It is reported as skipped rather than silently dropped,
-    /// so the report can say why — a contrast ratio invented by Scyther's own dimming is worse
-    /// than an admitted gap.
+    /// ``checksNeedingAnUncoveredScreen`` and ``checksSkippedWithoutASnapshot(from:didCaptureWindow:)``.
+    /// It is reported as skipped rather than silently dropped, so the report can say why — a
+    /// contrast ratio invented by Scyther's own dimming, or by a snapshot that never happened, is
+    /// worse than an admitted gap.
     ///
     /// - Returns: The audit's findings, whether the walk was truncated, which checks ran, and
-    ///   which were skipped because Scyther was in the way.
+    ///   which were skipped because they could not be measured.
     @MainActor
     func auditKeyWindow() -> AccessibilityAuditor.Result {
-        guard !AppEnvironment.isTestCase else {
+        guard Self.canAuditKeyWindow(isTestCase: AppEnvironment.isTestCase,
+                                     isAppStore: AppEnvironment.isAppStore) else {
             return AccessibilityAuditor.Result(findings: [], didHitLimit: false, checksRun: [])
         }
         guard let window = Self.keyWindow else {
             return AccessibilityAuditor.Result(findings: [], didHitLimit: false, checksRun: [])
         }
 
-        let skipped = Self.checksSkippedWhileCovered(from: enabledChecks,
-                                                     isCovering: ScytherPresentation.isCoveringScreen)
-        let checks = enabledChecks.subtracting(skipped)
-        let sampler: ContrastSampling? = checks.contains(.contrast) ? WindowContrastSampler(window: window) : nil
+        var skipped = Self.checksSkippedWhileCovered(from: enabledChecks,
+                                                    isCovering: ScytherPresentation.isCoveringScreen)
+        var checks = enabledChecks.subtracting(skipped)
+
+        // Built inside the `if`, and dropped the moment the capture is known to have failed, so
+        // the snapshot's bitmap is the only one alive at any moment and does not outlive a pass
+        // it cannot be used for.
+        var sampler: ContrastSampling?
+        if checks.contains(.contrast) {
+            let windowSampler = WindowContrastSampler(window: window)
+            let unmeasurable = Self.checksSkippedWithoutASnapshot(from: checks,
+                                                                  didCaptureWindow: windowSampler.didCaptureWindow)
+            skipped.formUnion(unmeasurable)
+            checks.subtract(unmeasurable)
+            sampler = unmeasurable.isEmpty ? windowSampler : nil
+        }
+
         return AccessibilityAuditor().audit(root: window,
                                             checks: checks,
                                             sampler: sampler,

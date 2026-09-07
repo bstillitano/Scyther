@@ -75,3 +75,72 @@ final class AccessibilityAuditSettingsTests: XCTestCase {
         XCTAssertTrue(skipped.isEmpty)
     }
 }
+
+/// Covers the two decisions ``AccessibilityAudit/auditKeyWindow()`` makes before it is allowed to
+/// look at anything: which builds may be audited at all, and what to report when the window could
+/// not be snapshotted.
+///
+/// Both are tested through the pure entry points rather than through `auditKeyWindow()` itself,
+/// because neither input can be faked in this host: `AppEnvironment.isTestCase` is unconditionally
+/// `true` under XCTest and `isAppStore` unconditionally `false`, so a test that called
+/// `auditKeyWindow()` would return on the first guard and could never reach the App Store branch
+/// to fail on it.
+@MainActor
+final class AccessibilityAuditProductionSafetyTests: XCTestCase {
+
+    /// The defect: `auditKeyWindow()` guarded `isTestCase` and nothing else. Live mode persists in
+    /// the `com.scyther.settings` suite, which survives sign-out by design, so a host shipping
+    /// `Scyther.start(allowProductionBuilds: true)` rasterised real users' screens every half
+    /// second. This is the one Scyther feature that reads the screen as pixels, so it carries its
+    /// own guard rather than relying on `start()`'s.
+    func testAnAppStoreBuildIsNeverAudited() {
+        XCTAssertFalse(AccessibilityAudit.canAuditKeyWindow(isTestCase: false, isAppStore: true))
+    }
+
+    /// The pre-existing rule, kept: a test's fabricated window is not the app anyone is debugging.
+    func testATestBuildIsNeverAudited() {
+        XCTAssertFalse(AccessibilityAudit.canAuditKeyWindow(isTestCase: true, isAppStore: false))
+        XCTAssertFalse(AccessibilityAudit.canAuditKeyWindow(isTestCase: true, isAppStore: true))
+    }
+
+    /// A development build — the only one the audit exists for — still runs.
+    func testADevelopmentBuildIsAudited() {
+        XCTAssertTrue(AccessibilityAudit.canAuditKeyWindow(isTestCase: false, isAppStore: false))
+    }
+
+    /// With the `CALayer.render(in:)` fallback gone, a refused snapshot is a real failure. Contrast
+    /// has to be reported as unmeasured: with no pixels every element reads as one flat colour and
+    /// a screen nobody measured would otherwise be reported as a screen that passed.
+    func testContrastIsReportedAsSkippedWhenTheWindowCouldNotBeSnapshotted() {
+        let skipped = AccessibilityAudit.checksSkippedWithoutASnapshot(from: [.contrast, .missingLabel, .touchTarget],
+                                                                      didCaptureWindow: false)
+
+        XCTAssertEqual(skipped, [.contrast])
+    }
+
+    /// The tree-based checks do not need pixels, so a failed snapshot must not silence them.
+    func testTheChecksThatNeedNoPixelsStillRunWithoutASnapshot() {
+        let skipped = AccessibilityAudit.checksSkippedWithoutASnapshot(from: [.missingLabel, .touchTarget],
+                                                                      didCaptureWindow: false)
+
+        XCTAssertTrue(skipped.isEmpty)
+    }
+
+    /// A successful snapshot skips nothing.
+    func testNothingIsSkippedWhenTheSnapshotSucceeded() {
+        let skipped = AccessibilityAudit.checksSkippedWithoutASnapshot(from: [.contrast, .missingLabel],
+                                                                      didCaptureWindow: true)
+
+        XCTAssertTrue(skipped.isEmpty)
+    }
+
+    /// A check the developer had already switched off is not resurrected into the skipped list —
+    /// the report says different things about the two, and conflating them would misreport a
+    /// setting the developer chose.
+    func testACheckThatWasNotEnabledIsNotReportedAsSkipped() {
+        let skipped = AccessibilityAudit.checksSkippedWithoutASnapshot(from: [.missingLabel],
+                                                                      didCaptureWindow: false)
+
+        XCTAssertFalse(skipped.contains(.contrast))
+    }
+}

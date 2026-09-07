@@ -1503,6 +1503,26 @@ an artefact. The report says so, and points you at live mode, which measures the
 Missing Labels and Touch Targets come from the accessibility tree rather than from pixels, so
 nothing covering the screen changes their answer and they keep running either way.
 
+The snapshot the contrast check reads is deliberately constrained, in three ways worth knowing
+about if a ratio ever looks wrong:
+
+- **It never contains Scyther's own drawing.** The grid overlay, the FPS counter and the audit's
+  own boxes and count pill are hidden for the instant the snapshot is taken and restored
+  immediately afterwards. Without that, live mode measured each element through the box the
+  *previous* pass had stroked around it, and a borderline element could flip between flagged and
+  clean forever.
+- **It never contains content iOS protects.** The snapshot is taken with `drawHierarchy`, which
+  honours the platform's non-capturable-content flags — secure text entry, DRM layers, Apple Pay.
+  When it declines to render, there is no fallback: contrast is reported as a check that could not
+  be measured, rather than measured through an API that ignores those flags.
+- **It is captured at no more than 2 pixels per point**, rather than a 3× device's native scale.
+  The per-element crop is capped at 64 × 64 in any case, so nothing above that is measured, and a
+  full-window bitmap re-taken every half-second in live mode is memory a host app can ill afford.
+
+The audit also never runs on an App Store build, even with `Scyther.start(allowProductionBuilds:
+true)`. Every other Scyther feature is gated by `start()` alone; this is the only one that reads
+the user's screen as pixels, so it refuses on its own account as well.
+
 There is no separate settings screen and no public code API for this feature yet — everything
 lives on the report screen itself, reached from **UI/UX → Accessibility Audit**.
 

@@ -131,8 +131,18 @@ final class AuditNodeAdapterTests: XCTestCase {
         XCTAssertEqual(node.frameInWindow, CGRect(x: 20, y: 20, width: 40, height: 40))
     }
 
-    /// The sampler reads back what was drawn.
-    func testTheSamplerReadsTheColourOfWhatWasDrawn() {
+    /// This test used to claim the sampler read back the colour of what was drawn, and it never
+    /// did. `ScytherTests` has no host app, so `drawHierarchy(in:afterScreenUpdates:)` returns
+    /// `false` and paints nothing for any window a test can build; the black it asserted on came
+    /// from the `CALayer.render(in:)` fallback, and would equally have come from a fully
+    /// transparent pixel, whose red component un-premultiplies to zero. Two assertions, neither
+    /// able to fail. The fallback is gone — it bypassed iOS's non-capturable-content protection
+    /// and would rasterise a secure text field — so what is left to assert is the honest thing:
+    /// the sampler admits it captured nothing rather than reaching for an API that would have.
+    ///
+    /// - Note: The colour-reading itself is covered in `WindowContrastSamplerSafetyTests` against
+    ///   raw bytes, which is the only place in this host it can be covered at all.
+    func testTheSamplerRefusesToInventPixelsForAWindowItCouldNotCapture() {
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
         window.backgroundColor = .black
         window.rootViewController = UIViewController()
@@ -140,10 +150,9 @@ final class AuditNodeAdapterTests: XCTestCase {
         window.layoutIfNeeded()
 
         let sampler = WindowContrastSampler(window: window)
-        let pixels = sampler.samples(in: CGRect(x: 10, y: 10, width: 20, height: 20))
 
-        XCTAssertFalse(pixels.isEmpty)
-        XCTAssertEqual(pixels.first?.red ?? 1, 0, accuracy: 0.05)
+        XCTAssertFalse(sampler.didCaptureWindow)
+        XCTAssertTrue(sampler.samples(in: CGRect(x: 10, y: 10, width: 20, height: 20)).isEmpty)
     }
 
     func testTheSamplerReturnsNothingForARegionOutsideTheWindow() {
