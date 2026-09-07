@@ -181,4 +181,24 @@ final class LanguageOverrideTests: XCTestCase {
         XCTAssertEqual(LanguageOverride.layoutDirection(forLanguage: "ar-EG"), .rightToLeft)
         XCTAssertEqual(LanguageOverride.layoutDirection(forLanguage: "pt-BR"), .leftToRight)
     }
+
+    /// With no override set, Scyther must not pin its own layout direction at all.
+    ///
+    /// Pinning it to the device language's direction overrides the process-wide right-to-left
+    /// forcing that pseudo-localisation's Right to Left mode installs, so the host app mirrors
+    /// on relaunch and Scyther's menu, alone on screen, does not. Seen on device.
+    func testNoOverrideLeavesTheLayoutDirectionAloneSoForcedRightToLeftReachesTheMenu() {
+        let override = makeOverride()
+        XCTAssertNil(override.preferredLanguage)
+        XCTAssertNil(override.menuLayoutDirection)
+    }
+
+    func testAnOverrideStillPinsTheMenuToItsOwnLanguagesDirection() {
+        let override = makeOverride()
+        override.setPreferredLanguage("ar")
+        XCTAssertEqual(override.menuLayoutDirection, .rightToLeft)
+
+        override.setPreferredLanguage("en")
+        XCTAssertEqual(override.menuLayoutDirection, .leftToRight)
+    }
 }

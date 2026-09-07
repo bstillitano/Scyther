@@ -114,6 +114,11 @@ that any mid-session effect ends up disagreeing with something and reversing tex
 value is still installed from the *language* override, which has no launch-time half to disagree
 with: see ``LanguageOverride/layoutDirection(forLanguage:)``.
 
+It is installed with `transformEnvironment`, and only when a language override is actually set —
+``LanguageOverride/menuLayoutDirection`` returns `nil` otherwise. Pinning it unconditionally to the
+device language's direction beat the launch keys, so a relaunch with the mode on mirrored the host
+app and left Scyther's menu, alone on screen, unmirrored. Seen on device.
+
 The toggle's own subtitle carries all of this, not just these docs. A developer looking at a switch
 that says "forces right-to-left layout" and seeing nothing move has been told something false, and
 no amount of accurate prose elsewhere repairs that.

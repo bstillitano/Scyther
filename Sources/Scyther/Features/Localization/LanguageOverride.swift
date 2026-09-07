@@ -324,6 +324,23 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
     /// hit `persistentDomain(forName:)` once per comparison.
     public var namingLocale: Locale { resolutionLocale }
 
+    /// The direction to pin Scyther's own interface to, or `nil` to leave it as the process
+    /// resolved it.
+    ///
+    /// `nil` whenever no override is set, and that `nil` is load-bearing. Scyther's menu is a
+    /// SwiftUI tree hosted inside the host app, so it inherits `\.layoutDirection` from the
+    /// process — which is exactly what pseudo-localisation's Right to Left mode changes, through
+    /// the launch defaults `AppleTextDirection` and `NSForceRightToLeftWritingDirection`. Pinning
+    /// the direction unconditionally to the device language's direction overrode that forcing, so
+    /// on a relaunch with the mode on the host app mirrored and Scyther's menu, alone on screen,
+    /// did not. Only a language the developer actually chose gets to override the process.
+    ///
+    /// - SeeAlso: ``layoutDirection(forLanguage:)``, which decides the direction itself.
+    internal var menuLayoutDirection: LayoutDirection? {
+        guard effectiveLocale != nil else { return nil }
+        return Self.layoutDirection(forLanguage: namingLocale.identifier)
+    }
+
     /// The direction Scyther's own interface should be laid out in, for a given language.
     ///
     /// ``MenuView`` installs this as `\.layoutDirection` alongside the `\.locale` it installs

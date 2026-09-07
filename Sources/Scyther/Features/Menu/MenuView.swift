@@ -77,9 +77,13 @@ public struct MenuView: View {
         .navigationTitle("Scyther") // scyther:unlocalised product name
         .interactiveDismissDisabled()
         .environment(\.locale, languageOverride.namingLocale)
-        .environment(\.layoutDirection, LanguageOverride.layoutDirection(
-            forLanguage: languageOverride.namingLocale.identifier
-        ))
+        .transformEnvironment(\.layoutDirection) { direction in
+            // Transformed rather than set, so that with no language override the menu inherits the
+            // process's own direction — which is what pseudo-localisation's Right to Left mode
+            // changes at launch. Setting it unconditionally mirrored the host app and left the
+            // menu unmirrored. See `LanguageOverride.menuLayoutDirection`.
+            if let overridden = languageOverride.menuLayoutDirection { direction = overridden }
+        }
     }
 
     /// The normal browsing content: device header, Pinned, and every menu section.
