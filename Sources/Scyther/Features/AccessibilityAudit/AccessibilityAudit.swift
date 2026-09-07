@@ -48,7 +48,7 @@ import UIKit
 /// - ``canAuditKeyWindow(isTestCase:isAppStore:)``
 /// - ``checksNeedingAnUncoveredScreen``
 /// - ``checksSkippedWhileCovered(from:isCovering:)``
-/// - ``checksSkippedWithoutASnapshot(from:didCaptureWindow:)``
+/// - ``checksUnmeasurableWithoutASnapshot(from:didCaptureWindow:)``
 @MainActor
 internal final class AccessibilityAudit: Sendable {
     // MARK: - Static Data (nonisolated for cross-thread access)
@@ -204,7 +204,8 @@ internal final class AccessibilityAudit: Sendable {
         !isTestCase && !isAppStore
     }
 
-    /// Which of `enabled` must be skipped because the window could not be snapshotted.
+    /// Which of `enabled` ran but could measure nothing, because the window could not be
+    /// snapshotted.
     ///
     /// Contrast is the only check that needs pixels, and `drawHierarchy(in:afterScreenUpdates:)`
     /// can decline to produce them — for a window the system has never presented, or for content
@@ -215,18 +216,21 @@ internal final class AccessibilityAudit: Sendable {
     /// ``ContrastAnalyser/measure(pixels:)`` returns `nil` for each, and an unmeasured screen
     /// would otherwise be reported as a clean one.
     ///
-    /// The result joins ``checksSkippedWhileCovered(from:isCovering:)``'s set rather than simply
-    /// being left out of `checksRun`. Of the two buckets the report has, that one says Scyther
-    /// declined to measure; the other is rendered as "switched off", which would state something
-    /// false about a setting the developer never touched.
+    /// The result feeds ``AccessibilityAuditor/Result/checksUnmeasurable`` rather than
+    /// ``AccessibilityAuditor/Result/checksSkippedWhileCovered``, which is where it used to land.
+    /// Both buckets say "Scyther did not answer this", but they say *why* differently, and the
+    /// covered bucket's reason — "while Scyther is covering the app" — is simply untrue of a
+    /// capture that failed on a screen with nothing of Scyther's on it. A wrong reason sends a
+    /// developer to dismiss a menu that is not there.
     ///
     /// - Parameters:
     ///   - enabled: The checks that would otherwise run.
     ///   - didCaptureWindow: Whether the snapshot succeeded, per
     ///     ``WindowContrastSampler/didCaptureWindow``.
-    /// - Returns: The checks to skip, which is empty whenever the snapshot succeeded.
-    internal nonisolated static func checksSkippedWithoutASnapshot(from enabled: Set<AccessibilityCheck>,
-                                                                  didCaptureWindow: Bool) -> Set<AccessibilityCheck> {
+    /// - Returns: The checks that could measure nothing, which is empty whenever the snapshot
+    ///   succeeded.
+    internal nonisolated static func checksUnmeasurableWithoutASnapshot(from enabled: Set<AccessibilityCheck>,
+                                                                       didCaptureWindow: Bool) -> Set<AccessibilityCheck> {
         guard !didCaptureWindow else { return [] }
         return enabled.intersection(checksNeedingAnUncoveredScreen)
     }
@@ -237,13 +241,14 @@ internal final class AccessibilityAudit: Sendable {
     /// may not be looked at; see ``canAuditKeyWindow(isTestCase:isAppStore:)``.
     ///
     /// A check that cannot be measured honestly from here is not measured at all: see
-    /// ``checksNeedingAnUncoveredScreen`` and ``checksSkippedWithoutASnapshot(from:didCaptureWindow:)``.
+    /// ``checksNeedingAnUncoveredScreen`` and ``checksUnmeasurableWithoutASnapshot(from:didCaptureWindow:)``.
     /// It is reported as skipped rather than silently dropped, so the report can say why — a
     /// contrast ratio invented by Scyther's own dimming, or by a snapshot that never happened, is
     /// worse than an admitted gap.
     ///
-    /// - Returns: The audit's findings, whether the walk was truncated, which checks ran, and
-    ///   which were skipped because they could not be measured.
+    /// - Returns: The audit's findings, whether the walk was truncated, which checks ran, which
+    ///   were skipped because Scyther was covering the app, and which ran but could measure
+    ///   nothing.
     @MainActor
     func auditKeyWindow() -> AccessibilityAuditor.Result {
         guard Self.canAuditKeyWindow(isTestCase: AppEnvironment.isTestCase,
@@ -254,27 +259,40 @@ internal final class AccessibilityAudit: Sendable {
             return AccessibilityAuditor.Result(findings: [], didHitLimit: false, checksRun: [])
         }
 
-        var skipped = Self.checksSkippedWhileCovered(from: enabledChecks,
+        let skipped = Self.checksSkippedWhileCovered(from: enabledChecks,
                                                     isCovering: ScytherPresentation.isCoveringScreen)
-        var checks = enabledChecks.subtracting(skipped)
+        let checks = enabledChecks.subtracting(skipped)
+
+        // The pass's clock starts here, before the snapshot rather than after it. Capturing the
+        // window is `drawHierarchy(afterScreenUpdates: true)` — a forced full re-render of the
+        // whole window on the main thread, and the single most expensive thing a pass does. A
+        // budget that only began once the walk started would exclude it from the one bound that
+        // exists on how long the app is frozen.
+        let auditor = AccessibilityAuditor()
+        let deadline = auditor.now().addingTimeInterval(AccessibilityAuditor.budget)
 
         // Built inside the `if`, and dropped the moment the capture is known to have failed, so
         // the snapshot's bitmap is the only one alive at any moment and does not outlive a pass
         // it cannot be used for.
         var sampler: ContrastSampling?
+        var unmeasurable: Set<AccessibilityCheck> = []
         if checks.contains(.contrast) {
             let windowSampler = WindowContrastSampler(window: window)
-            let unmeasurable = Self.checksSkippedWithoutASnapshot(from: checks,
-                                                                  didCaptureWindow: windowSampler.didCaptureWindow)
-            skipped.formUnion(unmeasurable)
-            checks.subtract(unmeasurable)
+            unmeasurable = Self.checksUnmeasurableWithoutASnapshot(from: checks,
+                                                                   didCaptureWindow: windowSampler.didCaptureWindow)
             sampler = unmeasurable.isEmpty ? windowSampler : nil
         }
 
-        return AccessibilityAuditor().audit(root: window,
-                                            checks: checks,
-                                            sampler: sampler,
-                                            checksSkippedWhileCovered: skipped)
+        // Contrast stays in `checks` even when there is nothing to sample: it *ran*, and was
+        // reported as unmeasurable, which is a different claim from either "it found nothing" or
+        // "you switched it off". With no sampler it simply measures nothing, so no finding can
+        // come out of a bitmap that does not exist.
+        return auditor.audit(root: window,
+                             checks: checks,
+                             sampler: sampler,
+                             checksSkippedWhileCovered: skipped,
+                             checksUnmeasurable: unmeasurable,
+                             deadline: deadline)
     }
 
     /// The app's key window, resolved the same way `InterfaceToolkit` and `Scyther` itself do.

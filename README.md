@@ -1453,18 +1453,27 @@ why it works the same over SwiftUI and UIKit — and reports what a VoiceOver us
 low vision would run into. Three checks run independently, each with its own toggle at the top of
 the report screen:
 
-- **Missing Labels**: an element with an interactive trait (button, link, adjustable) or an
-  informative one (image, search field, keyboard key) whose accessibility label is empty. Static
-  text is exempt, since it reads its own text content with no label needed.
+- **Missing Labels**: any element VoiceOver will land on whose accessibility label is empty. The
+  exemptions are the short list, not the rule: static text reads its own content, and an element
+  with an accessibility value reads that. A custom control whose author set
+  `isAccessibilityElement` and never set a trait is caught, which a trait-gated rule missed.
 - **Touch Targets**: an interactive element measured against Apple's 44 × 44pt minimum — below
-  32pt on its shortest side is an error, 32pt up to 44pt is a warning.
-- **Contrast**: text measured against its background at 4.5:1, or 3:1 when the element is at
-  least 24pt tall (a stand-in for WCAG's point-size-based "large text" rule, which isn't visible
-  from the accessibility tree). **Contrast is an estimate**, not a measurement: the ratio is
-  sampled from the pixels actually drawn on screen, because a glyph over a photograph, a
-  gradient, or anything else showing through has no single honest foreground/background pair to
-  compute from. Treat a contrast finding as worth a look, not as a certificate — it's always
-  reported as a warning, never an error.
+  24pt on its shortest side is an error, 24pt up to 44pt is a warning. 24 is WCAG 2.5.8 AA's
+  floor, the only number in this rule anyone can cite. Links are capped at a warning, since WCAG
+  2.5.8 exempts a target inline in a sentence and nobody makes body-copy links 44pt tall.
+- **Contrast**: text measured against its background at 4.5:1, or 3:1 for large text (18pt, or
+  14pt bold) where the point size can actually be read off the element — a `UILabel`, `UIButton`,
+  `UITextField` or `UITextView`. Where it can't, the strict threshold stands rather than being
+  guessed at, because the relaxation can only ever hide a failure. Non-text content — an
+  icon-only button, for instance — is graded at WCAG 1.4.11's 3:1 instead, and a disabled control
+  is not graded at all, since WCAG 1.4.3 exempts inactive components. **Contrast is an
+  estimate**, not a measurement: the ratio is sampled from the pixels actually drawn on screen,
+  because a glyph over a photograph, a gradient, or anything else showing through has no single
+  honest foreground/background pair to compute from. Each side of the sample is taken from its
+  extreme decile and averaged in linear light, so antialiased glyph edges don't drag the ink
+  toward the page — that's what lets `#767676` on white, WCAG's canonical exactly-passing grey,
+  report 4.54:1 rather than being failed. Treat a contrast finding as worth a look, not as a
+  certificate — it's always reported as a warning, never an error.
 
 **Show Issues On Screen** draws a box around every current finding directly over the running app,
 live, the same way `GridOverlay` and `FPSCounter` stay on screen without a manual refresh. Tapping
@@ -1479,10 +1488,13 @@ report says explicitly which checks didn't run rather than letting "nothing was 
 "nothing was looked at" read the same way.
 
 The pass runs a moment *after* the screen appears, not inside its transition, so the push finishes
-and you see a spinner rather than a stalled navigation while the walk happens. The walk itself is
-bounded three ways — depth, node count, and a 0.25s wall-clock budget — and any one of them
+and you see a spinner rather than a stalled navigation while the walk happens. The pass is bounded
+three ways — depth, node count, and a 0.25s wall-clock budget that covers the whole thing,
+including the per-element pixel sampling, rather than just the tree walk — and any one of them
 stopping it early puts a banner at the top of the report saying it may be incomplete, rather than
-passing a partial answer off as a clean bill of health.
+passing a partial answer off as a clean bill of health. A check that ran but could measure nothing
+— a window capture the system refused, say — is reported as exactly that, not as a check that
+passed.
 
 The audit skips Scyther's own UI, so its menu, its report and its overlays are never reported as
 findings about your app. Ownership is decided structurally — a view is walked up its responder

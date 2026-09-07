@@ -112,7 +112,7 @@ final class AccessibilityAuditProductionSafetyTests: XCTestCase {
     /// has to be reported as unmeasured: with no pixels every element reads as one flat colour and
     /// a screen nobody measured would otherwise be reported as a screen that passed.
     func testContrastIsReportedAsSkippedWhenTheWindowCouldNotBeSnapshotted() {
-        let skipped = AccessibilityAudit.checksSkippedWithoutASnapshot(from: [.contrast, .missingLabel, .touchTarget],
+        let skipped = AccessibilityAudit.checksUnmeasurableWithoutASnapshot(from: [.contrast, .missingLabel, .touchTarget],
                                                                       didCaptureWindow: false)
 
         XCTAssertEqual(skipped, [.contrast])
@@ -120,7 +120,7 @@ final class AccessibilityAuditProductionSafetyTests: XCTestCase {
 
     /// The tree-based checks do not need pixels, so a failed snapshot must not silence them.
     func testTheChecksThatNeedNoPixelsStillRunWithoutASnapshot() {
-        let skipped = AccessibilityAudit.checksSkippedWithoutASnapshot(from: [.missingLabel, .touchTarget],
+        let skipped = AccessibilityAudit.checksUnmeasurableWithoutASnapshot(from: [.missingLabel, .touchTarget],
                                                                       didCaptureWindow: false)
 
         XCTAssertTrue(skipped.isEmpty)
@@ -128,7 +128,7 @@ final class AccessibilityAuditProductionSafetyTests: XCTestCase {
 
     /// A successful snapshot skips nothing.
     func testNothingIsSkippedWhenTheSnapshotSucceeded() {
-        let skipped = AccessibilityAudit.checksSkippedWithoutASnapshot(from: [.contrast, .missingLabel],
+        let skipped = AccessibilityAudit.checksUnmeasurableWithoutASnapshot(from: [.contrast, .missingLabel],
                                                                       didCaptureWindow: true)
 
         XCTAssertTrue(skipped.isEmpty)
@@ -138,7 +138,7 @@ final class AccessibilityAuditProductionSafetyTests: XCTestCase {
     /// the report says different things about the two, and conflating them would misreport a
     /// setting the developer chose.
     func testACheckThatWasNotEnabledIsNotReportedAsSkipped() {
-        let skipped = AccessibilityAudit.checksSkippedWithoutASnapshot(from: [.missingLabel],
+        let skipped = AccessibilityAudit.checksUnmeasurableWithoutASnapshot(from: [.missingLabel],
                                                                       didCaptureWindow: false)
 
         XCTAssertFalse(skipped.contains(.contrast))
