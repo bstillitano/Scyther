@@ -20,13 +20,17 @@ final class WaterfallViewModelTests: XCTestCase {
     ///   - startedAt: When the request was sent.
     ///   - duration: The round trip in milliseconds, or `nil` for one still in flight.
     ///   - path: The request path, which becomes the bar's label.
+    ///   - host: The request's host. `""` produces a URL with an empty host component, which is
+    ///     what ``WaterfallSeries/shortHost(for:)`` also reduces an unparseable host to —
+    ///     `showsHost` tests use it to check those are left out of the distinct-host count.
     /// - Returns: The request.
     private func request(
         startedAt: Date,
         duration: Float? = 100,
-        path: String = "/v1/users"
+        path: String = "/v1/users",
+        host: String = "api.example.com"
     ) -> HTTPRequest {
-        var urlRequest = URLRequest(url: URL(string: "https://api.example.com\(path)")!)
+        var urlRequest = URLRequest(url: URL(string: "https://\(host)\(path)")!)
         urlRequest.httpMethod = "GET"
         let model = HTTPRequest()
         model.saveRequest(urlRequest)
@@ -201,6 +205,56 @@ final class WaterfallViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.windowCaption.contains("12"))
         XCTAssertFalse(viewModel.windowCaption.contains("340"),
                        "the denominator is the filtered row count, not the log's unfiltered total")
+    }
+
+    // MARK: - Showing the host
+
+    /// A single host repeated on every row is noise, not information — the row should not draw
+    /// it.
+    func testASingleHostIsNotShown() async {
+        let requests = (0..<3).map {
+            request(startedAt: origin.addingTimeInterval(Double($0)), host: "example.com")
+        }
+        let viewModel = WaterfallViewModel(requests: requests, totalCount: requests.count)
+        await viewModel.recompute()
+        XCTAssertFalse(viewModel.showsHost)
+    }
+
+    /// The moment a second distinct host appears, it becomes the one thing that tells two rows
+    /// apart, so it earns its place on the row.
+    func testSeveralDistinctHostsAreShown() async {
+        let requests = [
+            request(startedAt: origin, host: "example.com"),
+            request(startedAt: origin.addingTimeInterval(1), host: "another.com"),
+        ]
+        let viewModel = WaterfallViewModel(requests: requests, totalCount: requests.count)
+        await viewModel.recompute()
+        XCTAssertTrue(viewModel.showsHost)
+    }
+
+    /// A request whose URL did not parse a host at all must not count as a second "host" on its
+    /// own — that would show a host label with nothing in it beside the one host that is real.
+    func testAnEmptyHostIsNotCountedAsADistinctHost() async {
+        let requests = [
+            request(startedAt: origin, host: "example.com"),
+            request(startedAt: origin.addingTimeInterval(1), host: ""),
+        ]
+        let viewModel = WaterfallViewModel(requests: requests, totalCount: requests.count)
+        await viewModel.recompute()
+        XCTAssertFalse(viewModel.showsHost, "one real host and one empty one is still one host")
+    }
+
+    /// Two entries at the *same* host, even spelled with a leading `www.` on one of them, must
+    /// not be counted as two distinct hosts — `shortHost` is what the row actually draws, and
+    /// `www.example.com` and `example.com` draw identically.
+    func testHostsThatShortenToTheSameLabelAreNotCountedTwice() async {
+        let requests = [
+            request(startedAt: origin, host: "example.com"),
+            request(startedAt: origin.addingTimeInterval(1), host: "www.example.com"),
+        ]
+        let viewModel = WaterfallViewModel(requests: requests, totalCount: requests.count)
+        await viewModel.recompute()
+        XCTAssertFalse(viewModel.showsHost)
     }
 
     // MARK: - The scale

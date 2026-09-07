@@ -106,9 +106,21 @@ final class WaterfallViewModel: ViewModel {
         /// for geometry constantly.
         let shortestMeasured: Double?
 
+        /// Whether the rows hold more than one distinct, non-empty host.
+        ///
+        /// Cached with the rows for the same reason as the durations above: the detail list reads
+        /// this once per row it builds, and counting distinct hosts across every row on every one
+        /// of those reads would make an O(rows) check happen O(rows) times.
+        ///
+        /// `false` — not shown — with one host or none, where the host is pure noise repeated on
+        /// every row; `true` the moment a second distinct host appears, where it becomes the one
+        /// thing that tells two rows apart. See ``WaterfallDetailRow`` in `WaterfallView.swift`.
+        let showsHost: Bool
+
         /// Nothing laid out.
         static let empty = Layout(series: .empty, rows: [], count: 0, total: 0,
-                                  medianDuration: nil, tailDuration: nil, shortestMeasured: nil)
+                                  medianDuration: nil, tailDuration: nil, shortestMeasured: nil,
+                                  showsHost: false)
     }
 
     /// The laid-out log the page is drawing.
@@ -262,7 +274,8 @@ final class WaterfallViewModel: ViewModel {
     ) -> Layout {
         guard !requests.isEmpty else {
             return Layout(series: .empty, rows: [], count: 0, total: totalCount,
-                          medianDuration: nil, tailDuration: nil, shortestMeasured: nil)
+                          medianDuration: nil, tailDuration: nil, shortestMeasured: nil,
+                          showsHost: false)
         }
         let series = WaterfallSeries.build(from: requests, limit: requests.count, now: now)
         var byHash = [String: HTTPRequest](minimumCapacity: requests.count)
@@ -280,6 +293,7 @@ final class WaterfallViewModel: ViewModel {
         }
         let durations = WaterfallTimeScale.measuredDurations(of: series)
         let shortestMeasured = durations.filter { $0 > 0 }.min()
+        let distinctHosts = Set(series.entries.map(\.shortHost).filter { !$0.isEmpty })
         return Layout(
             series: series,
             rows: rows,
@@ -287,7 +301,8 @@ final class WaterfallViewModel: ViewModel {
             total: totalCount,
             medianDuration: WaterfallTimeScale.percentile(0.5, of: durations),
             tailDuration: WaterfallTimeScale.percentile(WaterfallTimeScale.tailPercentile, of: durations),
-            shortestMeasured: shortestMeasured
+            shortestMeasured: shortestMeasured,
+            showsHost: distinctHosts.count > 1
         )
     }
 
@@ -304,6 +319,14 @@ final class WaterfallViewModel: ViewModel {
 
     /// Whether the log's search or filters are narrowing what the page draws.
     var isFiltered: Bool { layout.count != layout.total }
+
+    /// Whether the detail list's rows should draw their host.
+    ///
+    /// True only past a second distinct host: against one host it is noise repeated on every
+    /// row, and worse, it crowds out the path — the one thing that actually tells two rows to
+    /// the same host apart, and truncation gives the path what little room the row has left only
+    /// when the host is not drawn at all.
+    var showsHost: Bool { layout.showsHost }
 
     /// The far end of the shared seconds axis.
     ///

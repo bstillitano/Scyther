@@ -184,7 +184,8 @@ struct WaterfallView: View {
                         NavigationLink {
                             LogDetailsView(httpRequest: row.request)
                         } label: {
-                            WaterfallDetailRow(row: row, window: viewModel.window)
+                            WaterfallDetailRow(row: row, window: viewModel.window,
+                                               showsHost: viewModel.showsHost)
                         }
                     }
                 }
@@ -285,12 +286,21 @@ struct WaterfallView: View {
 /// is anything to VoiceOver, so the row collapses itself into one accessibility element with a
 /// composed label naming the host, the request, its outcome and its duration — see
 /// ``accessibilityLabel``.
+///
+/// The visible host is conditional in a way the accessibility label is not: see ``showsHost`` and
+/// ``label``.
 private struct WaterfallDetailRow: View {
     /// The row to draw.
     let row: WaterfallViewModel.Row
 
     /// The current window, which is what the bar is placed and clipped against.
     let window: WaterfallWindow
+
+    /// Whether the log holds more than one distinct host, from
+    /// ``WaterfallViewModel/showsHost``. `false` hides the host entirely rather than drawing it
+    /// dimmed: repeating the same host on every row of a single-host log is noise, and worse, it
+    /// crowds out the path even when there is nothing for the host to distinguish.
+    let showsHost: Bool
 
     /// The row's height, scaled against the reader's text size.
     ///
@@ -301,11 +311,7 @@ private struct WaterfallDetailRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Text(verbatim: "\(row.entry.shortHost) · \(row.entry.label)")
-                .font(.subheadline)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .frame(width: WaterfallChartStyle.detailLabelWidth, alignment: .leading)
+            label
 
             GeometryReader { proxy in
                 let rect = barRect(in: proxy.size)
@@ -335,6 +341,44 @@ private struct WaterfallDetailRow: View {
         // only by the rectangle's fill colour, which VoiceOver cannot read.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// The row's name column: the path alone, or the host and the path together when
+    /// ``showsHost`` is true.
+    ///
+    /// Two separate `Text`s rather than one interpolated string, so each can truncate on its own
+    /// terms. A host truncates from the tail and stays recognisable, because hosts differ near
+    /// their front — `jsonplaceholder…` is still `jsonplaceholder`. A path truncated the same way
+    /// is not, because the part that tells one request from another is usually at the *end* of
+    /// the path, and one interpolated string sharing a single `.truncationMode(.middle)` let the
+    /// host's own length eat into the path before the path had drawn anything at all: three
+    /// different endpoints on the same host all rendered as the same truncated host string.
+    @ViewBuilder
+    private var label: some View {
+        if showsHost {
+            HStack(spacing: 4) {
+                Text(verbatim: row.entry.shortHost)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: WaterfallChartStyle.detailHostWidth, alignment: .leading)
+                Text(verbatim: row.entry.label)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    // Higher than the host's default priority, so when the two together outrun
+                    // the column the host is what gives way first — the path is the one thing on
+                    // the row that tells this request apart from its neighbours.
+                    .layoutPriority(1)
+            }
+            .font(.subheadline)
+            .frame(width: WaterfallChartStyle.detailLabelWidth, alignment: .leading)
+        } else {
+            Text(verbatim: row.entry.label)
+                .font(.subheadline)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(width: WaterfallChartStyle.detailLabelWidth, alignment: .leading)
+        }
     }
 
     /// The bar's position inside the window, clipped at both edges.

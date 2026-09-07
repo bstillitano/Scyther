@@ -200,7 +200,11 @@ struct WaterfallOverviewStrip: View {
                                  with: .color(WaterfallChartStyle.colour(for: entry)))
                 }
             }
-            if let window, window.span > 0 {
+            // `marksASubset` rather than `span > 0`: the page opens with the window at the full
+            // span, and a window that wide would draw an overlay edge to edge — a solid tint over
+            // the whole strip rather than a mark on part of it. The overlay earns its place the
+            // moment the window actually is one.
+            if let window, window.marksASubset {
                 windowOverlay(window: window, size: size)
             }
         }
@@ -220,7 +224,8 @@ struct WaterfallOverviewStrip: View {
     /// so its minimum width and its position are computed together and can never disagree.
     ///
     /// - Parameters:
-    ///   - window: The window to mark. Already checked non-empty by the caller.
+    ///   - window: The window to mark. Already checked by the caller to mark a genuine subset of
+    ///     the strip — see ``WaterfallWindow/marksASubset``.
     ///   - size: The strip's size in points.
     private func windowOverlay(window: WaterfallWindow, size: CGSize) -> some View {
         let rect = WaterfallStripGeometry.windowRect(

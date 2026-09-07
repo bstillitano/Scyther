@@ -36,6 +36,7 @@ import Foundation
 /// ### Reading It
 /// - ``contains(start:duration:)``
 /// - ``canZoom``
+/// - ``marksASubset``
 struct WaterfallWindow: Equatable, Sendable {
 
     /// How wide the shortest measured request should be drawn at maximum zoom, in points.
@@ -109,6 +110,24 @@ struct WaterfallWindow: Equatable, Sendable {
     /// How wide the window is as a fraction of the span, for drawing the overlay. `1` when there
     /// is no span, so an empty strip draws a full-width window rather than an invisible one.
     var durationFraction: Double { span > 0 ? duration / span : 1 }
+
+    /// Whether the window is narrower than the whole span, and therefore worth drawing as an
+    /// overlay at all.
+    ///
+    /// At the widest window — the whole span, which is where the page opens — every request in
+    /// the log falls inside it, so an overlay drawn edge to edge would tint the entire strip one
+    /// solid colour instead of marking a subset of it: a green box, not a minimap. An overlay
+    /// that marks *everything* marks nothing, and is worse than no overlay at all, since it hides
+    /// the bars underneath it.
+    ///
+    /// `false` at the full span, `true` the instant a drag or a zoom narrows the window at all —
+    /// and `false`, not `true`, for the degenerate `span == duration == 0` window an empty series
+    /// produces, which is the opposite of what ``durationFraction`` returns for the same window.
+    /// The two answer different questions: `durationFraction` is what an overlay would be drawn
+    /// *at* if one were drawn, and defaults to covering everything so the arithmetic in
+    /// ``WaterfallStripGeometry`` never divides by a span of zero; this is whether one should be
+    /// drawn *at all*, and a window with nothing to be a subset of is not a subset.
+    var marksASubset: Bool { duration < span }
 
     /// The tightest window that still leaves the shortest request legible.
     ///

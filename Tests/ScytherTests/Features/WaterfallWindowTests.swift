@@ -109,6 +109,31 @@ final class WaterfallWindowTests: XCTestCase {
         XCTAssertEqual(window.zoomed(by: 4), window)
     }
 
+    // MARK: - Marking a subset
+
+    /// The page opens with the window at the whole span, which is exactly the case an overlay
+    /// must not be drawn for: edge to edge, it would tint the entire strip one solid colour
+    /// rather than mark a subset of it.
+    func testTheWidestWindowDoesNotMarkASubset() {
+        XCTAssertFalse(WaterfallWindow(span: 60, narrowest: 1).marksASubset)
+    }
+
+    /// The moment a zoom or a drag narrows the window at all, it is worth drawing.
+    func testANarrowedWindowMarksASubset() {
+        let window = WaterfallWindow(start: 20, duration: 20, span: 60, narrowest: 1)
+        XCTAssertTrue(window.marksASubset)
+    }
+
+    /// The degenerate empty-series window answers the opposite of `durationFraction` here, on
+    /// purpose: `durationFraction` defaults to `1` so `WaterfallStripGeometry`'s arithmetic never
+    /// divides by a span of zero, but a window with nothing to be a subset of is not a subset,
+    /// and must not be drawn as an overlay covering a strip that has nothing on it either.
+    func testAnEmptySeriesWindowDoesNotMarkASubset() {
+        let window = WaterfallWindow(span: 0, narrowest: 0)
+        XCTAssertEqual(window.durationFraction, 1, "what windowRect would be drawn at, if asked")
+        XCTAssertFalse(window.marksASubset, "but there is nothing here to be a subset of")
+    }
+
     // MARK: - Opening centred
 
     func testOpeningCentredOnATimeClampsIntoTheSpan() {
