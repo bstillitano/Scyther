@@ -127,48 +127,83 @@ calls were serialised. A request still in flight runs to the end of the axis, wh
 the chart was computed, because its real end is not yet known. A request that failed is drawn for
 as long as it actually ran, in red, not as one still running.
 
-The section itself is a preview of the seven most recent requests, at a fixed row height, so it
-reads at a glance; its caption says as much and points at the page holding the rest.
+The section itself draws `WaterfallOverviewStrip`, a `Canvas` that compresses every request
+currently in the log into one short band, coloured by outcome and placed by when it happened. It
+is not a preview of the seven most recent requests — it is the whole log, the same strip the full
+page marks its window on, and its caption states the count, the span and how many distinct hosts
+were touched rather than promising a summary. A touch that lands without travelling opens the full
+page centred on the moment touched; a touch that travels is read as the start of a scroll and
+passed through to the list the section sits in, which is what lets the section scroll normally
+everywhere else on the strip.
 
-**See all**, in the waterfall's section header, opens the same session over every request the log
-is showing — not scrolled, but seen through a window the reader zooms and drags. Fitting the whole
-session into one screen width, or scrolling a plot wide enough not to, are both a *scroll* answer
-to what is really a *zoom* problem: against a three hundred second log of requests between
-thirty-two milliseconds and one and a half seconds either one either floors every bar to the same
-sliver or hands the reader a plot thousands of points wide to pan by hand.
+**See all**, in the waterfall's section header, opens the same page too, but at the full span
+rather than centred on anything — seen through a window the reader zooms and drags rather than
+scrolled. Fitting the whole session into one screen width, or scrolling a plot wide enough not to,
+are both a *scroll* answer to what is really a *zoom* problem: against a three hundred second log
+of requests between thirty-two milliseconds and one and a half seconds either one either floors
+every bar to the same sliver or hands the reader a plot thousands of points wide to pan by hand.
 
-The page shows two things instead. An overview strip compresses the entire log into one short band
-and marks the current window on it as a highlighted region; dragging the strip moves that window
-anywhere in the log in a single gesture — the strip only ever moves the window, it never opens a
-request. Underneath it, a detail list holds only the requests the window currently contains, each
-a tappable row at the same fixed height the preview uses, running oldest first so time reads
-downward. A pinch on the detail list narrows or widens the window, holding its centre still; the
-window can never be pinched narrower than the point at which the shortest measured request in the
-log would draw under twenty-four points wide, so a pinch cannot zoom a reader into a blur of a
-single hairline, and once that limit is reached the pinch and the strip's adjustable action are
-both disabled rather than left to silently do nothing. `.accessibilityAdjustableAction` on the
-strip puts the same zoom range behind VoiceOver's and Switch Control's adjustable gesture, and its
-accessibility value announces how many of the log's requests the window holds after every change,
-so reaching zoom never requires a pinch and never leaves a VoiceOver user guessing whether anything
-happened.
+Opening at the full span, rather than pre-zoomed to something that looks more useful — the last
+few seconds, say, or a fixed window around the newest request — is a deliberate choice, and the
+one most likely to look like an oversight to whoever next touches this page. The page has no way
+to know what "useful" means for a session it has not been told anything about: a five-minute gap
+of quiet network between two bursts is exactly as informative as the burst itself, and defaulting
+to the tail, or the busiest stretch, or anything narrower than everything, is a guess dressed up as
+a courtesy. It is wrong exactly as often as it is right, and silently wrong in the one case that
+matters most — the developer who opened the page looking for the gap, not the burst, and has no
+way to tell from a pre-zoomed screen how much of the log they are not looking at. Opening honest
+costs nothing a reader cannot fix with one pinch; arriving somewhere they did not ask to be is not
+recoverable by looking harder at the screen in front of them. Tapping the Traffic Stats strip is
+the one deliberate exception, and it does not contradict the rule: a tap names a moment, so the
+page opens centred on it instead of guessing one, and it does so at a fraction of the span rather
+than the full width — the reader chose where to start, so the page starts there. The rule is
+against the page guessing; it was never against listening when the reader already said.
+
+The page shows two things instead of a scroll. `WaterfallOverviewStrip` compresses the entire log
+into one short band and marks the current window on it as a highlighted region; dragging the strip
+moves that window anywhere in the log in a single gesture — on this page the strip only ever moves
+the window, it never opens a request. Underneath it, a detail list holds only the requests whose
+span intersects the window, so a row without a bar to show for it is structurally impossible, each
+a tappable row running oldest first so time reads downward. A row shows its host stacked above its
+path only when the log holds more than one distinct host; a single-host log never spends the width
+repeating what every row already shares.
+
+`WaterfallWindow`, a value type, owns the window's zoom limits and the clamping that keeps it
+inside the span, so the strip's overlay and the detail list always agree on what "current" means.
+Zoom is a pinch — `MagnificationGesture`, since the package's floor is iOS 16 and the newer
+`MagnifyGesture` is not — on the detail list, which narrows or widens the window while holding its
+centre still. The window can never be pinched narrower than the point at which the shortest
+measured request in the log would draw under twenty-four points wide, so a pinch cannot zoom a
+reader into a blur of a single hairline, and once that limit is reached the pinch and the strip's
+adjustable action are both disabled rather than left to silently do nothing.
+`.accessibilityAdjustableAction` on the strip puts the same zoom range behind VoiceOver's and
+Switch Control's adjustable gesture, so reaching zoom never requires a pinch, and its accessibility
+value announces how many of the log's requests the window holds after every change, so it never
+leaves a VoiceOver user guessing whether anything happened.
 
 A request already running when the window opens, or one that outlives it, is drawn clipped flush
 to the window's edge rather than shrunk to fit — the clip reads as "continues", where a shrunk bar
-would read as a request shorter than it actually ran. Tapping a bar in the detail list opens that
-request's details.
+would read as a request shorter than it actually ran. Tapping a row in the detail list opens that
+request's details; tapping the strip itself never does. On this page dragging is the strip's only
+job — opening a request from a tap is what the Traffic Stats section's strip does instead, and the
+two are not the same gesture on the same control, they are different interactions the strip is
+told which one it is in.
 
 Both surfaces are handed the log's *filtered* requests, and the page's caption under the detail
 list names how many of the log's total requests the current window holds.
 
-The preview keeps its appearance. It is a seven-row summary that fits by design, and the window,
-the strip and the detail list belong to the page alone; the two surfaces still share their
-colours, outcome names, row height, bar thickness and duration labels through `WaterfallChartStyle`.
+The window, the highlighted region marking it on the strip, and the detail list belong to the full
+page alone — the Traffic Stats section draws no detail rows of its own to share a row height or a
+duration label with. What the two surfaces do share, through `WaterfallChartStyle`, is which
+colour an outcome is drawn in: the strip's `Canvas`, the detail list's rows and the page's own
+legend all read the same mapping, so a failed request is red wherever it is drawn, not red on one
+surface and a slightly different red on another.
 
-A bar too narrow to see on the *preview* is still drawn one point wide so that it can be found.
-That floor is a minimum rendered *width*, not a minimum duration: it adds at most one point of ink
-however long the session ran, and the bar's label still reports the real measurement. The page's
-own bars are floored the same way by the clipping arithmetic that fits them into the window, so
-neither surface ever draws a request that cannot be found.
+A bar too narrow to see is still drawn one point wide so that it can be found. That floor is a
+minimum rendered *width*, not a minimum duration: it adds at most one point of ink however long
+the session ran, and the bar's label still reports the real measurement. The page's own bars are
+floored the same way by the clipping arithmetic that fits them into the window, so neither surface
+ever draws a request that cannot be found.
 
 **Slowest Endpoints** groups by `METHOD host/path`, dropping the query string and collapsing any
 numeric or UUID path segment to `:id`, so `/users/1` and `/users/2` aggregate. A GraphQL operation
