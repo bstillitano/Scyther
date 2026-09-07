@@ -234,14 +234,71 @@ final class TrafficStatsViewModelTests: XCTestCase {
     }
 
     func testTheChartGrowsWithTheNumberOfBars() async {
-        let requests = (0..<20).map { index -> HTTPRequest in
+        let requests = (0..<4).map { index -> HTTPRequest in
             let model = request(duration: 100)
             model.requestDate = Date(timeIntervalSince1970: 1_000_000 + Double(index))
             return model
         }
-        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: 20)
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: 4)
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.chartHeight, 500)
+        XCTAssertEqual(viewModel.chartHeight, 4 * WaterfallChartStyle.rowHeight + 60)
+    }
+
+    /// Dynamic Type grows the chart's own axis labels, so the height it is drawn at has to grow
+    /// with them or they clip.
+    func testTheChartGrowsWithTheReadersTextSize() async {
+        let requests = (0..<4).map { index -> HTTPRequest in
+            let model = request(duration: 100)
+            model.requestDate = Date(timeIntervalSince1970: 1_000_000 + Double(index))
+            return model
+        }
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: 4)
+        await viewModel.recompute()
+        XCTAssertGreaterThan(
+            viewModel.chartHeight(rowHeight: WaterfallChartStyle.rowHeight * 2),
+            viewModel.chartHeight
+        )
+    }
+
+    /// The section is a preview, and a preview that draws everything is not one. With
+    /// twenty-two requests it filled the card and left the page it links to showing the same
+    /// picture, which is what made that page look pointless.
+    func testTheWaterfallSectionShowsAGlanceRatherThanTheWholeLog() async {
+        let requests = (0..<22).map { index -> HTTPRequest in
+            let model = request(duration: 100)
+            model.requestDate = Date(timeIntervalSince1970: 1_000_000 + Double(index))
+            return model
+        }
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: 22)
+        await viewModel.recompute()
+        XCTAssertEqual(viewModel.chartRows.count, WaterfallSeries.defaultLimit)
+        XCTAssertLessThan(WaterfallSeries.defaultLimit, 22)
+    }
+
+    /// A preview that hides most of the log has to say so, or the section under-reports the
+    /// session it claims to describe.
+    func testTheWaterfallCaptionSaysWhereTheHiddenRequestsAre() async {
+        let requests = (0..<22).map { index -> HTTPRequest in
+            let model = request(duration: 100)
+            model.requestDate = Date(timeIntervalSince1970: 1_000_000 + Double(index))
+            return model
+        }
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: 22)
+        await viewModel.recompute()
+        XCTAssertTrue(viewModel.waterfallCaption.contains("See all"),
+                      "the caption must point at the page holding the other fifteen")
+    }
+
+    /// And must not say it when there is nothing hidden.
+    func testTheWaterfallCaptionSaysNothingAboutSeeAllWhenEverythingIsShown() async {
+        let requests = (0..<3).map { index -> HTTPRequest in
+            let model = request(duration: 100)
+            model.requestDate = Date(timeIntervalSince1970: 1_000_000 + Double(index))
+            return model
+        }
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: 3)
+        await viewModel.recompute()
+        XCTAssertFalse(viewModel.waterfallCaption.contains("See all"))
     }
 
     func testTheChartHasAFloorHeight() async {
@@ -273,7 +330,7 @@ final class TrafficStatsViewModelTests: XCTestCase {
         let viewModel = TrafficStatsViewModel(requests: [request(duration: 2)], totalCount: 1)
         await viewModel.recompute()
         let row = try XCTUnwrap(viewModel.chartRows.first)
-        let label = viewModel.valueLabel(for: row.entry)
+        let label = WaterfallChartStyle.valueLabel(for: row.entry)
         XCTAssertTrue(label.contains("2"), "a two millisecond bar reads as two milliseconds")
         XCTAssertFalse(label.contains("0.002"), "and must not round away to zero seconds")
     }
@@ -282,7 +339,7 @@ final class TrafficStatsViewModelTests: XCTestCase {
         let viewModel = TrafficStatsViewModel(requests: [request(duration: 2_500)], totalCount: 1)
         await viewModel.recompute()
         let row = try XCTUnwrap(viewModel.chartRows.first)
-        XCTAssertTrue(viewModel.valueLabel(for: row.entry).contains("2.5"))
+        XCTAssertTrue(WaterfallChartStyle.valueLabel(for: row.entry).contains("2.5"))
     }
 
     /// The defect W19 named, at the surface it reaches the developer through: a failed request
@@ -294,7 +351,7 @@ final class TrafficStatsViewModelTests: XCTestCase {
         let viewModel = TrafficStatsViewModel(requests: [failed], totalCount: 1)
         await viewModel.recompute()
         let row = try XCTUnwrap(viewModel.chartRows.first)
-        XCTAssertEqual(viewModel.outcomeTitle(for: row.entry), "Failed")
+        XCTAssertEqual(WaterfallChartStyle.outcomeTitle(for: row.entry), "Failed")
         XCTAssertFalse(row.entry.isPending)
     }
 
@@ -305,7 +362,7 @@ final class TrafficStatsViewModelTests: XCTestCase {
         )
         await viewModel.recompute()
         let row = try XCTUnwrap(viewModel.chartRows.first)
-        XCTAssertEqual(viewModel.outcomeTitle(for: row.entry), "Stubbed",
+        XCTAssertEqual(WaterfallChartStyle.outcomeTitle(for: row.entry), "Stubbed",
                        "an authored 500 says nothing about the server")
     }
 

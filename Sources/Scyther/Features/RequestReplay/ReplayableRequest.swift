@@ -172,9 +172,18 @@ struct ReplayableRequest: Equatable, Sendable {
     /// Duplicated header names are added rather than set, so two `Accept` rows travel as the one
     /// comma-joined field HTTP defines rather than one of them silently winning.
     ///
-    /// - Parameter originalID: The original's `getRandomHash()` value.
+    /// The request is also marked as Scyther's own — see ``ScytherOriginatedRequest``. A replay is
+    /// composed and sent by the toolkit, not by the app: a breakpoint holding it would stall the
+    /// editor that sent it, and a header rewrite would put back a header the developer had just
+    /// deleted, so neither ever applies. Stubs and conditioning are exempt by default and opted
+    /// back into with `applyingOverrides`, because replaying a crafted request into a mock is a
+    /// real workflow. It is logged either way, so it still lands beside the original.
+    ///
+    /// - Parameters:
+    ///   - originalID: The original's `getRandomHash()` value.
+    ///   - applyingOverrides: Whether Request Overrides may stub or condition the replay.
     /// - Returns: The request, or `nil` when `url` does not parse into an absolute HTTP URL.
-    func makeURLRequest(replayOf originalID: String) -> URLRequest? {
+    func makeURLRequest(replayOf originalID: String, applyingOverrides: Bool = false) -> URLRequest? {
         guard let parsed = parsedURL else { return nil }
         let mutable = NSMutableURLRequest(url: parsed)
         mutable.httpMethod = method.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
@@ -185,6 +194,7 @@ struct ReplayableRequest: Equatable, Sendable {
         }
         mutable.httpBody = body
         URLProtocol.setProperty(originalID, forKey: replayOfRequestKey, in: mutable)
+        ScytherOriginatedRequest.mark(mutable, applyingOverrides: applyingOverrides)
         return mutable as URLRequest
     }
 

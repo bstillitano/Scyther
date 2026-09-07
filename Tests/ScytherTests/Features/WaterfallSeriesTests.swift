@@ -180,10 +180,16 @@ final class WaterfallSeriesTests: XCTestCase {
         XCTAssertEqual(series.origin, base.addingTimeInterval(7))
     }
 
-    func testTheDefaultLimitIsForty() {
+    /// The default is what the preview section on **Traffic Stats** takes, and a preview that
+    /// draws everything is not one: at forty it filled the card with a twenty-two request log and
+    /// left the **See all** page it links to showing the same picture.
+    func testTheDefaultLimitIsAGlanceRatherThanTheWholeLog() {
         let series = WaterfallSeries.build(from: (0..<50).map { request(offset: TimeInterval($0)) })
-        XCTAssertEqual(series.entries.count, 40)
-        XCTAssertEqual(series.origin, base.addingTimeInterval(10))
+        XCTAssertEqual(series.entries.count, WaterfallSeries.defaultLimit)
+        XCTAssertLessThanOrEqual(WaterfallSeries.defaultLimit, 10, "a preview has to read as one")
+        XCTAssertEqual(series.origin,
+                       base.addingTimeInterval(TimeInterval(50 - WaterfallSeries.defaultLimit)),
+                       "and it keeps the most recent, not the oldest")
     }
 
     func testALimitOfZeroProducesAnEmptySeries() {

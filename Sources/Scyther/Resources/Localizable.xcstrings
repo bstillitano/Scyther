@@ -2933,6 +2933,83 @@
         }
       }
     },
+    "%lld of %lld requests on a shared axis, oldest first. Bars that overlap were in flight at the same time.": {
+      "comment": "Caption under the bars on the full-log waterfall page when a filter is active: the shown count against the unfiltered total. Not a plural entry: a String Catalog inflects on the first number, which here is the filtered count rather than the number the noun agrees with",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%lld من %lld طلب على محور مشترك، الأقدم أولاً. الأشرطة المتداخلة كانت قيد التنفيذ في الوقت نفسه."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%lld von %lld Anfragen auf einer gemeinsamen Achse, älteste zuerst. Überlappende Balken waren gleichzeitig unterwegs."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%lld de %lld solicitudes en un eje compartido, de la más antigua a la más reciente. Las barras que se solapan estaban en curso al mismo tiempo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%lld requêtes sur %lld sur un axe partagé, de la plus ancienne à la plus récente. Les barres qui se chevauchent étaient en cours en même temps."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%lld di %lld richieste su un asse condiviso, dalla più vecchia alla più recente. Le barre che si sovrappongono erano in corso nello stesso momento."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%lld 件中 %lld 件のリクエストを共有の軸上に、古い順に表示します。重なり合うバーは同時に実行中でした。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%lld개 중 %lld개 요청을 공유 축에 오래된 순으로 표시합니다. 겹치는 막대는 동시에 진행 중이었습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%lld van %lld verzoeken op een gedeelde as, oudste eerst. Balken die elkaar overlappen liepen tegelijkertijd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%lld de %lld solicitações em um eixo compartilhado, da mais antiga para a mais recente. As barras que se sobrepõem estavam em andamento ao mesmo tempo."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%lld из %lld запросов на общей оси, от самых старых. Пересекающиеся полосы выполнялись одновременно."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%lld 个请求（共 %lld 个）在同一时间轴上，最早的在最上方。重叠的条形表示这些请求同时在进行。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%lld 個請求（共 %lld 個）在同一時間軸上，最早的在最上方。重疊的長條表示這些請求同時在進行。"
+          }
+        }
+      }
+    },
     "%lld requests": {
       "comment": "Caption stating how many requests the figures cover, and the count in an endpoint or host subtitle",
       "localizations": {
@@ -8269,6 +8346,83 @@
         }
       }
     },
+    "Apply Request Overrides": {
+      "comment": "Toggle in the replay editor deciding whether mocks and conditioning apply to the replay",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تطبيق تجاوزات الطلبات"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Request-Overrides anwenden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aplicar anulaciones de solicitudes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Appliquer les remplacements de requêtes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Applica le sostituzioni delle richieste"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "リクエストの上書きを適用"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "요청 재정의 적용"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Verzoekoverschrijvingen toepassen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aplicar substituições de requisição"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Применять переопределения запросов"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "应用请求覆盖"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "套用請求覆寫"
+          }
+        }
+      }
+    },
     "Archive": {
       "comment": "Section header for the archive being built in the export sheet",
       "localizations": {
@@ -9266,6 +9420,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "頻寬（KB/秒）"
+          }
+        }
+      }
+    },
+    "Bars appear once requests are logged. The page follows the log's search and filters, so it draws whatever the list is showing.": {
+      "comment": "Empty state description on the full-log waterfall page",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تظهر الأشرطة بمجرد تسجيل الطلبات. تتبع الصفحة بحث السجل وعوامل تصفيته، لذا ترسم ما تعرضه القائمة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Balken erscheinen, sobald Anfragen protokolliert werden. Die Seite folgt der Suche und den Filtern des Protokolls und zeichnet daher genau das, was die Liste zeigt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Las barras aparecen en cuanto se registran solicitudes. La página sigue la búsqueda y los filtros del registro, así que dibuja lo que muestra la lista."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Les barres apparaissent dès que des requêtes sont enregistrées. La page suit la recherche et les filtres du journal : elle dessine donc ce que la liste affiche."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Le barre compaiono non appena vengono registrate delle richieste. La pagina segue la ricerca e i filtri del registro, quindi disegna ciò che mostra l'elenco."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "リクエストがログに記録されるとバーが表示されます。このページはログの検索とフィルタに従うため、リストに表示されているものを描画します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "요청이 기록되면 막대가 표시됩니다. 이 페이지는 로그의 검색과 필터를 따르므로 목록에 표시된 내용을 그립니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Balken verschijnen zodra er verzoeken zijn gelogd. De pagina volgt de zoekopdracht en filters van het logboek en tekent dus wat de lijst laat zien."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "As barras aparecem assim que solicitações são registradas. A página segue a busca e os filtros do registro, então desenha o que a lista está mostrando."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Полосы появляются, как только запросы попадают в журнал. Страница следует поиску и фильтрам журнала, поэтому рисует то, что показывает список."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "记录到请求后即会显示条形。本页跟随日志的搜索和筛选，因此绘制的正是列表当前显示的内容。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "記錄到請求後即會顯示長條。本頁跟隨記錄的搜尋和篩選，因此繪製的正是列表目前顯示的內容。"
           }
         }
       }
@@ -22627,6 +22858,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "所有暫停的請求都已處理，應用程式不再等待。"
+          }
+        }
+      }
+    },
+    "Every request in the log on a shared axis, oldest first. Bars that overlap were in flight at the same time.": {
+      "comment": "Caption under the bars on the full-log waterfall page, explaining what the chart shows",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "جميع الطلبات في السجل على محور مشترك، الأقدم أولاً. الأشرطة المتداخلة كانت قيد التنفيذ في الوقت نفسه."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alle Anfragen im Protokoll auf einer gemeinsamen Achse, älteste zuerst. Überlappende Balken waren gleichzeitig unterwegs."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Todas las solicitudes del registro en un eje compartido, de la más antigua a la más reciente. Las barras que se solapan estaban en curso al mismo tiempo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Toutes les requêtes du journal sur un axe partagé, de la plus ancienne à la plus récente. Les barres qui se chevauchent étaient en cours en même temps."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Tutte le richieste del registro su un asse condiviso, dalla più vecchia alla più recente. Le barre che si sovrappongono erano in corso nello stesso momento."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ログ内のすべてのリクエストを共有の軸上に、古い順に表示します。重なり合うバーは同時に実行中でした。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "로그의 모든 요청을 공유 축에 오래된 순으로 표시합니다. 겹치는 막대는 동시에 진행 중이었습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alle verzoeken in het logboek op een gedeelde as, oudste eerst. Balken die elkaar overlappen liepen tegelijkertijd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Todas as solicitações do registro em um eixo compartilhado, da mais antiga para a mais recente. As barras que se sobrepõem estavam em andamento ao mesmo tempo."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Все запросы из журнала на общей оси, от самых старых. Пересекающиеся полосы выполнялись одновременно."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "日志中的所有请求都在同一时间轴上，最早的在最上方。重叠的条形表示这些请求同时在进行。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "記錄中的所有請求都在同一時間軸上，最早的在最上方。重疊的長條表示這些請求同時在進行。"
           }
         }
       }
@@ -38051,6 +38359,83 @@
         }
       }
     },
+    "Off, the replay is sent exactly as edited. On, mocks and network conditioning apply to it as they would to app traffic. Breakpoints and header rewrites never apply to a replay.": {
+      "comment": "Footer under the Apply Request Overrides toggle in the replay editor",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "عند الإيقاف، تُرسل الإعادة تمامًا كما جرى تحريرها. وعند التفعيل، تنطبق عليها الاستجابات الوهمية وتهيئة الشبكة كما تنطبق على حركة مرور التطبيق. أما نقاط التوقف وإعادة كتابة الترويسات فلا تنطبق على الإعادة أبدًا."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aus wird die Wiederholung genau so gesendet, wie sie bearbeitet wurde. Ein gelten Mocks und Netzwerkbedingungen für sie wie für App-Traffic. Haltepunkte und Header-Umschreibungen gelten nie für eine Wiederholung."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Desactivado, el reenvío se envía exactamente como se editó. Activado, los simulacros y las condiciones de red se le aplican igual que al tráfico de la app. Los puntos de interrupción y las reescrituras de cabeceras nunca se aplican a un reenvío."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Désactivé, la requête est renvoyée exactement telle qu’elle a été modifiée. Activé, les simulations et le conditionnement réseau s’y appliquent comme au trafic de l’app. Les points d’arrêt et les réécritures d’en-têtes ne s’appliquent jamais à une requête rejouée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Disattivato, il rinvio viene inviato esattamente come è stato modificato. Attivato, mock e condizionamento di rete si applicano come al traffico dell’app. I punti di interruzione e le riscritture di intestazioni non si applicano mai a un rinvio."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "オフの場合、再送は編集したとおりに送信されます。オンの場合、モックとネットワーク調整がアプリの通信と同じように適用されます。ブレークポイントとヘッダーの書き換えは再送には適用されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "끄면 재전송은 편집한 그대로 전송됩니다. 켜면 목 응답과 네트워크 조절이 앱 트래픽과 동일하게 적용됩니다. 중단점과 헤더 재작성은 재전송에 적용되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Uit wordt de herhaling precies zo verstuurd als ze bewerkt is. Aan gelden mocks en netwerkcondities ervoor net als voor app-verkeer. Onderbrekingspunten en headerherschrijvingen gelden nooit voor een herhaling."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Desativado, o reenvio é enviado exatamente como foi editado. Ativado, mocks e condicionamento de rede se aplicam a ele como ao tráfego do app. Pontos de interrupção e reescritas de cabeçalho nunca se aplicam a um reenvio."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Выключено — повтор отправляется ровно в том виде, в каком он отредактирован. Включено — моки и условия сети применяются к нему так же, как к трафику приложения. Точки останова и переписывание заголовков к повторам не применяются никогда."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "关闭时，重发的请求完全按编辑后的内容发出。开启时，模拟响应和网络调节会像对待应用流量一样应用于它。断点和请求头改写永远不会应用于重发。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "關閉時，重送的請求完全依編輯後的內容送出。開啟時，模擬回應與網路調節會像對待 App 流量一樣套用。中斷點與標頭改寫永遠不會套用於重送。"
+          }
+        }
+      }
+    },
     "One line of ordinary copy, with the modes you have switched on applied to it.": {
       "comment": "Footer under the Sample section",
       "localizations": {
@@ -45617,79 +46002,79 @@
         }
       }
     },
-    "Replays are sent like app traffic, so any enabled override applies to them too.": {
-      "comment": "Footer in the replay editor explaining that request overrides match replays as well",
+    "Replays appear in the log beside the original.": {
+      "comment": "Footer in the replay editor stating that a replay is captured like app traffic",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "تُرسل عمليات الإعادة مثل حركة مرور التطبيق، لذا تنطبق عليها أي تجاوزات مفعّلة."
+            "value": "تظهر عمليات الإعادة في السجل بجوار الطلب الأصلي."
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Wiederholungen werden wie App-Traffic gesendet, daher gilt jeder aktivierte Override auch für sie."
+            "value": "Wiederholungen erscheinen im Log, direkt neben dem Original."
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Los reenvíos se envían como el tráfico de la app, así que cualquier anulación activada también se les aplica."
+            "value": "Los reenvíos aparecen en el registro, junto al original."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Les requêtes rejouées sont envoyées comme le trafic de l’app : tout remplacement activé s’y applique aussi."
+            "value": "Les requêtes rejouées apparaissent dans le journal, à côté de l’originale."
           }
         },
         "it": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "I rinvii vengono inviati come il traffico dell’app, quindi anche le sostituzioni attive si applicano a loro."
+            "value": "I rinvii compaiono nel registro, accanto all’originale."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "再送はアプリの通信と同じように送信されるため、有効な上書きも適用されます。"
+            "value": "再送は元のリクエストの隣にログとして表示されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "재전송은 앱 트래픽과 동일하게 전송되므로 활성화된 재정의도 적용됩니다."
+            "value": "재전송은 원본 옆에 로그로 표시됩니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Herhalingen worden verstuurd als app-verkeer, dus elke ingeschakelde overschrijving geldt ook voor ze."
+            "value": "Herhalingen verschijnen in het log, naast het origineel."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Os reenvios são enviados como o tráfego do app, então qualquer substituição ativada também se aplica a eles."
+            "value": "Os reenvios aparecem no log, ao lado do original."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Повторы отправляются как обычный трафик приложения, поэтому включённые переопределения применяются и к ним."
+            "value": "Повторы отображаются в журнале рядом с оригиналом."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "重发的请求与应用流量一样发出，因此已启用的覆盖同样适用。"
+            "value": "重发的请求会显示在日志中，与原请求并列。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "重送的請求與 App 流量一樣送出，因此已啟用的覆寫同樣適用。"
+            "value": "重送的請求會顯示在日誌中，與原請求並列。"
           }
         }
       }
@@ -50541,6 +50926,160 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "安全網域"
+          }
+        }
+      }
+    },
+    "See all": {
+      "comment": "Button in the Waterfall section header that opens the full-log waterfall page",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "عرض الكل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alle anzeigen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ver todo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Tout afficher"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostra tutto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "すべて表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "모두 보기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Toon alles"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ver tudo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Показать все"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "查看全部"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "查看全部"
+          }
+        }
+      }
+    },
+    "See all draws the whole log.": {
+      "comment": "Appended to the waterfall preview's caption when the log holds more requests than the preview shows",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يعرض «عرض الكل» السجل بالكامل."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "„Alle anzeigen“ zeichnet das gesamte Protokoll."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ver todo dibuja el registro completo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Tout afficher dessine l'intégralité du journal."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostra tutto disegna l'intero registro."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "「すべて表示」はログ全体を描画します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "'모두 보기'는 전체 로그를 그립니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Toon alles tekent het hele logboek."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ver tudo desenha o registro inteiro."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "«Показать все» рисует весь журнал."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "“查看全部”会绘制整个日志。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "「查看全部」會繪製整個記錄。"
           }
         }
       }

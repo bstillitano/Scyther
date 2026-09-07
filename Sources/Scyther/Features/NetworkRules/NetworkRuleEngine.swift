@@ -121,7 +121,14 @@ enum NetworkRuleEngine {
     /// - Parameters:
     ///   - request: The outgoing request.
     ///   - rules: The rules to evaluate, in precedence order.
-    static func outcome(for request: URLRequest, rules: [NetworkRule]) -> NetworkRuleOutcome {
+    ///   - applyingHeaderRewrites: Whether rewrites are resolved at all. `false` for a request
+    ///     Scyther itself sent — see ``ScytherOriginatedRequest`` — where a rewrite would
+    ///     contradict the screen that sent it. Skipping the facet rather than discarding the
+    ///     rewrite afterwards is what keeps the credits honest: an override that only rewrites
+    ///     headers is then not named on a log entry it did not shape.
+    static func outcome(for request: URLRequest,
+                        rules: [NetworkRule],
+                        applyingHeaderRewrites: Bool = true) -> NetworkRuleOutcome {
         var headers = HeaderMerge()
         var condition: NetworkCondition?
         var stub: NetworkRuleStub?
@@ -137,7 +144,7 @@ enum NetworkRuleEngine {
             /// shapes rather than once per facet it happens to fill in.
             var shapesTheRequest = false
 
-            if let rewrite = rule.actions.rewriteHeaders, headers.merge(rewrite) {
+            if applyingHeaderRewrites, let rewrite = rule.actions.rewriteHeaders, headers.merge(rewrite) {
                 shapesTheRequest = true
             }
             if let value = rule.actions.condition, value.shapesTheRequest, condition == nil {
