@@ -235,6 +235,43 @@ internal final class AccessibilityAudit: Sendable {
         return enabled.intersection(checksNeedingAnUncoveredScreen)
     }
 
+    /// The share of its candidates a check has to have measured before it counts as having run.
+    ///
+    /// Half. The line has to be drawn somewhere and there is no standard to cite, so it is drawn at
+    /// the point where the sentence "this check ran" stops being defensible: below half, most of
+    /// what the check looked at was never read, and what came back is a minority report about a
+    /// screen rather than a result for it. Drawing it any stricter would put a banner on every
+    /// screen with a photograph or a video layer on it, where a real minority of elements genuinely
+    /// cannot be measured and the rest were measured perfectly well.
+    ///
+    /// The rule this replaces was "every single candidate failed", which meant one successful
+    /// measurement out of two hundred left the check counted as having run, ``isComplete`` true, and
+    /// a green tick over a screen 199 of whose elements nobody looked at.
+    internal nonisolated static let measuredFractionForACheckToHaveRun: Double = 0.5
+
+    /// Which of `enabled` looked at candidates and read too few of them to call the check run.
+    ///
+    /// Contrast only, because it is the only check that reads pixels; the other two read the
+    /// accessibility tree, where there is no such thing as a candidate it could not look at.
+    ///
+    /// A screen with nothing to measure — no text, no buttons — is silent rather than unmeasurable.
+    /// "There was nothing to read" and "there was something and it could not be read" are different
+    /// facts, and only the second says anything is missing from the report.
+    ///
+    /// - Parameters:
+    ///   - enabled: The checks that ran.
+    ///   - candidates: How many elements contrast was asked about.
+    ///   - measured: How many of those it could actually read.
+    /// - Returns: The checks that did not measure enough of the screen to have run.
+    internal nonisolated static func checksUnmeasurableFromPartialMeasurement(from enabled: Set<AccessibilityCheck>,
+                                                                             candidates: Int,
+                                                                             measured: Int) -> Set<AccessibilityCheck> {
+        guard enabled.contains(.contrast), candidates > 0 else { return [] }
+        let fraction = Double(measured) / Double(candidates)
+        guard fraction < measuredFractionForACheckToHaveRun else { return [] }
+        return [.contrast]
+    }
+
     /// Audits the key window right now.
     ///
     /// Returns an empty result — no findings, no truncation, no checks run — on any build that
@@ -283,16 +320,32 @@ internal final class AccessibilityAudit: Sendable {
             sampler = unmeasurable.isEmpty ? windowSampler : nil
         }
 
+        // Wrapped so the pass can be asked afterwards how much of the screen it actually read.
+        // The auditor knows whether *every* candidate failed; it has no notion of "nearly every
+        // one did", and that is the case that used to come back as a clean, complete report.
+        let counting = sampler.map(MeasurementCountingSampler.init(wrapping:))
+
         // Contrast stays in `checks` even when there is nothing to sample: it *ran*, and was
         // reported as unmeasurable, which is a different claim from either "it found nothing" or
         // "you switched it off". With no sampler it simply measures nothing, so no finding can
         // come out of a bitmap that does not exist.
-        return auditor.audit(root: window,
-                             checks: checks,
-                             sampler: sampler,
-                             checksSkippedWhileCovered: skipped,
-                             checksUnmeasurable: unmeasurable,
-                             deadline: deadline)
+        let result = auditor.audit(root: window,
+                                   checks: checks,
+                                   sampler: counting,
+                                   checksSkippedWhileCovered: skipped,
+                                   checksUnmeasurable: unmeasurable,
+                                   deadline: deadline)
+
+        guard let counting else { return result }
+        let partial = Self.checksUnmeasurableFromPartialMeasurement(from: checks,
+                                                                    candidates: counting.candidates,
+                                                                    measured: counting.measured)
+        guard !partial.isEmpty else { return result }
+        return AccessibilityAuditor.Result(findings: result.findings,
+                                           didHitLimit: result.didHitLimit,
+                                           checksRun: result.checksRun,
+                                           checksSkippedWhileCovered: result.checksSkippedWhileCovered,
+                                           checksUnmeasurable: result.checksUnmeasurable.union(partial))
     }
 
     /// The app's key window, resolved the same way `InterfaceToolkit` and `Scyther` itself do.
@@ -305,6 +358,82 @@ internal final class AccessibilityAudit: Sendable {
             .compactMap { $0 as? UIWindowScene }
             .flatMap { $0.windows }
             .first { $0.isKeyWindow }
+    }
+}
+
+/// A ``ContrastSampling`` that passes every crop straight through and counts how many of them
+/// carried a measurement.
+///
+/// The count is the only way ``AccessibilityAudit/auditKeyWindow()`` can tell a check that read the
+/// screen from one that read almost none of it. ``AccessibilityAuditor`` already counts candidates
+/// and measurements for its own all-or-nothing rule, but it does not publish them, and its file is
+/// the wrong place for a threshold about what the *report* may claim.
+///
+/// ## Why the readability test is taken on a subsample
+///
+/// A crop is unmeasurable when ``ContrastAnalyser/measure(pixels:)`` returns `nil`: either there
+/// are no pixels, or everything in the region is within a hair of one colour. Answering that
+/// exactly means linearising every pixel — three `pow` calls each, twelve thousand per crop — and
+/// the auditor is about to do precisely that work again a line later, so asking exactly would
+/// double the most expensive part of the pass on every screen, for a statistic.
+///
+/// Instead the question is put to a strided subsample of at most ``probePixels`` pixels, through
+/// the same ``ContrastAnalyser/measure(pixels:)`` the real answer comes from, so the two can never
+/// drift apart in their idea of what "readable" means. Flatness is the property being detected and
+/// a flat crop is flat everywhere, so a sixteenth of it answers the same way as all of it; the cost
+/// is a sixteenth of one measurement per candidate.
+private final class MeasurementCountingSampler: ContrastSampling {
+    /// How many pixels the readability probe looks at.
+    ///
+    /// 256 — a 16 × 16 grid over a crop the sampler has already capped at 64 × 64. Enough that a
+    /// crop with glyphs in it lands on ink, few enough that the probe costs a fraction of the
+    /// measurement it is standing in for.
+    private static let probePixels = 256
+
+    /// The sampler doing the real work.
+    private let wrapped: ContrastSampling
+
+    /// How many elements contrast was asked about.
+    private(set) var candidates = 0
+
+    /// How many of those came back with something to measure.
+    private(set) var measured = 0
+
+    /// Wraps `sampler`.
+    ///
+    /// - Parameter sampler: The sampler to pass every crop through to.
+    init(wrapping sampler: ContrastSampling) {
+        self.wrapped = sampler
+    }
+
+    /// Returns `wrapped`'s pixels for `frame`, having noted whether they carried a measurement.
+    ///
+    /// - Parameter frame: The region in window coordinates.
+    /// - Returns: Exactly what `wrapped` returned, unchanged.
+    func samples(in frame: CGRect) -> [RGB] {
+        let pixels = wrapped.samples(in: frame)
+        candidates += 1
+        if Self.carriesAMeasurement(pixels) { measured += 1 }
+        return pixels
+    }
+
+    /// Whether `pixels` has two colours in it to measure between.
+    ///
+    /// - Parameter pixels: One crop's pixels.
+    /// - Returns: `true` when a measurement could be recovered from them.
+    private static func carriesAMeasurement(_ pixels: [RGB]) -> Bool {
+        guard !pixels.isEmpty else { return false }
+        let step = max(1, pixels.count / probePixels)
+        guard step > 1 else { return ContrastAnalyser.measure(pixels: pixels) != nil }
+
+        var probe: [RGB] = []
+        probe.reserveCapacity(pixels.count / step + 1)
+        var index = 0
+        while index < pixels.count {
+            probe.append(pixels[index])
+            index += step
+        }
+        return ContrastAnalyser.measure(pixels: probe) != nil
     }
 }
 #endif

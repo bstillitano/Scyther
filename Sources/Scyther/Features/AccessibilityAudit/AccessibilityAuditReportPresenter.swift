@@ -148,8 +148,24 @@ internal final class AccessibilityAuditReportPresenter {
         guard isPresenting else { return }
         guard !isReportStillPresented(self) else { return }
 
-        hostingController = nil
         isPresenting = false
+
+        // The release is deferred one run-loop turn, and only the release. The notification is
+        // posted from `ScytherHostingController.viewDidDisappear`, after `super`, and the observer
+        // is registered with `queue: nil` so it runs on the posting thread inside that same call —
+        // which means letting go of the last strong reference here deallocates the controller while
+        // UIKit is still unwinding its own disappearance for that object. Whether that survives
+        // depends on an autorelease UIKit does not contract to provide. A turn costs nothing.
+        //
+        // The identity check is what makes the deferral safe: the developer can tap the pill again
+        // in the same turn, and this block must not take away the report that tap just presented.
+        let dismissed = hostingController
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.hostingController === dismissed else { return }
+                self.hostingController = nil
+            }
+        }
     }
 
     /// Presents the report over the topmost view controller, and reports whether it got there.

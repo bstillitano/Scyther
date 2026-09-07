@@ -143,4 +143,60 @@ final class AccessibilityAuditProductionSafetyTests: XCTestCase {
 
         XCTAssertFalse(skipped.contains(.contrast))
     }
+
+    // MARK: - When A Check Has Genuinely Run
+
+    /// One measurement out of two hundred candidates left contrast counted as a check that ran, so
+    /// the report showed a green tick with no banner over a screen 199 of whose elements were never
+    /// read. A check that measured a small minority of what it looked at has not run.
+    func testAContrastCheckThatCouldReadAlmostNothingHasNotRun() {
+        let unmeasurable = AccessibilityAudit.checksUnmeasurableFromPartialMeasurement(
+            from: [.contrast, .missingLabel, .touchTarget], candidates: 200, measured: 1)
+
+        XCTAssertEqual(unmeasurable, [.contrast])
+    }
+
+    /// The existing total-failure case still lands in the same bucket, from the same rule.
+    func testAContrastCheckThatReadNothingAtAllHasNotRun() {
+        let unmeasurable = AccessibilityAudit.checksUnmeasurableFromPartialMeasurement(
+            from: [.contrast], candidates: 200, measured: 0)
+
+        XCTAssertEqual(unmeasurable, [.contrast])
+    }
+
+    /// A check that read most of what it looked at has run. A stricter line than this would put a
+    /// banner on every screen with a photograph on it.
+    func testAContrastCheckThatReadMostOfTheScreenHasRun() {
+        let unmeasurable = AccessibilityAudit.checksUnmeasurableFromPartialMeasurement(
+            from: [.contrast], candidates: 200, measured: 180)
+
+        XCTAssertTrue(unmeasurable.isEmpty)
+    }
+
+    /// Exactly at the line, a check has run: the threshold is the point below which it has not.
+    func testAContrastCheckAtTheThresholdHasRun() {
+        let candidates = 200
+        let measured = Int((Double(candidates) * AccessibilityAudit.measuredFractionForACheckToHaveRun).rounded(.up))
+        let unmeasurable = AccessibilityAudit.checksUnmeasurableFromPartialMeasurement(
+            from: [.contrast], candidates: candidates, measured: measured)
+
+        XCTAssertTrue(unmeasurable.isEmpty)
+    }
+
+    /// A screen with no text on it at all measured nothing because there was nothing to measure.
+    /// That is a different fact from a screen it could not read, and it stays silent.
+    func testAScreenWithNothingToMeasureIsNotReportedAsUnmeasurable() {
+        let unmeasurable = AccessibilityAudit.checksUnmeasurableFromPartialMeasurement(
+            from: [.contrast], candidates: 0, measured: 0)
+
+        XCTAssertTrue(unmeasurable.isEmpty)
+    }
+
+    /// Contrast is the only check that reads pixels, so it is the only one this rule can be about.
+    func testOnlyContrastIsJudgedOnHowMuchItMeasured() {
+        let unmeasurable = AccessibilityAudit.checksUnmeasurableFromPartialMeasurement(
+            from: [.missingLabel, .touchTarget], candidates: 200, measured: 0)
+
+        XCTAssertTrue(unmeasurable.isEmpty)
+    }
 }

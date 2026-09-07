@@ -75,6 +75,18 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     /// animations.
     private static let flashCycleDuration: TimeInterval = 0.15
 
+    /// How long a deferred flash stays worth playing.
+    ///
+    /// A flash asked for while Scyther covers the app is held until Scyther's screen goes away, and
+    /// nothing else clears it: no pass runs in the meantime, so ``reconcileFlash()`` never gets a
+    /// chance to decide it no longer matches. Tap a row, wander round the rest of the menu for a
+    /// few minutes, dismiss Scyther, and a box flashes over one arbitrary element of the app with
+    /// no connection to anything the developer has done recently.
+    ///
+    /// Twenty seconds: comfortably longer than closing the report and getting back to the app,
+    /// comfortably shorter than a browse through the rest of the menu.
+    internal static let deferredFlashLifetime: TimeInterval = 20
+
     // MARK: - UI Elements
 
     /// The tappable pill down the trailing edge of the screen reporting how many findings there
@@ -94,11 +106,41 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     /// Setting this redraws the boxes and refreshes the pill's count in one step, so a caller —
     /// ``InterfaceToolkit/scheduleAccessibilityReaudit()`` after a fresh audit — only has to
     /// assign the new array and never has to remember to ask for a redraw itself.
+    /// A pass that found the same things as the last one changes nothing on screen and is dropped
+    /// here. It is not a rare case — it is the common one: the poll re-audits on every navigation
+    /// and every window appearing, and a screen that has not moved produces an identical set. Every
+    /// ``AccessibilityFinding`` carries a fresh `UUID`, so `==` cannot recognise two passes over one
+    /// unchanged screen; ``describeTheSameElements(_:_:)`` compares what the findings *say* instead.
+    /// Without it, this view's backing store — the size of the screen, around 12 MiB at 3× — was
+    /// re-rendered on every pass, up to twice a second, to draw exactly what was already there.
     internal var findings: [AccessibilityFinding] = [] {
         didSet {
+            guard !Self.describeTheSameElements(findings, oldValue) else { return }
             setNeedsDisplay()
             updateReportButton()
             reconcileFlash()
+        }
+    }
+
+    /// Whether two passes found the same things about the same elements in the same places.
+    ///
+    /// Everything an `AccessibilityFinding` renders, and nothing it does not: the identity is
+    /// deliberately left out, because it is the one field guaranteed to differ between two passes
+    /// describing an identical screen.
+    ///
+    /// - Parameters:
+    ///   - findings: One pass's findings.
+    ///   - others: Another pass's findings.
+    /// - Returns: `true` when the two would draw and read identically.
+    internal static func describeTheSameElements(_ findings: [AccessibilityFinding],
+                                                 _ others: [AccessibilityFinding]) -> Bool {
+        guard findings.count == others.count else { return false }
+        return zip(findings, others).allSatisfy { finding, other in
+            finding.check == other.check
+                && finding.severity == other.severity
+                && finding.frame == other.frame
+                && finding.elementName == other.elementName
+                && finding.detail == other.detail
         }
     }
 
@@ -131,6 +173,10 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     /// which is the only place it describes anything.
     private var deferredFlash: AccessibilityFinding?
 
+    /// When ``deferredFlash`` was asked for, so a deferral older than ``deferredFlashLifetime`` can
+    /// be dropped rather than played against a tap the developer has long forgotten.
+    private var deferredFlashRequestedAt: Date?
+
     /// Called when the pill is tapped.
     ///
     /// Assigned by `InterfaceToolkit.setupAccessibilityAudit()` to
@@ -149,6 +195,12 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     /// "is Scyther in front of the app?" — and two independent answers to it would eventually
     /// disagree.
     internal var isCoveredByScyther: @MainActor () -> Bool = { ScytherPresentation.isCoveringScreen }
+
+    /// Reads the current time.
+    ///
+    /// Injected so a test can age a deferred flash past ``deferredFlashLifetime`` without sleeping
+    /// for twenty seconds.
+    internal var now: @MainActor () -> Date = Date.init
 
     /// Called at the end of every ``updateFrame()``.
     ///
@@ -319,7 +371,12 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
             return
         }
         guard let deferred = deferredFlash else { return }
+        let requestedAt = deferredFlashRequestedAt ?? now()
         deferredFlash = nil
+        deferredFlashRequestedAt = nil
+        // A flash is an answer to a tap. Long enough after the tap it stops being one, and becomes
+        // a box appearing over the app for no reason the developer can connect to anything.
+        guard now().timeIntervalSince(requestedAt) < Self.deferredFlashLifetime else { return }
         play(deferred)
     }
 
@@ -361,7 +418,8 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
         for finding in findings {
             context.setStrokeColor(finding.severity.overlayStrokeColor.cgColor)
             context.setLineWidth(Self.strokeWidth)
-            let path = UIBezierPath(roundedRect: finding.frame, cornerRadius: Self.strokeCornerRadius)
+            let path = UIBezierPath(roundedRect: rectInOverlay(finding.frame),
+                                    cornerRadius: Self.strokeCornerRadius)
             context.addPath(path.cgPath)
             context.strokePath()
         }
@@ -398,6 +456,7 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     internal func flash(_ finding: AccessibilityFinding) {
         guard !isCoveredByScyther() else {
             deferredFlash = finding
+            deferredFlashRequestedAt = now()
             return
         }
         play(finding)
@@ -415,8 +474,44 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     /// - Parameter finding: The finding to look for, usually a frozen one from the report.
     /// - Returns: The current finding about that element, or `nil` when it is gone.
     private func currentFinding(matching finding: AccessibilityFinding) -> AccessibilityFinding? {
-        findings.first { $0.id == finding.id }
-            ?? findings.first { $0.check == finding.check && $0.elementName == finding.elementName }
+        if let sameFinding = findings.first(where: { $0.id == finding.id }) { return sameFinding }
+
+        let sameElement = findings.filter {
+            $0.check == finding.check && $0.elementName == finding.elementName
+        }
+        return sameElement.min {
+            Self.distance(from: finding.frame, to: $0.frame) < Self.distance(from: finding.frame, to: $1.frame)
+        }
+    }
+
+    /// How far apart two frames' centres are.
+    ///
+    /// - Parameters:
+    ///   - frame: One frame.
+    ///   - other: The other.
+    /// - Returns: The distance between their centres, in points.
+    private static func distance(from frame: CGRect, to other: CGRect) -> CGFloat {
+        let dx = frame.midX - other.midX
+        let dy = frame.midY - other.midY
+        return ((dx * dx) + (dy * dy)).squareRoot()
+    }
+
+    /// Where a finding's window-coordinate frame falls in this view's own coordinate space.
+    ///
+    /// ``AuditNode/frameInWindow`` measures in the *window*; this view is sized to
+    /// ``TopLevelViewsWrapper``, which sizes itself to `UIScreen.main.bounds` — the whole display.
+    /// The two happen to share an origin on every iPhone and on an iPad app filling the screen, so
+    /// stroking the window's coordinates straight into this view's space has always looked right;
+    /// it is right by coincidence rather than by construction, and the coincidence does not survive
+    /// anything that moves the wrapper within the window, which is exactly what iPad Split View and
+    /// Slide Over do. Asking UIKit to convert costs nothing and is right in both cases.
+    ///
+    /// - Parameter frameInWindow: A finding's frame, in window coordinates.
+    /// - Returns: The same rectangle in this view's coordinate space, or unchanged when there is no
+    ///   window to convert from.
+    private func rectInOverlay(_ frameInWindow: CGRect) -> CGRect {
+        guard let window else { return frameInWindow }
+        return convert(frameInWindow, from: window)
     }
 
     /// Flashes `finding`'s box to full opacity and back, twice, over 0.6 seconds — if the element
@@ -428,7 +523,8 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
 
         removeFlash()
         let shape = CAShapeLayer()
-        shape.path = UIBezierPath(roundedRect: current.frame, cornerRadius: Self.strokeCornerRadius).cgPath
+        shape.path = UIBezierPath(roundedRect: rectInOverlay(current.frame),
+                                  cornerRadius: Self.strokeCornerRadius).cgPath
         shape.fillColor = UIColor.clear.cgColor
         shape.strokeColor = current.severity.overlayStrokeColor.cgColor
         shape.lineWidth = Self.strokeWidth
@@ -466,6 +562,7 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     private func reconcileFlash() {
         if let deferred = deferredFlash, currentFinding(matching: deferred) == nil {
             deferredFlash = nil
+            deferredFlashRequestedAt = nil
         }
         guard let flashed = flashedFinding else { return }
         guard let current = currentFinding(matching: flashed) else {
@@ -473,7 +570,7 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
             return
         }
         flashedFinding = current
-        flashLayer?.path = UIBezierPath(roundedRect: current.frame,
+        flashLayer?.path = UIBezierPath(roundedRect: rectInOverlay(current.frame),
                                         cornerRadius: Self.strokeCornerRadius).cgPath
     }
 

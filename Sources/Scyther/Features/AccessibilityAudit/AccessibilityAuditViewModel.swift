@@ -8,6 +8,33 @@
 import Foundation
 import SwiftUI
 
+/// One pass of the audit, with the moment it was taken.
+///
+/// The report opens onto the live overlay's last pass rather than taking one of its own — see
+/// ``AccessibilityAuditViewModel/seed`` — and that pass is, by construction, older than the screen
+/// reading it: no pass can run while Scyther covers the app, so the seed always predates the moment
+/// the developer opened the report. Without the timestamp there was nothing on the screen, and
+/// nothing in the model, able to say so; a report of twelve findings for rows that had been
+/// scrolled off half a minute earlier presented itself as the current state of the app.
+struct SeededAccessibilityPass: Sendable {
+    /// What the pass found.
+    let result: AccessibilityAuditor.Result
+
+    /// When the pass was taken. Everything after this moment — a scroll, a table reload, a cell
+    /// expanding — is not in ``result``.
+    let takenAt: Date
+
+    /// Creates a seeded pass.
+    ///
+    /// - Parameters:
+    ///   - result: What the pass found.
+    ///   - takenAt: When it was taken.
+    init(result: AccessibilityAuditor.Result, takenAt: Date) {
+        self.result = result
+        self.takenAt = takenAt
+    }
+}
+
 /// Drives the accessibility audit's report screen.
 ///
 /// The audit itself is injected as a closure — ``init(run:)`` — rather than this type calling
@@ -67,7 +94,10 @@ final class AccessibilityAuditViewModel: ViewModel {
     ///
     /// Returns `nil` when there is no such pass, which is every case except a live report: live
     /// mode off, or the menu opened before the first debounce elapsed. ``load()`` then runs its own.
-    private let seed: @MainActor () -> AccessibilityAuditor.Result?
+    ///
+    /// It carries the moment it was taken, because a seeded pass is always older than the screen
+    /// showing it — see ``SeededAccessibilityPass``.
+    private let seed: @MainActor () -> SeededAccessibilityPass?
 
     /// The settings the toggles at the top of the report read and write.
     ///
@@ -166,7 +196,7 @@ final class AccessibilityAuditViewModel: ViewModel {
     ///   - run: Performs one pass of the audit. Called by ``load()`` when there is no seed, and
     ///     once per call to ``rerun()`` — never on a timer, never in the background.
     init(settings: AccessibilityAudit = .instance,
-         seed: @escaping @MainActor () -> AccessibilityAuditor.Result? = { nil },
+         seed: @escaping @MainActor () -> SeededAccessibilityPass? = { nil },
          run: @escaping @MainActor () -> AccessibilityAuditor.Result) {
         self.run = run
         self.seed = seed
@@ -196,7 +226,7 @@ final class AccessibilityAuditViewModel: ViewModel {
         guard !hasLoaded else { return }
         hasLoaded = true
         if let seeded = seed() {
-            apply(seeded)
+            apply(seeded.result, takenAt: seeded.takenAt, predatesThisScreen: true)
             return
         }
         await performPass()
@@ -243,7 +273,7 @@ final class AccessibilityAuditViewModel: ViewModel {
         isRunning = true
         await Task.yield()
         let result = run()
-        apply(result)
+        apply(result, takenAt: Date(), predatesThisScreen: false)
         isRunning = false
     }
 
@@ -342,6 +372,167 @@ final class AccessibilityAuditViewModel: ViewModel {
         checksRun.isEmpty
     }
 
+    /// When the pass this report is showing was taken, or `nil` when it has not run one yet.
+    ///
+    /// Every pass is timestamped, seeded or not, so the screen never has to guess how old the thing
+    /// it is showing is. It is the seeded case the timestamp exists for — see
+    /// ``passPredatesThisScreen`` — but a report that timestamped only *some* of its passes would
+    /// have to say "unknown" for the rest, which is a worse answer than a true one.
+    @Published private(set) var passTakenAt: Date?
+
+    /// Whether this report is showing a pass that was already over before this screen opened.
+    ///
+    /// True for exactly the seeded case, and that case is not an edge: the report opens onto the
+    /// live overlay's last pass — see ``seed`` — and no pass can run while Scyther covers the app,
+    /// so the seed is always older than the tap that opened the report. Everything that changed the
+    /// screen in between and did not change which view controllers are showing — a scroll, a table
+    /// reload, a cell expanding — is missing from it, and the poll cannot see any of those. A report
+    /// of twelve findings for rows that have been scrolled away is not wrong about the pass; it is
+    /// wrong about *when*, and the screen has to say so.
+    ///
+    /// Cleared by ``rerun()``, which takes a pass of the screen as it is now.
+    @Published private(set) var passPredatesThisScreen: Bool = false
+
+    /// How many findings this report is holding back because their check has since been switched
+    /// off.
+    ///
+    /// The toggles take effect immediately and the report stays frozen, so the two can disagree on
+    /// one screen. Hiding the rows is right — a Contrast section listed directly under a Contrast
+    /// switch that is off reads as a switch that did nothing — but hiding them *silently* is not:
+    /// with every group hidden the report used to render "The checks that ran found nothing to
+    /// report" over a pass that had found five things, and with only some hidden it simply got
+    /// shorter with nothing explaining the gap.
+    var hiddenFindingCount: Int {
+        groups.filter { !isChecked($0.check) }.reduce(0) { $0 + $1.findings.count }
+    }
+
+    /// Which checks in this pass have findings the toggles are currently hiding.
+    ///
+    /// Read from ``groups`` rather than from ``switchedOffChecks``, because a check that is off and
+    /// found nothing is hiding nothing and has no business being named here.
+    var checksHidingFindings: [AccessibilityCheck] {
+        groups.map(\.check).filter { !isChecked($0) }
+    }
+
+    /// Whether anything in this pass is being held back by the toggles.
+    var isHidingFindings: Bool { hiddenFindingCount > 0 }
+
+    /// The wording for a report that is holding findings back: how many, and which switch is
+    /// holding them.
+    ///
+    /// Counts findings rather than groups, because the number that matters to a developer reading a
+    /// report that just went from seven rows to two is the five that went.
+    var hiddenFindingsDescription: String {
+        let names = ListFormatter.localizedString(byJoining: checksHidingFindings.map(\.title))
+        return localized("\(hiddenFindingCount) findings in this pass are hidden. Switched off since it ran: \(names).")
+    }
+
+    // MARK: - Copy
+
+    /// The empty state's headline. See ``emptyStateDescription`` for the four cases.
+    ///
+    /// Hiding is tested first because it is the most specific: a pass that found things and is
+    /// showing none of them is not a pass that found nothing, whatever else is true of it.
+    var emptyStateTitle: String {
+        if isHidingFindings { return localized("Findings Hidden") }
+        if nothingWasChecked { return localized("Nothing Was Checked") }
+        if isComplete { return localized("No Issues Found") }
+        return localized("No Issues In What Was Checked")
+    }
+
+    /// The empty state's symbol.
+    ///
+    /// `checkmark.circle` is reserved for the one case that passed everything. A report that is
+    /// hiding findings gets `eye.slash`, the same symbol the covered banner uses, because that is
+    /// what it is: something real, not shown. Everything else gets `questionmark.circle`, which is
+    /// what an unanswered question looks like — the point being that it is not a result about the
+    /// app.
+    var emptyStateSymbol: String {
+        if isHidingFindings { return "eye.slash" }
+        return isComplete ? "checkmark.circle" : "questionmark.circle"
+    }
+
+    /// The empty state's explanation.
+    ///
+    /// Four cases, in order of how specific they are:
+    ///
+    /// - **Findings hidden.** The pass found things and the toggles are hiding all of them. This
+    ///   branch exists because the screen used to fall through to the next one and assert that the
+    ///   checks which ran had found nothing to report, about a pass that had found five things.
+    /// - **Nothing ran.** Every check switched off, or every check refused.
+    /// - **Something ran, but not everything.** A check switched off, skipped, or unmeasurable, or
+    ///   a walk a cap stopped early. The part that was checked was clean; the rest was never
+    ///   reached.
+    /// - **Everything ran and found nothing.** The one case that has earned a tick — and even it
+    ///   says what the audit cannot see, because a developer must not be able to read a clean
+    ///   report as "my app is accessible".
+    ///
+    /// It names the checks the developer switched off, because nothing else on the screen does. It
+    /// does not name the checks Scyther skipped or could not measure, or say that the walk stopped
+    /// early: those each have their own banner, in more detail than belongs under a headline.
+    var emptyStateDescription: String {
+        if isHidingFindings { return hiddenFindingsDescription }
+        let switchedOff = switchedOffChecks
+        if nothingWasChecked {
+            guard !switchedOff.isEmpty else { return localized("No check on this screen could be run.") }
+            let names = ListFormatter.localizedString(byJoining: switchedOff.map(\.title))
+            return localized("No check ran. Switched off: \(names).")
+        }
+        if !switchedOff.isEmpty {
+            let names = ListFormatter.localizedString(byJoining: switchedOff.map(\.title))
+            return localized("The checks that ran found nothing to report. Switched off: \(names).")
+        }
+        if !isComplete {
+            return localized("The checks that ran found nothing to report.")
+        }
+        return localized("No issues found by the checks that ran. The audit only sees what your app exposed to accessibility, cannot judge whether a label is meaningful, and only sees this screen as it is now.")
+    }
+
+    /// The wording for a report describing the app as it was before this screen opened.
+    ///
+    /// Says what is missing rather than only that time has passed: "older" is not actionable,
+    /// "anything you have scrolled past since is not in here" is.
+    var stalePassDescription: String {
+        localized("This is the last pass taken over your app, from before this screen opened. Anything that changed since — a scroll, a reload — is not in it.")
+    }
+
+    /// The covered banner's wording: which checks were skipped, and what to switch on to have
+    /// them measured against the real screen.
+    ///
+    /// The live-mode toggle is named through ``localized(_:comment:)`` rather than spelled out in
+    /// the sentence, so a developer reading Scyther in French is pointed at the French toggle
+    /// sitting a few rows above rather than at an English one that is not there.
+    var coveredDescription: String {
+        let names = ListFormatter.localizedString(byJoining: checksSkippedWhileCovered.map(\.title))
+        let liveToggle = localized("Show Issues On Screen")
+        return localized("\(names) not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on \(liveToggle) to measure the real screen instead.")
+    }
+
+    /// The unmeasurable banner's wording: which checks ran without being able to measure anything,
+    /// and that this says nothing about whether the screen is fine.
+    /// Worded to be true of every way the measurement can fail, because ``checksUnmeasurable`` has
+    /// three producers and one banner. It is raised when the window could not be captured at all,
+    /// when it captured fine and every candidate came back unreadable, and when it captured fine
+    /// and too few candidates could be read for the check to have run — and the old wording ("this
+    /// screen could not be captured, so there were no pixels to read") is false of the second and
+    /// the third. What all three share is that the check could not read enough of the screen, and
+    /// that what it did not read is missing from the report rather than passing it.
+    var unmeasurableDescription: String {
+        let names = ListFormatter.localizedString(byJoining: checksUnmeasurable.map(\.title))
+        return localized("\(names) ran but could not read enough of this screen to report on it. What it did not measure is missing from this report, not passing it.")
+    }
+
+    /// The wording for a check switched on since the pass: which one, and what to do about it.
+    ///
+    /// Names the **Re-run** button through ``localized(_:comment:)`` rather than spelling it out,
+    /// for the same reason ``coveredDescription`` names the live toggle that way: a developer
+    /// reading Scyther in German should be pointed at the German button in the toolbar above.
+    var awaitingRerunDescription: String {
+        let names = ListFormatter.localizedString(byJoining: checksAwaitingRerun.map(\.title))
+        let rerun = localized("Re-run")
+        return localized("\(names) switched on after this report was run. Tap \(rerun) to include it.")
+    }
+
     /// Replaces ``groups``, ``didHitLimit``, ``checksRun``, ``checksSkippedWhileCovered`` and
     /// ``checksUnmeasurable`` with what `result` found.
     ///
@@ -349,8 +540,14 @@ final class AccessibilityAuditViewModel: ViewModel {
     /// left in whatever order a `Set` iterates in, so the screen names them the same way twice
     /// running.
     ///
-    /// - Parameter result: One pass of the audit.
-    private func apply(_ result: AccessibilityAuditor.Result) {
+    /// - Parameters:
+    ///   - result: One pass of the audit.
+    ///   - takenAt: When that pass was taken.
+    ///   - predatesThisScreen: Whether the pass was already over before this screen opened, which
+    ///     is true of a seeded pass and false of one this screen took for itself.
+    private func apply(_ result: AccessibilityAuditor.Result,
+                       takenAt: Date,
+                       predatesThisScreen: Bool) {
         let findingsByCheck = Dictionary(grouping: result.findings, by: \.check)
         groups = AccessibilityCheck.allCases.compactMap { check in
             guard let findings = findingsByCheck[check], !findings.isEmpty else { return nil }
@@ -360,5 +557,7 @@ final class AccessibilityAuditViewModel: ViewModel {
         checksRun = result.checksRun
         checksSkippedWhileCovered = AccessibilityCheck.allCases.filter(result.checksSkippedWhileCovered.contains)
         checksUnmeasurable = AccessibilityCheck.allCases.filter(result.checksUnmeasurable.contains)
+        passTakenAt = takenAt
+        passPredatesThisScreen = predatesThisScreen
     }
 }

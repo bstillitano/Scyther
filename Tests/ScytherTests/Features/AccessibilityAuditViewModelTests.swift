@@ -64,6 +64,18 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
                                     checksUnmeasurable: checksUnmeasurable)
     }
 
+    /// A pass the report can open onto, taken at `takenAt`.
+    ///
+    /// - Parameters:
+    ///   - findings: What the pass found.
+    ///   - takenAt: When it was taken. Defaults to a fixed instant so a test that does not care
+    ///     about the age still gets a deterministic one.
+    /// - Returns: The seeded pass.
+    private func seeded(_ findings: [AccessibilityFinding],
+                        takenAt: Date = Date(timeIntervalSince1970: 1_000)) -> SeededAccessibilityPass {
+        SeededAccessibilityPass(result: result(findings), takenAt: takenAt)
+    }
+
     /// Findings are grouped by check, errors first inside each group, so the report leads with
     /// what is broken rather than with whatever the walk happened to reach first.
     func testFindingsAreGroupedByCheckWithErrorsFirst() async {
@@ -99,8 +111,15 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.groups.first?.findings.first?.elementName, "pass 2")
     }
 
-    /// "No findings" and "nothing was looked at" must not read the same, so the empty state is
-    /// handed the checks that did not run.
+    /// "No findings" and "nothing was looked at" must not read the same, so the empty state names
+    /// the checks that did not run — and says a different thing depending on whether anything ran
+    /// at all.
+    ///
+    /// The `checksRun:` argument is load-bearing here, which it stopped being when this test was
+    /// reduced to a round-trip of the settings it had just written: `[.missingLabel]` is what makes
+    /// this the "something ran and found nothing" state rather than the "nothing ran" one, and
+    /// swapping it for `[]` turns the headline into `Nothing Was Checked` and fails the assertion
+    /// below.
     func testTheEmptyStateNamesTheChecksThatWereSwitchedOff() async {
         settings.setEnabled(.touchTarget, to: false)
         settings.setEnabled(.contrast, to: false)
@@ -111,6 +130,159 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
 
         XCTAssertTrue(viewModel.groups.isEmpty)
         XCTAssertEqual(Set(viewModel.switchedOffChecks), [.touchTarget, .contrast])
+        XCTAssertFalse(viewModel.nothingWasChecked, "Missing Labels ran, so something was looked at")
+        XCTAssertEqual(viewModel.emptyStateTitle, localized("No Issues In What Was Checked"))
+
+        let description = viewModel.emptyStateDescription
+        XCTAssertTrue(description.contains(AccessibilityCheck.touchTarget.title), description)
+        XCTAssertTrue(description.contains(AccessibilityCheck.contrast.title), description)
+        XCTAssertFalse(description.contains(AccessibilityCheck.missingLabel.title),
+                       "the one check that ran must not be named as switched off")
+    }
+
+    /// The same shape with nothing having run: the pass, not the toggles, decides which of the two
+    /// sentences the screen leads with.
+    func testTheEmptyStateSaysNothingRanWhenThePassRanNothing() async {
+        for check in AccessibilityCheck.allCases {
+            settings.setEnabled(check, to: false)
+        }
+        let viewModel = viewModel { self.result([], checksRun: []) }
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.emptyStateTitle, localized("Nothing Was Checked"))
+    }
+
+    // MARK: - A Report That Is Hiding Findings
+
+    /// The report is frozen and the toggles are not. Switching a check off after the pass hides its
+    /// findings, and the empty state then said "The checks that ran found nothing to report" about a
+    /// pass that had found five things — both clauses false about the pass in hand. A report that is
+    /// hiding findings has to say it is hiding them.
+    func testAReportHidingEveryFindingSaysSoRatherThanSayingNothingWasFound() async {
+        let viewModel = viewModel {
+            self.result((0..<5).map { self.finding(.contrast, .warning, "caption \($0)") })
+        }
+        await viewModel.load()
+
+        viewModel.checkBinding(for: .contrast).wrappedValue = false
+
+        XCTAssertTrue(viewModel.visibleGroups.isEmpty)
+        XCTAssertEqual(viewModel.hiddenFindingCount, 5)
+        XCTAssertEqual(viewModel.checksHidingFindings, [.contrast])
+        XCTAssertEqual(viewModel.emptyStateSymbol, "eye.slash",
+                       "a hidden report is not an unanswered question and is certainly not a tick")
+        XCTAssertEqual(viewModel.emptyStateTitle, localized("Findings Hidden"))
+        XCTAssertTrue(viewModel.emptyStateDescription.contains("5"),
+                      viewModel.emptyStateDescription)
+    }
+
+    /// The partial case: some groups hidden, so the empty state is never reached and the report
+    /// simply gets shorter with nothing explaining the gap.
+    func testAReportThatLostSomeRowsToTheTogglesSaysHowManyItIsHiding() async {
+        let viewModel = viewModel {
+            self.result((0..<5).map { self.finding(.contrast, .warning, "caption \($0)") }
+                        + [self.finding(.touchTarget, .error, "chevron")])
+        }
+        await viewModel.load()
+
+        viewModel.checkBinding(for: .contrast).wrappedValue = false
+
+        XCTAssertEqual(viewModel.visibleGroups.map(\.check), [.touchTarget],
+                       "the shortened report is correct; it just has to say why it is short")
+        XCTAssertEqual(viewModel.hiddenFindingCount, 5)
+        XCTAssertTrue(viewModel.hiddenFindingsDescription.contains("5"),
+                      viewModel.hiddenFindingsDescription)
+        XCTAssertTrue(viewModel.hiddenFindingsDescription.contains(AccessibilityCheck.contrast.title),
+                      viewModel.hiddenFindingsDescription)
+    }
+
+    /// Nothing is hidden until a toggle hides it, so an untouched report says nothing about hiding.
+    func testAnUntouchedReportIsNotHidingAnything() async {
+        let viewModel = viewModel { self.result([self.finding(.contrast, .warning, "caption")]) }
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.hiddenFindingCount, 0)
+        XCTAssertTrue(viewModel.checksHidingFindings.isEmpty)
+    }
+
+    // MARK: - What A Clean Report May Claim
+
+    /// "Every enabled check passed." is a claim about the app. The audit cannot see an element the
+    /// app never exposed to accessibility, cannot judge whether a label is meaningful, and only sees
+    /// what is on screen now — so the one state that has earned a tick still has to say what it did
+    /// not look at, or a developer reads a clean report as "my app is accessible".
+    func testTheSuccessStateNamesWhatTheAuditCannotSee() async {
+        let viewModel = viewModel { self.result([]) }
+        await viewModel.load()
+
+        XCTAssertTrue(viewModel.isComplete)
+        XCTAssertEqual(viewModel.emptyStateSymbol, "checkmark.circle")
+
+        let description = viewModel.emptyStateDescription
+        XCTAssertNotEqual(description, localized("Every enabled check passed."),
+                          "an unqualified pass over a tool with known blind spots is a certificate")
+        XCTAssertTrue(description.contains("exposed"), description)
+        XCTAssertTrue(description.contains("meaningful"), description)
+        XCTAssertTrue(description.contains("now"), description)
+    }
+
+    // MARK: - Two Producers, One Banner
+
+    /// `checksUnmeasurable` is raised both when there were no pixels at all and when there were
+    /// pixels that could not be read. The banner used to assert the first — "this screen could not
+    /// be captured, so there were no pixels to read" — every clause of which is false of the second.
+    func testTheUnmeasurableBannerIsTrueOfBothWaysAMeasurementCanFail() async {
+        let viewModel = viewModel { self.result([], checksUnmeasurable: [.contrast]) }
+        await viewModel.load()
+
+        let description = viewModel.unmeasurableDescription
+        XCTAssertTrue(description.contains(AccessibilityCheck.contrast.title), description)
+        XCTAssertFalse(description.contains("could not be captured"),
+                       "a screen that captured fine and read as flat colour is not an uncaptured screen")
+        XCTAssertFalse(description.contains("no pixels"),
+                       "there were pixels; they could not be read")
+    }
+
+    // MARK: - The Age Of The Pass
+
+    /// The report opens onto the live overlay's last pass, which is always older than the screen
+    /// reading it: no pass can run while Scyther covers the app. A scroll between the pass and the
+    /// tap on the pill leaves a report of rows that are no longer on screen, presented as current.
+    func testASeededReportKnowsItIsShowingAPassOlderThanTheScreen() async {
+        let takenAt = Date(timeIntervalSince1970: 5_000)
+        let pass = seeded([finding(.contrast, .warning, "caption")], takenAt: takenAt)
+        let viewModel = AccessibilityAuditViewModel(settings: settings, seed: { pass }) {
+            self.result([])
+        }
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.passTakenAt, takenAt)
+        XCTAssertTrue(viewModel.passPredatesThisScreen)
+    }
+
+    /// A report that took its own pass is describing the screen it is sitting on, so it says
+    /// nothing about age.
+    func testAReportThatTookItsOwnPassIsNotMarkedAsOlderThanTheScreen() async {
+        let viewModel = viewModel { self.result([]) }
+        await viewModel.load()
+
+        XCTAssertNotNil(viewModel.passTakenAt, "every pass is timestamped, seeded or not")
+        XCTAssertFalse(viewModel.passPredatesThisScreen)
+    }
+
+    /// **Re-run** replaces the seeded pass with one taken now, so the banner about the old one goes.
+    func testRerunningClearsTheOlderThanTheScreenBanner() async {
+        let pass = seeded([finding(.contrast, .warning, "caption")])
+        let viewModel = AccessibilityAuditViewModel(settings: settings, seed: { pass }) {
+            self.result([])
+        }
+        await viewModel.load()
+        XCTAssertTrue(viewModel.passPredatesThisScreen)
+
+        await viewModel.rerun()
+
+        XCTAssertFalse(viewModel.passPredatesThisScreen)
     }
 
     func testNothingIsReportedAsSkippedWhenEveryCheckRan() async {
@@ -318,7 +490,7 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
     /// onto "No Issues Found". Opening onto the pass the pill counted is what makes the two agree.
     func testTheReportOpensOntoTheLivePassRatherThanTakingItsOwn() async {
         var passes = 0
-        let live = result([finding(.contrast, .warning, "caption")])
+        let live = seeded([finding(.contrast, .warning, "caption")])
         let viewModel = AccessibilityAuditViewModel(settings: settings, seed: { live }) {
             passes += 1
             return self.result([])
@@ -334,7 +506,7 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
     /// when the report opened onto the live overlay's pass; the banners explain what a pass taken
     /// from under Scyther's own sheet cannot include.
     func testRerunTakesAFreshPassEvenWhenTheReportWasSeeded() async {
-        let live = result([finding(.contrast, .warning, "caption")])
+        let live = seeded([finding(.contrast, .warning, "caption")])
         let viewModel = AccessibilityAuditViewModel(settings: settings, seed: { live }) {
             self.result([self.finding(.missingLabel, .error, "button")])
         }

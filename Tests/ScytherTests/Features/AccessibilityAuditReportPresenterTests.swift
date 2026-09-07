@@ -93,9 +93,40 @@ final class AccessibilityAuditReportPresenterTests: XCTestCase {
         // `ScytherHostingController`, with the controller no longer presented by anything.
         presenter.isReportStillPresented = { _ in false }
         ScytherPresentation.coverageDidChange()
+        drainOneRunLoopTurn()
 
         XCTAssertNil(presenter.hostingController, "the dismissed report must not be held on to")
         XCTAssertFalse(presenter.isPresenting)
+    }
+
+    /// The notification is posted from the report's own `viewDidDisappear`, after `super`, and the
+    /// observer is registered with `queue: nil` so it runs on the posting thread in the same turn.
+    /// Letting go of the last strong reference there deallocates the controller while UIKit is
+    /// still unwinding its own disappearance for that object — whether it survives depends on an
+    /// autorelease UIKit is not contracted to provide. One run-loop turn costs nothing and removes
+    /// the question.
+    func testTheDismissedReportIsNotDeallocatedInsideItsOwnDisappearance() {
+        let presenter = AccessibilityAuditReportPresenter()
+        let controller = UIViewController()
+        presenter.presentReport = { $0.hostingController = controller; return true }
+        presenter.openReport()
+        presenter.isReportStillPresented = { _ in false }
+
+        ScytherPresentation.coverageDidChange()
+
+        XCTAssertNotNil(presenter.hostingController,
+                        "the release must not happen inside UIKit's own unwinding of the dismissal")
+
+        drainOneRunLoopTurn()
+
+        XCTAssertNil(presenter.hostingController, "and must still happen, one turn later")
+    }
+
+    /// Waits for the main queue to get round to the next block it was handed.
+    private func drainOneRunLoopTurn() {
+        let turn = expectation(description: "one run-loop turn")
+        DispatchQueue.main.async { turn.fulfill() }
+        wait(for: [turn], timeout: 1)
     }
 
     /// The same signal fires for Scyther's *menu* appearing and disappearing, and for the report
@@ -121,7 +152,14 @@ final class AccessibilityAuditReportPresenterTests: XCTestCase {
         let toolkit = InterfaceToolkit.instance
         let presenter = AccessibilityAuditReportPresenter.shared
         let original = presenter.presentReport
-        defer { presenter.presentReport = original }
+        let originalCanAudit = toolkit.canAuditThisBuild
+        defer {
+            presenter.presentReport = original
+            toolkit.canAuditThisBuild = originalCanAudit
+        }
+        // `AppEnvironment.isTestCase` is unconditionally true here, and a build the audit may not
+        // run on installs nothing at all — including the closure this test is about.
+        toolkit.canAuditThisBuild = { true }
 
         let log = PresentationLog()
         // Reports a refusal, so this test leaves the shared presenter exactly as it found it:

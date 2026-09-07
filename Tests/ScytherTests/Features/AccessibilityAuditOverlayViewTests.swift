@@ -237,6 +237,149 @@ final class AccessibilityAuditOverlayViewTests: XCTestCase {
         XCTAssertTrue(drawsAnything(view), "The boxes should come back once Scyther's screen goes away.")
         XCTAssertFalse(view.reportButton.isHidden)
     }
+
+    // MARK: - Repainting
+
+    /// The overlay's backing store is the size of the screen — around 12 MiB at 3× — and every
+    /// assignment to `findings` re-rendered the whole of it. Two passes over an unchanged screen
+    /// produce equal findings with fresh `UUID`s, so nothing in the model could notice, and live
+    /// mode re-renders it up to twice a second.
+    func testAPassThatFoundTheSameThingsDoesNotRepaintTheOverlay() {
+        let view = RecordingOverlay(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        view.findings = [finding("one"), finding("two")]
+        let painted = view.redrawRequests
+
+        view.findings = [finding("one"), finding("two")]
+
+        XCTAssertEqual(view.redrawRequests, painted,
+                       "an identical pass must not re-render the whole surface")
+
+        view.findings = [finding("one")]
+
+        XCTAssertGreaterThan(view.redrawRequests, painted, "a pass that found something else must")
+    }
+
+    // MARK: - Flashing The Right Element
+
+    /// Duplicate labels on one screen are the norm: a list of rows each with a *More* control, a
+    /// form of *Clear* buttons, two *Done* buttons. Every finding carries a fresh `UUID`, so a row
+    /// tapped in a re-run report cannot match by identity and fell through to the first
+    /// same-check, same-label finding in tree order — the wrong element, with nothing saying it was
+    /// a guess.
+    func testAFlashPicksTheNearestElementWhenTwoFindingsShareALabel() throws {
+        let view = overlay()
+        view.isCoveredByScyther = { false }
+        let first = AccessibilityFinding(check: .missingLabel, severity: .error,
+                                         frame: CGRect(x: 20, y: 0, width: 30, height: 30),
+                                         elementName: "More", detail: "detail")
+        let seventh = AccessibilityFinding(check: .missingLabel, severity: .error,
+                                           frame: CGRect(x: 20, y: 600, width: 30, height: 30),
+                                           elementName: "More", detail: "detail")
+        view.findings = [first, seventh]
+
+        // The frozen report's own copy of the seventh row: a different identity, the same label,
+        // and a frame from a pass taken a moment earlier.
+        let fromTheReport = AccessibilityFinding(check: .missingLabel, severity: .error,
+                                                 frame: CGRect(x: 20, y: 602, width: 30, height: 30),
+                                                 elementName: "More", detail: "detail")
+        view.flash(fromTheReport)
+
+        let shape = (view.layer.sublayers ?? []).compactMap { $0 as? CAShapeLayer }.first
+        let box = try XCTUnwrap(shape?.path?.boundingBox)
+        XCTAssertEqual(box.origin.y, 600, accuracy: 2,
+                       "the flash must land on the row that was tapped, not the first one sharing its name")
+    }
+
+    /// A flash asked for while Scyther covers the app is held until Scyther's screen goes away. No
+    /// pass runs in the meantime, so nothing cleared it: tap a row, wander round the rest of the
+    /// menu for a while, dismiss Scyther, and a box flashes over the app with no connection to
+    /// anything the developer has done recently.
+    func testADeferredFlashIsForgottenRatherThanFiringMinutesLater() {
+        let view = overlay()
+        var clock = Date(timeIntervalSince1970: 0)
+        view.now = { clock }
+        let coverage = CoverageStub()
+        coverage.isCovering = true
+        view.isCoveredByScyther = { coverage.isCovering }
+        let target = finding("one")
+        view.findings = [target]
+        view.flash(target)
+
+        clock = clock.addingTimeInterval(AccessibilityAuditOverlayView.deferredFlashLifetime + 1)
+        coverage.isCovering = false
+        view.refreshForCoverageChange()
+
+        XCTAssertEqual(flashes(on: view), 0,
+                       "a tap the developer has forgotten must not flash a box minutes later")
+    }
+
+    /// A flash asked for a moment ago is still the tap the developer just made.
+    func testADeferredFlashInsideItsLifetimeStillPlays() {
+        let view = overlay()
+        var clock = Date(timeIntervalSince1970: 0)
+        view.now = { clock }
+        let coverage = CoverageStub()
+        coverage.isCovering = true
+        view.isCoveredByScyther = { coverage.isCovering }
+        let target = finding("one")
+        view.findings = [target]
+        view.flash(target)
+
+        clock = clock.addingTimeInterval(AccessibilityAuditOverlayView.deferredFlashLifetime - 1)
+        coverage.isCovering = false
+        view.refreshForCoverageChange()
+
+        XCTAssertEqual(flashes(on: view), 1)
+    }
+
+    // MARK: - Split View
+
+    /// A finding's frame is in *window* coordinates; this view is sized to `TopLevelViewsWrapper`,
+    /// which sizes itself to the whole screen. On iPad, in Split View or Slide Over, the app's
+    /// window is a fraction of the display, so a box stroked straight into this view's own space
+    /// lands wherever the window happens to sit within the screen rather than on the element.
+    func testBoxesAreDrawnInTheWindowsSpaceRatherThanTheScreens() throws {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        // What the wrapper looks like when the app owns only part of the display.
+        let wrapper = UIView(frame: CGRect(x: 120, y: 40, width: 390, height: 844))
+        window.addSubview(wrapper)
+        let view = AccessibilityAuditOverlayView(frame: .zero)
+        view.isCoveredByScyther = { false }
+        wrapper.addSubview(view)
+        view.updateFrame()
+
+        let target = AccessibilityFinding(check: .missingLabel, severity: .error,
+                                          frame: CGRect(x: 200, y: 400, width: 30, height: 30),
+                                          elementName: "one", detail: "detail")
+        view.findings = [target]
+        view.flash(target)
+
+        let shape = (view.layer.sublayers ?? []).compactMap { $0 as? CAShapeLayer }.first
+        let box = try XCTUnwrap(shape?.path?.boundingBox)
+        XCTAssertEqual(box.origin.x, 80, accuracy: 1, "200 in the window is 80 in this view")
+        XCTAssertEqual(box.origin.y, 360, accuracy: 1, "400 in the window is 360 in this view")
+    }
+
+    /// With the overlay aligned to the window — every iPhone, and an iPad app filling the display —
+    /// the conversion is the identity it has always been.
+    func testBoxesAreUnmovedWhenTheOverlayAndTheWindowAgree() throws {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        let view = AccessibilityAuditOverlayView(frame: .zero)
+        view.isCoveredByScyther = { false }
+        window.addSubview(view)
+        view.updateFrame()
+
+        let target = AccessibilityFinding(check: .missingLabel, severity: .error,
+                                          frame: CGRect(x: 200, y: 400, width: 30, height: 30),
+                                          elementName: "one", detail: "detail")
+        view.findings = [target]
+        view.flash(target)
+
+        let shape = (view.layer.sublayers ?? []).compactMap { $0 as? CAShapeLayer }.first
+        let box = try XCTUnwrap(shape?.path?.boundingBox)
+        XCTAssertEqual(box.origin.x, 200, accuracy: 1)
+        XCTAssertEqual(box.origin.y, 400, accuracy: 1)
+    }
 }
 
 /// An overlay that counts how many times it was asked to redraw.

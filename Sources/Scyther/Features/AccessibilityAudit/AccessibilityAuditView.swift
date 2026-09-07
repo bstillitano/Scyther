@@ -34,7 +34,7 @@ struct AccessibilityAuditView: View {
     /// ``AccessibilityAuditViewModel`` for why the audit itself is injected rather than called
     /// directly.
     @StateObject private var viewModel = AccessibilityAuditViewModel(
-        seed: { InterfaceToolkit.instance.accessibilityResultForReport() },
+        seed: { InterfaceToolkit.instance.accessibilityPassForReport() },
         run: { AccessibilityAudit.instance.auditKeyWindow() }
     )
 
@@ -44,6 +44,10 @@ struct AccessibilityAuditView: View {
 
             if viewModel.isRunning {
                 runningSection
+            }
+
+            if viewModel.passPredatesThisScreen {
+                stalePassBanner
             }
 
             if viewModel.didHitLimit {
@@ -60,6 +64,10 @@ struct AccessibilityAuditView: View {
 
             if !viewModel.checksAwaitingRerun.isEmpty {
                 awaitingRerunBanner
+            }
+
+            if viewModel.isHidingFindings, !viewModel.visibleGroups.isEmpty {
+                hiddenFindingsBanner
             }
 
             if viewModel.visibleGroups.isEmpty {
@@ -125,6 +133,28 @@ struct AccessibilityAuditView: View {
         }
     }
 
+    // MARK: - How Old This Report Is
+
+    /// Shown when the report is showing the live overlay's last pass rather than one of its own.
+    ///
+    /// That pass is always older than this screen — no pass can run while Scyther covers the app —
+    /// and the poll that keeps the overlay in step cannot see a scroll, a table reload or a cell
+    /// expanding, so a report opened after any of those describes rows that are no longer where it
+    /// says they are. The age is drawn with `Text(_:style:)` rather than formatted once, so it keeps
+    /// counting up while the developer reads, and through stock `LabeledContent` so it reads as a
+    /// measurement rather than as a second sentence.
+    private var stalePassBanner: some View {
+        Section {
+            Label(viewModel.stalePassDescription, systemImage: "clock.arrow.circlepath")
+                .foregroundStyle(.orange)
+            if let takenAt = viewModel.passTakenAt {
+                LabeledContent(localized("Measured")) {
+                    Text(takenAt, style: .relative)
+                }
+            }
+        }
+    }
+
     // MARK: - Truncated Walk
 
     /// Shown when ``AccessibilityAuditViewModel/didHitLimit`` is true: the walk that produced
@@ -155,21 +185,9 @@ struct AccessibilityAuditView: View {
     /// state where the pixels behind an element really are the app's own.
     private var coveredBanner: some View {
         Section {
-            Label(coveredDescription, systemImage: "eye.slash")
+            Label(viewModel.coveredDescription, systemImage: "eye.slash")
                 .foregroundStyle(.orange)
         }
-    }
-
-    /// The covered banner's wording: which checks were skipped, and what to switch on to have
-    /// them measured against the real screen.
-    ///
-    /// The live-mode toggle is named through ``localized(_:comment:)`` rather than spelled out in
-    /// the sentence, so a developer reading Scyther in French is pointed at the French toggle
-    /// sitting a few rows above rather than at an English one that is not there.
-    private var coveredDescription: String {
-        let names = ListFormatter.localizedString(byJoining: viewModel.checksSkippedWhileCovered.map(\.title))
-        let liveToggle = localized("Show Issues On Screen")
-        return localized("\(names) not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on \(liveToggle) to measure the real screen instead.")
     }
 
     // MARK: - Unmeasurable Screen
@@ -185,16 +203,9 @@ struct AccessibilityAuditView: View {
     /// unmeasured screen presented as a measured one is the failure this whole section exists for.
     private var unmeasurableBanner: some View {
         Section {
-            Label(unmeasurableDescription, systemImage: "exclamationmark.triangle")
+            Label(viewModel.unmeasurableDescription, systemImage: "exclamationmark.triangle")
                 .foregroundStyle(.orange)
         }
-    }
-
-    /// The unmeasurable banner's wording: which checks ran without being able to measure anything,
-    /// and that this says nothing about whether the screen is fine.
-    private var unmeasurableDescription: String {
-        let names = ListFormatter.localizedString(byJoining: viewModel.checksUnmeasurable.map(\.title))
-        return localized("\(names) could not be measured: this screen could not be captured, so there were no pixels to read. This is not a result about your app.")
     }
 
     // MARK: - Settings Changed Since The Pass
@@ -209,20 +220,25 @@ struct AccessibilityAuditView: View {
     /// them.
     private var awaitingRerunBanner: some View {
         Section {
-            Label(awaitingRerunDescription, systemImage: "arrow.clockwise")
+            Label(viewModel.awaitingRerunDescription, systemImage: "arrow.clockwise")
                 .foregroundStyle(.orange)
         }
     }
 
-    /// The wording for a check switched on since the pass: which one, and what to do about it.
+    // MARK: - Findings The Toggles Are Hiding
+
+    /// Shown when the frozen report is holding findings back because their check has since been
+    /// switched off, and there are still other findings on screen.
     ///
-    /// Names the **Re-run** button through ``localized(_:comment:)`` rather than spelling it out,
-    /// for the same reason ``coveredDescription`` names the live toggle that way: a developer
-    /// reading Scyther in German should be pointed at the German button in the toolbar above.
-    private var awaitingRerunDescription: String {
-        let names = ListFormatter.localizedString(byJoining: viewModel.checksAwaitingRerun.map(\.title))
-        let rerun = localized("Re-run")
-        return localized("\(names) switched on after this report was run. Tap \(rerun) to include it.")
+    /// Without it the report simply went from seven rows to two with nothing saying why, which
+    /// reads as a report that found two things. The all-hidden case is not covered here — the empty
+    /// state says it instead, in the same words — because a banner and an empty state stacked one
+    /// above the other would say it twice.
+    private var hiddenFindingsBanner: some View {
+        Section {
+            Label(viewModel.hiddenFindingsDescription, systemImage: "eye.slash")
+                .foregroundStyle(.orange)
+        }
     }
 
     // MARK: - Findings
@@ -287,36 +303,29 @@ struct AccessibilityAuditView: View {
 
     /// Shown when the current report has no findings to show.
     ///
-    /// Three distinct things produce an empty ``AccessibilityAuditViewModel/visibleGroups``, and
-    /// the screen leads with a different headline and a different symbol for each, because a green
-    /// tick over "No Issues Found" is a claim and two of the three cannot support it:
-    ///
-    /// - **Nothing ran.** Every check switched off, or every check refused. Nothing on this screen
-    ///   has been looked at, and the old empty state answered that with a tick.
-    /// - **Something ran, but not everything.** A check switched off, a check skipped, a check that
-    ///   could not be measured, or a walk the node or depth cap stopped early. The part that was
-    ///   checked was clean; the rest was never reached. The old empty state said "Every enabled
-    ///   check passed" here too, directly underneath the orange banner saying the walk stopped.
-    /// - **Everything ran and found nothing.** The one case that has earned a tick.
+    /// Four distinct things produce an empty ``AccessibilityAuditViewModel/visibleGroups``, and the
+    /// screen leads with a different headline and a different symbol for each — see
+    /// ``AccessibilityAuditViewModel/emptyStateDescription``, which owns the wording, because what
+    /// a report may claim about a pass is a question about the pass rather than about the layout.
     @ViewBuilder
     private var emptyState: some View {
         if #available(iOS 17.0, *) {
             ContentUnavailableView(
-                emptyStateTitle,
-                systemImage: emptyStateSymbol,
-                description: Text(emptyStateDescription)
+                viewModel.emptyStateTitle,
+                systemImage: viewModel.emptyStateSymbol,
+                description: Text(viewModel.emptyStateDescription)
             )
             .frame(maxWidth: .infinity)
             .padding()
             .listRowBackground(Color.clear)
         } else {
             VStack(spacing: 16) {
-                Image(systemName: emptyStateSymbol)
+                Image(systemName: viewModel.emptyStateSymbol)
                     .font(.system(size: 48))
                     .foregroundStyle(.secondary)
-                Text(emptyStateTitle)
+                Text(viewModel.emptyStateTitle)
                     .font(.headline)
-                Text(emptyStateDescription)
+                Text(viewModel.emptyStateDescription)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -325,47 +334,6 @@ struct AccessibilityAuditView: View {
             .padding()
             .listRowBackground(Color.clear)
         }
-    }
-
-    /// The empty state's headline. See ``emptyState`` for the three cases.
-    private var emptyStateTitle: String {
-        if viewModel.nothingWasChecked { return localized("Nothing Was Checked") }
-        if viewModel.isComplete { return localized("No Issues Found") }
-        return localized("No Issues In What Was Checked")
-    }
-
-    /// The empty state's symbol.
-    ///
-    /// `checkmark.circle` is reserved for the one case that passed everything. The other two get
-    /// `questionmark.circle`, which is what an unanswered question looks like — the point being
-    /// that neither of them is a result about the app.
-    private var emptyStateSymbol: String {
-        viewModel.isComplete ? "checkmark.circle" : "questionmark.circle"
-    }
-
-    /// The empty state's explanation.
-    ///
-    /// It names the checks the developer switched off, because nothing else on the screen does.
-    /// It does not name the checks Scyther skipped or could not measure, or say that the walk
-    /// stopped early: ``coveredBanner``, ``unmeasurableBanner`` and ``truncatedBanner`` have each
-    /// already said which and why, in more detail than belongs under a headline. What it must
-    /// never do is claim more than the pass supports, which is why "every enabled check passed"
-    /// appears in exactly one of these branches.
-    private var emptyStateDescription: String {
-        let switchedOff = viewModel.switchedOffChecks
-        if viewModel.nothingWasChecked {
-            guard !switchedOff.isEmpty else { return localized("No check on this screen could be run.") }
-            let names = ListFormatter.localizedString(byJoining: switchedOff.map(\.title))
-            return localized("No check ran. Switched off: \(names).")
-        }
-        if !switchedOff.isEmpty {
-            let names = ListFormatter.localizedString(byJoining: switchedOff.map(\.title))
-            return localized("The checks that ran found nothing to report. Switched off: \(names).")
-        }
-        if !viewModel.isComplete {
-            return localized("The checks that ran found nothing to report.")
-        }
-        return localized("Every enabled check passed.")
     }
 }
 

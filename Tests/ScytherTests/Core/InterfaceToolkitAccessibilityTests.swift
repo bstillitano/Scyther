@@ -24,6 +24,8 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
     nonisolated(unsafe) private var originalPass: (@MainActor () -> AccessibilityAuditor.Result)!
     nonisolated(unsafe) private var originalCoverage: (@MainActor () -> Bool)!
     nonisolated(unsafe) private var originalIdentity: (@MainActor () -> [ObjectIdentifier])!
+    nonisolated(unsafe) private var originalClock: (@MainActor () -> Date)!
+    nonisolated(unsafe) private var originalCanAudit: (@MainActor () -> Bool)!
 
     /// Puts the shared toolkit into a known state and remembers everything that has to go back.
     ///
@@ -37,8 +39,14 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
         originalPass = toolkit.runAccessibilityPass
         originalCoverage = toolkit.isScytherCoveringScreen
         originalIdentity = toolkit.accessibilityScreenIdentityProbe
+        originalClock = toolkit.accessibilityClock
+        originalCanAudit = toolkit.canAuditThisBuild
         UserDefaults.scyther.setValue(true, forKey: AccessibilityAudit.LiveEnabledDefaultsKey)
         toolkit.isScytherCoveringScreen = { false }
+        // `AppEnvironment.isTestCase` is unconditionally true here, so the real predicate would
+        // refuse every pass and nothing below would ever be scheduled. Each test that is *about*
+        // the refusal drives this seam itself.
+        toolkit.canAuditThisBuild = { true }
         toolkit.accessibilityAuditView.findings = []
     }
 
@@ -46,11 +54,14 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
         toolkit.runAccessibilityPass = originalPass
         toolkit.isScytherCoveringScreen = originalCoverage
         toolkit.accessibilityScreenIdentityProbe = originalIdentity
+        toolkit.accessibilityClock = originalClock
+        toolkit.canAuditThisBuild = { true }
         UserDefaults.scyther.setValue(originalLiveEnabled, forKey: AccessibilityAudit.LiveEnabledDefaultsKey)
         // Cancels anything this test scheduled and empties the overlay, so no pending work item
         // fires into the next test.
         UserDefaults.scyther.setValue(false, forKey: AccessibilityAudit.LiveEnabledDefaultsKey)
         toolkit.showAccessibilityAudit()
+        toolkit.canAuditThisBuild = originalCanAudit
         UserDefaults.scyther.setValue(originalLiveEnabled, forKey: AccessibilityAudit.LiveEnabledDefaultsKey)
         try await super.tearDown()
     }
@@ -186,7 +197,7 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
 
         toolkit.isScytherCoveringScreen = { true }
 
-        XCTAssertEqual(toolkit.accessibilityResultForReport()?.findings.map(\.elementName), ["app"])
+        XCTAssertEqual(toolkit.accessibilityPassForReport()?.result.findings.map(\.elementName), ["app"])
     }
 
     /// With nothing of Scyther's on screen there is no sheet to measure through, so the report has
@@ -195,7 +206,132 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
         toolkit.runAccessibilityPass = { self.result("app") }
         toolkit.runAccessibilityAudit()
 
-        XCTAssertNil(toolkit.accessibilityResultForReport())
+        XCTAssertNil(toolkit.accessibilityPassForReport())
+    }
+
+    /// A seeded pass is always older than the screen reading it — no pass can run while Scyther
+    /// covers the app — so it has to carry the moment it was taken. Without one the report presents
+    /// a pass from before a scroll as the current state of the app.
+    func testTheSeededPassCarriesTheMomentItWasTaken() {
+        var clock = Date(timeIntervalSince1970: 5_000)
+        toolkit.accessibilityClock = { clock }
+        toolkit.runAccessibilityPass = { self.result("app") }
+        toolkit.runAccessibilityAudit()
+
+        clock = clock.addingTimeInterval(30)
+        toolkit.isScytherCoveringScreen = { true }
+
+        XCTAssertEqual(toolkit.accessibilityPassForReport()?.takenAt, Date(timeIntervalSince1970: 5_000))
+    }
+
+    // MARK: - A Pass Always Eventually Runs
+
+    /// The poll's period and the debounce's period are both half a second, so a screen whose
+    /// controller chain changes on every poll cancelled the pending pass at about the instant it was
+    /// due, over and over: the boxes never updated, with no spinner and no banner. Nothing capped
+    /// the number of consecutive cancellations.
+    func testAPassIsNotDeferredForever() {
+        var clock = Date(timeIntervalSince1970: 0)
+        toolkit.accessibilityClock = { clock }
+
+        toolkit.scheduleAccessibilityReaudit()
+        let first = toolkit.pendingAccessibilityAuditDeadline
+        XCTAssertNotNil(first)
+
+        // Inside the floor, a fresh trigger still replaces the pending pass: that is the debounce
+        // doing its job.
+        clock = clock.addingTimeInterval(0.5)
+        toolkit.scheduleAccessibilityReaudit()
+        let deferred = toolkit.pendingAccessibilityAuditDeadline
+        XCTAssertNotEqual(deferred, first, "inside the floor a trigger still coalesces")
+
+        // Past it, the pass that has been waiting is left alone rather than cancelled again.
+        clock = clock.addingTimeInterval(InterfaceToolkit.AccessibilityAuditMaximumDeferral)
+        toolkit.scheduleAccessibilityReaudit()
+
+        XCTAssertEqual(toolkit.pendingAccessibilityAuditDeadline, deferred,
+                       "a pass deferred past the floor must be left to run")
+    }
+
+    /// The floor is measured from the first trigger of a run of them, not from the last, and it
+    /// resets once a pass has actually run.
+    func testTheDeferralFloorRestartsAfterAPassRuns() {
+        var clock = Date(timeIntervalSince1970: 0)
+        toolkit.accessibilityClock = { clock }
+        toolkit.runAccessibilityPass = { self.result("app") }
+
+        toolkit.scheduleAccessibilityReaudit()
+        clock = clock.addingTimeInterval(InterfaceToolkit.AccessibilityAuditMaximumDeferral + 1)
+        toolkit.runAccessibilityAudit()
+
+        toolkit.scheduleAccessibilityReaudit()
+        let first = toolkit.pendingAccessibilityAuditDeadline
+        clock = clock.addingTimeInterval(0.1)
+        toolkit.scheduleAccessibilityReaudit()
+
+        XCTAssertNotEqual(toolkit.pendingAccessibilityAuditDeadline, first,
+                          "the clock on the floor starts again once a pass has run")
+    }
+
+    // MARK: - Production Builds
+
+    /// The capture and the accessibility walk are blocked on a build the audit may not run on; the
+    /// apparatus around them was not. A shipping app built with `allowProductionBuilds: true` and
+    /// `liveEnabled` persisted ran a repeating half-second `Timer`, walked a hundred-deep controller
+    /// chain two to four times a second, and left a full-screen overlay in the app's hit-testing —
+    /// all of it feeding a pass whose only possible outcome was an empty result.
+    func testNothingIsInstalledOrScheduledOnABuildTheAuditMayNotRunOn() {
+        toolkit.canAuditThisBuild = { false }
+
+        toolkit.showAccessibilityAudit()
+
+        XCTAssertFalse(toolkit.isPollingAccessibilityScreen,
+                       "no run-loop wakeups for a result that is empty by construction")
+        XCTAssertFalse(toolkit.hasPendingAccessibilityAudit)
+        XCTAssertTrue(toolkit.accessibilityAuditView.isHidden,
+                      "and nothing left over the app for every touch to be hit-tested against")
+    }
+
+    /// Every trigger goes through the same schedule, so the notification observers registered at
+    /// launch must not get round the guard either.
+    func testNoTriggerCanScheduleAPassOnABuildTheAuditMayNotRunOn() {
+        toolkit.canAuditThisBuild = { false }
+
+        toolkit.windowDidBecomeVisibleNotification(notification: NSNotification(name: .init("test"), object: nil))
+        toolkit.scheduleAccessibilityReaudit()
+
+        XCTAssertFalse(toolkit.hasPendingAccessibilityAudit)
+    }
+
+    /// The build the audit exists for is untouched.
+    func testTheOverlayStillRunsOnABuildTheAuditMayRunOn() {
+        toolkit.canAuditThisBuild = { true }
+
+        toolkit.showAccessibilityAudit()
+
+        XCTAssertTrue(toolkit.isPollingAccessibilityScreen)
+        XCTAssertFalse(toolkit.accessibilityAuditView.isHidden)
+    }
+
+    // MARK: - What A Pass Costs
+
+    /// A pass reads tens of thousands of Objective-C properties, each returning through
+    /// `objc_claimAutoreleasedReturnValue`, and every `subviews` read bridges an autoreleased
+    /// `NSArray`. All of it ran inside one main-actor turn with no pool, so the whole lot sat in
+    /// the run loop's own pool alongside the window snapshot until the turn ended.
+    func testAPassDrainsItsOwnAutoreleasedObjects() {
+        weak var probe: NSObject?
+        toolkit.runAccessibilityPass = {
+            let object = NSObject()
+            probe = object
+            // What every Objective-C property read in the walk does to the enclosing pool.
+            _ = Unmanaged.passRetained(object).autorelease()
+            return self.result("app")
+        }
+
+        toolkit.runAccessibilityAudit()
+
+        XCTAssertNil(probe, "a pass must drain its own autoreleased objects rather than piling them up")
     }
 }
 

@@ -46,6 +46,22 @@ public final class InterfaceToolkit: NSObject, Sendable {
     /// its boxes being right is one poll plus one debounce.
     nonisolated internal static let AccessibilityScreenPollInterval: TimeInterval = 0.5
 
+    /// The longest a pending pass may be deferred by fresh triggers before it is left to run.
+    ///
+    /// The poll's period and the debounce's period are the same half a second, and every poll that
+    /// sees a changed controller chain cancels the pending pass and schedules a fresh one exactly
+    /// one debounce out. On a screen whose chain changes on every poll — an auto-advancing
+    /// `UIPageViewController`, a media player recreating its controller, a SwiftUI screen whose
+    /// hosting children churn — the pass was therefore cancelled at about the instant it was due,
+    /// over and over, and the boxes never updated: no spinner, no banner, and no way to force a
+    /// pass short of opening the report. Nothing capped the number of consecutive cancellations.
+    ///
+    /// Two seconds, measured from the *first* trigger of a run rather than the last, so a genuine
+    /// burst still coalesces into one pass while an endless stream cannot starve it. Past the floor
+    /// the pending pass is left alone rather than replaced: a pass of a screen two seconds stale is
+    /// worth incomparably more than a pass that never happens.
+    nonisolated internal static let AccessibilityAuditMaximumDeferral: TimeInterval = 2
+
     /// Private Init to Stop re-initialisation and allow singleton creation.
     override private init() { }
 
@@ -76,6 +92,49 @@ public final class InterfaceToolkit: NSObject, Sendable {
     /// The screen the last poll saw, so a change is noticed once rather than every half second
     /// until the next audit lands.
     private var lastAccessibilityScreenIdentity: [ObjectIdentifier] = []
+
+    /// When ``lastUncoveredAccessibilityResult`` was taken.
+    private var lastUncoveredAccessibilityResultTakenAt: Date?
+
+    /// When the pending re-audit is due, or `nil` when none is pending.
+    internal private(set) var pendingAccessibilityAuditDeadline: Date?
+
+    /// When the first of the current run of triggers arrived, or `nil` when no pass is pending.
+    ///
+    /// The clock ``AccessibilityAuditMaximumDeferral`` is measured against. Cleared whenever a pass
+    /// actually runs, so the floor is about one run of deferrals rather than about the process.
+    private var accessibilityAuditFirstScheduledAt: Date?
+
+    /// Reads the current time.
+    ///
+    /// Injected for the same reason `AccessibilityAuditor.now` is: the deferral floor and the
+    /// seeded pass's age are both statements about elapsed time, and a test that drove them with
+    /// the wall clock would either sleep or flake.
+    internal var accessibilityClock: @MainActor () -> Date = Date.init
+
+    /// Whether this build may run the audit at all.
+    ///
+    /// The same predicate ``AccessibilityAudit/auditKeyWindow()`` refuses on, asked one layer out.
+    /// That guard covers the pixels and the accessibility walk, which is what it was written for,
+    /// and covers none of the apparatus around them: a host shipping
+    /// `Scyther.start(allowProductionBuilds: true)` with ``AccessibilityAudit/liveEnabled``
+    /// persisted — the exact combination that guard names as the hole — installed a repeating
+    /// half-second `Timer` on the main run loop in `.common` mode for the life of the process, a
+    /// hundred-deep controller-chain walk two to four times a second, a `DispatchWorkItem` on every
+    /// navigation, and a full-screen overlay consulted on every touch, all to feed a function whose
+    /// only possible answer was an empty result. Nothing may be installed, observed or scheduled in
+    /// a build where the audit cannot run.
+    ///
+    /// Injected because `AppEnvironment.isTestCase` is unconditionally `true` under XCTest and
+    /// `isAppStore` unconditionally `false`, so neither branch could otherwise be reached by a test.
+    internal var canAuditThisBuild: @MainActor () -> Bool = {
+        AccessibilityAudit.canAuditKeyWindow(isTestCase: AppEnvironment.isTestCase,
+                                             isAppStore: AppEnvironment.isAppStore)
+    }
+
+    /// Whether the screen poll is installed right now. Readable so a test can assert that a build
+    /// the audit may not run on is not waking the run loop.
+    internal var isPollingAccessibilityScreen: Bool { accessibilityScreenTimer != nil }
 
     /// The most recent pass taken while nothing of Scyther's was covering the app.
     ///
@@ -347,6 +406,11 @@ extension InterfaceToolkit {
     /// reason: the overlay knows only that its pill was tapped, and this is the one place that
     /// knows there is a report to open and who opens it.
     @MainActor internal func setupAccessibilityAudit() {
+        // Nothing at all on a build the audit may not run on — not even the overlay, which is
+        // otherwise left in the key window with a `point(inside:with:)` override consulted on every
+        // touch for the life of the process. See ``canAuditThisBuild``.
+        guard canAuditThisBuild() else { return }
+
         accessibilityAuditView.isHidden = true
         accessibilityAuditView.onFrameChanged = { [weak self] in
             self?.scheduleAccessibilityReaudit()
@@ -365,7 +429,7 @@ extension InterfaceToolkit {
     /// re-audit already in flight — a stale box left on screen after the developer has turned
     /// the feature off would look like a bug in the audit rather than a setting they chose.
     @MainActor internal func showAccessibilityAudit() {
-        let enabled = AccessibilityAudit.instance.liveEnabled
+        let enabled = canAuditThisBuild() && AccessibilityAudit.instance.liveEnabled
         accessibilityAuditView.isHidden = !enabled
         if enabled {
             startAccessibilityScreenPolling()
@@ -374,7 +438,10 @@ extension InterfaceToolkit {
             stopAccessibilityScreenPolling()
             pendingAccessibilityAudit?.cancel()
             pendingAccessibilityAudit = nil
+            pendingAccessibilityAuditDeadline = nil
+            accessibilityAuditFirstScheduledAt = nil
             lastUncoveredAccessibilityResult = nil
+            lastUncoveredAccessibilityResultTakenAt = nil
             accessibilityAuditView.findings = []
         }
     }
@@ -492,13 +559,26 @@ extension InterfaceToolkit {
     /// switched the feature off does not schedule work that will just clear the overlay's
     /// already-empty findings a moment later.
     @MainActor internal func scheduleAccessibilityReaudit() {
-        guard AccessibilityAudit.instance.liveEnabled else { return }
+        guard canAuditThisBuild(), AccessibilityAudit.instance.liveEnabled else { return }
+
+        let now = accessibilityClock()
+        // Past the floor, the pass that has been waiting is left exactly where it is. Cancelling it
+        // again is what let a screen that changes on every poll defer it indefinitely.
+        if let firstScheduledAt = accessibilityAuditFirstScheduledAt,
+           pendingAccessibilityAudit != nil,
+           now.timeIntervalSince(firstScheduledAt) >= Self.AccessibilityAuditMaximumDeferral {
+            return
+        }
+        if accessibilityAuditFirstScheduledAt == nil {
+            accessibilityAuditFirstScheduledAt = now
+        }
 
         pendingAccessibilityAudit?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
             self?.runAccessibilityAudit()
         }
         pendingAccessibilityAudit = workItem
+        pendingAccessibilityAuditDeadline = now.addingTimeInterval(Self.AccessibilityAuditDebounceInterval)
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.AccessibilityAuditDebounceInterval, execute: workItem)
     }
 
@@ -521,11 +601,21 @@ extension InterfaceToolkit {
     /// as soon as Scyther's screen goes away.
     @MainActor internal func runAccessibilityAudit() {
         pendingAccessibilityAudit = nil
+        pendingAccessibilityAuditDeadline = nil
+        accessibilityAuditFirstScheduledAt = nil
         guard !isScytherCoveringScreen() else { return }
 
-        let result = runAccessibilityPass()
-        lastUncoveredAccessibilityResult = result
-        accessibilityAuditView.findings = result.findings
+        // Every accessibility property the walk reads returns through
+        // `objc_claimAutoreleasedReturnValue`, and every `subviews` read bridges an autoreleased
+        // `NSArray`. A pass makes tens of thousands of both, in one main-actor turn, so without a
+        // pool of its own the lot sits in the run loop's alongside the window snapshot until the
+        // turn ends — and in live mode a turn can hold several passes' worth.
+        autoreleasepool {
+            let result = runAccessibilityPass()
+            lastUncoveredAccessibilityResult = result
+            lastUncoveredAccessibilityResultTakenAt = accessibilityClock()
+            accessibilityAuditView.findings = result.findings
+        }
     }
 
     /// The pass the report screen should open onto.
@@ -544,9 +634,11 @@ extension InterfaceToolkit {
     ///
     /// - Returns: The most recent uncovered pass, or `nil` when there has not been one — live mode
     ///   off, or on but not yet past its first debounce.
-    @MainActor internal func accessibilityResultForReport() -> AccessibilityAuditor.Result? {
+    @MainActor internal func accessibilityPassForReport() -> SeededAccessibilityPass? {
         guard isScytherCoveringScreen() else { return nil }
-        return lastUncoveredAccessibilityResult
+        guard let result = lastUncoveredAccessibilityResult,
+              let takenAt = lastUncoveredAccessibilityResultTakenAt else { return nil }
+        return SeededAccessibilityPass(result: result, takenAt: takenAt)
     }
 }
 
