@@ -165,13 +165,66 @@ struct WaterfallOverviewStrip: View {
 
     var body: some View {
         GeometryReader { proxy in
-            content(size: proxy.size)
+            accessibleContent(size: proxy.size)
         }
         .frame(height: height)
         .background(WaterfallChartStyle.stripBackground)
         .clipShape(RoundedRectangle(cornerRadius: 8))
-        .accessibilityElement()
-        .accessibilityLabel(localized("Traffic overview"))
+    }
+
+    /// ``content(size:)`` plus the accessibility both interactions need, built together because
+    /// ``Interaction/tap(_:)``'s own accessibility action needs the same width the gesture and the
+    /// drawing already read from the enclosing `GeometryReader`.
+    ///
+    /// Traffic Stats' strip used to collapse to one element with a label and nothing else — no
+    /// value, no trait, no action — which meant "tap the strip to open the page at that moment"
+    /// was unreachable by VoiceOver at all: the `Chart` this strip replaced made every bar its own
+    /// navigable element with a spoken value, so that was a regression on what shipped before it,
+    /// not a pre-existing gap. `.isButton` plus an `.accessibilityAction` fix the same failure
+    /// `.accessibilityAdjustableAction` already fixed for zoom on ``WaterfallView``'s own strip —
+    /// see that type's own documentation — by giving VoiceOver and Switch Control a route to the
+    /// interaction a sighted reader's tap already has.
+    ///
+    /// - Parameter size: The strip's size in points, from the enclosing `GeometryReader`.
+    @ViewBuilder
+    private func accessibleContent(size: CGSize) -> some View {
+        let base = content(size: size)
+            .accessibilityElement()
+            .accessibilityLabel(localized("Traffic overview"))
+            .accessibilityValue(accessibilityValue)
+
+        switch interaction {
+        case .none, .scrub:
+            // `.scrub`'s own page overrides this value with the current window's caption, and
+            // reaches zoom through `.accessibilityAdjustableAction` attached from outside — see
+            // ``WaterfallView/strip``. Nothing here needs an activation action: the drag that
+            // gesture answers to has no single VoiceOver-reachable equivalent the way a tap does.
+            base
+        case .tap(let onTap):
+            // The strip has no destination view of its own for a `NavigationLink` to wrap — see
+            // ``TrafficStatsView/waterfallSection`` — so a sighted tap and VoiceOver's activation
+            // both have to drive the same callback. The midpoint stands in for "the moment
+            // touched" that a sighted tap would otherwise name, which is the best a single
+            // activation action can report without asking the reader to drag first.
+            base
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction {
+                    guard let time = time(at: size.width / 2, width: size.width) else { return }
+                    onTap(time)
+                }
+        }
+    }
+
+    /// A description of what the strip shows, read by VoiceOver after
+    /// ``localized(_:)`` `"Traffic overview"` names what the element *is*.
+    ///
+    /// ``WaterfallView/strip`` overrides this with `.accessibilityValue(viewModel.windowCaption)`,
+    /// applied from outside and so replacing rather than joining this default — see that
+    /// property's own documentation on why the label and the value are split. This default is
+    /// therefore only ever heard on the Traffic Stats section, which supplies no override of its
+    /// own; without it, that strip named itself and said nothing about what it held.
+    private var accessibilityValue: String {
+        localized("\(series.entries.count) requests over \(DurationText.milliseconds(series.span * 1_000))")
     }
 
     /// The strip's drawing and its gesture, built together because the gesture the view attaches
