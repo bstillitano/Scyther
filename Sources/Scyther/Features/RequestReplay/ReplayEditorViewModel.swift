@@ -11,11 +11,10 @@ import Foundation
 ///
 /// Sending is deliberately unremarkable. The draft becomes an ordinary `URLRequest` on an
 /// ordinary session, so the interceptor captures and logs it exactly as it captures traffic the
-/// app makes. It is *not* matched against overrides, breakpoints or conditioning: a replay is
-/// Scyther's own request, and ``ReplayableRequest/makeURLRequest(replayOf:)`` marks it as such —
-/// see ``ScytherOriginatedRequest`` — alongside the provenance property that ties it back to the
-/// original. The editor's footer says so, because a developer comparing a replay against its
-/// original has to know which of the two they are looking at.
+/// app makes. What it is *not* subject to is a breakpoint or a header rewrite: a replay is
+/// Scyther's own request — see ``ScytherOriginatedRequest`` — and holding one would stall the
+/// editor that sent it, while rewriting one would contradict the screen's whole promise. Stubs
+/// and conditioning are the developer's call, ``appliesOverrides``, and default to off.
 ///
 /// ## Topics
 ///
@@ -25,6 +24,7 @@ import Foundation
 /// ### The Draft
 /// - ``draft``
 /// - ``capture``
+/// - ``appliesOverrides``
 /// - ``isModified``
 /// - ``methodSelection``
 /// - ``customMethod``
@@ -65,6 +65,23 @@ final class ReplayEditorViewModel: ViewModel {
 
     /// Whether the confirmation alert is showing.
     @Published var showingConfirmation: Bool = false
+
+    /// Whether Request Overrides may stub or condition this replay.
+    ///
+    /// Off by default, so the editor's default answer is the honest one: this request, exactly as
+    /// edited, against the server — which is what makes the comparison with the original mean
+    /// something. On, a matching mock answers it and a matching condition shapes it exactly as
+    /// they would app traffic, which is the only way to fire a crafted request at an override
+    /// without waiting for the app to make the call itself. The log says which happened either
+    /// way, in the badges it already has.
+    ///
+    /// Breakpoints and header rewrites are not covered by this and never apply to a replay — see
+    /// ``ScytherOriginatedRequest``.
+    ///
+    /// Deliberately not persisted: it is a property of one send, not a setting, and a developer
+    /// returning to the editor a week later should not be silently replaying into a mock they
+    /// switched on once.
+    @Published var appliesOverrides: Bool = false
 
     /// The picker's current selection: a verb from ``commonMethods``, or ``otherMethodTag``.
     ///
@@ -203,7 +220,8 @@ final class ReplayEditorViewModel: ViewModel {
     ///   ``canSend`` already prevents the UI from reaching.
     @discardableResult
     func send() -> URLRequest? {
-        guard let request = draft.makeURLRequest(replayOf: capture.getRandomHash() as String) else { return nil }
+        guard let request = draft.makeURLRequest(replayOf: capture.getRandomHash() as String,
+                                                 applyingOverrides: appliesOverrides) else { return nil }
         dispatch(request)
         return request
     }

@@ -36,8 +36,8 @@ internal let replayOfRequestKey = "Scyther_Replay_Of_Request"
 /// - HTTP redirect support
 /// - Request filtering based on URL patterns
 /// - Automatic prevention of infinite logging loops
-/// - Scyther's own requests logged but exempt from every interception feature, so the toolkit
-///   never instruments itself — see ``ScytherOriginatedRequest``
+/// - Scyther's own requests logged but never held or rewritten, so the toolkit never
+///   instruments itself — see ``ScytherOriginatedRequest``
 ///
 /// - Note: This protocol is automatically registered by `NetworkHelper.start()`.
 open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
@@ -185,8 +185,8 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         stateLock.withLock { didStartTask }
     }
 
-    /// Whether this exchange is one Scyther itself started, and so is exempt from every
-    /// interception feature while still being logged.
+    /// Whether this exchange is one Scyther itself started, and so is never held at a breakpoint
+    /// and never header-rewritten — while still being logged.
     ///
     /// Computed rather than stored, because the answer lives on the immutable `request` this
     /// instance was created with and is therefore the same on every thread that asks — no lock,
@@ -195,6 +195,16 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     /// not a header.
     internal var isScytherOriginated: Bool {
         ScytherOriginatedRequest.identifies(request)
+    }
+
+    /// Whether this exchange is exempt from stubs and conditioning as well.
+    ///
+    /// The other half of the exemption, and the half a Scyther request can decline: the replay
+    /// editor's **Apply Request Overrides** toggle sets the opt-in, so a developer can fire a
+    /// crafted request at a mock they have just written. Nothing opts the menu's IP lookup back
+    /// in, and nothing outside Scyther can opt anything in at all.
+    internal var skipsOverrides: Bool {
+        isScytherOriginated && !ScytherOriginatedRequest.appliesOverrides(request)
     }
 
     /// Whether this response is paced to a bandwidth ceiling.
@@ -385,21 +395,24 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         /// Resolve any rules that apply to this request. The snapshot is lock-guarded because
         /// this method runs on a thread owned by the URL loading system.
         ///
-        /// Scyther's own traffic resolves to nothing at all — see ``isScytherOriginated`` — so it
-        /// is never stubbed and never rewritten, while still reaching ``model`` and therefore the
-        /// log.
+        /// Scyther's own traffic never resolves a header rewrite — see ``isScytherOriginated`` —
+        /// and resolves nothing at all unless it opted back in, while still reaching ``model``
+        /// and therefore the log.
         let snapshot = NetworkRuleSnapshot.current
-        let outcome = (snapshot.isEnabled && !isScytherOriginated)
-            ? NetworkRuleEngine.outcome(for: request, rules: snapshot.rules)
+        let outcome = (snapshot.isEnabled && !skipsOverrides)
+            ? NetworkRuleEngine.outcome(for: request,
+                                        rules: snapshot.rules,
+                                        applyingHeaderRewrites: !isScytherOriginated)
             : .empty
 
         /// Global conditioning is a floor, not an addition: a matching override's own condition
         /// replaces it outright, so conditioning one endpoint still beats whatever the whole app
         /// is set to. Adding the two would make a targeted "fast path" impossible to express.
         ///
-        /// The floor stops at Scyther's own requests. A developer who has switched the whole app
-        /// to a lossy 2G link has not asked for the menu's own IP lookup to fail with it.
-        let condition = isScytherOriginated ? nil : (outcome.condition ?? snapshot.globalCondition)
+        /// The floor stops at Scyther's own requests, unless one asked for it. A developer who has
+        /// switched the whole app to a lossy 2G link has not asked for the menu's own IP lookup to
+        /// fail with it.
+        let condition = skipsOverrides ? nil : (outcome.condition ?? snapshot.globalCondition)
         self.condition = condition
 
         /// The global condition is credited on the request it shapes, exactly as an override's
@@ -535,7 +548,8 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         /// list of things a future change to ``rewrittenRequest(applying:)`` could quietly break.
         /// The cost of losing the marker is the toolkit instrumenting itself again.
         if isScytherOriginated {
-            ScytherOriginatedRequest.mark(mutableRequest)
+            ScytherOriginatedRequest.mark(mutableRequest,
+                                          applyingOverrides: ScytherOriginatedRequest.appliesOverrides(request))
         }
 
         let outgoing = mutableRequest as URLRequest
@@ -1371,7 +1385,8 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
             URLProtocol.removeProperty(forKey: internalNetworkRequestKey, in: mutableRequest)
             URLProtocol.removeProperty(forKey: replayOfRequestKey, in: mutableRequest)
             if isOriginatedByScyther {
-                ScytherOriginatedRequest.mark(mutableRequest)
+                ScytherOriginatedRequest.mark(mutableRequest,
+                                              applyingOverrides: ScytherOriginatedRequest.appliesOverrides(self.request))
             }
 
             updatedRequest = mutableRequest as URLRequest

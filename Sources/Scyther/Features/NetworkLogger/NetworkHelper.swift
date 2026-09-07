@@ -90,8 +90,9 @@ public final class NetworkHelper: Sendable {
     /// The current IP address of the device.
     ///
     /// This property asynchronously fetches the device's public IP address using the ipify API.
-    /// The result is cached after the first successful fetch, and **every caller that arrives
-    /// while the first fetch is still in flight shares it**.
+    /// The result is cached after the first **successful** fetch, and every caller that arrives
+    /// while a fetch is still in flight shares it. A failure is shared but not cached, so the
+    /// next caller tries again.
     ///
     /// Coalescing is not an optimisation. ``hasResolvedIPAddress`` used to be set only *after*
     /// the `await` returned, so the flag was still `false` for the whole round trip and every
@@ -120,19 +121,37 @@ public final class NetworkHelper: Sendable {
 
             let resolved = await task.value
 
-            /// The winner and every joiner write the same value, so the assignment is idempotent
-            /// and no ordering between them matters.
+            /// A cache reset while this lookup was in flight replaced or cleared the task, and
+            /// writing back here would undo it with a value from before the reset.
+            guard ipAddressTask == task else { return resolved }
+
+            /// The winner and every joiner write the same value, so the assignments are
+            /// idempotent and no ordering between them matters.
             _ipAddress = resolved
-            hasResolvedIPAddress = true
             ipAddressTask = nil
+
+            /// A failure is **not** cached. Coalescing means one failed lookup now answers every
+            /// caller waiting on it, so caching that failure would take one blip and show
+            /// `0.0.0.0` until the app was relaunched — the menu deliberately does not re-run the
+            /// lookup on a subsequent appearance. Leaving the flag down costs one more request
+            /// the next time somebody asks.
+            hasResolvedIPAddress = resolved != Self.unknownIPAddress
             return resolved
         }
     }
 
+    /// What ``fetchIPAddress()`` returns when it could not find out.
+    ///
+    /// Named rather than repeated, because ``ipAddress`` has to recognise it in order not to cache
+    /// it.
+    private static let unknownIPAddress = "0.0.0.0"
+
     /// Internal storage for the cached IP address.
     private var _ipAddress: String = ""
 
-    /// Flag indicating whether the IP address has been resolved.
+    /// Flag indicating whether the IP address has been resolved **successfully**. A failed lookup
+    /// leaves it down, so the next caller tries again rather than reading `0.0.0.0` back until the
+    /// app is relaunched.
     private var hasResolvedIPAddress: Bool = false
 
     /// The lookup every caller that arrives before the first one finishes joins, or `nil` when
@@ -226,7 +245,7 @@ extension NetworkHelper {
     private static func fetchIPAddress() async -> String {
         // Construct API URL
         guard let url = URL(string: "https://api.ipify.org/?format=json") else {
-            return "0.0.0.0"
+            return unknownIPAddress
         }
 
         // Setup network request, marked so Scyther never intercepts its own lookup.
@@ -243,10 +262,10 @@ extension NetworkHelper {
             {
                 return ipAddress
             } else {
-                return "0.0.0.0"
+                return unknownIPAddress
             }
         } catch {
-            return "0.0.0.0"
+            return unknownIPAddress
         }
     }
 }
