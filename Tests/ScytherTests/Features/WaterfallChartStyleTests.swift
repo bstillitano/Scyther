@@ -140,6 +140,37 @@ final class WaterfallChartStyleTests: XCTestCase {
                              "twenty-two rows have to scroll, which is what the page is for")
     }
 
+    // MARK: - Colour
+
+    /// The full-log page's detail row fills its bars from ``WaterfallChartStyle/colour(forOutcome:)``
+    /// while the legend above it is still drawn by Charts from ``WaterfallChartStyle/styleScale``.
+    /// Nothing else keeps those two in step, so a test that walks the scale and asks this for
+    /// every entry is what keeps a drifted colour from shipping silently.
+    func testEveryBarIsFilledWithTheColourItsLegendEntryShows() {
+        for (title, colour) in WaterfallChartStyle.styleScale {
+            XCTAssertEqual(WaterfallChartStyle.colour(forOutcome: title), colour,
+                           "\(title) is drawn in a colour its legend entry does not show")
+        }
+    }
+
+    /// `colour(for:)` is a thin wrapper over `colour(forOutcome:)`, but the wrapping — going
+    /// through `outcomeTitle(for:)` — is exactly the part a typo in either function's `switch`
+    /// would not be caught by testing `colour(forOutcome:)` alone. One entry per outcome, so
+    /// every case of `outcomeTitle(for:)` is exercised on the way through.
+    func testColourForAnEntryMatchesColourForItsOutcome() {
+        let entries: [WaterfallEntry] = [
+            entry(),
+            entry(failure: true),
+            entry(pending: true),
+            entry(stubbed: true),
+        ]
+        for candidate in entries {
+            XCTAssertEqual(WaterfallChartStyle.colour(for: candidate),
+                           WaterfallChartStyle.colour(forOutcome: WaterfallChartStyle.outcomeTitle(for: candidate)),
+                           "colour(for:) drifted from colour(forOutcome:) for \(WaterfallChartStyle.outcomeTitle(for: candidate))")
+        }
+    }
+
     // MARK: - Outcome
 
     /// A stub's status code was authored rather than returned, so it is named as a stub whatever

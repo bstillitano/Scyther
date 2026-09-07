@@ -53,8 +53,8 @@ enum WaterfallChartStyle {
     /// fit turn a scrollable waterfall into a static one: twenty-two requests were squeezed onto a
     /// single screen, which made the full-log page indistinguishable from the preview it was
     /// opened from, and a thousand requests would have been a thousand hairlines. With a constant
-    /// row height the stack's height is rows × this, and the `ScrollView` scrolls the moment that
-    /// exceeds the screen — which is the entire point of the page.
+    /// row height the detail list's content height is rows × this, and the `List` scrolls the
+    /// moment that exceeds the screen — which is the entire point of the page.
     ///
     /// Forty-four points because the page's rows are tappable and that is the smallest comfortable
     /// hit target; the preview uses the same figure so a burst has the same visual density on both
@@ -261,11 +261,12 @@ enum WaterfallChartStyle {
 
     /// One request's bar, with its colour and its trailing duration label.
     ///
-    /// The preview's mark. The full-log page draws the same bar itself — same thickness, same
-    /// colour from ``colour(for:)``, same label from ``valueLabel(for:)``, same four points of
-    /// air before it — because at a scale of tens of thousands of points a `Chart` per row buys
-    /// nothing and costs a great deal. Change the thickness or the label here and change it there
-    /// too; the pieces a reader can compare are shared, the marks are not.
+    /// The preview's mark. The full-log page's detail row draws its own bar rather than asking
+    /// Charts for one — a log can hold thousands of requests, and a `Chart` per row buys nothing a
+    /// `RoundedRectangle` does not give for free — but it draws from the same thickness
+    /// (``barThickness``), the same colour (``colour(for:)``) and the same row height
+    /// (``rowHeight``) as this mark does. Change any of those here and change them on both
+    /// surfaces; the pieces a reader can compare are shared, the marks themselves are not.
     ///
     /// - Parameters:
     ///   - id: The bar's value on the chart's categorical y scale. The preview numbers its rows

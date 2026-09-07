@@ -54,14 +54,21 @@ struct WaterfallView: View {
     /// The page's own view model, which owns the laid-out log and the current time window.
     @StateObject private var viewModel: WaterfallViewModel
 
-    /// The last magnification the pinch gesture reported, so each change applies only the delta
+    /// The magnification the pinch gesture last reported, so each change applies only the delta
     /// since the previous callback rather than the whole gesture again.
     ///
     /// `MagnificationGesture` reports magnitude relative to where the pinch *started*, not to the
     /// last callback. Feeding that straight to ``WaterfallViewModel/zoom(by:)`` would reapply the
     /// entire pinch on every frame the gesture reports and slam the window into its zoom limit on
     /// the first frame of motion.
-    @State private var lastMagnification: CGFloat = 1
+    ///
+    /// `@GestureState` rather than `@State`: SwiftUI resets a gesture state back to its initial
+    /// value whenever the gesture ends *or is cancelled*, which a plain `@State` variable reset
+    /// only from `onEnded` does not get. A pinch the enclosing `List` claims mid-gesture never
+    /// calls `onEnded`, and a `@State` left stranded at, say, `3` would make the *next* pinch's
+    /// first callback compute `factor = 1/3` and snap the window before the user had moved a
+    /// finger.
+    @GestureState private var lastMagnification: CGFloat = 1
 
     /// Creates the page.
     ///
@@ -108,19 +115,17 @@ struct WaterfallView: View {
     private var content: some View {
         VStack(spacing: 0) {
             legend
-            WaterfallOverviewStrip(series: viewModel.series,
-                                   window: viewModel.window,
-                                   height: WaterfallOverviewStrip.pageHeight,
-                                   interaction: .scrub { viewModel.scrub(to: $0) })
-                .padding(.horizontal, 16)
-                .padding(.bottom, 10)
-                .accessibilityAdjustableAction { direction in
+            if viewModel.window.canZoom {
+                strip.accessibilityAdjustableAction { direction in
                     switch direction {
                     case .increment: viewModel.zoom(by: 2)
                     case .decrement: viewModel.zoom(by: 0.5)
                     @unknown default: break
                     }
                 }
+            } else {
+                strip
+            }
             detail
             Text(viewModel.windowCaption)
                 .font(.footnote)
@@ -137,6 +142,29 @@ struct WaterfallView: View {
         WaterfallLegendView()
             .padding(.horizontal, WaterfallChartStyle.cardContentPadding)
             .padding(.top, 8)
+    }
+
+    /// The overview strip, carrying the current window and announcing it to VoiceOver.
+    ///
+    /// `.accessibilityValue` rather than baking the count into the label: the strip's label
+    /// (``localized(_:)`` `"Traffic overview"`, set inside ``WaterfallOverviewStrip`` itself)
+    /// names *what* the element is, and the value is what VoiceOver re-announces after every
+    /// drag or adjustable-action change — without it, a VoiceOver user swiping to zoom hears
+    /// "Traffic overview" again on every step and has no way to tell anything happened.
+    ///
+    /// Whether ``content`` also attaches `.accessibilityAdjustableAction` is decided by
+    /// ``WaterfallViewModel/window``'s `canZoom`, not by this property: `canZoom`'s own
+    /// documentation says the page disables the control rather than letting a pinch silently do
+    /// nothing, and an adjustable action offered on an element that cannot act on it breaks that
+    /// promise for VoiceOver the same way an un-disabled pinch would for a sighted reader.
+    private var strip: some View {
+        WaterfallOverviewStrip(series: viewModel.series,
+                               window: viewModel.window,
+                               height: WaterfallOverviewStrip.pageHeight,
+                               interaction: .scrub { viewModel.scrub(to: $0) })
+            .padding(.horizontal, 16)
+            .padding(.bottom, 10)
+            .accessibilityValue(viewModel.windowCaption)
     }
 
     /// The rows the window holds.
@@ -166,7 +194,12 @@ struct WaterfallView: View {
             .onChange(of: proxy.size.width) { _ in
                 viewModel.configureWindow(plotWidth: plotWidth(in: proxy.size.width))
             }
-            .gesture(magnification, including: .all)
+            // `.subviews` rather than `.all` when zoom is impossible: it disables the pinch this
+            // modifier adds while still letting the `List` recognise its own scroll and press
+            // gestures, so a request the window cannot narrow any further does not also lose its
+            // scroll. See `canZoom`'s own documentation on why the page disables the gesture
+            // rather than letting a pinch silently do nothing.
+            .gesture(magnification, including: viewModel.window.canZoom ? .all : .subviews)
         }
     }
 
@@ -189,17 +222,21 @@ struct WaterfallView: View {
     /// Pinch to zoom, running alongside the list's scrolling rather than instead of it.
     ///
     /// `MagnificationGesture` and not `MagnifyGesture`: the package's floor is iOS 16 and
-    /// `MagnifyGesture` is iOS 17. Attached with `including: .all` so the list keeps recognising
-    /// its own scroll and press gestures simultaneously — a pinch and a scroll do not compete for
-    /// the same fingers.
+    /// `MagnifyGesture` is iOS 17. Attached by ``detail`` with `including: .all` so the list keeps
+    /// recognising its own scroll and press gestures simultaneously — a pinch and a scroll do not
+    /// compete for the same fingers — and with `including: .subviews` once the window cannot
+    /// narrow any further, which disables the pinch itself without disabling the list underneath
+    /// it.
+    ///
+    /// Driven through `.updating($lastMagnification)` rather than `.onChanged`/`.onEnded`: see
+    /// ``lastMagnification`` for why a plain `@State` reset only in `onEnded` is not safe here.
     private var magnification: some Gesture {
         MagnificationGesture()
-            .onChanged { value in
-                guard value.isFinite, value > 0, lastMagnification > 0 else { return }
-                viewModel.zoom(by: Double(value / lastMagnification))
-                lastMagnification = value
+            .updating($lastMagnification) { value, state, _ in
+                guard value.isFinite, value > 0, state > 0 else { return }
+                viewModel.zoom(by: Double(value / state))
+                state = value
             }
-            .onEnded { _ in lastMagnification = 1 }
     }
 
     /// The placeholder shown for a log with nothing in it at all.
@@ -241,14 +278,26 @@ struct WaterfallView: View {
 /// list. The bar is a filled rectangle rather than a `Chart`, for the same reason the old page's
 /// rows were: a `BarMark` with both axes and the legend hidden *is* a filled rectangle, and asking
 /// Charts to lay one out per row buys nothing a `RoundedRectangle` does not already give for free.
-/// Everything a reader could compare against the preview — the colour and the row height — still
-/// comes from ``WaterfallChartStyle``.
+/// Everything a reader could compare against the preview — the thickness, the colour, the row
+/// height and the duration label — still comes from ``WaterfallChartStyle``.
+///
+/// The bar conveys a request's length by width and its outcome by fill colour, neither of which
+/// is anything to VoiceOver, so the row collapses itself into one accessibility element with a
+/// composed label naming the host, the request, its outcome and its duration — see
+/// ``accessibilityLabel``.
 private struct WaterfallDetailRow: View {
     /// The row to draw.
     let row: WaterfallViewModel.Row
 
     /// The current window, which is what the bar is placed and clipped against.
     let window: WaterfallWindow
+
+    /// The row's height, scaled against the reader's text size.
+    ///
+    /// Scaled rather than constant for the same reason the old page's rows were: the label beside
+    /// the bar grows with Dynamic Type, and a constant height would clip it at exactly the sizes
+    /// where it most needs to be legible.
+    @ScaledMetric(relativeTo: .caption) private var rowHeight: CGFloat = WaterfallChartStyle.rowHeight
 
     var body: some View {
         HStack(spacing: 8) {
@@ -262,19 +311,30 @@ private struct WaterfallDetailRow: View {
                 let rect = barRect(in: proxy.size)
                 RoundedRectangle(cornerRadius: 3)
                     .fill(WaterfallChartStyle.colour(for: row.entry))
-                    .frame(width: rect.width, height: 10)
-                    .offset(x: rect.minX, y: (proxy.size.height - 10) / 2)
+                    .frame(width: rect.width, height: WaterfallChartStyle.barThickness)
+                    .offset(x: rect.minX, y: (proxy.size.height - WaterfallChartStyle.barThickness) / 2)
             }
+            // `GeometryReader` does not clip its own content: a request in the window's last few
+            // points still computes a rect flush to the trailing edge, and the minimum-width floor
+            // below can push that rect's far edge past `size.width`. Without this the bar draws
+            // over the duration column instead of stopping at the plot's edge.
+            .clipped()
 
             Text(row.entry.isPending
                  ? "—" // scyther:unlocalised em dash for an unfinished request
-                 : DurationText.seconds(row.entry.duration))
+                 : WaterfallChartStyle.valueLabel(for: row.entry))
                 .font(.caption)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .frame(width: WaterfallChartStyle.detailDurationWidth, alignment: .trailing)
         }
-        .frame(height: 44)
+        .frame(height: rowHeight)
+        // The bar itself conveys length by width, which is nothing to a screen reader, so the
+        // name, the outcome and the duration are spoken instead — the same composition the old
+        // page's row used, and for the same reason: without it a request's outcome is carried
+        // only by the rectangle's fill colour, which VoiceOver cannot read.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
     }
 
     /// The bar's position inside the window, clipped at both edges.
@@ -293,8 +353,22 @@ private struct WaterfallDetailRow: View {
         let clippedEnd = min(max(0, rawEnd), size.width)
         return CGRect(x: clippedStart,
                       y: 0,
-                      width: max(3, clippedEnd - clippedStart),
-                      height: 10)
+                      width: max(WaterfallChartStyle.minimumBarWidth, clippedEnd - clippedStart),
+                      height: WaterfallChartStyle.barThickness)
+    }
+
+    /// What VoiceOver reads for the row.
+    ///
+    /// - Returns: The host and label, the outcome, and the duration (or an em dash for a request
+    ///   still in flight), joined the way ``WaterfallEntry``'s own accessibility summaries are —
+    ///   one sentence per part rather than reading the visible " · " punctuation aloud.
+    private var accessibilityLabel: String {
+        let name = row.entry.shortHost.isEmpty ? row.entry.label : "\(row.entry.shortHost) \(row.entry.label)"
+        return [
+            name,
+            WaterfallChartStyle.outcomeTitle(for: row.entry),
+            row.entry.isPending ? "—" : WaterfallChartStyle.valueLabel(for: row.entry), // scyther:unlocalised em dash for an unfinished request
+        ].joined(separator: ", ") // scyther:unlocalised separator between localised parts
     }
 }
 

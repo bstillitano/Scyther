@@ -411,7 +411,13 @@ final class WaterfallViewModel: ViewModel {
     }
 
     /// What the page says under the list about what is on screen.
+    ///
+    /// Against ``layout``'s *filtered* count, not its unfiltered `total`: the window is a slice of
+    /// the rows the page is actually drawing, which under an active filter is already a slice of
+    /// the log. Comparing `visibleRows` to `total` mixed a filtered numerator with an unfiltered
+    /// denominator and could read "5 of 340" for a window over a dozen-request filtered list — the
+    /// same "count against the wrong total" mistake ``caption`` was written to avoid.
     var windowCaption: String {
-        localized("\(visibleRows.count) of \(layout.total) requests")
+        localized("\(visibleRows.count) of \(layout.count) requests")
     }
 }

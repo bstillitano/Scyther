@@ -139,19 +139,23 @@ sliver or hands the reader a plot thousands of points wide to pan by hand.
 
 The page shows two things instead. An overview strip compresses the entire log into one short band
 and marks the current window on it as a highlighted region; dragging the strip moves that window
-anywhere in the log in a single gesture. Underneath it, a detail list holds only the requests the
-window currently contains, each a tappable row at the same fixed height the preview uses, running
-oldest first so time reads downward. A pinch on the detail list narrows or widens the window,
-holding its centre still; the window can never be pinched narrower than the point at which the
-shortest measured request in the log would draw under twenty-four points wide, so a pinch cannot
-zoom a reader into a blur of a single hairline. `.accessibilityAdjustableAction` on the strip puts
-the same zoom range behind VoiceOver's and Switch Control's adjustable gesture, so reaching it
-never requires a pinch at all.
+anywhere in the log in a single gesture — the strip only ever moves the window, it never opens a
+request. Underneath it, a detail list holds only the requests the window currently contains, each
+a tappable row at the same fixed height the preview uses, running oldest first so time reads
+downward. A pinch on the detail list narrows or widens the window, holding its centre still; the
+window can never be pinched narrower than the point at which the shortest measured request in the
+log would draw under twenty-four points wide, so a pinch cannot zoom a reader into a blur of a
+single hairline, and once that limit is reached the pinch and the strip's adjustable action are
+both disabled rather than left to silently do nothing. `.accessibilityAdjustableAction` on the
+strip puts the same zoom range behind VoiceOver's and Switch Control's adjustable gesture, and its
+accessibility value announces how many of the log's requests the window holds after every change,
+so reaching zoom never requires a pinch and never leaves a VoiceOver user guessing whether anything
+happened.
 
 A request already running when the window opens, or one that outlives it, is drawn clipped flush
 to the window's edge rather than shrunk to fit — the clip reads as "continues", where a shrunk bar
-would read as a request shorter than it actually ran. Tapping a bar, on the strip or in the detail
-list, opens that request's details.
+would read as a request shorter than it actually ran. Tapping a bar in the detail list opens that
+request's details.
 
 Both surfaces are handed the log's *filtered* requests, and the page's caption under the detail
 list names how many of the log's total requests the current window holds.

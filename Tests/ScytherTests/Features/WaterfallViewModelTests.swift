@@ -185,6 +185,24 @@ final class WaterfallViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.caption.contains("Every request"))
     }
 
+    /// `windowCaption` counts against the *filtered* rows the page is drawing, not the log's
+    /// unfiltered total. Comparing the window to `total` mixed a filtered numerator with an
+    /// unfiltered denominator and could read "5 of 340" for a window over a dozen-request
+    /// filtered list — the same "count against the wrong total" mistake `caption` was written to
+    /// avoid.
+    func testWindowCaptionCountsAgainstTheFilteredTotalNotTheUnfilteredOne() async {
+        let requests = (0..<12).map { request(startedAt: origin.addingTimeInterval(Double($0))) }
+        let viewModel = WaterfallViewModel(requests: requests, totalCount: 340)
+        await viewModel.recompute()
+        viewModel.configureWindow(plotWidth: 240)
+
+        XCTAssertTrue(viewModel.isFiltered)
+        XCTAssertEqual(viewModel.visibleRows.count, 12, "the window opens on the whole span")
+        XCTAssertTrue(viewModel.windowCaption.contains("12"))
+        XCTAssertFalse(viewModel.windowCaption.contains("340"),
+                       "the denominator is the filtered row count, not the log's unfiltered total")
+    }
+
     // MARK: - The scale
 
     /// The page rebuilds its scale on every geometry pass, so the two percentiles the rule needs
