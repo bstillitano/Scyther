@@ -54,7 +54,65 @@ func localized(_ key: String.LocalizationValue, comment: StaticString? = nil) ->
 /// - Returns: The string in the override's effective language, or the English source if the key is
 ///   missing.
 func localized(_ key: String.LocalizationValue, comment: StaticString? = nil, override: LanguageOverride) -> String {
+    pseudoLocalized(localizedChrome(key, comment: comment, override: override), key: key)
+}
+
+/// Resolves a piece of Scyther's own UI copy *without* pseudo-localising it.
+///
+/// Pseudo-localisation has an obvious trap: a developer who switches on "Show keys" and
+/// right-to-left, then finds the whole debug menu rendered as `Þšéûðö-ļöçåļîšåţîöñ`, still has to
+/// be able to find the screen that switches it off again. The rows that form that escape hatch —
+/// the menu row itself, and every control on ``PseudoLocalizationView`` — resolve their copy
+/// through this function instead, so they are the one part of Scyther that stays legible no matter
+/// what is switched on.
+///
+/// It is deliberately narrow. Exempting the whole menu would be safer still, and would also mean
+/// the feature demonstrated nothing: Scyther's interface is a real, fully localised SwiftUI app,
+/// and watching it grow, flip and lose its accents is most of what there is to see when the host
+/// app resolves its strings through a path no hook can reach.
+///
+/// - Parameters:
+///   - key: The English source text, which is also the catalog key.
+///   - comment: Context for translators. Not used at runtime.
+///   - override: The override supplying the table and the resolution locale.
+/// - Returns: The string in the override's effective language, never transformed.
+func localizedChrome(
+    _ key: String.LocalizationValue,
+    comment: StaticString? = nil,
+    override: LanguageOverride = .shared
+) -> String {
     String(localized: key, bundle: override.effectiveBundle, locale: override.resolutionLocale, comment: comment)
+}
+
+/// Applies whichever pseudo-localisation modes are switched on to an already-resolved string.
+///
+/// Sits between ``localized(_:comment:override:)`` and ``PseudoLocalizationTransform`` so the
+/// platform guard and the fast path live in one place rather than at every call site. The fast
+/// path matters: this runs once per string in Scyther's interface, and with every mode off it
+/// costs four `UserDefaults` reads and an emptiness check before returning the input untouched.
+///
+/// The key is recovered by reflection rather than passed in, because the call sites hand over a
+/// literal and there is no other way to see the `%lld`-shaped catalog key behind an interpolated
+/// one. When reflection cannot find it, the resolved string stands in: showing the English copy
+/// where a key was asked for is a poor answer, but it is a readable one, and better than the
+/// alternative of dropping the whole mode.
+///
+/// - Parameters:
+///   - resolved: The string as the catalog resolved it, arguments already substituted.
+///   - key: The localisation value it was resolved from.
+/// - Returns: The transformed string, or `resolved` when no text-affecting mode is on.
+private func pseudoLocalized(_ resolved: String, key: String.LocalizationValue) -> String {
+#if os(macOS)
+    return resolved
+#else
+    let modes = PseudoLocalization.instance.activeModes
+    guard !modes.intersection(.textAffecting).isEmpty else { return resolved }
+    return PseudoLocalizationTransform.apply(
+        to: resolved,
+        key: PseudoLocalizationKey.extract(from: key) ?? resolved,
+        modes: modes
+    )
+#endif
 }
 
 /// Package-level localisation constants.

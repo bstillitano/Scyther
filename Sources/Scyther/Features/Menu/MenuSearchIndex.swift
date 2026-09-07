@@ -129,6 +129,11 @@ enum MenuSearchIndex {
         .accessibilityAudit: ["a11y", "voiceover", "contrast", "labels", "touch targets"],
         .appearance: ["dark mode", "light mode", "theme", "dynamic type", "contrast"],
         .language: ["locale", "translation", "localisation", "localization", "i18n", "l10n", "region"],
+        .pseudoLocalization: [
+            "pseudo", "pseudoloc", "pseudo localisation", "pseudo localization", "accented",
+            "expansion", "rtl", "right to left", "bidi", "truncation", "i18n", "l10n",
+            "translation", "localisation keys", "localization keys"
+        ],
         .slowAnimations: ["animation speed"],
         .showViewFrames: ["debug view", "borders", "layout"],
         .showViewSizes: ["dimensions", "layout"]
@@ -169,7 +174,12 @@ enum MenuSearchIndex {
             localized("Badge Count"), localized("Cancel Scheduled Notifications"), localized("Clear Badge & Notifications")
         ]),
         (.deepLinkTester, [localized("Open URL"), localized("Deep Link Presets"), localized("Deep Link History")]),
-        (.language, [localized("System Default"), localized("Reset Language Override")])
+        (.language, [localized("System Default"), localized("Reset Language Override")]),
+        (.pseudoLocalization, [
+            localizedChrome("Accented"), localizedChrome("Lengthened"),
+            localizedChrome("Right to Left"), localizedChrome("Show Keys"),
+            localizedChrome("Turn Everything Off")
+        ])
     ]}
 
     /// Builds the sub-page entries, resolving each target's home section from the

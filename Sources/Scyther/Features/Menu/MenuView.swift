@@ -376,6 +376,7 @@ public struct MenuView: View {
         case .accessibilityAudit: AccessibilityAuditView()
         case .appearance: AppearanceOverridesView()
         case .language: LanguageView(viewModel: LanguageViewModel())
+        case .pseudoLocalization: PseudoLocalizationView()
         default: EmptyView()
         }
     }
@@ -559,6 +560,8 @@ public struct MenuView: View {
         case .appearance:
             navigationRow(for: item)
         case .language:
+            navigationRow(for: item)
+        case .pseudoLocalization:
             navigationRow(for: item)
         case .slowAnimations:
             toggleRow(item.title, icon: item.icon, tint: item.tint, isOn: $viewModel.slowAnimationsEnabled)

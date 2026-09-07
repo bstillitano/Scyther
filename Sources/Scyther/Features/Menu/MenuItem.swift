@@ -87,7 +87,7 @@ enum MenuItem: Hashable, Identifiable {
 
     // UI/UX
     case fonts, interfaceComponents, gridOverlay, fpsCounter
-    case touchVisualiser, accessibilityAudit, appearance, language
+    case touchVisualiser, accessibilityAudit, appearance, language, pseudoLocalization
     case slowAnimations, showViewFrames, showViewSizes
 
     /// The identifier prefix distinguishing host-supplied rows from built-in ones.
@@ -108,7 +108,7 @@ enum MenuItem: Hashable, Identifiable {
         .locationSpoofer, .consoleLogs, .deepLinkTester, .crashLogs,
         .notificationLogger, .notificationTester, .apnsToken, .fcmToken,
         .fonts, .interfaceComponents, .gridOverlay, .fpsCounter,
-        .touchVisualiser, .accessibilityAudit, .appearance, .language,
+        .touchVisualiser, .accessibilityAudit, .appearance, .language, .pseudoLocalization,
         .slowAnimations, .showViewFrames, .showViewSizes
     ]
 
@@ -157,6 +157,7 @@ enum MenuItem: Hashable, Identifiable {
         case .accessibilityAudit: return "accessibilityAudit"
         case .appearance: return "appearance"
         case .language: return "language"
+        case .pseudoLocalization: return "pseudoLocalization"
         case .slowAnimations: return "slowAnimations"
         case .showViewFrames: return "showViewFrames"
         case .showViewSizes: return "showViewSizes"
@@ -239,6 +240,7 @@ enum MenuItem: Hashable, Identifiable {
         case .accessibilityAudit: return localized("Accessibility Audit")
         case .appearance: return localized("Appearance")
         case .language: return localized("Language")
+        case .pseudoLocalization: return localizedChrome("Pseudo-localisation")
         case .slowAnimations: return localized("Slow Animations")
         case .showViewFrames: return localized("Show View Frames")
         case .showViewSizes: return localized("Show View Sizes")
@@ -296,6 +298,7 @@ enum MenuItem: Hashable, Identifiable {
         case .accessibilityAudit: return "figure.stand"
         case .appearance: return "paintbrush"
         case .language: return "globe"
+        case .pseudoLocalization: return "character.bubble"
         case .slowAnimations: return "tortoise"
         case .showViewFrames: return "rectangle.dashed"
         case .showViewSizes: return "ruler"

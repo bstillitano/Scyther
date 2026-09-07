@@ -100,6 +100,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Font Browser**: View all available system fonts
 - **Interface Previews**: Browse registered UI components
 - **Language**: Force the app's language from the debug menu (applies on next launch; Scyther's own menu switches immediately)
+- **Pseudo-localisation**: Accent, lengthen, flip to RTL, or show catalog keys, to find layout problems before a translator is briefed — see [Pseudo-localisation](#pseudo-localisation) for exactly which strings it can and cannot reach
 
 ### Development Tools
 - **Console Logger**: Capture and view stdout/stderr output
@@ -198,6 +199,65 @@ sample notification copy instead of English placeholder text.
 The example app at `Example/ScytherExample` ships its own
 `Example/ScytherExample/Resources/Localizable.xcstrings`, so it is fully localised in the same
 languages independently of the package's own catalog.
+
+### Pseudo-localisation
+
+**UI/UX → Pseudo-localisation** renders the interface with copy that behaves like a translation
+without being one, to find layout problems before any translation exists. Four switches, all off
+by default and all combinable:
+
+| Mode | What it does | What it finds |
+| --- | --- | --- |
+| Accented | `Hello` becomes `Ĥéļļö` | Text still in plain ASCII was never localised |
+| Lengthened | `[Hello··]`, about 135% of the original | Clipping and truncation |
+| Right to Left | Forces RTL layout | Hard-coded leading/trailing assumptions |
+| Show Keys | Renders `Selected %lld items` instead of `Selected 5 items` | Which catalog entry produced a piece of copy |
+
+The brackets Lengthened adds are the point of it: a label missing its closing `]` was truncated,
+which is easier to see than judging whether accented text looks a few characters short.
+
+#### What it reaches, and what it does not
+
+Scyther's own interface is always transformed, because every string in the package is resolved
+through `localized(_:)` and the transform sits in that path.
+
+Your app is a different question, and the honest answer depends on how your code loads its
+strings:
+
+- **`NSLocalizedString` is reached.** It is a thin wrapper over
+  `-[NSBundle localizedStringForKey:value:table:]`, an Objective-C method, which Scyther swizzles
+  while a text mode is on. That covers UIKit apps, storyboard and XIB strings, and Swift code
+  written the traditional way.
+- **`String(localized:)`, `LocalizedStringResource` and SwiftUI's `Text("Some key")` are not
+  reached.** This was measured, not assumed: with that method hooked, none of those paths ever
+  reached the hook — including a `Text` rendered all the way to a bitmap with `ImageRenderer`.
+  Foundation's Swift-native lookup does not go through `NSBundle` at all, and no other selector on
+  the class sees them either.
+
+So on a SwiftUI app whose copy is written as `Text("…")`, the three text modes pseudo-localise
+Scyther's own menu and nothing else. That is a demonstration of the idea against a real localised
+SwiftUI interface, not a test of your screens. On a UIKit or `NSLocalizedString`-based app it is a
+test of your screens.
+
+**Right to Left has no such limit.** It is a UIKit semantic attribute rather than a string lookup,
+so it applies to the host app either way.
+
+#### Safety and limits
+
+- Off by default, persisted under `Scyther_pseudo_localization_*` in `UserDefaults.scyther`.
+- The swizzle is installed only while a text mode is on and removed when the last one is switched
+  off. An app that never opens the page never has its string loading touched.
+- Only `Bundle.main` is transformed, so UIKit's own "Cancel" and "Done" are left alone.
+- Format specifiers (`%@`, `%lld`, `%1$@`, `%.2f`) survive accenting, so a hooked format string
+  still formats.
+- Nothing is installed on an App Store build or under XCTest, and an App Store build honours no
+  persisted mode.
+- The Pseudo-localisation page and its menu row are never transformed, so the modes can always be
+  switched off — there is a **Turn Everything Off** button, and a **Sample** row that shows what
+  the modes do on the one page where they do not apply.
+- Flipping Right to Left on a screen that has already laid itself out can leave it half-flipped;
+  relaunching settles it, because the persisted switch is re-applied before the app's own views
+  exist.
 
 #### Adding or correcting a translation
 

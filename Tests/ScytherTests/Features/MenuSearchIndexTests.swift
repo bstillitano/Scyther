@@ -130,7 +130,7 @@ final class MenuSearchIndexTests: XCTestCase {
             [
                 .networkRules, .networkBreakpoints, .networkConditioning, .gridOverlay,
                 .fpsCounter, .touchVisualiser, .accessibilityAudit, .appearance, .locationSpoofer,
-                .notificationTester, .deepLinkTester, .language
+                .notificationTester, .deepLinkTester, .language, .pseudoLocalization
             ],
             "A curated sub-page target is missing from the index — its rows were silently dropped"
         )
