@@ -89,13 +89,13 @@ final class WaterfallViewModel: ViewModel {
         /// The median measured duration in the series, in seconds, or `nil` when nothing in it
         /// finished.
         ///
-        /// Cached with the rows rather than derived on demand. The page rebuilds its
-        /// ``WaterfallTimeScale`` whenever its geometry changes, and a `LazyVStack` asks for
-        /// geometry constantly; sorting a thousand durations on every one of those passes is the
-        /// cost this whole view model exists to avoid.
+        /// Cached with the rows rather than derived on demand, the same as ``shortestMeasured``: a
+        /// `LazyVStack` asks this view model for its layout constantly, and resorting a thousand
+        /// durations on every one of those asks would be wasted work for a value that only changes
+        /// when the rows themselves do.
         let medianDuration: Double?
 
-        /// The ``WaterfallTimeScale/tailPercentile`` measured duration, in seconds, or `nil` as
+        /// The ``WaterfallDurations/tailPercentile`` measured duration, in seconds, or `nil` as
         /// above. Cached for the same reason.
         let tailDuration: Double?
 
@@ -308,7 +308,7 @@ final class WaterfallViewModel: ViewModel {
                 request: request
             )
         }
-        let durations = WaterfallTimeScale.measuredDurations(of: series)
+        let durations = WaterfallDurations.measuredDurations(of: series)
         let shortestMeasured = durations.filter { $0 > 0 }.min()
         let distinctHosts = Set(series.entries.map(\.shortHost).filter { !$0.isEmpty })
         return Layout(
@@ -316,8 +316,8 @@ final class WaterfallViewModel: ViewModel {
             rows: rows,
             count: requests.count,
             total: totalCount,
-            medianDuration: WaterfallTimeScale.percentile(0.5, of: durations),
-            tailDuration: WaterfallTimeScale.percentile(WaterfallTimeScale.tailPercentile, of: durations),
+            medianDuration: WaterfallDurations.percentile(0.5, of: durations),
+            tailDuration: WaterfallDurations.percentile(WaterfallDurations.tailPercentile, of: durations),
             shortestMeasured: shortestMeasured,
             showsHost: distinctHosts.count > 1
         )
@@ -350,22 +350,6 @@ final class WaterfallViewModel: ViewModel {
     /// Computed by ``WaterfallChartStyle/upperBound(forSpan:)`` rather than by a rule of its own,
     /// so both surfaces stop their axis in the same place.
     var upperBound: Double { WaterfallChartStyle.upperBound(forSpan: layout.series.span) }
-
-    /// How many points a second is worth, for a page with the given room to draw in.
-    ///
-    /// The page asks for this on every geometry pass, so it has to be cheap: the two percentiles
-    /// the rule needs were computed once, with the rows, and this is arithmetic on them.
-    ///
-    /// - Parameter visibleWidth: How much of the timeline shows at once, in points.
-    /// - Returns: The scale the page draws at.
-    func scale(visibleWidth: CGFloat) -> WaterfallTimeScale {
-        WaterfallTimeScale.make(
-            medianDuration: layout.medianDuration,
-            tailDuration: layout.tailDuration,
-            span: layout.series.span,
-            visibleWidth: visibleWidth
-        )
-    }
 
     /// The sentence under the bars saying what the page is showing.
     ///

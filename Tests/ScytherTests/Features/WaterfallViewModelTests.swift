@@ -267,11 +267,13 @@ final class WaterfallViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.showsHost)
     }
 
-    // MARK: - The scale
+    // MARK: - The cached percentiles
 
-    /// The page rebuilds its scale on every geometry pass, so the two percentiles the rule needs
-    /// are computed once with the rows and cached. This pins them to the series they describe —
-    /// a cache that drifted would draw the log at a scale derived from a different log.
+    /// The median and tail are computed once with the rows and cached, rather than derived on
+    /// demand — a `LazyVStack` asks this view model for its layout constantly, and resorting a
+    /// thousand durations on every one of those asks would be wasted work. This pins the cache to
+    /// the series it describes: a cache that drifted would report a median or tail belonging to a
+    /// different log.
     func testTheCachedPercentilesDescribeTheSeriesTheRowsWereLaidOutOn() async {
         let durations: [Float] = [32, 90, 250, 700, 1_400]
         let viewModel = WaterfallViewModel(
@@ -281,33 +283,11 @@ final class WaterfallViewModelTests: XCTestCase {
             totalCount: durations.count
         )
         await viewModel.recompute()
-        let measured = WaterfallTimeScale.measuredDurations(of: viewModel.series)
+        let measured = WaterfallDurations.measuredDurations(of: viewModel.series)
         XCTAssertEqual(viewModel.layout.medianDuration,
-                       WaterfallTimeScale.percentile(0.5, of: measured))
+                       WaterfallDurations.percentile(0.5, of: measured))
         XCTAssertEqual(viewModel.layout.tailDuration,
-                       WaterfallTimeScale.percentile(WaterfallTimeScale.tailPercentile, of: measured))
-    }
-
-    /// Building the scale from the cache has to give the same chart as building it from the
-    /// series, or the page draws at a scale its own tests never see.
-    func testTheCachedScaleMatchesOneBuiltStraightFromTheSeries() async {
-        let viewModel = WaterfallViewModel(
-            requests: (0..<12).map {
-                request(startedAt: origin.addingTimeInterval(Double($0) * 10),
-                        duration: Float(30 + $0 * 120))
-            },
-            totalCount: 12
-        )
-        await viewModel.recompute()
-        XCTAssertEqual(viewModel.scale(visibleWidth: 190),
-                       WaterfallTimeScale.make(for: viewModel.series, visibleWidth: 190))
-    }
-
-    /// An empty log still has a scale, because the page asks for one before it knows whether it
-    /// has anything to draw.
-    func testAnEmptyLogStillHasAScale() {
-        let viewModel = WaterfallViewModel(requests: [], totalCount: 0)
-        XCTAssertGreaterThan(viewModel.scale(visibleWidth: 190).pointsPerSecond, 0)
+                       WaterfallDurations.percentile(WaterfallDurations.tailPercentile, of: measured))
     }
 
     // MARK: - Snapshots

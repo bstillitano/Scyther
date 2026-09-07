@@ -5,40 +5,39 @@
 //  Created by Brandon Stillitano on 7/9/2026.
 //
 
-import Charts
 import CoreGraphics
 import Foundation
 import SwiftUI
 
 /// The one place the waterfall is drawn from.
 ///
-/// The chart has two surfaces — the preview section on ``TrafficStatsView`` and the full-log page
-/// behind its **See all** button — and the requirement they were built under is that they are the
-/// *same chart*, not two charts that resemble each other. Anything a reader could compare across
-/// the two lives here: the bar itself, the colours, what an outcome is called, how tall a row is
-/// and how wide the axis runs. A second implementation would drift the first time either screen
-/// was touched, and the drift would be invisible until someone compared a bar's length on one
-/// against its length on the other.
+/// The chart has two surfaces — the compressed overview strip on ``TrafficStatsView`` (see
+/// ``WaterfallOverviewStrip``) and the full-log page behind its **See all** button — and the
+/// requirement they were built under is that they are the *same chart*, not two charts that
+/// resemble each other. Anything a reader could compare across the two lives here: the colours,
+/// what an outcome is called, how tall a row is and how wide the axis runs. A second
+/// implementation would drift the first time either screen was touched, and the drift would be
+/// invisible until someone compared a bar's length on one against its length on the other.
 ///
 /// The type holds no state and draws no chrome. It is the geometry, the colour and the naming;
 /// each surface still decides its own layout, because that is the only thing the two legitimately
-/// disagree about — the section stacks seven bars into one `Chart` sized to the screen, and the
+/// disagree about — the strip compresses the whole session into a fixed-height `Canvas`, and the
 /// full-log page lays out only the requests its current time window holds, over a plain `List`.
 ///
-/// The page draws its own bars rather than asking Charts for them, because a log can hold
-/// thousands of requests and a `Chart` per row is a rendering hazard for no gain — a single
-/// `BarMark` with hidden axes is a filled rectangle and a caption. What still comes from here is
-/// everything a reader could compare across the two surfaces: the thickness, the colour, the
-/// outcome names, the row height and the duration label. The preview is untouched and keeps
-/// drawing through ``bar(id:entry:upperBound:plotWidth:)``.
+/// Both surfaces now draw their own bars rather than asking Charts for one: a log can hold
+/// thousands of requests and a `Chart` per row was a rendering hazard for no gain, and the
+/// section's own most-recent-seven `Chart` is gone too — see ``WaterfallOverviewStrip``. What
+/// still comes from here is everything a reader could compare across the two surfaces: the
+/// thickness, the colour, the outcome names, the row height and the duration label. Only the
+/// legend above the full-log page's rows is still drawn by Charts, from ``styleScale``, so the two
+/// surfaces' legends cannot drift apart.
 ///
 /// ## Usage
 /// ```swift
-/// Chart(rows) { row in
-///     WaterfallChartStyle.bar(id: row.id, entry: row.entry, upperBound: bound, plotWidth: width)
-/// }
-/// .chartForegroundStyleScale(WaterfallChartStyle.styleScale)
-/// .chartXScale(domain: 0...bound)
+/// RoundedRectangle(cornerRadius: 3)
+///     .fill(WaterfallChartStyle.colour(for: entry))
+///     .frame(width: rect.width, height: WaterfallChartStyle.barThickness)
+/// Text(WaterfallChartStyle.valueLabel(for: entry))
 /// ```
 enum WaterfallChartStyle {
 
@@ -85,8 +84,8 @@ enum WaterfallChartStyle {
     /// overlap a reader could otherwise have ruled out.
     ///
     /// It matters far less than it did. The floor was load-bearing while the page squeezed the
-    /// whole session into one screen and almost every bar reached it; against a
-    /// ``WaterfallTimeScale`` derived from the durations present, almost nothing does.
+    /// whole session into one screen and almost every bar reached it; against a scale derived from
+    /// whatever slice of the log the current ``WaterfallWindow`` shows, almost nothing does.
     static let minimumBarWidth: CGFloat = 1
 
     /// The narrowest plot the page will draw, in points.
@@ -217,87 +216,16 @@ enum WaterfallChartStyle {
         max(span * chartHeadroom, minimumChartSpan)
     }
 
-    /// Where one bar is *drawn* to, which is not always where it ended.
-    ///
-    /// Only ever longer than the measurement, only when the measurement would render narrower
-    /// than ``minimumBarWidth``, and only by enough to reach that width — so the inflation is
-    /// bounded in points however long the session runs.
-    ///
-    /// A surface that does not know how wide its plot is passes zero and gets true lengths. That
-    /// is the preview's actual contract rather than a fallback: Charts sizes the preview's leading
-    /// axis to its own labels, so the section cannot state its plot width without measuring the
-    /// chart it is about to build, and a floor computed from a guess would be a floor of unknown
-    /// size — which is the exact defect this replaced.
-    ///
-    /// Only the preview reaches this now. The full-log page's detail row computes its bar
-    /// directly from the current ``WaterfallWindow`` and its own measured width, so it has no
-    /// need for a floor computed from a guessed plot width in the first place.
-    ///
-    /// - Parameters:
-    ///   - entry: The bar.
-    ///   - upperBound: The axis' far end, in seconds.
-    ///   - plotWidth: How wide the plot is, in points, or zero when the surface does not know.
-    /// - Returns: The x value the bar is drawn to, in seconds.
-    static func drawnEnd(of entry: WaterfallEntry, upperBound: Double, plotWidth: CGFloat) -> Double {
-        guard plotWidth > 0, upperBound > 0 else { return entry.start + entry.duration }
-        let secondsPerPoint = upperBound / Double(plotWidth)
-        return entry.start + max(entry.duration, Double(minimumBarWidth) * secondsPerPoint)
-    }
-
     /// The value label drawn at the end of one bar.
     ///
     /// In the same milliseconds-or-seconds form the summary uses, so a two millisecond bar reads
     /// as `2 ms` rather than rounding away to `0 s`. Built from ``WaterfallEntry/duration``, never
-    /// from ``drawnEnd(of:upperBound:plotWidth:)``: the width is the legible figure, the label is
-    /// the honest one.
+    /// from whatever width a surface draws the bar at: the width is the legible figure, the label
+    /// is the honest one.
     ///
     /// - Parameter entry: The bar.
     /// - Returns: The bar's real length as text.
     static func valueLabel(for entry: WaterfallEntry) -> String {
         DurationText.milliseconds(entry.duration * 1_000)
-    }
-
-    // MARK: - The mark
-
-    /// One request's bar, with its colour and its trailing duration label.
-    ///
-    /// The preview's mark. The full-log page's detail row draws its own bar rather than asking
-    /// Charts for one — a log can hold thousands of requests, and a `Chart` per row buys nothing a
-    /// `RoundedRectangle` does not give for free — but it draws from the same thickness
-    /// (``barThickness``), the same colour (``colour(for:)``) and the same row height
-    /// (``rowHeight``) as this mark does. Change any of those here and change them on both
-    /// surfaces; the pieces a reader can compare are shared, the marks themselves are not.
-    ///
-    /// - Parameters:
-    ///   - id: The bar's value on the chart's categorical y scale. The preview numbers its rows
-    ///     to keep two calls to the same endpoint apart; the page gives each row its own chart,
-    ///     where the value only has to exist.
-    ///   - entry: The bar to draw.
-    ///   - upperBound: The axis' far end, in seconds.
-    ///   - plotWidth: How wide the plot is, in points, or zero for true lengths only.
-    /// - Returns: The mark.
-    @ChartContentBuilder
-    static func bar(
-        id: String,
-        entry: WaterfallEntry,
-        upperBound: Double,
-        plotWidth: CGFloat
-    ) -> some ChartContent {
-        BarMark(
-            xStart: .value(localized("Start"), entry.start),
-            xEnd: .value(
-                localized("End"),
-                drawnEnd(of: entry, upperBound: upperBound, plotWidth: plotWidth)
-            ),
-            y: .value(localized("Request"), id),
-            height: .fixed(barThickness)
-        )
-        .foregroundStyle(by: .value(localized("Outcome"), outcomeTitle(for: entry)))
-        .annotation(position: .trailing, alignment: .leading, spacing: 4) {
-            Text(valueLabel(for: entry))
-                .font(.caption2)
-                .monospacedDigit()
-                .foregroundStyle(Color.secondary)
-        }
     }
 }
