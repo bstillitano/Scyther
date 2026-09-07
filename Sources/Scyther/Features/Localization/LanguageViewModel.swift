@@ -125,10 +125,4 @@ final class LanguageViewModel: ViewModel {
         override.reset()
     }
 
-    /// Terminates the process so the host app relaunches in the chosen language.
-    ///
-    /// Only called from the destructive action of the relaunch alert.
-    func quitApp() {
-        exit(0)
-    }
 }

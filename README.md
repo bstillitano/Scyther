@@ -101,7 +101,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Font Browser**: View all available system fonts
 - **Interface Previews**: Browse registered UI components
 - **Language**: Force the app's language from the debug menu (applies on next launch; Scyther's own menu switches immediately)
-- **Pseudo-localisation**: Accent, lengthen, flip to RTL, or show catalog keys, to find layout problems before a translator is briefed — see [Pseudo-localisation](#pseudo-localisation) for exactly which strings it can and cannot reach
+- **Pseudo-localisation**: Accent, lengthen, flip to RTL, or show catalog keys, to find layout problems before a translator is briefed — see [Pseudo-localisation](#pseudo-localisation) for exactly which strings it can and cannot reach, and when RTL takes effect
 
 ### Development Tools
 - **Console Logger**: Capture and view stdout/stderr output
@@ -204,8 +204,8 @@ languages independently of the package's own catalog.
 ### Pseudo-localisation
 
 **UI/UX → Pseudo-localisation** renders the interface with copy that behaves like a translation
-without being one, to find layout problems before any translation exists. Four switches, all off
-by default and all combinable:
+without being one, to find layout problems before any translation exists. Four modes, all off by
+default and all combinable:
 
 | Mode | What it does | What it finds |
 | --- | --- | --- |
@@ -216,6 +216,12 @@ by default and all combinable:
 
 The brackets Lengthened adds are the point of it: a label missing its closing `]` was truncated,
 which is easier to see than judging whether accented text looks a few characters short.
+
+A fifth switch, **Show Boundaries**, decides whether those brackets are drawn, and it is the one
+switch that ships **on**. The padding dots already say a string grew; only the closing bracket says
+whether the end of it was cut off, which is the thing Lengthened exists to reveal — so the brackets
+stay by default, and the switch is there for when you want the expansion without the punctuation.
+It transforms nothing itself, so with every text mode off it does nothing at all.
 
 #### What it reaches, and what it does not
 
@@ -240,38 +246,45 @@ Scyther's own menu and nothing else. That is a demonstration of the idea against
 SwiftUI interface, not a test of your screens. On a UIKit or `NSLocalizedString`-based app it is a
 test of your screens.
 
-**Right to Left is a different mechanism with a different limit.** It changes no text, so it does
-not care how your copy is loaded — but layout direction is not something that can simply be forced
-onto views that already exist, and the honest account of what flips and when is:
+**Right to Left is a different mechanism, and it is a next-launch setting.** It changes no text, so
+it does not care how your copy is loaded — and nothing at all happens in the session where you flick
+the switch:
 
-| Surface | When it mirrors |
-| --- | --- |
-| The Pseudo-localisation page | Immediately, as you flick the switch |
-| The rest of the Scyther menu, and every page reached from it | Immediately |
-| Your app's UIKit views created after the switch | Immediately, as you navigate to them |
-| Your app's UIKit views generally | On the next launch |
-| **Your app's SwiftUI views** | **Never** |
+| Surface | When it mirrors | Checked on a device |
+| --- | --- | --- |
+| Your app's UIKit views | On its next launch | yes |
+| Your app's SwiftUI views | On its next launch | yes |
+| The Scyther menu and every page in it | On its next launch | yes |
 
-That last row is the important one, and it is stated on the toggle itself, not only here: *"Mirrors
-Scyther's interface now, and your app's UIKit views on its next launch. Your app's SwiftUI views are
-unaffected: Scyther cannot reach their environment."*
+Switching it **off** unwinds the same way: everything comes back left-to-right on the launch after
+you switch it off. Both directions were checked on a device — relaunched with the keys present, and
+relaunched with them absent.
 
-A SwiftUI view takes its direction from `\.layoutDirection` in **its own** environment, which your
-app owns. No public API lets a library modify another view tree's environment, and
-`UIView.appearance()` — which is what mirrors UIKit — does not seed it. Being early does not help
-either: setting the proxy before any view exists still leaves SwiftUI reading a value the proxy
-never touches. Scyther's own interface mirrors instantly only because Scyther installs that
-environment value itself, in its own views, and can therefore change it.
+Because nothing takes effect until then, the toggle raises the same **Relaunch required** alert the
+Language page raises, with **Later** and **Quit App**. This is exactly how Xcode's own **Right to
+Left Pseudolanguage** scheme option behaves.
 
-There *is* a route to a SwiftUI host app, and it is deliberately not taken. Xcode's "Right to Left
-Pseudolanguage" scheme option works by launching with `-AppleTextDirection YES` and
-`-NSForceRightToLeftWritingDirection YES`, which are resolved at launch and do reach SwiftUI;
-Scyther could write those into your standard `UserDefaults` the same way the Language page already
-writes `AppleLanguages`. It is not built because it writes into your app's defaults domain for a
-second reason, relies on an undocumented defaults key rather than a launch argument, cannot be
-undone within the session that sets it — and cannot be verified by anything in this repository. If
-you want SwiftUI mirrored today, Xcode's scheme option does it properly: **Edit Scheme → Run →
-Options → App Language → Right to Left Pseudolanguage**.
+Earlier versions mirrored Scyther's own menu the moment the switch moved. That is deliberately gone:
+anything that changed mid-session disagreed with something that had not, and UIKit answers a
+disagreement by mirroring text that has already been laid out — which draws it backwards, `Fonts` as
+`stnoF`. Waiting for a relaunch is the price of never seeing that.
+
+**How it works.** Scyther writes `AppleTextDirection` and
+`NSForceRightToLeftWritingDirection` into your standard `UserDefaults` — the two keys Xcode's own
+**Right to Left Pseudolanguage** scheme option passes on the command line, which iOS resolves
+before any view exists and which reach UIKit and SwiftUI alike. It is the same move the Language
+page already makes with `AppleLanguages`.
+
+Switching the mode off **removes** both keys rather than setting them false, so your app goes back
+to exactly the state it was in before Scyther was asked, on its next launch. Nothing is written on
+an App Store build, and a stale key from a TestFlight build is cleared rather than kept.
+
+An earlier version tried to mirror your app through `UIView.appearance()` instead. It is gone: the
+appearance proxy stamps a view once, as the view joins a window, and never revisits it, so
+switching the mode off could not undo the views it had already stamped — and a leftover stamp
+disagreeing with SwiftUI's own layout direction makes UIKit mirror text that has already been laid
+out, which renders it backwards (`Fonts` as `stnoF`). It also never reached a SwiftUI view at all.
+The defaults keys do what it was reaching for, at the only moment it can be done properly.
 
 #### Safety and limits
 
@@ -279,7 +292,9 @@ The rule Scyther holds itself to here is that it must never produce broken text 
 localisation problem. A mangled link or a plural that stops expanding is not a finding; it is a
 defect the developer will spend an afternoon chasing in their own code.
 
-- Off by default, persisted under `Scyther_pseudo_localization_*` in `UserDefaults.scyther`.
+- Off by default, persisted under `Scyther_pseudo_localization_*` in `UserDefaults.scyther`. Show
+  Boundaries is the one exception: it reads as on when nothing has been stored for it, so an
+  existing install behaves exactly as it did before the switch existed.
 - The swizzle is installed only while a text mode is on and removed when the last one is switched
   off. An app that never opens the page never has its string loading touched.
 - Only `Bundle.main` is transformed, so UIKit's own "Cancel" and "Done" are left alone — and
@@ -297,15 +312,18 @@ defect the developer will spend an afternoon chasing in their own code.
   addresses. `https://example.com` stays a working link rather than becoming
   `ĥţţþš://éẋåɱþļé.çöɱ`.
 - Nothing is installed on an App Store build or under XCTest. That guard sits on the swizzle and on
-  the layout override themselves, not only on their caller, and an App Store build honours no
-  persisted mode.
+  the defaults write themselves, not only on their caller, and an App Store build honours no
+  persisted mode. The one thing an App Store build still does is *remove* a right-to-left key left
+  behind by a TestFlight build, which is the safe direction to err in.
 - The **text** of the Pseudo-localisation page and its menu row is never transformed, so the modes
   can always be switched off — there is a **Turn Everything Off** button, and a **Sample** row that
-  shows what the modes do on the one page where they do not apply. Right to Left is process-wide
-  and does flip this page along with everything else; the text stays legible, which is what the
+  shows what the modes do on the one page where they do not apply. Right to Left flips this page
+  along with the rest of the app after a relaunch; the text stays legible, which is what the
   exemption is for.
-- Right to Left mirrors Scyther's own interface immediately and your app's UIKit views on its next
-  launch. It does not mirror your app's SwiftUI views at all; see the table above.
+- Right to Left applies on the next launch and nothing changes before then, in either direction;
+  see the table above. It writes two keys into your app's standard `UserDefaults` to do it, and
+  removes them when switched off. The toggle raises a **Relaunch required** alert so this is never
+  a surprise.
 
 #### Adding or correcting a translation
 

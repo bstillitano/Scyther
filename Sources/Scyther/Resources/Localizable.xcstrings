@@ -10599,6 +10599,83 @@
         }
       }
     },
+    "Boundaries": {
+      "comment": "Section header above the switch that keeps the brackets around a lengthened string",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "الحدود"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Begrenzungen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Delimitadores"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Délimiteurs"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Delimitatori"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "区切り"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "경계"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Begrenzingen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Delimitadores"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Границы"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "边界标记"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "邊界標記"
+          }
+        }
+      }
+    },
     "Boxes missing labels and touch targets over the running app. Contrast is measured when you open this report, because it costs a snapshot of the whole screen.": {
       "comment": "Footer under the settings section of the accessibility audit report screen, explaining that the live overlay runs only the two checks that need no pixels and that contrast is measured when the report is opened",
       "localizations": {
@@ -31583,6 +31660,83 @@
         }
       }
     },
+    "Marks where each string starts and ends, so you can see when one has been cut off. Only shows up when another text mode is on.": {
+      "comment": "Subtitle for the Show Boundaries switch",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يحدّد بداية كل نص ونهايته، لتلاحظ ما إذا كان قد اقتُطع. لا يظهر إلا عند تفعيل وضع نصي آخر."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Markiert Anfang und Ende jeder Zeichenkette, damit sichtbar wird, wenn eine abgeschnitten wurde. Erscheint nur, wenn ein anderer Textmodus aktiv ist."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Marca dónde empieza y termina cada cadena, para que veas cuándo se ha cortado alguna. Solo aparece cuando hay otro modo de texto activado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Marque le début et la fin de chaque chaîne, pour repérer celles qui sont tronquées. N’apparaît que si un autre mode de texte est activé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Segna dove inizia e finisce ogni stringa, così vedi quando ne viene troncata una. Compare solo quando è attiva un’altra modalità di testo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "各文字列の始まりと終わりを示し、途中で切れているかどうかを確認できます。ほかのテキストモードがオンのときのみ表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "각 문자열의 시작과 끝을 표시해 잘린 문자열을 확인할 수 있습니다. 다른 텍스트 모드가 켜져 있을 때만 나타납니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Markeert waar elke tekst begint en eindigt, zodat je ziet wanneer er een is afgekapt. Verschijnt alleen als een andere tekstmodus aanstaat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Marca onde cada texto começa e termina, para você ver quando algum foi cortado. Só aparece quando outro modo de texto está ativado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Отмечает начало и конец каждой строки, чтобы было видно, когда строка обрезана. Появляется только при включённом другом текстовом режиме."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "标出每条字符串的开头和结尾，便于发现被截断的文本。仅在开启其他文本模式时显示。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "標出每條字串的開頭和結尾，便於發現被截斷的文字。僅在開啟其他文字模式時顯示。"
+          }
+        }
+      }
+    },
     "Marseille, France": {
       "comment": "Location preset name",
       "localizations": {
@@ -32353,79 +32507,79 @@
         }
       }
     },
-    "Mirrors Scyther's interface now, and your app's UIKit views on its next launch. Your app's SwiftUI views are unaffected: Scyther cannot reach their environment.": {
-      "comment": "Subtitle under the Right to Left switch, stating exactly which surfaces mirror and when",
+    "Mirrors the whole app on its next launch, to find hard-coded leading and trailing edges.": {
+      "comment": "Subtitle for the Right to Left switch",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "يعكس واجهة Scyther الآن، ويعكس عروض UIKit في تطبيقك عند التشغيل التالي. أما عروض SwiftUI في تطبيقك فلا تتأثر: إذ لا يمكن لـ Scyther الوصول إلى بيئتها."
+            "value": "يعكس التطبيق بالكامل عند التشغيل التالي، لاكتشاف الحواف اليمنى واليسرى المكتوبة بشكل ثابت."
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Spiegelt Scythers Oberfläche sofort und die UIKit-Views deiner App beim nächsten Start. Die SwiftUI-Views deiner App bleiben unberührt: Scyther kommt an ihre Environment nicht heran."
+            "value": "Spiegelt die gesamte App beim nächsten Start, um fest verdrahtete linke und rechte Kanten zu finden."
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Refleja la interfaz de Scyther ahora, y las vistas UIKit de tu app en el próximo arranque. Las vistas SwiftUI de tu app no se ven afectadas: Scyther no puede acceder a su entorno."
+            "value": "Refleja toda la app en el próximo inicio, para detectar bordes izquierdo y derecho fijados en el código."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Met en miroir l’interface de Scyther maintenant, et les vues UIKit de votre app au prochain lancement. Les vues SwiftUI de votre app ne sont pas affectées : Scyther ne peut pas atteindre leur environnement."
+            "value": "Reflète toute l’app au prochain lancement, pour repérer les bords gauche et droit codés en dur."
           }
         },
         "it": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Rispecchia subito l’interfaccia di Scyther, e le view UIKit della tua app al prossimo avvio. Le view SwiftUI della tua app non sono interessate: Scyther non può raggiungere il loro environment."
+            "value": "Riflette tutta l’app al prossimo avvio, per trovare bordi sinistro e destro scritti a mano."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "ScytherのUIは今すぐ、AppのUIKitビューは次回起動時にミラーリングされます。AppのSwiftUIビューは対象外です。Scytherはそのenvironmentに介入できません。"
+            "value": "次回起動時にアプリ全体をミラーリングし、左右の端を直書きしている箇所を見つけます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Scyther 인터페이스는 지금, 앱의 UIKit 뷰는 다음 실행 시 좌우 반전됩니다. 앱의 SwiftUI 뷰는 영향을 받지 않습니다. Scyther가 그 environment에 접근할 수 없기 때문입니다."
+            "value": "다음 실행 때 앱 전체를 미러링해 하드코딩된 좌우 가장자리를 찾습니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Spiegelt Scythers interface nu, en de UIKit-views van je app bij de volgende start. De SwiftUI-views van je app blijven ongemoeid: Scyther kan hun environment niet bereiken."
+            "value": "Spiegelt de hele app bij de volgende start, om hardgecodeerde linker- en rechterranden te vinden."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Espelha a interface do Scyther agora, e as views UIKit do seu app na próxima abertura. As views SwiftUI do seu app não são afetadas: o Scyther não alcança o environment delas."
+            "value": "Espelha o app inteiro na próxima inicialização, para achar bordas esquerda e direita fixas no código."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Отражает интерфейс Scyther сразу, а UIKit-представления вашего приложения — при следующем запуске. SwiftUI-представления не затрагиваются: Scyther не может добраться до их environment."
+            "value": "Зеркалит всё приложение при следующем запуске, чтобы найти жёстко заданные левый и правый края."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "立即镜像 Scyther 界面，你的 App 的 UIKit 视图在下次启动时生效。你的 App 的 SwiftUI 视图不受影响：Scyther 无法访问它们的 environment。"
+            "value": "在下次启动时镜像整个 App，用于发现硬编码的左右边距。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "立即鏡像 Scyther 介面，你的 App 的 UIKit 視圖於下次啟動時生效。你的 App 的 SwiftUI 視圖不受影響：Scyther 無法存取它們的 environment。"
+            "value": "在下次啟動時鏡像整個 App，用於發現硬編碼的左右邊界。"
           }
         }
       }
@@ -32662,7 +32816,7 @@
       }
     },
     "Modes": {
-      "comment": "Section header above the four pseudo-localisation switches",
+      "comment": "Section header above the pseudo-localisation mode switches",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -48312,6 +48466,83 @@
         }
       }
     },
+    "Right to Left applies the next time the app launches — your app and Scyther's menu, UIKit and SwiftUI alike. Switching it off restores everything on the launch after that.": {
+      "comment": "Message in the Relaunch required alert raised by the Right to Left switch",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يُطبَّق وضع «من اليمين إلى اليسار» عند التشغيل التالي للتطبيق — تطبيقك وقائمة Scyther معًا، في UIKit وSwiftUI. وإيقافه يعيد كل شيء عند التشغيل الذي يليه."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rechts-nach-links gilt ab dem nächsten Start der App – deine App wie auch Scythers Menü, UIKit wie SwiftUI. Ausschalten stellt beim übernächsten Start alles wieder her."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "De derecha a izquierda se aplica en el próximo inicio de la app: tu app y el menú de Scyther, tanto UIKit como SwiftUI. Desactivarlo lo restaura todo en el inicio siguiente."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Le mode Droite à gauche s’applique au prochain lancement de l’app — votre app comme le menu de Scyther, UIKit comme SwiftUI. Le désactiver rétablit tout au lancement suivant."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Da destra a sinistra si applica al prossimo avvio dell’app — la tua app e il menu di Scyther, sia UIKit sia SwiftUI. Disattivandolo, tutto torna normale all’avvio successivo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "右から左は次回のアプリ起動時に適用されます。あなたのアプリも Scyther のメニューも、UIKit と SwiftUI の両方が対象です。オフにすると、その次の起動ですべて元に戻ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "오른쪽에서 왼쪽 설정은 앱을 다음에 실행할 때 적용됩니다. 사용자의 앱과 Scyther 메뉴 모두, UIKit과 SwiftUI 모두에 적용됩니다. 끄면 그다음 실행에서 모두 원래대로 돌아갑니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rechts-naar-links geldt vanaf de volgende start van de app — je app én Scythers menu, UIKit én SwiftUI. Uitzetten herstelt alles bij de start daarna."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Da direita para a esquerda passa a valer na próxima inicialização do app — o seu app e o menu do Scyther, em UIKit e SwiftUI. Desativar restaura tudo na inicialização seguinte."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Режим «справа налево» применится при следующем запуске приложения — и к вашему приложению, и к меню Scyther, в UIKit и SwiftUI. Выключение вернёт всё при следующем после этого запуске."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "从右到左将在 App 下次启动时生效——你的 App 和 Scyther 菜单都包括在内，UIKit 与 SwiftUI 均可。关闭后，一切会在再下次启动时恢复。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "從右到左將在 App 下次啟動時生效——你的 App 與 Scyther 選單都包括在內，UIKit 與 SwiftUI 皆可。關閉後，一切會在再下次啟動時恢復。"
+          }
+        }
+      }
+    },
     "Rio de Janeiro, Brazil": {
       "comment": "Location preset name",
       "localizations": {
@@ -51850,6 +52081,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "分享"
+          }
+        }
+      }
+    },
+    "Show Boundaries": {
+      "comment": "Switch label for keeping the brackets that mark where a transformed string starts and ends",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "إظهار الحدود"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Begrenzungen anzeigen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostrar delimitadores"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Afficher les délimiteurs"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostra delimitatori"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "区切りを表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "경계 표시"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Begrenzingen tonen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostrar delimitadores"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Показывать границы"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "显示边界标记"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "顯示邊界標記"
           }
         }
       }

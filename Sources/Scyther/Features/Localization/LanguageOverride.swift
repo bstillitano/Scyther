@@ -7,6 +7,7 @@
 
 import Combine
 import Foundation
+import SwiftUI
 
 /// Forces the host app's language and resolves Scyther's own strings in that language.
 ///
@@ -45,6 +46,7 @@ import Foundation
 /// - ``devicePreferredLanguages(systemDefaults:)``
 ///
 /// ### Display
+/// - ``layoutDirection(forLanguage:)``
 /// - ``namingLocale``
 /// - ``availableLanguages``
 /// - ``displayName(for:in:)``
@@ -321,6 +323,49 @@ public final class LanguageOverride: ObservableObject, @unchecked Sendable {
     /// also keeps this cheap — ``availableLanguages`` sorts through it, and recomputing it would
     /// hit `persistentDomain(forName:)` once per comparison.
     public var namingLocale: Locale { resolutionLocale }
+
+    /// The direction to pin Scyther's own interface to, or `nil` to leave it as the process
+    /// resolved it.
+    ///
+    /// `nil` whenever no override is set, and that `nil` is load-bearing. Scyther's menu is a
+    /// SwiftUI tree hosted inside the host app, so it inherits `\.layoutDirection` from the
+    /// process — which is exactly what pseudo-localisation's Right to Left mode changes, through
+    /// the launch defaults `AppleTextDirection` and `NSForceRightToLeftWritingDirection`. Pinning
+    /// the direction unconditionally to the device language's direction overrode that forcing, so
+    /// on a relaunch with the mode on the host app mirrored and Scyther's menu, alone on screen,
+    /// did not. Only a language the developer actually chose gets to override the process.
+    ///
+    /// - SeeAlso: ``layoutDirection(forLanguage:)``, which decides the direction itself.
+    internal var menuLayoutDirection: LayoutDirection? {
+        guard effectiveLocale != nil else { return nil }
+        return Self.layoutDirection(forLanguage: namingLocale.identifier)
+    }
+
+    /// The direction Scyther's own interface should be laid out in, for a given language.
+    ///
+    /// ``MenuView`` installs this as `\.layoutDirection` alongside the `\.locale` it installs
+    /// from ``namingLocale``, so an Arabic or Hebrew override lays Scyther's menu out right to
+    /// left in the same session it is chosen, rather than only after a relaunch. The menu's copy
+    /// switches language immediately, and a right-to-left language whose layout did not follow it
+    /// would be a half-translated screen of a different kind.
+    ///
+    /// Static and taking an identifier rather than reading ``namingLocale`` itself, so the mapping
+    /// can be tested without an override instance and asserted for languages this app may never
+    /// be run in.
+    ///
+    /// - Note: This used to take a second parameter, for pseudo-localisation's forced
+    ///   right-to-left mode, which won over the language whenever it was on. That mode no longer
+    ///   changes anything mid-session — see ``PseudoLocalizationLayout`` — so the language is once
+    ///   again the only input, and the parameter would have been dead weight.
+    ///
+    /// - Parameter identifier: A BCP 47 language identifier, typically
+    ///   `namingLocale.identifier`.
+    /// - Returns: The direction to install as `\.layoutDirection`.
+    internal static func layoutDirection(forLanguage identifier: String) -> LayoutDirection {
+        Locale.Language(identifier: identifier).characterDirection == .rightToLeft
+            ? .rightToLeft
+            : .leftToRight
+    }
 
     /// The localisations the host app declares, excluding `Base`, sorted by their name in
     /// ``namingLocale`` — so the list re-sorts to match whatever language is in effect.

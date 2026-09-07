@@ -17,8 +17,13 @@ import UIKit
 ///   plain ASCII was never localised.
 /// - ``lengthened`` pads strings to roughly 135%, the expansion German and Finnish bring, so
 ///   clipping and truncation appear before a translator's work does.
-/// - ``rightToLeft`` forces RTL layout, which catches hard-coded leading/trailing assumptions.
+/// - ``rightToLeft`` forces RTL layout across the whole app from its next launch, which catches
+///   hard-coded leading/trailing assumptions.
 /// - ``showsKeys`` renders the catalog key instead of its translation.
+///
+/// A fifth switch, ``showsBoundaries``, is a setting *about* those rather than a fifth peer of
+/// them: it keeps the `[` and `]` around a lengthened string, transforms nothing on its own, and
+/// is the one switch that is **on** unless a developer has turned it off.
 ///
 /// ## What this can and cannot reach
 ///
@@ -37,10 +42,12 @@ import UIKit
 ///
 /// So on a UIKit or `NSLocalizedString`-based app the text modes apply broadly; on a SwiftUI app
 /// using `Text("…")` they apply to Scyther's own interface and nothing else.
-/// ``rightToLeft`` has a different limit rather than none. It changes no text, so it does not care
-/// how the host loads its copy — but it reaches Scyther's own interface immediately, the host app's
-/// *UIKit* views on the next launch, and the host app's *SwiftUI* views not at all. See
-/// ``PseudoLocalizationLayout`` for why, and for what an honest route to the third would cost.
+/// ``rightToLeft`` has a different shape rather than a different limit. It changes no text, so it
+/// does not care how the host loads its copy at all — and it is a **next-launch** setting on every
+/// surface, Scyther's own menu included, because the mechanism is a pair of defaults keys iOS
+/// resolves while the process starts rather than anything applied to a view. Nothing changes in the
+/// session where the switch moves, in either direction, which is why the toggle raises a relaunch
+/// alert. See ``PseudoLocalizationLayout``.
 ///
 /// ```swift
 /// PseudoLocalization.instance.accented = true
@@ -56,6 +63,7 @@ import UIKit
 /// - ``lengthened``
 /// - ``rightToLeft``
 /// - ``showsKeys``
+/// - ``showsBoundaries``
 /// - ``reset()``
 ///
 /// ### Effects
@@ -67,32 +75,15 @@ import UIKit
 /// - ``resolvedModes(stored:isAppStore:)``
 /// - ``canAffectHostApp(isTestCase:isAppStore:)``
 ///
-/// ### Notifications
-/// - ``ModesChangedNotification``
-///
 /// ### UserDefaults Keys
 /// - ``AccentedDefaultsKey``
 /// - ``LengthenedDefaultsKey``
 /// - ``RightToLeftDefaultsKey``
 /// - ``ShowsKeysDefaultsKey``
+/// - ``ShowsBoundariesDefaultsKey``
 @MainActor
 internal final class PseudoLocalization: @unchecked Sendable {
     // MARK: - Static Data (nonisolated for cross-thread access)
-
-    /// Posted on the main actor whenever the switches change, so SwiftUI views that are already on
-    /// screen can re-render.
-    ///
-    /// Needed only by ``PseudoLocalizationMode/rightToLeft``, and only because SwiftUI takes its
-    /// layout direction from the environment: ``MenuView`` installs that value, and without a
-    /// signal it would go on installing the old one until something else happened to invalidate
-    /// it — which, for a menu the developer is looking at while flicking the switch, is never. The
-    /// text modes need nothing like this, because every string is re-resolved through
-    /// ``localized(_:comment:)`` on the next render anyway.
-    ///
-    /// A notification rather than `ObservableObject`, matching ``InterfaceToolkit``'s existing
-    /// change notifications, so this type stays a plain settings singleton readable from any
-    /// thread rather than acquiring a publisher and an isolation story to go with it.
-    nonisolated static let ModesChangedNotification = NSNotification.Name("Scyther.PseudoLocalization.ModesChanged")
 
     /// UserDefaults key for storing whether accented glyphs are substituted.
     nonisolated static let AccentedDefaultsKey: String = "Scyther_pseudo_localization_accented"
@@ -106,7 +97,10 @@ internal final class PseudoLocalization: @unchecked Sendable {
     /// UserDefaults key for storing whether catalog keys are shown in place of translations.
     nonisolated static let ShowsKeysDefaultsKey: String = "Scyther_pseudo_localization_show_keys"
 
-    /// Where the four switches are persisted.
+    /// UserDefaults key for storing whether transformed strings keep their delimiters.
+    nonisolated static let ShowsBoundariesDefaultsKey: String = "Scyther_pseudo_localization_show_boundaries"
+
+    /// Where the switches are persisted.
     ///
     /// Injected rather than read from `UserDefaults.scyther` at each call site so a test can hand
     /// in a throwaway suite and assert on persistence without writing to — or having to clean up
@@ -179,16 +173,47 @@ internal final class PseudoLocalization: @unchecked Sendable {
         }
     }
 
+    /// Whether a lengthened string keeps the `[` and `]` marking where it starts and ends.
+    ///
+    /// The one switch here that reads as `true` with nothing stored, which is why it cannot use
+    /// `UserDefaults.bool(forKey:)` — that method answers absence with `false`, the opposite of
+    /// what is wanted for a setting that ships on. It is the same read
+    /// ``AccessibilityAudit/isEnabled(_:)`` does, for the same reason: an existing install where
+    /// nothing has been written must keep behaving exactly as it did before the switch existed.
+    ///
+    /// On rather than off because the brackets are the diagnostic. The padding dots already say a
+    /// string grew; only the closing bracket says whether the end of it was cut off, which is the
+    /// thing ``lengthened`` exists to reveal. The switch is for the developer who has seen enough
+    /// of them and wants the expansion without the punctuation.
+    ///
+    /// The value is persisted to `UserDefaults.scyther` and restored on app launch.
+    internal nonisolated var showsBoundaries: Bool {
+        get {
+            guard let stored = defaults.object(forKey: Self.ShowsBoundariesDefaultsKey) as? Bool else { return true }
+            return stored
+        }
+        set {
+            defaults.setValue(newValue, forKey: Self.ShowsBoundariesDefaultsKey)
+            synchronise()
+        }
+    }
+
     /// Switches every mode off and tears down the effects they installed.
     ///
     /// Exists as one call rather than four assignments so the settings screen's escape hatch — and
     /// anything recovering from a session left in an unreadable state — cannot half-succeed and
     /// leave, say, the host-app hook installed with no mode to justify it.
+    ///
+    /// ``showsBoundaries`` is restored to `true` rather than cleared to `false`, because "off" is
+    /// not its shipped state. This is the button that puts the page back the way it was found; a
+    /// developer who pressed it and then switched lengthening on again would otherwise get an
+    /// unbracketed sample and no reason to connect it to a button they pressed a minute ago.
     internal nonisolated func reset() {
         defaults.setValue(false, forKey: Self.AccentedDefaultsKey)
         defaults.setValue(false, forKey: Self.LengthenedDefaultsKey)
         defaults.setValue(false, forKey: Self.RightToLeftDefaultsKey)
         defaults.setValue(false, forKey: Self.ShowsKeysDefaultsKey)
+        defaults.setValue(true, forKey: Self.ShowsBoundariesDefaultsKey)
         synchronise()
     }
 
@@ -205,6 +230,7 @@ internal final class PseudoLocalization: @unchecked Sendable {
         if lengthened { modes.insert(.lengthened) }
         if rightToLeft { modes.insert(.rightToLeft) }
         if showsKeys { modes.insert(.showsKeys) }
+        if showsBoundaries { modes.insert(.showsBoundaries) }
         return modes
     }
 
@@ -239,10 +265,14 @@ internal final class PseudoLocalization: @unchecked Sendable {
 
     /// Whether the effects that reach outside Scyther's own interface may be installed.
     ///
-    /// Both of them mutate global runtime state the host app shares — a swizzle on `NSBundle`, and
-    /// `UIView.appearance()` — so they carry a stricter guard than the string transform does.
-    /// Under XCTest there is no host app to pseudo-localise, and installing either would leak
-    /// across into unrelated tests in the same process.
+    /// Both of them mutate state the host app owns — a swizzle on `NSBundle`, and two keys in its
+    /// standard `UserDefaults` — so they carry a stricter guard than the string transform does.
+    /// Under XCTest there is no host app to pseudo-localise, and touching either would leak across
+    /// into unrelated tests in the same process.
+    ///
+    /// ``PseudoLocalizationLayout/applyToHostApp(rightToLeft:isTestCase:isAppStore:systemDefaults:)``
+    /// consults this before *setting* its keys and deliberately not before removing them; see there
+    /// for why an App Store build clearing a stale key is the safe direction to err in.
     ///
     /// A pure function of two booleans for the same reason ``AccessibilityAudit/canAuditKeyWindow(isTestCase:isAppStore:)``
     /// is: neither input can be faked in the test host, so the refusing branches are unreachable
@@ -258,22 +288,30 @@ internal final class PseudoLocalization: @unchecked Sendable {
 
     // MARK: - Effects
 
-    /// Brings the host-app hook and the forced layout direction into line with the switches.
+    /// Brings the host-app hook and the host app's launch-time layout direction into line with the
+    /// switches.
     ///
-    /// Called from every setter rather than from the settings screen so the two effects can never
+    /// Called from every setter rather than from the settings screen so the effects can never
     /// drift from what is persisted — including on the path that matters most, ``reset()``, whose
     /// whole job is to make an unreadable session readable again.
     ///
-    /// Hops to the main actor because both effects touch UIKit. The hop is why the setters can
-    /// stay `nonisolated`, which is what lets the toggles be driven from a `Binding` without the
-    /// view model having to await anything. It deliberately carries nothing across the hop; see
-    /// ``applyEffects(isTestCase:isAppStore:)`` for why that matters.
+    /// Hops to the main actor because installing the hook and posting to observing views both have
+    /// to happen there. The hop is why the setters can stay `nonisolated`, which is what lets the
+    /// toggles be driven from a `Binding` without the view model having to await anything. It
+    /// deliberately carries nothing across the hop; see ``applyEffects(isTestCase:isAppStore:)``
+    /// for why that matters.
     private nonisolated func synchronise() {
         Task { @MainActor in self.applyEffects() }
     }
 
-    /// Puts the host-app hook and the forced layout direction into the state the *current*
-    /// settings call for.
+    /// Puts the host-app hook and the host app's forced layout direction into the state the
+    /// *current* settings call for.
+    ///
+    /// Nothing is announced to views on screen any more, and nothing needs to be. This used to
+    /// post a notification so ``MenuView`` could re-install its layout direction the moment
+    /// right-to-left was switched — the last mid-session effect this feature had, and the source
+    /// of the corruption ``PseudoLocalizationLayout`` records. The text modes never needed it:
+    /// every string is re-resolved through ``localized(_:comment:)`` on the next render anyway.
     ///
     /// The mode set is read here, on the main actor, rather than snapshotted by ``synchronise()``
     /// before it hops. That is the whole point of the split. The hops are unstructured `Task`s and
@@ -294,22 +332,24 @@ internal final class PseudoLocalization: @unchecked Sendable {
         isAppStore: Bool = AppEnvironment.isAppStore
     ) {
         let modes = activeModes
-        let allowed = Self.canAffectHostApp(isTestCase: isTestCase, isAppStore: isAppStore)
         PseudoLocalizationHostHook.shared.setEnabled(
             !modes.intersection(.textAffecting).isEmpty,
             isTestCase: isTestCase,
             isAppStore: isAppStore
         )
-        PseudoLocalizationLayout.apply(rightToLeft: modes.contains(.rightToLeft), allowed: allowed)
-        NotificationCenter.default.post(name: Self.ModesChangedNotification, object: nil)
+        PseudoLocalizationLayout.applyToHostApp(
+            rightToLeft: modes.contains(.rightToLeft),
+            isTestCase: isTestCase,
+            isAppStore: isAppStore
+        )
     }
 
     /// Re-applies the persisted state at launch, so a session picks up where the last one left off.
     ///
-    /// Called from `Scyther.start(allowProductionBuilds:)`. Without it, a developer who left
-    /// right-to-left on would find it silently off after a relaunch, which is precisely when they
-    /// would be looking at it — several of the layout problems the mode exists to catch only
-    /// appear on a screen built from scratch.
+    /// Called from `Scyther.start(allowProductionBuilds:)`. Without it, a developer who left a text
+    /// mode on would find the host-app hook uninstalled after a relaunch while the switch still
+    /// read as on — the feature silently doing nothing, which is the failure that is hardest to
+    /// notice.
     internal static func setup() {
         instance.synchronise()
     }

@@ -6,160 +6,132 @@
 //
 
 #if !os(macOS)
-import SwiftUI
-import UIKit
+import Foundation
 
 /// Forces the host app's layout direction, without switching it to an RTL language.
 ///
 /// Separated from ``PseudoLocalization`` because right-to-left is not a string transformation at
-/// all: no character changes, and none of the string plumbing in this feature is involved. It is a
-/// UIKit semantic attribute, which is also why it is the one mode with no gap between Scyther's
-/// interface and the host app's — it does not care how the app loads its copy.
+/// all: no character changes, and none of the string plumbing in this feature is involved. What it
+/// is instead is a *launch* setting — two keys in the host app's standard `UserDefaults`, read by
+/// iOS while the process starts, reaching UIKit and SwiftUI alike.
 ///
-/// ## Two halves, and only one of them is immediate
+/// ## Why nothing happens until a relaunch
 ///
-/// The first draft of this type had only the UIKit half, and switching the mode on visibly did
-/// nothing at all — not in the host app, not even in Scyther's own menu. Two reasons, both worth
-/// recording so the mistake is not repeated:
+/// This mode has been rebuilt four times, and every version that changed something mid-session
+/// corrupted the screen in the same way. The record is short and worth keeping:
 ///
-/// 1. `UIView.appearance()` applies to views created *after* it changes, so nothing already on
-///    screen moves. That is inherent to the appearance proxy, and working around it would mean
-///    tearing down and rebuilding the host app's view hierarchy, which a debug toolkit has no
-///    business doing.
-/// 2. SwiftUI does not consult the appearance proxy at all. Its direction comes from the
-///    `\.layoutDirection` environment value — and ``MenuView`` *sets* that value explicitly, from
-///    the language override, so Scyther's own interface was pinned left-to-right by Scyther's own
-///    code no matter what the proxy said.
+/// 1. `UIView.appearance().semanticContentAttribute` stamps a view once, as the view joins a
+///    window, and never revisits it — so switching the mode off could not undo the views already
+///    stamped, and it never reached a SwiftUI view at all.
+/// 2. Three attempts to clear those stamps afterwards each left Scyther's menu rendering its
+///    labels backwards — `Fonts` as `stnoF` — while every unit test passed, because an attribute
+///    holding the value a test asked for says nothing about whether the screen is legible.
+/// 3. Writing these two defaults keys fixed the reach but not the timing. They apply to UIKit's
+///    text rendering *live*, so switching on agreed with the SwiftUI environment value Scyther
+///    installed in its own views and looked right — while removing them does **not** un-apply
+///    live, so switching off left UIKit right-to-left under an environment that had flipped back,
+///    and the labels reversed again.
 ///
-/// The mode therefore has two halves. ``layoutDirection(forcingRightToLeft:languageIdentifier:)``
-/// is the SwiftUI half: it decides the environment value ``MenuView`` and ``PseudoLocalizationView``
-/// install, which is what makes Scyther's own interface flip the instant the switch moves. It is
-/// pure, and it is tested. ``apply(rightToLeft:allowed:)`` is the UIKit half: it reaches the host
-/// app's UIKit views on the next launch, and its SwiftUI views not at all.
+/// One thing is common to all three: a *disagreement*, inside one session, between something that
+/// changed immediately and something that did not. UIKit answers that disagreement by mirroring
+/// content that has already been laid out the other way, which is text drawn backwards.
 ///
-/// ## What would reach a SwiftUI host app, and what it would cost
+/// So nothing changes mid-session. The keys are written or removed when the switch moves, and no
+/// surface — the host app's, or Scyther's own menu and page — is asked to move with them. At the
+/// next launch every surface reads the same keys and agrees by construction, which was measured on
+/// a device in both directions: relaunched with the keys present the app is mirrored and readable,
+/// relaunched with them absent it is left-to-right and readable.
 ///
-/// Nothing here can, and the reason is structural rather than a missing trick: a SwiftUI view's
-/// direction comes from `\.layoutDirection` in *its own* environment, which the host app owns.
-/// There is no public API for a library to modify another view tree's environment, and the
-/// appearance proxy — measured, twice — does not seed it.
+/// That is also exactly how Xcode's own **Edit Scheme → Run → Options → App Language → Right to
+/// Left Pseudolanguage** behaves, which is where these keys come from. A developer who already
+/// knows that option will find nothing surprising here.
 ///
-/// One route does exist and is deliberately *not* taken. Xcode's own "Right to Left
-/// Pseudolanguage" scheme option works by launching the process with `-AppleTextDirection YES` and
-/// `-NSForceRightToLeftWritingDirection YES`, which are resolved at launch and do reach SwiftUI.
-/// Scyther could write those into the host's standard `UserDefaults` the same way
-/// ``LanguageOverride`` already writes `AppleLanguages`, and they would take effect on the next
-/// launch. The cost is why it is not built: it writes into the host app's own defaults domain for
-/// a second reason, it is undocumented as a defaults key rather than a launch argument, it cannot
-/// be undone within the session that set it, and — the decisive one — nothing in this repository
-/// can verify it, since `ScytherTests` has no host app and the example app would have to be driven
-/// by hand. This feature has already shipped three claims about reach that were reasoned from
-/// mechanism and turned out to be wrong on a simulator. A fourth, resting on an undocumented
-/// defaults key, is not worth an accurate limit.
+/// The cost is the immediate feedback, and it is worth paying. An unreadable debug menu is a worse
+/// failure than a relaunch, and every attempt to avoid the relaunch produced the same corruption
+/// by a different route.
 ///
-/// Testing the UIKit half is honest only up to a point, and the point is `UIView.appearance()`: it
-/// is process-wide state with no reliable way to read the applied value back, and `ScytherTests`
-/// has no host app whose windows could be inspected. It is therefore driven only through
-/// ``attribute(rightToLeft:)``, which is pure and is tested.
+/// The one thing Scyther's interface still does immediately is follow a *language* override's
+/// direction, which is a different input with no launch-time half to disagree with — see
+/// ``LanguageOverride/layoutDirection(forLanguage:)``.
 ///
 /// ## Topics
 ///
-/// ### Deciding
-/// - ``layoutDirection(forcingRightToLeft:languageIdentifier:)``
-/// - ``attribute(rightToLeft:)``
-///
-/// ### Applying
-/// - ``apply(rightToLeft:allowed:)``
-@MainActor
+/// ### Reaching the host app
+/// - ``applyToHostApp(rightToLeft:isTestCase:isAppStore:systemDefaults:)``
+/// - ``textDirectionDefaultsKey``
+/// - ``forceRightToLeftDefaultsKey``
 internal enum PseudoLocalizationLayout {
-    /// The layout direction Scyther's own SwiftUI interface should be laid out in.
+    /// The standard-defaults key iOS reads at launch to decide the app's text direction.
     ///
-    /// This is the half of the mode that works immediately, and it is the only half that can:
-    /// SwiftUI takes its direction from the environment, so the value has to be *decided* where
-    /// the environment is installed rather than *forced onto* a view that has already been built.
+    /// Undocumented as a defaults key — Xcode passes it as the launch argument
+    /// `-AppleTextDirection YES` — but it is read from the standard domain the same way
+    /// `AppleLanguages` is, which is what makes it reachable from inside the process rather than
+    /// only from a scheme.
+    internal static let textDirectionDefaultsKey = "AppleTextDirection"
+
+    /// The standard-defaults key iOS reads at launch to force right-to-left writing.
     ///
-    /// The forced mode wins over the language. That ordering is the point — a developer switching
-    /// the mode on is asking to see the layout mirrored *without* changing language, and a
-    /// language-derived direction that quietly overruled them is exactly the bug this replaced.
-    /// With the mode off the language decides, as it did before, so an Arabic override still lays
-    /// the menu out right to left on its own.
+    /// Written alongside ``textDirectionDefaultsKey`` because Xcode's scheme option sets both, and
+    /// setting one without the other is a state the system is never asked for in practice.
+    internal static let forceRightToLeftDefaultsKey = "NSForceRightToLeftWritingDirection"
+
+    /// Mirrors the *host app* — UIKit and SwiftUI alike — from its next launch, or stops doing so.
+    ///
+    /// This is the half that makes the mode worth having. Pseudo-localisation exists to test the
+    /// developer's app, and a right-to-left mode that mirrored only Scyther's own menu would test
+    /// nothing anybody ships. What it costs is immediacy: the two keys are read once, while the
+    /// process is starting, so nothing about the running app moves when the switch does.
+    ///
+    /// ## Reversibility
+    ///
+    /// Switching off **removes** the keys rather than writing `false`, and that is deliberate
+    /// rather than tidy. A developer who tries this once must be able to get their app back, and a
+    /// key left behind holding `false` is a Scyther-shaped value sitting in their app's defaults
+    /// for good — the sort of thing that is found months later while debugging something else.
+    /// Removal restores the state the app was in before Scyther was ever asked, and it takes
+    /// effect on the next launch in exactly the way switching on does.
+    ///
+    /// ``LanguageOverride/reset()`` removes `AppleLanguages` for the same reason.
+    ///
+    /// ## The guard, and the one place it lets a write through
+    ///
+    /// Carried here rather than trusted to the caller, matching
+    /// ``PseudoLocalizationHostHook/setEnabled(_:isTestCase:isAppStore:)``: the promise that
+    /// Scyther never leaves a shipping app mirrored is made about this function, so this function
+    /// keeps it. Under XCTest there is no host app to mirror and writing to the standard domain
+    /// would leak into unrelated tests in the same process, so nothing happens at all.
+    ///
+    /// An App Store build refuses to *set* the keys and still *removes* them, which is not an
+    /// oversight. ``PseudoLocalization/resolvedModes(stored:isAppStore:)`` reports no modes on such
+    /// a build, so the only call that can arrive is the off case — and a switch left on in a
+    /// TestFlight build, carried into a store build through the same preferences file, is exactly
+    /// the situation where the keys need clearing rather than preserving. Refusing to remove them
+    /// would leave a real user's app mirrored with no way to reach the switch that did it.
     ///
     /// - Parameters:
-    ///   - forcingRightToLeft: Whether ``PseudoLocalizationMode/rightToLeft`` is switched on.
-    ///   - languageIdentifier: The identifier of the language Scyther is rendering in, from
-    ///     ``LanguageOverride/namingLocale``.
-    /// - Returns: The direction to install as `\.layoutDirection`.
-    internal static func layoutDirection(
-        forcingRightToLeft: Bool,
-        languageIdentifier: String
-    ) -> LayoutDirection {
-        if forcingRightToLeft { return .rightToLeft }
-        return Locale.Language(identifier: languageIdentifier).characterDirection == .rightToLeft
-            ? .rightToLeft
-            : .leftToRight
-    }
-
-    /// The semantic content attribute matching a switch position.
-    ///
-    /// `.unspecified` rather than `.forceLeftToRight` for the off case, so switching the mode off
-    /// hands the decision back to the user's actual language instead of pinning a genuinely
-    /// Arabic or Hebrew device to left-to-right — which would be a worse bug than the one the
-    /// mode exists to find.
-    ///
-    /// - Parameter rightToLeft: Whether right-to-left is being forced.
-    /// - Returns: The attribute to apply.
-    internal static func attribute(rightToLeft: Bool) -> UISemanticContentAttribute {
-        rightToLeft ? .forceRightToLeft : .unspecified
-    }
-
-    /// Applies the layout direction to the appearance proxy and to the windows already on screen,
-    /// for the *host app*.
-    ///
-    /// Described in deliberately weaker terms than the SwiftUI half, because it is weaker, and the
-    /// first version of this feature shipped a toggle whose subtitle promised what only this half
-    /// could deliver — which, on the screens anyone actually looked at, was nothing.
-    ///
-    /// What it does: sets the proxy, so UIKit views the host app creates from now on are laid out
-    /// mirrored, and sets the attribute on the existing windows, which flips UIKit content already
-    /// on screen. What it does not do: move a SwiftUI view. SwiftUI reads `\.layoutDirection` from
-    /// its environment, seeded when its hosting view was built, and nothing here reaches back into
-    /// it.
-    ///
-    /// A relaunch makes the UIKit half complete but no more than that.
-    /// ``PseudoLocalization/setup()`` sets the proxy from `Scyther.start(allowProductionBuilds:)`,
-    /// before any of the app's views exist, so every *UIKit* view is built mirrored. A SwiftUI
-    /// view is not, measured on a simulator after a relaunch with the switch left on: SwiftUI does
-    /// not consult the proxy at any point in its life, so being early does not help.
-    ///
-    /// This is the one part of the mode whose behaviour has not been observed directly here, and
-    /// it should be read as such: the example app is SwiftUI, so what a relaunch does for a UIKit
-    /// host rests on documented appearance-proxy behaviour rather than on a screenshot. The
-    /// difference is why the surface table in the DocC article marks which rows were checked.
-    ///
-    /// Like ``PseudoLocalizationHostHook/setEnabled(_:isTestCase:isAppStore:)``, it carries the
-    /// production guard itself rather than trusting its caller, because the promise that Scyther
-    /// never forces a shipping app's layout direction is made about this function.
-    ///
-    /// The XCTest half of the guard has no injection seam, unlike the hook's. There is nothing a
-    /// test could usefully do with it: there is no host app whose windows could be flipped, and
-    /// `UIView.appearance()` is process-wide state a test has no reliable way to restore for the
-    /// tests that run after it.
-    ///
-    /// - Parameters:
-    ///   - rightToLeft: Whether to force right-to-left layout.
-    ///   - allowed: Whether the host app may be touched at all, per
-    ///     ``PseudoLocalization/canAffectHostApp(isTestCase:isAppStore:)``.
-    internal static func apply(rightToLeft: Bool, allowed: Bool = true) {
-        guard allowed, !AppEnvironment.isTestCase, !AppEnvironment.isAppStore else { return }
-        let attribute = attribute(rightToLeft: rightToLeft)
-        UIView.appearance().semanticContentAttribute = attribute
-        for scene in UIApplication.shared.connectedScenes {
-            guard let windowScene = scene as? UIWindowScene else { continue }
-            for window in windowScene.windows {
-                window.semanticContentAttribute = attribute
-                window.setNeedsLayout()
-            }
+    ///   - rightToLeft: Whether right-to-left is being forced.
+    ///   - isTestCase: Whether the process is running under XCTest, per ``AppEnvironment/isTestCase``.
+    ///   - isAppStore: Whether this is an App Store build, per ``AppEnvironment/isAppStore``.
+    ///   - systemDefaults: Where the keys are written. Defaults to `.standard`, which is the host
+    ///     app's own domain; injected so a test can assert on a throwaway suite instead.
+    internal static func applyToHostApp(
+        rightToLeft: Bool,
+        isTestCase: Bool = AppEnvironment.isTestCase,
+        isAppStore: Bool = AppEnvironment.isAppStore,
+        systemDefaults: UserDefaults = .standard
+    ) {
+        guard !isTestCase else { return }
+        guard rightToLeft else {
+            systemDefaults.removeObject(forKey: textDirectionDefaultsKey)
+            systemDefaults.removeObject(forKey: forceRightToLeftDefaultsKey)
+            return
         }
+        guard PseudoLocalization.canAffectHostApp(
+            isTestCase: isTestCase,
+            isAppStore: isAppStore
+        ) else { return }
+        systemDefaults.set(true, forKey: textDirectionDefaultsKey)
+        systemDefaults.set(true, forKey: forceRightToLeftDefaultsKey)
     }
 }
 #endif
