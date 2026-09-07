@@ -1488,10 +1488,11 @@ the report screen:
   frame can define. That is what lets `#767676` on white, WCAG's canonical exactly-passing grey,
   report 4.54:1 rather than being failed, and what stops a `#333333` icon covering 3% of a label's
   frame hiding `#949494` text at a real 3.03:1. When a crop has no such structure — text on a
-  gradient or a photograph, an element scrolled under an opaque bar, a glyph the sampler never
-  caught at full coverage — the element is reported as **could not be measured** rather than given
-  a number nobody drew. Treat a contrast finding as worth a look, not as a certificate — it's
-  always reported as a warning, never an error.
+  gradient or a photograph, a glyph the sampler never caught at full coverage, or a pair too close
+  together to tell from the capture's own dither — the element is reported as **could not be
+  measured** rather than given a number nobody drew. (An element scrolled under an opaque bar never
+  reaches the analyser at all: the walk skips it as invisible, one rule earlier.) Treat a contrast
+  finding as worth a look, not as a certificate — it's always reported as a warning, never an error.
 
 The walk reports only what is actually reachable, which is what keeps it from filing findings you
 can do nothing about. It honours `accessibilityElementsHidden` and `accessibilityViewIsModal` —
@@ -1538,17 +1539,34 @@ switched on after the pass and offers **Re-run**, rather than silently having no
 An empty report never claims more than the pass supports. A green tick and "No Issues Found" appear
 only when every enabled check ran over the whole screen and found nothing. A walk that stopped
 early, or a check that was switched off, skipped or unmeasurable, gets "No Issues In What Was
-Checked"; nothing having run at all gets "Nothing Was Checked". "Nothing was wrong", "nothing was
-looked at" and "this could not be measured" never read the same way.
+Checked"; nothing having run at all gets "Nothing Was Checked"; a pass whose every finding the
+toggles are hiding gets "Findings Hidden" rather than pretending it found nothing. "Nothing was
+wrong", "nothing was looked at", "this could not be measured" and "you are not being shown this"
+never read the same way.
+
+Every pass carries the moment it was taken. A report opened from the pill is showing the last pass
+taken with nothing of Scyther's on screen, which is by definition older than the screen you are
+reading it on — so it says so, and shows its age, rather than presenting a pass from before a scroll
+as the current state of the app.
 
 The pass runs a moment *after* the screen appears, not inside its transition, so the push finishes
 and you see a spinner rather than a stalled navigation while the walk happens. The pass is bounded
-three ways — depth, node count, and a 0.25s wall-clock budget that covers the whole thing,
-including the per-element pixel sampling, rather than just the tree walk — and any one of them
-stopping it early puts a banner at the top of the report saying it may be incomplete, rather than
-passing a partial answer off as a clean bill of health. A check that ran but could measure nothing
-— a window capture the system refused, say — is reported as exactly that, not as a check that
-passed.
+three ways — depth (100), node count (5,000 nodes *touched*, including the ones the visibility rules
+then discard) and a 0.25s wall-clock budget that covers the whole thing, including the per-element
+pixel sampling, rather than just the tree walk.
+
+Any one of them stopping the pass puts a banner at the top of the report, and the banner says what
+that actually costs you: **each limit abandons the whole remainder of the tree in tree order, not
+the branch it fired on.** A list holding a few thousand scrolled-away cells can exhaust the node
+budget inside the table, and the toolbar and tab bar after it are then never walked at all. What is
+missing from a truncated report is unchecked, not clean — which is what the banner says, rather than
+blaming the screen for being too big.
+
+A check that ran but could not read enough of the screen is reported as exactly that, not as a check
+that passed. That covers all three ways it happens: a window capture the system refused, a screen
+captured fine on which nothing was legible, and a screen where fewer than half the elements contrast
+looked at could be read. The count behind that last one is the pass's own tally of what it measured,
+element by element, taken from the same call the findings come from.
 
 The audit skips Scyther's own UI, so its menu, its report and its overlays are never reported as
 findings about your app. Ownership is decided structurally — a view is walked up its responder
@@ -1597,7 +1615,36 @@ about if a ratio ever looks wrong:
 
 The audit also never runs on an App Store build, even with `Scyther.start(allowProductionBuilds:
 true)`. Every other Scyther feature is gated by `start()` alone; this is the only one that reads
-the user's screen as pixels, so it refuses on its own account as well.
+the user's screen as pixels, so it refuses on its own account as well. Nothing at all is set up on
+such a build: no overlay is installed in the app's hit-testing chain, no poll timer is scheduled,
+and no trigger — including the notification observers registered at launch — can schedule a pass.
+
+**What the audit cannot see.** A clean report is not a statement that your app is accessible. It is
+a statement that three checks found nothing on one screen as it looked at one moment, and the report
+screen says so under its own green tick. The gaps, none of which is a bug:
+
+- **Anything your app never exposed to accessibility.** The audit walks the accessibility tree, so
+  an element that is not in it does not exist as far as this tool is concerned — a custom control
+  with no `isAccessibilityElement`, a view hidden behind `accessibilityElementsHidden`, anything
+  VoiceOver simply never reaches. Those pass silently, and they are precisely the defect a VoiceOver
+  user hits. This is the largest gap by far.
+- **Whether a label *means* anything.** The check tests that a label exists and is not whitespace.
+  "Button", "image1" and "asdf" all pass it.
+- **Non-text contrast beyond a flat element's own frame.** WCAG 1.4.11 covers icons, control
+  boundaries, focus indicators and meaningful graphics; this measures a two-tone crop, reports on an
+  icon over a plain background, and refuses a photograph, a gradient or a chart. Refusing is honest,
+  but it is not coverage.
+- **Any appearance that is not currently showing.** The other colour scheme, every Dynamic Type size
+  but the current one, every locale but the current one — including right-to-left layouts and long
+  translations — and Increased Contrast, Reduce Transparency, Bold Text and Button Shapes.
+- **Anything off screen.** Below the fold of a scroll view, rows not laid out, screens you have not
+  navigated to, and after a truncated pass everything past the stopping point in tree order.
+- **Everything the three checks are not.** Reading order, focus traps, custom rotors, accessibility
+  actions, hint quality, Switch Control and Voice Control reachability, captions, timing and motion.
+
+Contrast findings are estimates from rendered pixels and touch-target findings measure drawn frames
+rather than hit-testing insets, so a finding can also be wrong in the harmless direction. Use the
+audit to find defects; do not use it to certify their absence.
 
 There is no separate settings screen and no public code API for this feature yet — everything
 lives on the report screen itself, reached from **UI/UX → Accessibility Audit**.
