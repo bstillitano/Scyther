@@ -27,6 +27,7 @@ import Foundation
 /// - ``init(span:narrowest:)``
 /// - ``init(start:duration:span:narrowest:)``
 /// - ``narrowestDuration(shortestMeasured:span:plotWidth:)``
+/// - ``opening(span:narrowest:medianMeasured:plotWidth:)``
 ///
 /// ### Moving and Zooming
 /// - ``zoomed(by:)``
@@ -114,11 +115,15 @@ struct WaterfallWindow: Equatable, Sendable {
     /// Whether the window is narrower than the whole span, and therefore worth drawing as an
     /// overlay at all.
     ///
-    /// At the widest window — the whole span, which is where the page opens — every request in
-    /// the log falls inside it, so an overlay drawn edge to edge would tint the entire strip one
-    /// solid colour instead of marking a subset of it: a green box, not a minimap. An overlay
-    /// that marks *everything* marks nothing, and is worse than no overlay at all, since it hides
-    /// the bars underneath it.
+    /// At the widest window — the whole span, still where a short log opens, and where any log
+    /// lands once zoomed all the way back out — every request in the log falls inside it, so an
+    /// overlay drawn edge to edge would tint the entire strip one solid colour instead of marking
+    /// a subset of it: a green box, not a minimap. An overlay that marks *everything* marks
+    /// nothing, and is worse than no overlay at all, since it hides the bars underneath it. A log
+    /// long enough to need the overlay is also, by construction, long enough that
+    /// ``opening(span:narrowest:medianMeasured:plotWidth:)`` does not open it at the whole span —
+    /// see that function's own documentation — so the overlay this guards is visible from the
+    /// first frame on exactly the logs it exists for.
     ///
     /// `false` at the full span, `true` the instant a drag or a zoom narrows the window at all —
     /// and `false`, not `true`, for the degenerate `span == duration == 0` window an empty series
@@ -152,6 +157,61 @@ struct WaterfallWindow: Equatable, Sendable {
         let demanded = shortest * Double(plotWidth) / Double(targetShortestBarWidth)
         guard demanded.isFinite else { return span }
         return min(max(0, demanded), span)
+    }
+
+    /// The window the page opens with, before any zoom or drag.
+    ///
+    /// Anchored on the most recent traffic — `end == span` — rather than at the origin, and sized
+    /// so the *median* measured request renders at ``targetShortestBarWidth``, the same "24pt is
+    /// legible" idea ``narrowestDuration(shortestMeasured:span:plotWidth:)`` already applies to the
+    /// shortest reading. This replaced opening at the whole span unconditionally, which the design
+    /// spec's own "Default" section argued for at length and the owner had signed off on — until it
+    /// was driven against a real, hour-long capture with two bursts of traffic an hour apart. At
+    /// that span every bar, a 43ms request and a 1.06s one alike, floored to the same three points,
+    /// and the strip read as two hairlines either side of an hour of nothing: honest, in the sense
+    /// the old rule intended, and useless. See `docs/superpowers/specs/2026-09-07-waterfall-window-design.md`'s
+    /// own "Default" section, and its "Amendments", for the full account of why the original rule
+    /// was tried, shipped, and then reversed.
+    ///
+    /// The median, not the shortest, is what the *width* is sized against: the shortest reading is
+    /// already spoken for as the zoom *floor* (`narrowest`), and reusing it here too would size the
+    /// window's opening width for the fastest call in the log rather than for the request a reader
+    /// opening the page is actually likely to be looking at. Reusing
+    /// ``narrowestDuration(shortestMeasured:span:plotWidth:)``'s own formula against the median
+    /// instead is deliberate, not a coincidence of a similar name: "solve `d / w * p = target` for
+    /// `w`" is the same arithmetic regardless of which single duration `d` a caller wants legible,
+    /// and reusing it here is what keeps the two readings from drifting into two slightly different
+    /// rules for what is conceptually the same question.
+    ///
+    /// The result is clamped into `narrowest...span` — never forced tighter than the zoom floor,
+    /// and never wider than the log actually is. The upper clamp is what keeps a short log working
+    /// exactly as it always did: once the demanded width already reaches or exceeds `span`, this
+    /// opens at the whole span, `start == 0`, identical to what the old, unconditional rule
+    /// produced for every log short enough that the old rule was ever a reasonable default for in
+    /// the first place. This is a strict narrowing of that rule, not a replacement of it in the one
+    /// case that made it safe to begin with.
+    ///
+    /// - Parameters:
+    ///   - span: The series' span.
+    ///   - narrowest: The zoom floor, from ``narrowestDuration(shortestMeasured:span:plotWidth:)``
+    ///     against the *shortest* measured duration. The window this returns can never be forced
+    ///     narrower than that, regardless of what the median alone would demand.
+    ///   - medianMeasured: The median finished, non-zero duration in the series, or `nil` when
+    ///     nothing finished — the same shape
+    ///     ``narrowestDuration(shortestMeasured:span:plotWidth:)`` takes for the shortest reading,
+    ///     excluded from the sample for the same reason: a pending or zero-length request has no
+    ///     measured length to be legible at. `nil` opens at the whole span, the same fallback
+    ///     `narrowestDuration` itself uses when there is nothing to size against.
+    ///   - plotWidth: The width the detail list gives a bar, in points.
+    /// - Returns: A window anchored at `span`, whose left edge sits at `span - duration`, clamped
+    ///   into the series exactly as every other window on this type is.
+    static func opening(span: TimeInterval,
+                        narrowest: TimeInterval,
+                        medianMeasured: TimeInterval?,
+                        plotWidth: CGFloat) -> WaterfallWindow {
+        let demanded = narrowestDuration(shortestMeasured: medianMeasured, span: span, plotWidth: plotWidth)
+        let duration = min(max(demanded, narrowest), max(0, span))
+        return WaterfallWindow(start: span - duration, duration: duration, span: span, narrowest: narrowest)
     }
 
     /// The window magnified by `factor`, holding its centre still where the span leaves room to.

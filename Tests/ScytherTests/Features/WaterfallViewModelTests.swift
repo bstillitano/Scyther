@@ -185,6 +185,11 @@ final class WaterfallViewModelTests: XCTestCase {
     /// unfiltered total. Comparing the window to `total` mixed a filtered numerator with an
     /// unfiltered denominator and could read "5 of 340" for a window over a dozen-request
     /// filtered list.
+    ///
+    /// Also confirms the caption reads correctly when the window opens as a genuine subset — not
+    /// only when it happens to be the whole span: twelve requests one second apart, all the same
+    /// duration, opens anchored on the newest two rather than all twelve, so the numerator here is
+    /// smaller than `layout.count` for the same reason it must never equal `layout.total`.
     func testWindowCaptionCountsAgainstTheFilteredTotalNotTheUnfilteredOne() async {
         let requests = (0..<12).map { request(startedAt: origin.addingTimeInterval(Double($0))) }
         let viewModel = WaterfallViewModel(requests: requests, totalCount: 340)
@@ -192,8 +197,9 @@ final class WaterfallViewModelTests: XCTestCase {
         viewModel.configureWindow(plotWidth: 240)
 
         XCTAssertNotEqual(viewModel.layout.count, viewModel.layout.total, "the log is filtered")
-        XCTAssertEqual(viewModel.visibleRows.count, 12, "the window opens on the whole span")
-        XCTAssertTrue(viewModel.windowCaption.contains("12"))
+        XCTAssertLessThan(viewModel.visibleRows.count, viewModel.layout.count,
+                          "the window opens as a genuine subset, not the whole span")
+        XCTAssertTrue(viewModel.windowCaption.contains("\(viewModel.visibleRows.count)"))
         XCTAssertFalse(viewModel.windowCaption.contains("340"),
                        "the denominator is the filtered row count, not the log's unfiltered total")
     }
@@ -310,23 +316,85 @@ final class WaterfallViewModelTests: XCTestCase {
     /// `isWindowEmpty` `true` — over a `layout` that is already full. Deliberately does not
     /// `await recompute()`, which is the case every other test in this file has already moved
     /// past by the time it makes an assertion.
+    ///
+    /// Not asserting the full row count any more: the window this first configuration opens —
+    /// see `WaterfallWindow.opening(...)` and ``WaterfallViewModel/windowFollowsDefault`` — anchors
+    /// on the newest traffic rather than the whole span, so legitimately showing only the tail of
+    /// the log on the very first frame is not a bug. What still has to be true from that first
+    /// frame is that it is not the *empty* placeholder.
     func testTheWindowIsAlreadyConfiguredBeforeTheFirstRecompute() {
         let model = makeModel(starts: [0, 10, 20, 30])
 
         XCTAssertFalse(model.visibleRows.isEmpty, "no flash of empty before recompute() runs")
-        XCTAssertEqual(model.visibleRows.count, 4)
         XCTAssertFalse(model.isWindowEmpty)
     }
 
-    func testThePageOpensShowingTheWholeSpan() async {
-        let model = makeModel(starts: [0, 10, 20, 30])
+    /// A log short enough that the opening rule's demanded width already reaches the span opens
+    /// at the whole span — see `WaterfallWindow.opening(...)`'s own tests for the rule in
+    /// isolation; this pins the same behaviour end to end through `configureWindow(plotWidth:)`.
+    /// All four requests here share the same 50ms duration and are clustered within a tenth of a
+    /// second of each other, so the demanded width (0.5s at 24pt/240pt, sized for the shared
+    /// median) exceeds the 0.11s span outright and the demand is clamped back down to it — the
+    /// whole-span branch, not the anchored one; see `testALongLogOpensAnchoredOnTheNewestTraffic`
+    /// for that one.
+    func testAShortLogOpensShowingTheWholeSpan() async {
+        let model = makeModel(starts: [0, 0.02, 0.04, 0.06])
         await model.recompute()
         model.configureWindow(plotWidth: 240)
 
         XCTAssertEqual(model.window.start, 0, accuracy: 0.0001)
         XCTAssertEqual(model.window.duration, model.series.span, accuracy: 0.0001,
-                       "the page opens honest, and zoom is the escape")
+                       "short enough that the demanded width already reaches the whole span")
         XCTAssertEqual(model.visibleRows.count, 4)
+    }
+
+    /// The defect the owner reported: a long log — modelled here on the hour-long capture with
+    /// two bursts of traffic an hour apart — must not open with every bar floored to the same
+    /// width. It opens anchored on the newest traffic instead, as a genuine subset, with the
+    /// older burst left outside the window and the strip's overlay therefore already visible.
+    func testALongLogOpensAnchoredOnTheNewestTraffic() async {
+        let model = makeModel(starts: [0, 0.02, 0.04, 3_500, 3_500.02, 3_500.04])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+
+        XCTAssertEqual(model.window.end, model.series.span, accuracy: 0.0001,
+                       "anchored on the newest traffic")
+        XCTAssertLessThan(model.window.duration, model.series.span,
+                          "a genuine subset, not the whole span")
+        XCTAssertTrue(model.window.marksASubset, "the overlay must be visible the moment it opens")
+        // Compared with `accuracy:` element by element rather than a single array equality: the
+        // starts recovered through `Date.addingTimeInterval`/`timeIntervalSince` at a ~3,500
+        // second offset carry a few hundred nanoseconds of floating-point drift from the literal
+        // seconds requested, which an exact `XCTAssertEqual` on the array does not tolerate.
+        let starts = model.visibleRows.map(\.entry.start)
+        XCTAssertEqual(starts.count, 3, "the older burst an hour earlier is outside the window")
+        for (start, expected) in zip(starts, [3_500, 3_500.02, 3_500.04]) {
+            XCTAssertEqual(start, expected, accuracy: 0.0001)
+        }
+    }
+
+    /// One request: the median and the shortest reading are the same single measurement, so the
+    /// window opens at the whole span and cannot zoom, matching `testASingleRequestCannotZoom`
+    /// below.
+    func testASingleRequestOpensShowingTheWholeSpan() async {
+        let model = makeModel(starts: [0])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+
+        XCTAssertEqual(model.window.start, 0, accuracy: 0.0001)
+        XCTAssertEqual(model.window.duration, model.series.span, accuracy: 0.0001)
+        XCTAssertEqual(model.visibleRows.count, 1)
+    }
+
+    /// Nothing logged at all: the window opens at the same degenerate span-zero state it always
+    /// has, without dividing by zero or crashing.
+    func testAnEmptyLogOpensWithTheEmptyWindow() {
+        let model = WaterfallViewModel(requests: [], totalCount: 0)
+        model.configureWindow(plotWidth: 240)
+
+        XCTAssertTrue(model.isEmpty)
+        XCTAssertEqual(model.window.duration, 0)
+        XCTAssertFalse(model.window.canZoom)
     }
 
     /// The tapped moment on the Traffic Stats strip is threaded through `init`'s own
@@ -335,27 +403,31 @@ final class WaterfallViewModelTests: XCTestCase {
     /// this initialiser's whole-log layout until the page is actually inserted into the tree.
     /// Nothing was asserting that the parameter is actually applied; this does, before either
     /// `recompute()` or `configureWindow(plotWidth:)` has run, the same synchronous guarantee
-    /// ``testTheWindowIsAlreadyConfiguredBeforeTheFirstRecompute`` pins for the ordinary
-    /// full-span open.
+    /// ``testTheWindowIsAlreadyConfiguredBeforeTheFirstRecompute`` pins for the ordinary open.
     func testOpeningTimePassedToInitCentresTheWindowBeforeAnyRecompute() {
         let model = makeModel(starts: [0, 10, 20, 30], openingTime: 20)
 
         XCTAssertLessThan(model.window.duration, model.series.span,
-                          "an opening time narrows the window; the default open does not")
+                          "span / 8 is narrower than the whole span")
         XCTAssertEqual(model.window.centre, 20, accuracy: 0.5)
     }
 
     /// Five requests, three of them clustered at the middle of the log (14s, 15s, 16s) and two
-    /// at the far ends (0s, 30s). The window opens on the whole 30.05s span, centred at 15.025s;
-    /// zooming in 8x narrows it to ~3.756s, still centred at 15.025s, which brackets exactly the
-    /// three middle requests and excludes both end ones. Checking the exact survivors — not just
-    /// that `visibleRows` agrees with `window.contains`, which holds by definition of
-    /// `visibleRows` however wrong the zoom arithmetic is — is what makes this catch a
-    /// mis-centred or mis-scaled zoom.
+    /// at the far ends (0s, 30s). Zooming in 8x from the whole 30.05s span narrows it to ~3.756s,
+    /// still centred at 15.025s, which brackets exactly the three middle requests and excludes
+    /// both end ones. Checking the exact survivors — not just that `visibleRows` agrees with
+    /// `window.contains`, which holds by definition of `visibleRows` however wrong the zoom
+    /// arithmetic is — is what makes this catch a mis-centred or mis-scaled zoom.
+    ///
+    /// `zoom(by: 0.001)` first forces the window back out to the whole span, establishing a known
+    /// baseline before narrowing it back in: the page no longer necessarily opens there by
+    /// default — see `WaterfallWindow.opening(...)` — so this test can no longer assume it without
+    /// asserting that separately, and this is exactly what it exists to avoid depending on.
     func testZoomingDropsTheRowsThatLeaveTheWindow() async {
         let model = makeModel(starts: [0, 14, 15, 16, 30])
         await model.recompute()
         model.configureWindow(plotWidth: 240)
+        model.zoom(by: 0.001)
         model.zoom(by: 8)
 
         XCTAssertEqual(model.visibleRows.map(\.entry.start), [14, 15, 16])
@@ -447,11 +519,16 @@ final class WaterfallViewModelTests: XCTestCase {
     /// ``WaterfallViewModel/visibleRows``'s own documentation. This proves it invalidates on a
     /// change to `window`, at a fixed `layout`: zooming past a request without touching the log
     /// has to drop it from the cached array, not just from what a fresh filter would produce.
+    ///
+    /// `zoom(by: 0.001)` establishes a known whole-span baseline first: the page no longer
+    /// necessarily opens there by default — see `WaterfallWindow.opening(...)` — so this can no
+    /// longer be assumed the way it once was.
     func testVisibleRowsCacheInvalidatesWhenTheWindowChanges() async {
         let model = makeModel(starts: [0, 14, 15, 16, 30])
         await model.recompute()
         model.configureWindow(plotWidth: 240)
-        XCTAssertEqual(model.visibleRows.count, 5, "the window opens on the whole span")
+        model.zoom(by: 0.001)
+        XCTAssertEqual(model.visibleRows.count, 5, "the whole span holds every row")
 
         model.zoom(by: 8)
         model.scrub(to: 15)
@@ -464,14 +541,28 @@ final class WaterfallViewModelTests: XCTestCase {
     /// `window`. New traffic arriving inside an already-open window has to appear without the
     /// developer touching the window at all — a cache invalidated only by `window` would miss
     /// exactly this.
+    ///
+    /// `scrub(to:)` to the window's own centre is a deliberate no-op move, made only to mark the
+    /// window as held — see ``WaterfallViewModel/windowFollowsDefault``. Without it, the traffic
+    /// added below would itself re-anchor the still-following-default window to the new newest
+    /// request when `update(requests:totalCount:)`'s `recompute()` calls `configureWindow(plotWidth:)`
+    /// again, which would conflate "the window moved because it is still tracking the tail of the
+    /// log" with the cache-invalidation property this test exists to isolate.
+    ///
+    /// The second request lands 0.2s after the first rather than a full second: both share the
+    /// same 100ms duration, so the demanded width for either the shortest or the median reading
+    /// is 1s at this plot width — comfortably wider than the resulting 0.3s span either way — and
+    /// the held window is forced open to that whole span with margin either side of both entries,
+    /// rather than depending on an exact floating-point edge for the second one to fall inside it.
     func testVisibleRowsCacheInvalidatesWhenNewTrafficArrives() async {
         let viewModel = WaterfallViewModel(requests: [request(startedAt: origin)], totalCount: 1)
         await viewModel.recompute()
         viewModel.configureWindow(plotWidth: 240)
+        viewModel.scrub(to: viewModel.window.centre)
         XCTAssertEqual(viewModel.visibleRows.count, 1)
 
         viewModel.update(
-            requests: [request(startedAt: origin), request(startedAt: origin.addingTimeInterval(1))],
+            requests: [request(startedAt: origin), request(startedAt: origin.addingTimeInterval(0.2))],
             totalCount: 2
         )
         await viewModel.recompute()

@@ -63,15 +63,36 @@ final class WaterfallDurationsTests: XCTestCase {
         XCTAssertEqual(WaterfallDurations.measuredDurations(of: series), [0.5])
     }
 
-    // Two tests used to live here: `testPercentileIsTheNearestRankValue`, asserting the
-    // nearest-rank selection (the lower of the two middles at an even count; the first of ten at
-    // the tenth percentile), and `testPercentileOfAnEmptySampleIsNil`, asserting an empty sample
-    // names no rank. Both drove `WaterfallDurations.percentile(_:of:)`, which this file's own type
-    // doc now explains was dead from the rename onward: `WaterfallViewModel` stopped reading a
-    // median or a tail duration once `windowCaption` and the zoom limit turned out not to need
-    // either, and nothing else in production ever called it. The nearest-rank rule itself is not
-    // an orphaned guarantee — `TrafficStatistics` computes the same arithmetic for its own median
-    // and 95th-percentile figures, independently, and `TrafficStatisticsTests` already pins it
-    // there — so removing the function removed a second, unused implementation of a rule the
-    // codebase still keeps exactly one owner for.
+    // A test used to live here, `testPercentileIsTheNearestRankValue`, asserting the nearest-rank
+    // selection (the lower of the two middles at an even count; the first of ten at the tenth
+    // percentile) that `WaterfallDurations.percentile(_:of:)` computed, and
+    // `testPercentileOfAnEmptySampleIsNil` alongside it. Both drove a function this file's own
+    // type doc now explains was dead from the rename onward, and removed. `median(of:)` below is
+    // its replacement — narrower on purpose, since nothing in this file needs an arbitrary
+    // percentile any more, only the one reading `WaterfallWindow.opening(...)` reads.
+
+    // MARK: - The median
+
+    /// The nearest-rank rule at an odd count: the middle value, unambiguously.
+    func testMedianOfAnOddCountIsTheMiddleValue() {
+        XCTAssertEqual(WaterfallDurations.median(of: [0.1, 0.2, 0.5]), 0.2)
+    }
+
+    /// The nearest-rank rule at an even count picks the *lower* of the two middle values, the
+    /// same choice `TrafficStatistics.percentile(_:of:)` makes at the 50th percentile of an even
+    /// sample — this is not interpolation, so the answer is always a duration a request actually
+    /// took.
+    func testMedianOfAnEvenCountIsTheLowerOfTheTwoMiddleValues() {
+        XCTAssertEqual(WaterfallDurations.median(of: [0.1, 0.2, 0.5, 0.9]), 0.2)
+    }
+
+    /// One measurement is its own median.
+    func testMedianOfOneValueIsThatValue() {
+        XCTAssertEqual(WaterfallDurations.median(of: [0.4]), 0.4)
+    }
+
+    /// An empty sample names no median, the same way it names no shortest reading.
+    func testMedianOfAnEmptySampleIsNil() {
+        XCTAssertNil(WaterfallDurations.median(of: []))
+    }
 }

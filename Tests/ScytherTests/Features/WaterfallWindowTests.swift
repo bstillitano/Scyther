@@ -109,11 +109,75 @@ final class WaterfallWindowTests: XCTestCase {
         XCTAssertEqual(window.zoomed(by: 4), window)
     }
 
+    // MARK: - The opening window
+
+    /// A log short enough that the median's demanded width already reaches the whole span opens
+    /// at the whole span — the old, unconditional default, still correct for exactly the logs it
+    /// was always safe for.
+    func testOpeningOnAShortLogIsTheWholeSpan() {
+        // A 40ms median drawn at 24pt across a 240pt plot demands a 0.4s window — wider than
+        // this 0.3s span — so the demand is clamped down to the span instead.
+        let window = WaterfallWindow.opening(span: 0.3, narrowest: 0.05,
+                                             medianMeasured: 0.04, plotWidth: 240)
+        XCTAssertEqual(window.start, 0, accuracy: 0.0001)
+        XCTAssertEqual(window.duration, 0.3, accuracy: 0.0001)
+    }
+
+    /// The case the owner reported: a long log opens anchored on the newest traffic, sized so
+    /// the median request is legible, rather than at the whole span with every bar floored to
+    /// the same three points.
+    func testOpeningOnALongLogAnchorsOnTheNewestTrafficSizedForTheMedian() {
+        // A 0.2s median drawn at 24pt across a 240pt plot demands a 2s window — comfortably
+        // inside the 3,522s span an hour-long capture actually measured.
+        let window = WaterfallWindow.opening(span: 3_522, narrowest: 0.5,
+                                             medianMeasured: 0.2, plotWidth: 240)
+        XCTAssertEqual(window.duration, 2, accuracy: 0.0001)
+        XCTAssertEqual(window.end, 3_522, accuracy: 0.0001, "anchored on the newest traffic")
+        XCTAssertEqual(window.start, 3_520, accuracy: 0.0001)
+        XCTAssertTrue(window.marksASubset, "so the strip's overlay draws the moment the page opens")
+    }
+
+    /// The demanded width is never allowed to undercut the zoom floor, even on a log where the
+    /// median happens to be smaller than what the floor alone would already demand.
+    func testOpeningNeverGoesNarrowerThanTheZoomFloor() {
+        let window = WaterfallWindow.opening(span: 60, narrowest: 5, medianMeasured: 0.01, plotWidth: 240)
+        XCTAssertEqual(window.duration, 5, accuracy: 0.0001)
+    }
+
+    /// A single measurement is both the shortest and the median reading, so the demanded width
+    /// and the span it is clamped against are the same number: the window opens at the whole
+    /// span, and `canZoom` is already `false` for the same underlying reason.
+    func testOpeningWithOneMeasurementIsTheWholeSpan() {
+        let window = WaterfallWindow.opening(span: 0.12, narrowest: 0.12,
+                                             medianMeasured: 0.12, plotWidth: 240)
+        XCTAssertEqual(window.start, 0, accuracy: 0.0001)
+        XCTAssertEqual(window.duration, 0.12, accuracy: 0.0001)
+        XCTAssertFalse(window.canZoom)
+    }
+
+    /// Nothing has finished — every request is still pending — so there is no median to size the
+    /// window against, and it opens at the whole span, matching `narrowestDuration`'s own
+    /// nothing-measured fallback.
+    func testOpeningWithNothingMeasuredIsTheWholeSpan() {
+        let window = WaterfallWindow.opening(span: 45, narrowest: 45, medianMeasured: nil, plotWidth: 240)
+        XCTAssertEqual(window.start, 0, accuracy: 0.0001)
+        XCTAssertEqual(window.duration, 45, accuracy: 0.0001)
+    }
+
+    /// An empty series opens at the same degenerate, non-dividing-by-zero window every other
+    /// empty-series case on this type produces.
+    func testOpeningAnEmptySeriesIsTheEmptyWindow() {
+        let window = WaterfallWindow.opening(span: 0, narrowest: 0, medianMeasured: nil, plotWidth: 240)
+        XCTAssertEqual(window.start, 0)
+        XCTAssertEqual(window.duration, 0)
+        XCTAssertFalse(window.canZoom)
+    }
+
     // MARK: - Marking a subset
 
-    /// The page opens with the window at the whole span, which is exactly the case an overlay
-    /// must not be drawn for: edge to edge, it would tint the entire strip one solid colour
-    /// rather than mark a subset of it.
+    /// A window at the whole span — a short log's opening window, or any log once zoomed all the
+    /// way back out — is exactly the case an overlay must not be drawn for: edge to edge, it
+    /// would tint the entire strip one solid colour rather than mark a subset of it.
     func testTheWidestWindowDoesNotMarkASubset() {
         XCTAssertFalse(WaterfallWindow(span: 60, narrowest: 1).marksASubset)
     }

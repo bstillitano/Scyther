@@ -91,6 +91,15 @@ final class WaterfallViewModel: ViewModel {
         /// constantly.
         let shortestMeasured: Double?
 
+        /// The median finished, non-zero duration in the series, or `nil` when nothing finished.
+        ///
+        /// Cached alongside ``shortestMeasured`` for the same reason and read by the same caller:
+        /// ``WaterfallWindow/opening(span:narrowest:medianMeasured:plotWidth:)`` sizes the window
+        /// the page opens with against this, not against ``shortestMeasured`` — see that
+        /// function's own documentation for why the shortest reading, already spoken for as the
+        /// zoom floor, is the wrong duration to size an *opening* width against.
+        let medianMeasured: Double?
+
         /// Whether the rows hold more than one distinct, non-empty host.
         ///
         /// Cached with the rows for the same reason ``shortestMeasured`` is: the detail list reads
@@ -104,7 +113,7 @@ final class WaterfallViewModel: ViewModel {
 
         /// Nothing laid out.
         static let empty = Layout(series: .empty, rows: [], count: 0, total: 0,
-                                  shortestMeasured: nil, showsHost: false)
+                                  shortestMeasured: nil, medianMeasured: nil, showsHost: false)
     }
 
     /// The laid-out log the page is drawing.
@@ -284,7 +293,7 @@ final class WaterfallViewModel: ViewModel {
     ) -> Layout {
         guard !requests.isEmpty else {
             return Layout(series: .empty, rows: [], count: 0, total: totalCount,
-                          shortestMeasured: nil, showsHost: false)
+                          shortestMeasured: nil, medianMeasured: nil, showsHost: false)
         }
         let series = WaterfallSeries.build(from: requests, limit: requests.count, now: now)
         var byHash = [String: HTTPRequest](minimumCapacity: requests.count)
@@ -297,6 +306,7 @@ final class WaterfallViewModel: ViewModel {
         }
         let durations = WaterfallDurations.measuredDurations(of: series)
         let shortestMeasured = durations.filter { $0 > 0 }.min()
+        let medianMeasured = WaterfallDurations.median(of: durations)
         let distinctHosts = Set(series.entries.map(\.shortHost).filter { !$0.isEmpty })
         return Layout(
             series: series,
@@ -304,6 +314,7 @@ final class WaterfallViewModel: ViewModel {
             count: requests.count,
             total: totalCount,
             shortestMeasured: shortestMeasured,
+            medianMeasured: medianMeasured,
             showsHost: distinctHosts.count > 1
         )
     }
@@ -360,20 +371,51 @@ final class WaterfallViewModel: ViewModel {
     /// one earns a row saying so, because a blank list after a drag reads as a bug.
     var isWindowEmpty: Bool { !layout.rows.isEmpty && visibleRows.isEmpty }
 
-    /// Recomputes the zoom limits for a plot of `plotWidth`, keeping the current centre wherever
-    /// the new limits leave room to.
+    /// Whether ``window`` is still following ``WaterfallWindow/opening(span:narrowest:medianMeasured:plotWidth:)``
+    /// rather than a position or size the developer — or a tap on the Traffic Stats strip — chose.
     ///
-    /// Called whenever the list's geometry changes. Keeping the centre matters because a rotation
-    /// or a Dynamic Type change re-measures the plot, and throwing the developer back to the
-    /// start of the log because the row got narrower would be its own bug.
+    /// `true` from construction until the first call to ``zoom(by:)``, ``scrub(to:)`` or
+    /// ``open(centredOn:)`` that actually changes something, and `false` for the rest of this
+    /// instance's life after that. While it is `true`, ``configureWindow(plotWidth:)`` keeps
+    /// recomputing the opening window fresh against whatever geometry it is called with, rather
+    /// than preserving the previous one — which is what corrects for `init`'s own first call
+    /// having opened the window against ``plotWidth``'s placeholder default
+    /// (``WaterfallChartStyle/minimumPlotWidth``, set before ``WaterfallView``'s `GeometryReader`
+    /// has measured anything) once its `.onAppear` supplies the real, measured width moments
+    /// later. It also means a page left open while more traffic streams in keeps tracking the
+    /// tail of the log — the same "anchored on the newest traffic" promise the opening window
+    /// makes, just re-applied on every recomputation rather than only the first one — for exactly
+    /// as long as nobody has touched it.
     ///
-    /// Near an edge — or when the re-measure raises ``WaterfallWindow/narrowest`` *above* the
-    /// current duration, which a widened plot does — it cannot be held exactly: the duration has
-    /// to grow to the new floor, and holding the *old* start while doing that would shift the
-    /// centre by half of whatever the duration was forced to grow. So the duration is clamped to
-    /// the new limits first, and only then is the window moved back to the old centre — the same
-    /// two-step ``WaterfallWindow/movedToCentre(_:)`` already uses internally, applied here across
-    /// a change in limits rather than a change in time.
+    /// Once it flips to `false` it never flips back: a window the developer has zoomed, dragged,
+    /// or arrived at by tapping a moment on the Traffic Stats strip must not be silently replaced
+    /// by "the newest traffic" again just because Dynamic Type changed or the device rotated —
+    /// the same guarantee ``configureWindow(plotWidth:)`` always made for a *zoomed* window,
+    /// extended here to cover the window's position too, now that opening can narrow it.
+    private var windowFollowsDefault = true
+
+    /// Recomputes the window for a plot of `plotWidth`.
+    ///
+    /// Called whenever the list's geometry changes, and once from `init` before the real geometry
+    /// is known at all — see ``windowFollowsDefault``. What it does with the new limits depends on
+    /// whether the window is still following the default:
+    ///
+    /// - **Still following it** (``windowFollowsDefault`` is `true`): the window is rebuilt from
+    ///   scratch via ``WaterfallWindow/opening(span:narrowest:medianMeasured:plotWidth:)`` against
+    ///   the current layout and geometry. This is what lets the placeholder-width window `init`
+    ///   opens with self-correct once the real plot width arrives, and what lets an untouched page
+    ///   keep tracking new traffic as it streams in.
+    /// - **Already held** (`false`): the centre is kept wherever the new limits leave room to,
+    ///   the same behaviour this method always had. Keeping the centre matters because a rotation
+    ///   or a Dynamic Type change re-measures the plot, and throwing the developer back to
+    ///   wherever they were away from because the row got narrower would be its own bug. Near an
+    ///   edge — or when the re-measure raises ``WaterfallWindow/narrowest`` *above* the current
+    ///   duration, which a widened plot does — the centre cannot be held exactly: the duration has
+    ///   to grow to the new floor, and holding the *old* start while doing that would shift the
+    ///   centre by half of whatever the duration was forced to grow. So the duration is clamped to
+    ///   the new limits first, and only then is the window moved back to the old centre — the same
+    ///   two-step ``WaterfallWindow/movedToCentre(_:)`` already uses internally, applied here
+    ///   across a change in limits rather than a change in time.
     ///
     /// - Parameter plotWidth: The width a bar is drawn across, in points.
     func configureWindow(plotWidth: CGFloat) {
@@ -384,29 +426,40 @@ final class WaterfallViewModel: ViewModel {
             span: span,
             plotWidth: self.plotWidth
         )
-        let previousCentre = window.span > 0 ? window.centre : span / 2
-        let previousDuration = window.span > 0 ? window.duration : span
-        let candidate = WaterfallWindow(start: 0, duration: previousDuration, span: span,
+        guard !windowFollowsDefault else {
+            window = WaterfallWindow.opening(span: span,
+                                             narrowest: narrowest,
+                                             medianMeasured: layout.medianMeasured,
+                                             plotWidth: self.plotWidth)
+            return
+        }
+        let candidate = WaterfallWindow(start: 0, duration: window.duration, span: span,
                                         narrowest: narrowest)
-        window = candidate.movedToCentre(previousCentre)
+        window = candidate.movedToCentre(window.centre)
     }
 
-    /// Magnifies the window, holding its centre.
+    /// Magnifies the window, holding its centre, and marks it as held — see
+    /// ``windowFollowsDefault``.
     ///
     /// - Parameter factor: The pinch's magnitude. Above 1 zooms in.
     func zoom(by factor: Double) {
         guard window.canZoom else { return }
         window = window.zoomed(by: factor)
+        windowFollowsDefault = false
     }
 
-    /// Moves the window's centre to `time`.
+    /// Moves the window's centre to `time`, and marks it as held — see ``windowFollowsDefault``.
     ///
     /// - Parameter time: Seconds from the series origin.
     func scrub(to time: TimeInterval) {
         window = window.movedToCentre(time)
+        windowFollowsDefault = false
     }
 
-    /// Opens the window at ``openingWindowFraction`` of the span, centred on `time`.
+    /// Opens the window at ``openingWindowFraction`` of the span, centred on `time`, and marks it
+    /// as held — see ``windowFollowsDefault``. Without this, ``WaterfallView``'s own `.onAppear`
+    /// call to ``configureWindow(plotWidth:)`` — which runs after this, once the real plot width
+    /// is measured — would discard the tapped position in favour of the newest-traffic default.
     ///
     /// - Parameter time: Seconds from ``series``'s own origin — this instance's, not necessarily
     ///   whichever series `time` was originally measured against. See
@@ -416,6 +469,7 @@ final class WaterfallViewModel: ViewModel {
         let span = layout.series.span
         guard span > 0 else { return }
         window = window.centred(on: time, duration: span * Self.openingWindowFraction)
+        windowFollowsDefault = false
     }
 
     /// What the page says under the list about what is on screen.

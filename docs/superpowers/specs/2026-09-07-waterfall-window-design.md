@@ -107,17 +107,59 @@ excluded from the scale today. A pending request has no measured length to be le
 
 ### Default
 
-**The page opens with the window at its widest — the whole span.** This was called out and
-accepted: the first frame therefore looks like a plain list of every request with small bars and
-the duration text carrying the meaning. Zoom is the escape, and the strip shows there is more
-resolution available. Opening pre-zoomed onto recent traffic would look better on arrival and
-start the developer somewhere they did not ask to be.
+**Reversed after device verification — see [Amendments](#amendments).** What shipped first, and
+what this section originally argued for, was the whole span; what ships now is the window anchored
+on the most recent traffic and sized so a typical request is legible. Both are recorded below
+because the first one was not a wrong guess corrected in review — it was deliberately decided,
+built, and then rejected only once it was driven against a real capture, and that failure is worth
+keeping precisely because the reasoning that led to it still reads as sound in isolation.
 
-Opening the page from the Traffic Stats strip is the exception: the tap names a point in time,
-and the page opens with a window of `span / 8` centred there, clamped to the limits above. An
-eighth is wide enough to carry context around the tap and narrow enough to be worth the
-navigation; picking the narrowest allowed window instead would be well defined but could land the
-developer inside a tenth of a second.
+**What was decided and shipped first: the page opens with the window at its widest — the whole
+span.** This was called out and accepted: the first frame therefore looks like a plain list of
+every request with small bars and the duration text carrying the meaning. Zoom is the escape, and
+the strip shows there is more resolution available. Opening pre-zoomed onto recent traffic would
+look better on arrival and start the developer somewhere they did not ask to be.
+
+**Why it failed on real traffic.** The owner ran the page against a log spanning 3,522 seconds —
+an hour, with two short bursts of traffic an hour apart — and reported three symptoms that are all
+the same cause: the pinch appeared to do nothing, no window highlight ever appeared, and every bar
+in the detail list was an identical 3pt tick. The last one is the whole-span default failing on
+its own terms. At that span a 43ms request and a 1.06s request both render at the detail list's
+3pt floor — the window was wide enough that neither could be told apart by width, which is the one
+thing the plot column exists to show. "Opens honest, zoom is the escape" was the design's own
+phrase for this default, and it assumed the reader would zoom past that immediately; against an
+hour-long log the first frame did not read as an honest starting point to zoom from, it read as
+broken, because nothing on it looked different from anything else on it. `marksASubset` being
+`false` at the whole span compounded it — see [Verification on device](#verification-on-device)
+check 1, and its own type documentation on `WaterfallWindow` — so there was also no overlay on the
+strip to suggest that narrowing the window was even an available move, on the one screen state
+where a reader most needed that hint.
+
+**The rule now.** The window's right edge is anchored at the end of the series — the newest
+request — rather than starting at zero, and its width is chosen so the *median* measured request
+renders at `WaterfallWindow.targetShortestBarWidth` (the same "24pt is legible" figure the zoom
+floor already uses for the *shortest* request), clamped into the window's own narrowest-and-widest
+limits. When the demanded width already reaches or exceeds the whole span — every short log, and
+the only case the original default was ever actually tested against by hand — the clamp pins the
+window to the whole span and nothing changes: this is a strict narrowing of the old rule, not a
+replacement of it in the one case that made it safe to begin with. The function is
+`WaterfallWindow.opening(span:narrowest:medianMeasured:plotWidth:)`, and it carries the full
+account of the arithmetic in its own documentation.
+
+Two consequences of anchoring rather than staying at the whole span: the window is now usually a
+subset of the log the instant the page opens, so the strip's overlay draws immediately on any log
+long enough to need it — direct evidence there is more to see, which the whole-span default could
+never show on its own first frame. And the caption under the detail list, built from
+`visibleRows.count` and `layout.count` regardless of what fraction of the span the window
+currently covers, reads correctly whether that window is the whole log or a narrow slice of it —
+it never assumed a whole-span open in the first place.
+
+Opening the page from the Traffic Stats strip is still the exception described in the original
+design: the tap names a point in time, and the page opens with a window of `span / 8` centred
+there, clamped to the limits above, in place of the newest-traffic default. An eighth is wide
+enough to carry context around the tap and narrow enough to be worth the navigation; picking the
+narrowest allowed window instead would be well defined but could land the developer inside a tenth
+of a second.
 
 ## The strip
 
@@ -242,11 +284,17 @@ embedding one is a single key with an interpolation.
 - `WaterfallWindow` — clamping at both limits, that zooming holds the centre, that zooming out at
   the end pulls the window back rather than past the span, that a degenerate series disables
   zoom, and `contains(_:)` for an entry starting before and ending inside the window.
+- `WaterfallWindow.opening(span:narrowest:medianMeasured:plotWidth:)` — a short log opens at the
+  whole span, a long log opens anchored on the newest traffic at a width sized for the median
+  request, the demand never undercuts the zoom floor, a single measurement and a series with
+  nothing measured both fall back to the whole span, and an empty series produces the same
+  degenerate, non-dividing window every other empty-series case on the type does.
 - `shortHost` — the seven examples above plus an IP address and a single-label host.
 - Strip geometry as a pure function of span, count and size: bar rects, the height floor, and the
   minimum width.
-- `WaterfallViewModel` — the rows a window yields, the caption, the empty-window state, and that
-  opening from a tapped time centres the window there.
+- `WaterfallViewModel` — the rows a window yields, the caption (including against a window that
+  opens as a genuine subset, not only the whole span), the empty-window state, and that opening
+  from a tapped time centres the window there.
 
 **Not unit-tested, and said plainly:** the pinch gesture itself, and its interaction with the
 list's scrolling. Both are verified by hand on the simulator. This is the accepted cost of
@@ -257,7 +305,11 @@ value type.
 
 Before the work is called done, on the simulator, with the example app's traffic:
 
-1. Open the page and confirm it arrives showing the whole span with every row carrying a bar.
+1. Open the page against a log long enough to need it and confirm it arrives anchored on the
+   newest traffic — the strip's window overlay already visible, narrower than the full strip —
+   with the detail list's bars legibly different widths rather than a uniform floor. Open it
+   against a short log and confirm it arrives showing the whole span instead, with no overlay: see
+   [Default](#default) for the rule and why it changed from "always the whole span" to this.
 2. Pinch in and confirm the detail zooms, the strip's window narrows to match, and rows leave the
    list as they leave the window.
 3. Drag the strip from one end to the other and confirm the detail keeps up and never empties
@@ -300,4 +352,25 @@ the spec instead of being misled by it.
   from the shortest measured duration, not the median or the tail. Both fields, and the
   nearest-rank `percentile(_:of:)` function that computed them, were removed in the final fix wave
   this document's own review produced — see `WaterfallDurations`' type documentation for the full
-  account.
+  account. The median came back afterwards, on its own, once the default-open rule below started
+  needing it again — see the next amendment and `WaterfallDurations.median(of:)`'s own
+  documentation. The tail did not come back; nothing has needed it since.
+- **The default window, reversed after device verification.** [Default](#default) above now
+  describes this directly rather than only here, because it is not a small implementation drift —
+  it is the one decision in "Decisions taken" this document treats as settled that the owner later
+  overturned outright, on real traffic, after this spec and the code implementing it had both
+  shipped. What was built and verified first was "opens honest, the whole span, zoom is the
+  escape." Driven against an hour-long capture with two bursts of traffic an hour apart, every bar
+  in the detail list rendered at the same 3pt floor regardless of whether the request took 43ms or
+  1.06s, and the strip showed no window overlay at all — `marksASubset` is `false` at the whole
+  span by design, so there was nothing on screen to suggest zooming was the answer. The owner
+  reported this as the pinch appearing to do nothing, no highlighted section ever appearing, and
+  every bar reading identical — three symptoms of the one root cause. The default now anchors the
+  window on the newest traffic and sizes it so the *median* measured request is legible, clamped
+  into the existing zoom limits, via `WaterfallWindow.opening(span:narrowest:medianMeasured:plotWidth:)`.
+  A short log — the only kind the original default was ever checked against by hand — still opens
+  at the whole span: the new rule is a narrowing of the old one for exactly the case that made the
+  old one look safe, not an unrelated replacement of it. The old reasoning for "opens honest" is
+  kept, not deleted, in [Default](#default) above, because it was not unsound reasoning — it was
+  reasoning that a large enough log falsified, and that distinction is worth being able to see
+  later.
