@@ -664,8 +664,9 @@ already in memory, so it adds no capture, no storage and no cost to the request 
 
 The screen describes **the list you were looking at**. The log's search field and filter chips
 narrow the requests before the figures are computed, so filtering to one host turns the summary
-into that host's summary. The caption under the title says which it is — `8 requests`, or
-`21 of 340 requests` when a filter is on.
+into that host's summary. A caption naming which it is — `21 of 340 requests` — appears above the
+figures only when a filter is on; unfiltered, it would only restate the first row below it
+(`Requests  8`), so the section shows no caption at all rather than one saying nothing new.
 
 #### What the figures mean
 

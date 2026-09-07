@@ -158,10 +158,20 @@ final class TrafficStatsViewModel: ViewModel {
     var isEmpty: Bool { captionCount == 0 }
 
     /// The line under the title saying what the figures cover.
+    ///
+    /// Only the "N of M requests" form now — no longer conditional on ``isFiltered`` the way it
+    /// used to be. ``TrafficStatsView/summarySection`` is this property's only production reader,
+    /// and it now shows the header only when `isFiltered` is true: unfiltered, the header would
+    /// have restated the section's own first row, `LabeledContent(localized("Requests"), …)`, so
+    /// the view omits it entirely rather than call this at all. With the unfiltered case no
+    /// longer reachable from anywhere that reads this, the branch that produced it was dead
+    /// weight — see `TrafficStatsView.summarySection`'s header for the reasoning.
+    ///
+    /// The unfiltered branch's key, `"%lld requests"`, is not orphaned by this: `endpointSubtitle(for:)`
+    /// and `hostSubtitle(for:)` below both still build it from `requestCount`, so it stays in
+    /// `Scripts/localization/strings/TrafficStats.json` untouched.
     var caption: String {
-        isFiltered
-            ? localized("\(captionCount) of \(captionTotal) requests")
-            : localized("\(captionCount) requests")
+        localized("\(captionCount) of \(captionTotal) requests")
     }
 
     // MARK: - Summary

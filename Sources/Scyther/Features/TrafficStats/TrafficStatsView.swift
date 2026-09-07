@@ -145,7 +145,18 @@ struct TrafficStatsView: View {
                     .monospacedDigit()
             }
         } header: {
-            Text(viewModel.caption)
+            // Shown only when a filter is narrowing what the figures cover. Unfiltered, the
+            // caption would read "N requests" directly above the first row of this very section,
+            // `LabeledContent(localized("Requests"), value: ...)`, which already says the same
+            // number — a header restating its own section's first row rather than naming
+            // anything the rows do not. Filtered, "N of M requests" earns its place: it says
+            // something the rows genuinely cannot, that a filter is active and how much of the
+            // log it is excluding. A header that appears only sometimes reads as a bug unless the
+            // reason is written down, so it is written down here — this also buys back a line at
+            // accessibility text sizes, where a header's own vertical cost is not free.
+            if viewModel.isFiltered {
+                Text(viewModel.caption)
+            }
         } footer: {
             if summary.stubbedCount > 0 {
                 Text(localized("A stubbed response never left the device, so it is counted here but left out of every duration, failure and byte total."))

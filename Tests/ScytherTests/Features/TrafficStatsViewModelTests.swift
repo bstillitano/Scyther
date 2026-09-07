@@ -81,6 +81,13 @@ final class TrafficStatsViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.caption.contains("340"), "the caption names the unfiltered total")
     }
 
+    /// Used to also assert `viewModel.caption == "3 requests"` here — `caption` had a distinct
+    /// unfiltered form until `TrafficStatsView.summarySection` stopped showing the header at all
+    /// when nothing is filtered (it would otherwise restate the section's own first row). That
+    /// branch of `caption` is gone; the property now always produces the "N of M requests" form,
+    /// even when, as here, `N == M`, because ``TrafficStatsView`` never calls it in that case any
+    /// more. The rewritten assertion below pins that: `caption` no longer special-cases this
+    /// scenario, it is simply never read for it in production.
     func testAnUnfilteredListIsNotReportedAsFiltered() async {
         let viewModel = TrafficStatsViewModel(
             requests: (0..<3).map { _ in request(duration: 100) },
@@ -88,8 +95,9 @@ final class TrafficStatsViewModelTests: XCTestCase {
         )
         await viewModel.recompute()
         XCTAssertFalse(viewModel.isFiltered)
-        XCTAssertEqual(viewModel.caption, "3 requests",
-                       "with nothing filtered out the caption names one number, not two")
+        XCTAssertEqual(viewModel.caption, "3 of 3 requests",
+                       "caption's only remaining form is 'N of M requests' - the view is what decides "
+                       + "whether to show it at all, not this property")
     }
 
     /// The defect W27 named: the caption read the live array while the figures beneath it lagged
