@@ -161,13 +161,14 @@ struct AccessibilityAuditView: View {
     /// this report stopped before it finished, so the report is not necessarily the whole
     /// picture. Presenting a truncated result with no warning would tell a developer their
     /// screen is clean when the audit simply never reached the rest of it.
+    ///
+    /// The wording lives on the view model — see
+    /// ``AccessibilityAuditViewModel/truncationDescription`` — because it is a claim about what a
+    /// pass did, and a claim about a pass should be testable without rendering a view.
     private var truncatedBanner: some View {
         Section {
-            Label(
-                localized("This audit stopped early because there was too much to check. This report may be incomplete."),
-                systemImage: "exclamationmark.triangle"
-            )
-            .foregroundStyle(.orange)
+            Label(viewModel.truncationDescription, systemImage: "exclamationmark.triangle")
+                .foregroundStyle(.orange)
         }
     }
 

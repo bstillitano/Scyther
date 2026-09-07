@@ -142,6 +142,118 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
                       "a push, a tab change or a modal must re-audit")
     }
 
+    // MARK: - The Debounce
+
+    /// The debounce's whole job: however many things trigger a re-audit inside its window, one
+    /// pass runs.
+    ///
+    /// Everything else in this file reads `hasPendingAccessibilityAudit` and never lets a work item
+    /// fire, so nothing asserted that `pendingAccessibilityAudit?.cancel()` is there at all —
+    /// deleting it turns five scroll or layout triggers into five full tree walks and five window
+    /// snapshots, on the main thread, and left every test green. This one waits for the work item
+    /// and counts the passes.
+    func testEveryTriggerInsideTheDebounceWindowIsOnePass() async {
+        var passes = 0
+        toolkit.runAccessibilityPass = {
+            passes += 1
+            return self.result("app")
+        }
+
+        for _ in 0..<5 { toolkit.scheduleAccessibilityReaudit() }
+        XCTAssertEqual(passes, 0, "nothing runs synchronously; the point of the debounce is to wait")
+
+        let ran = expectation(description: "the debounced pass runs")
+        DispatchQueue.main.asyncAfter(deadline: .now() + InterfaceToolkit.AccessibilityAuditDebounceInterval * 3) {
+            ran.fulfill()
+        }
+        await fulfillment(of: [ran], timeout: 5)
+
+        XCTAssertEqual(passes, 1, "five triggers inside one debounce window are one pass, not five")
+        XCTAssertFalse(toolkit.hasPendingAccessibilityAudit)
+    }
+
+    /// The three intervals the feature's cost is expressed in, as literals.
+    ///
+    /// Named in no test until now: any of them could have been `0.001` — a pass on every run-loop
+    /// turn — or `60`, with the whole suite green and the README wrong.
+    func testTheFeaturesIntervalsAreTheNumbersTheDocumentationQuotes() {
+        XCTAssertEqual(InterfaceToolkit.AccessibilityAuditDebounceInterval, 0.5, accuracy: 0.000_1)
+        XCTAssertEqual(InterfaceToolkit.AccessibilityScreenPollInterval, 0.5, accuracy: 0.000_1)
+        XCTAssertEqual(InterfaceToolkit.AccessibilityAuditMaximumDeferral, 2, accuracy: 0.000_1)
+    }
+
+    /// With live mode off there is nothing to keep in step with, so a stray trigger — the overlay's
+    /// own frame hook firing after the developer switched the feature off — must schedule nothing.
+    /// Without the guard, Scyther rasterises the user's window every half-second for a feature
+    /// nobody has switched on.
+    func testNothingIsScheduledWithLiveModeSwitchedOff() {
+        UserDefaults.scyther.setValue(false, forKey: AccessibilityAudit.LiveEnabledDefaultsKey)
+
+        toolkit.scheduleAccessibilityReaudit()
+        toolkit.windowDidBecomeVisibleNotification(notification: NSNotification(name: .init("test"), object: nil))
+        toolkit.pollAccessibilityScreen()
+
+        XCTAssertFalse(toolkit.hasPendingAccessibilityAudit)
+    }
+
+    /// Switching live mode off has to leave nothing behind: no boxes, no pending pass, no timer.
+    /// A stale box left over the app after the developer turned the feature off reads as a bug in
+    /// the audit rather than as the setting they chose.
+    func testSwitchingLiveModeOffClearsTheBoxesAndCancelsWhatWasScheduled() {
+        toolkit.runAccessibilityPass = { self.result("app") }
+        toolkit.showAccessibilityAudit()
+        toolkit.runAccessibilityAudit()
+        toolkit.scheduleAccessibilityReaudit()
+        XCTAssertFalse(toolkit.accessibilityAuditView.findings.isEmpty)
+        XCTAssertTrue(toolkit.hasPendingAccessibilityAudit)
+        XCTAssertTrue(toolkit.isPollingAccessibilityScreen)
+
+        UserDefaults.scyther.setValue(false, forKey: AccessibilityAudit.LiveEnabledDefaultsKey)
+        toolkit.showAccessibilityAudit()
+
+        XCTAssertTrue(toolkit.accessibilityAuditView.findings.isEmpty, "the boxes go with the setting")
+        XCTAssertFalse(toolkit.hasPendingAccessibilityAudit)
+        XCTAssertFalse(toolkit.isPollingAccessibilityScreen)
+        XCTAssertTrue(toolkit.accessibilityAuditView.isHidden)
+    }
+
+    // MARK: - The Notifications Are Actually Observed
+
+    /// Registers `InterfaceToolkit`'s observers once for this process.
+    ///
+    /// The tests below post through `NotificationCenter.default` rather than calling a handler, so
+    /// the registration itself is what they are about — and a hostless test process may never have
+    /// run `Scyther.start()`, which is what registers them in production. Once, and statically, so
+    /// a per-test `setUp` cannot pile duplicate observations onto a singleton nothing unregisters.
+    private static let observersRegistered: Void = {
+        MainActor.assumeIsolated { InterfaceToolkit.instance.registerForNotitfcations() }
+    }()
+
+    /// Removing the `addObserver` line for `coverageDidChangeNotification` leaves the audit's boxes
+    /// stroked across Scyther's own report — the exact defect the notification was added for — and
+    /// every existing test green, because they all call the handler directly.
+    func testTheCoverageNotificationIsObservedAndNotOnlyHandled() async {
+        _ = Self.observersRegistered
+        toolkit.isScytherCoveringScreen = { false }
+
+        NotificationCenter.default.post(name: ScytherPresentation.coverageDidChangeNotification, object: nil)
+        await Task.yield()
+
+        XCTAssertTrue(toolkit.hasPendingAccessibilityAudit,
+                      "Scyther's screen going away must schedule the pass it suppressed")
+    }
+
+    /// The same for `UIWindow.didBecomeVisibleNotification`, whose handler had no test of any kind:
+    /// a window finishing its first appearance is one more moment the layout may just have settled.
+    func testTheWindowNotificationIsObservedAndNotOnlyHandled() async {
+        _ = Self.observersRegistered
+
+        NotificationCenter.default.post(name: UIWindow.didBecomeVisibleNotification, object: nil)
+        await Task.yield()
+
+        XCTAssertTrue(toolkit.hasPendingAccessibilityAudit)
+    }
+
     // MARK: - Deciding At The Moment The Pass Runs
 
     /// A pass is scheduled half a second before it runs, and Scyther's own report rises inside that

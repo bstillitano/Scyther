@@ -98,6 +98,31 @@ final class AccessibilityAuditOverlayViewTests: XCTestCase {
         XCTAssertFalse(view.point(inside: view.reportButton.frame.origin, with: nil))
     }
 
+    /// The half of `point(inside:with:)` that matters, and the half nothing asserted: with a pill
+    /// on screen, the pill takes its own touches and **everything else reaches the app**.
+    ///
+    /// This is the single worst thing this view can do. Reducing the guard to
+    /// `!reportButton.isHidden` — dropping the `frame.contains(point)` — makes a full-screen
+    /// overlay swallow every touch in the app the moment there is one finding, and the failure its
+    /// own type-level documentation spends three paragraphs on left the whole suite green. The
+    /// existing test covers only the no-findings case, where the pill is hidden and the answer is
+    /// `false` for a reason that has nothing to do with the rectangle.
+    func testAVisiblePillTakesOnlyItsOwnTouchesAndLetsTheRestReachTheApp() {
+        let view = overlay()
+        view.findings = [finding("one")]
+        let pill = view.reportButton.frame
+
+        XCTAssertFalse(view.reportButton.isHidden, "the fixture is only meaningful with a pill up")
+        XCTAssertTrue(view.point(inside: CGPoint(x: pill.midX, y: pill.midY), with: nil),
+                      "a tap on the pill is the one touch this view is entitled to")
+        XCTAssertFalse(view.point(inside: CGPoint(x: 5, y: 5), with: nil),
+                       "every other touch belongs to the app underneath")
+        XCTAssertFalse(view.point(inside: CGPoint(x: view.bounds.midX, y: view.bounds.maxY - 20), with: nil),
+                       "including the bottom band a tab bar or primary button occupies")
+        XCTAssertFalse(view.point(inside: CGPoint(x: pill.minX - 10, y: pill.midY), with: nil),
+                       "and the pixels immediately beside the pill")
+    }
+
     /// How many flash animations are on the overlay right now.
     ///
     /// ``AccessibilityAuditOverlayView/flash(_:)`` draws through a `CAShapeLayer` added straight to

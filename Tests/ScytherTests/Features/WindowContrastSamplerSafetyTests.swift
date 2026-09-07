@@ -195,7 +195,140 @@ final class WindowContrastSamplerSafetyTests: XCTestCase {
     }
 
     /// A zero-sized window has nothing to capture and must not be reported as captured.
+    ///
+    /// Asked as a function of the rectangle rather than of a window. Through a real window this
+    /// assertion is a statement about the *host*: `didCaptureWindow` is `false` for every window
+    /// this process can build, zero-sized or not, so deleting the guard it names left it green
+    /// because `drawHierarchy` would have declined anyway.
     func testAWindowWithNoAreaIsNotCaptured() {
+        XCTAssertNil(WindowContrastSampler.snapshotSize(for: .zero, scale: 2))
+        XCTAssertNil(WindowContrastSampler.snapshotSize(for: CGRect(x: 0, y: 0, width: 100, height: 0), scale: 2))
+        XCTAssertNil(WindowContrastSampler.snapshotSize(for: CGRect(x: 0, y: 0, width: 0, height: 100), scale: 2))
         XCTAssertFalse(WindowContrastSampler(window: UIWindow(frame: .zero)).didCaptureWindow)
+    }
+
+    /// A window with area is snapshotted at the capture scale, in pixels.
+    func testAWindowWithAreaIsSnapshottedAtTheCaptureScale() {
+        let size = WindowContrastSampler.snapshotSize(for: CGRect(x: 0, y: 0, width: 390, height: 844), scale: 2)
+        XCTAssertEqual(size, CGSize(width: 780, height: 1_688))
+    }
+
+    // MARK: - Crop Geometry
+
+    /// An element's frame is in window *points*; the snapshot is addressed in *pixels*.
+    ///
+    /// Everything past ``WindowContrastSampler/samples(in:)``'s first guard is unreachable from a
+    /// test in this host, so this conversion — the one place a whole device class's measurements
+    /// can go wrong at once — was covered by nothing. Dropping the multiply reads the top-left
+    /// quarter of every element on a 2× device: mostly page, no glyph, and a flat crop is reported
+    /// as unmeasurable or, worse, as a pass.
+    func testACropIsAddressedInPixelsRatherThanPoints() {
+        let crop = WindowContrastSampler.cropRect(for: CGRect(x: 10, y: 20, width: 30, height: 40),
+                                                  scale: 2,
+                                                  imageSize: CGSize(width: 780, height: 1_688))
+        XCTAssertEqual(crop, CGRect(x: 20, y: 40, width: 60, height: 80))
+    }
+
+    /// An element hanging over the edge of the window is measured on the part of it that is in the
+    /// bitmap. Without the clamp, `CGImage.cropping(to:)` is handed a rectangle outside the image,
+    /// returns `nil`, and every finding for that element silently disappears.
+    func testACropIsClampedToTheImageRatherThanRunningOffIt() {
+        let crop = WindowContrastSampler.cropRect(for: CGRect(x: 90, y: 0, width: 40, height: 10),
+                                                  scale: 1,
+                                                  imageSize: CGSize(width: 100, height: 100))
+        XCTAssertEqual(crop, CGRect(x: 90, y: 0, width: 10, height: 10))
+    }
+
+    /// A frame with no overlap at all is empty rather than negative or null, so the caller's
+    /// `isEmpty` guard catches it instead of Core Graphics.
+    func testACropThatDoesNotTouchTheImageIsEmpty() {
+        let crop = WindowContrastSampler.cropRect(for: CGRect(x: 500, y: 500, width: 10, height: 10),
+                                                  scale: 1,
+                                                  imageSize: CGSize(width: 100, height: 100))
+        XCTAssertTrue(crop.isEmpty)
+    }
+
+    /// The crop is whole pixels. A fractional origin leaves Core Graphics to round for itself, and
+    /// it rounds outward — pulling a row of the neighbouring view's colour into a text crop, which
+    /// is exactly the kind of intruder the analyser's own mode rule exists to survive.
+    func testACropIsRoundedOutToWholePixels() {
+        let crop = WindowContrastSampler.cropRect(for: CGRect(x: 10.4, y: 20.6, width: 30.3, height: 40.2),
+                                                  scale: 1,
+                                                  imageSize: CGSize(width: 1_000, height: 1_000))
+        XCTAssertEqual(crop, crop.integral)
+        XCTAssertTrue(crop.contains(CGRect(x: 10.4, y: 20.6, width: 30.3, height: 40.2)))
+    }
+
+    // MARK: - Downsample Grid
+
+    /// A crop is read at at most 64 × 64. Removing the cap turns a full-width label on a 2× device
+    /// into hundreds of thousands of `RGB` values — allocated, un-premultiplied and linearised on
+    /// the main thread, once per element, inside a quarter-second budget.
+    func testALargeCropIsReadAtTheCappedGrid() {
+        let grid = WindowContrastSampler.sampleGrid(width: 780, height: 400)
+        XCTAssertEqual(grid.columns, WindowContrastSampler.maximumSampleGridSide)
+        XCTAssertEqual(grid.rows, WindowContrastSampler.maximumSampleGridSide)
+        XCTAssertEqual(WindowContrastSampler.maximumSampleGridSide, 64)
+    }
+
+    /// A crop smaller than the cap is read at its own size: upsampling would invent pixels, and
+    /// duplicated pixels move the analyser's mode.
+    func testASmallCropIsReadAtItsOwnSize() {
+        let grid = WindowContrastSampler.sampleGrid(width: 12, height: 40)
+        XCTAssertEqual(grid.columns, 12)
+        XCTAssertEqual(grid.rows, 40)
+    }
+}
+
+/// A window that records what was hidden at the moment it was asked to draw.
+///
+/// The one thing this host can observe about the snapshot itself. `drawHierarchy` paints nothing
+/// here, but it *is* called, and the state of the view tree when it is called is the whole of wave
+/// A's headline fix.
+@MainActor
+private final class DrawRecordingWindow: UIWindow {
+    /// Whether each of ``watched`` was hidden when the draw was asked for.
+    private(set) var hiddenAtDrawTime: [Bool] = []
+
+    /// The views whose visibility to record.
+    var watched: [UIView] = []
+
+    /// Records ``watched``'s visibility and declines to draw, exactly as this host would anyway.
+    ///
+    /// - Parameters:
+    ///   - rect: The rectangle to draw into. Unused.
+    ///   - afterScreenUpdates: Whether to commit pending changes first. Unused.
+    /// - Returns: `false`, the same answer a window with no host app gives.
+    override func drawHierarchy(in rect: CGRect, afterScreenUpdates: Bool) -> Bool {
+        hiddenAtDrawTime = watched.map(\.isHidden)
+        return false
+    }
+}
+
+extension WindowContrastSamplerSafetyTests {
+
+    /// Scyther's own drawing is hidden **at the moment of the draw**, not merely selected for
+    /// hiding and restored afterwards.
+    ///
+    /// The selection (``WindowContrastSampler/scytherOverlays(in:)``) and the restore were both
+    /// covered; the step between them was not. Deleting `overlays.forEach { $0.isHidden = true }`
+    /// left every existing test green — the restore test passes trivially when the overlay was
+    /// never hidden, and the already-hidden test passes because it starts hidden — so the defect
+    /// the whole fix exists for, pass *N*'s red boxes being measured by pass *N + 1*, was protected
+    /// by nothing at all.
+    func testScythersOwnDrawingIsHiddenWhileTheSnapshotIsTaken() {
+        let window = DrawRecordingWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+        let wrapper = TopLevelViewsWrapper(frame: window.bounds)
+        wrapper.isHidden = false
+        let appView = UIView(frame: window.bounds)
+        window.addSubview(appView)
+        window.addSubview(wrapper)
+        window.watched = [wrapper, appView]
+
+        _ = WindowContrastSampler(window: window)
+
+        XCTAssertEqual(window.hiddenAtDrawTime, [true, false],
+                       "Scyther's wrapper must be hidden for the draw, and the app's own view must not")
+        XCTAssertFalse(wrapper.isHidden, "and restored the instant the draw returns")
     }
 }

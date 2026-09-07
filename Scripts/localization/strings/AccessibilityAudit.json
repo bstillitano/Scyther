@@ -11,8 +11,8 @@
     "nl": "%@ bij %@, %@",
     "pt-BR": "%@ em %@, %@",
     "ru": "%@ в позиции %@, %@",
-    "zh-Hans": "%@ 位于 %@, %@",
-    "zh-Hant": "%@ 位於 %@, %@"
+    "zh-Hans": "%@ 位于 %@，%@",
+    "zh-Hant": "%@ 位於 %@，%@"
   },
   "%@ not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on %@ to measure the real screen instead.": {
     "ar": "لم يتم قياس %@ أثناء تغطية Scyther للتطبيق: الألوان خلف هذه الشاشة تخص Scyther وليس تطبيقك. فعّل %@ لقياس الشاشة الحقيقية.",
@@ -277,8 +277,8 @@
     "nl": "Contrastverhoudingen worden geschat door pixels op het scherm te bemonsteren, niet gemeten op basis van exacte kleuren.",
     "pt-BR": "As taxas de contraste são estimadas por amostragem de pixels na tela, não medidas a partir de cores exatas.",
     "ru": "Коэффициенты контрастности оцениваются по выборке пикселей на экране, а не измеряются по точным цветам.",
-    "zh-Hans": "对比度是通过采样屏幕像素估算得出的,并非根据精确颜色测量。",
-    "zh-Hant": "對比度是透過取樣螢幕像素估算得出的,並非根據精確顏色測量。"
+    "zh-Hans": "对比度是通过采样屏幕像素估算得出的，并非根据精确颜色测量。",
+    "zh-Hant": "對比度是透過取樣螢幕像素估算得出的，並非根據精確顏色測量。"
   },
   "Draws a box around every finding, live over the running app.": {
     "ar": "يرسم إطارًا حول كل نتيجة، مباشرةً فوق التطبيق قيد التشغيل.",
@@ -505,20 +505,20 @@
     "zh-Hans": "已运行的检查未发现需要报告的内容。已关闭:%@。",
     "zh-Hant": "已執行的檢查未發現需要回報的內容。已關閉:%@。"
   },
-  "This audit stopped early because there was too much to check. This report may be incomplete.": {
-    "ar": "توقف هذا التدقيق مبكرًا لأن هناك الكثير مما يجب فحصه. قد يكون هذا التقرير غير مكتمل.",
-    "comment": "Banner shown on the accessibility audit report screen when AccessibilityAuditor.Result.didHitLimit is true, warning that the walk was truncated by the node or depth cap before it finished",
-    "de": "Dieses Audit wurde vorzeitig beendet, da zu viel zu prüfen war. Dieser Bericht ist möglicherweise unvollständig.",
-    "es": "Esta auditoría se detuvo antes de tiempo porque había demasiado que comprobar. Este informe puede estar incompleto.",
-    "fr": "Cet audit s'est arrêté prématurément car il y avait trop d'éléments à vérifier. Ce rapport est peut-être incomplet.",
-    "it": "Questo audit si è interrotto in anticipo perché c'era troppo da controllare. Questo report potrebbe essere incompleto.",
-    "ja": "確認対象が多すぎたため、この監査は途中で終了しました。このレポートは不完全な可能性があります。",
-    "ko": "확인할 항목이 너무 많아 감사가 조기에 중단되었습니다. 이 보고서는 불완전할 수 있습니다.",
-    "nl": "Deze audit is vroegtijdig gestopt omdat er te veel te controleren was. Dit rapport kan onvolledig zijn.",
-    "pt-BR": "Esta auditoria parou antes do previsto porque havia muito a verificar. Este relatório pode estar incompleto.",
-    "ru": "Проверка остановлена раньше времени — элементов для проверки оказалось слишком много. Этот отчёт может быть неполным.",
-    "zh-Hans": "由于需要检查的内容过多,本次审核提前停止,报告可能不完整。",
-    "zh-Hant": "由於需要檢查的內容過多,本次稽核提前停止,報告可能不完整。"
+  "This audit stopped at one of its limits and never reached the rest of the screen. Whatever it did not reach is unchecked, not clean.": {
+    "ar": "توقّف هذا التدقيق عند أحد حدوده ولم يصل إلى بقية الشاشة. كل ما لم يصل إليه غير مفحوص، وليس سليمًا.",
+    "comment": "Banner shown on the accessibility audit report screen when AccessibilityAuditor.Result.didHitLimit is true. Every limit — depth, node count and the time budget — abandons the whole remainder of the tree in tree order, so the point is that the rest of the screen was never looked at, not that the screen was too large.",
+    "de": "Dieses Audit endete an einer seiner Grenzen und hat den Rest des Bildschirms nie erreicht. Was es nicht erreicht hat, ist ungeprüft, nicht in Ordnung.",
+    "es": "Esta auditoría se detuvo en uno de sus límites y nunca llegó al resto de la pantalla. Todo lo que no alcanzó está sin comprobar, no aprobado.",
+    "fr": "Cet audit s'est arrêté à l'une de ses limites et n'a jamais atteint le reste de l'écran. Tout ce qu'il n'a pas atteint n'est pas vérifié, pas conforme.",
+    "it": "Questo audit si è fermato a uno dei suoi limiti e non ha mai raggiunto il resto della schermata. Ciò che non ha raggiunto non è stato controllato, non è approvato.",
+    "ja": "この監査は上限に達して停止し、画面の残りには到達しませんでした。到達しなかった部分は未確認であり、問題がないわけではありません。",
+    "ko": "이 감사는 한도에 도달해 중단되었고 화면의 나머지 부분에는 이르지 못했습니다. 확인하지 못한 부분은 미검사 상태이며, 문제가 없다는 뜻이 아닙니다.",
+    "nl": "Deze audit stopte bij een van zijn limieten en heeft de rest van het scherm nooit bereikt. Wat niet is bereikt, is ongecontroleerd, niet in orde.",
+    "pt-BR": "Esta auditoria parou em um de seus limites e nunca chegou ao resto da tela. Tudo o que não alcançou está sem verificação, não aprovado.",
+    "ru": "Проверка остановилась на одном из своих ограничений и не дошла до остальной части экрана. Всё, до чего она не дошла, не проверено, а не признано исправным.",
+    "zh-Hans": "本次审核在达到某项上限时停止，未检查屏幕的其余部分。未检查到的内容属于未审核，并非没有问题。",
+    "zh-Hant": "本次稽核在達到某項上限時停止，未檢查畫面的其餘部分。未檢查到的內容屬於未稽核，並非沒有問題。"
   },
   "This is the last pass taken over your app, from before this screen opened. Anything that changed since — a scroll, a reload — is not in it.": {
     "ar": "هذا آخر فحص أُجري على تطبيقك، من قبل فتح هذه الشاشة. أي شيء تغيّر منذ ذلك الحين — تمرير أو إعادة تحميل — غير موجود فيه.",

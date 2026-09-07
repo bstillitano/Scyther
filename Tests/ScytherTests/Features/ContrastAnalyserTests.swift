@@ -37,10 +37,51 @@ final class ContrastAnalyserTests: XCTestCase {
         XCTAssertLessThan(measured?.ratio ?? 99, 4.5)
     }
 
-    /// The WCAG relative-luminance formula, at both ends.
+    /// The WCAG relative-luminance formula, at both ends **and at each primary**.
+    ///
+    /// The two endpoints alone cannot see the coefficients. Every colour this suite used to build
+    /// had `r == g == b`, and for an achromatic pixel `0.2126r + 0.7152g + 0.0722b` collapses to
+    /// `linear(c)` no matter how the three weights are distributed — so permuting them, the classic
+    /// transcription bug that makes blue text on red read as high contrast and red on blue as low,
+    /// left the entire suite green. So did replacing them with `(r + g + b) / 3`. The primaries are
+    /// the only fixtures that can tell one weight from another, so each is pinned to its own.
     func testLuminanceMatchesTheWCAGFormula() {
         XCTAssertEqual(ContrastAnalyser.luminance(black), 0, accuracy: 0.0001)
         XCTAssertEqual(ContrastAnalyser.luminance(white), 1, accuracy: 0.0001)
+        XCTAssertEqual(ContrastAnalyser.luminance(RGB(red: 1, green: 0, blue: 0)), 0.2126, accuracy: 0.0001)
+        XCTAssertEqual(ContrastAnalyser.luminance(RGB(red: 0, green: 1, blue: 0)), 0.7152, accuracy: 0.0001)
+        XCTAssertEqual(ContrastAnalyser.luminance(RGB(red: 0, green: 0, blue: 1)), 0.0722, accuracy: 0.0001)
+    }
+
+    /// The whole measurement, end to end, on the one pair a permuted set of weights gets backwards.
+    ///
+    /// Everything downstream of ``ContrastAnalyser/luminance(_:)`` — the two-means split, which
+    /// group is the ink, the ratio — was anchored on greys and inherited the same blind spot. Blue
+    /// on red is 2.15:1 with WCAG's weights and 2.15:1 *the other way up* with red and blue's
+    /// swapped, which is what makes it the fixture worth having: the ink and the page change places.
+    func testAChromaticPairIsMeasuredWithTheWCAGWeightsAndNamedInTheRightOrder() {
+        let red = RGB(red: 1, green: 0, blue: 0)
+        let blue = RGB(red: 0, green: 0, blue: 1)
+        let pixels = Array(repeating: red, count: 80) + Array(repeating: blue, count: 20)
+
+        let measured = ContrastAnalyser.measure(pixels: pixels)
+
+        // (0.2126 + 0.05) / (0.0722 + 0.05).
+        XCTAssertEqual(measured?.ratio ?? 0, 2.1489, accuracy: 0.001)
+        XCTAssertEqual(measured?.foreground.hexDescription, "#0000FF", "the minority tone is the ink")
+        XCTAssertEqual(measured?.background.hexDescription, "#FF0000")
+    }
+
+    /// ``RGB/hexDescription`` is what a finding actually shows a developer, and its channel order
+    /// has never been asserted: every colour quoted anywhere else on the branch is a grey, for
+    /// which red, green and blue are interchangeable. A finding naming `#0000FF` for red text is a
+    /// developer sent to look at the wrong colour.
+    func testHexDescriptionNamesTheChannelsInOrder() {
+        XCTAssertEqual(RGB(red: 1, green: 0, blue: 0).hexDescription, "#FF0000")
+        XCTAssertEqual(RGB(red: 0, green: 1, blue: 0).hexDescription, "#00FF00")
+        XCTAssertEqual(RGB(red: 0, green: 0, blue: 1).hexDescription, "#0000FF")
+        XCTAssertEqual(RGB(red: 0.2, green: 0.4, blue: 0.6).hexDescription, "#336699",
+                       "each component is rounded to its nearest 8-bit code and padded to two digits")
     }
 }
 

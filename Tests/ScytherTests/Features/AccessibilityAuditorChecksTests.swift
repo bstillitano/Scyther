@@ -147,6 +147,50 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
         func samples(in frame: CGRect) -> [RGB] { pixels }
     }
 
+    /// The same, but recording every rectangle it was asked about.
+    ///
+    /// ``StubSampler`` ignores its `frame`, so nothing asserted that
+    /// `contrastOutcome(for:sampler:)` passes the element's resolved frame to the sampler at all —
+    /// and in production `WindowContrastSampler.samples(in:)` returns `[]` for a rectangle that
+    /// does not overlap the window, so passing `.zero`, or an untranslated frame, deletes every
+    /// contrast finding on the screen and reads as "your app has no contrast problems". That is
+    /// also the one untested link in the geometry chain wave C built `frameInWindow` to get right.
+    private final class RecordingSampler: ContrastSampling {
+        /// The pixels handed back for every request.
+        let pixels: [RGB]
+
+        /// Every rectangle this sampler was asked about, in order.
+        private(set) var frames: [CGRect] = []
+
+        /// Creates a sampler over `pixels`.
+        ///
+        /// - Parameter pixels: What to return for any request.
+        init(pixels: [RGB]) { self.pixels = pixels }
+
+        /// Records `frame` and returns ``pixels``.
+        ///
+        /// - Parameter frame: The region asked about, in window coordinates.
+        /// - Returns: ``pixels``, unchanged.
+        func samples(in frame: CGRect) -> [RGB] {
+            frames.append(frame)
+            return pixels
+        }
+    }
+
+    /// The contrast check has to sample where the element actually *is*.
+    func testTheContrastCheckSamplesTheElementsResolvedFrameInTheWindow() {
+        let frame = CGRect(x: 37, y: 91, width: 120, height: 18)
+        let text = Node(label: "Body copy", traits: .staticText, frame: frame, isElement: true)
+        let sampler = RecordingSampler(pixels: midThresholdPixels)
+
+        _ = AccessibilityAuditor().audit(root: Node(children: [text]),
+                                         checks: [.contrast],
+                                         sampler: sampler)
+
+        XCTAssertEqual(sampler.frames, [frame],
+                       "the sampler must be asked about the frame the walk resolved, once")
+    }
+
     func testLowContrastTextIsAWarningWithBothColoursNamed() {
         let grey = RGB(red: 0.6, green: 0.6, blue: 0.6)
         let white = RGB(red: 1, green: 1, blue: 1)
@@ -305,6 +349,185 @@ extension AccessibilityAuditorChecksTests {
             .audit(root: Node(children: [wrapped]), checks: [.contrast], sampler: sampler).findings
 
         XCTAssertEqual(findings.count, 1, "a tall label is a wrapped label, not a large one")
+    }
+
+    /// A grey whose contrast against white is exactly `ratio`.
+    ///
+    /// WCAG's ratio is `(L₁ + 0.05) / (L₂ + 0.05)`, so against white the ink's relative luminance
+    /// is `1.05 / ratio − 0.05`; the sRGB transfer function inverts to
+    /// `1.055 · L^(1/2.4) − 0.055` everywhere above the linear toe, which every value here is.
+    /// Built rather than written out so the fixtures cannot drift from the numbers they claim.
+    ///
+    /// - Parameter ratio: The contrast ratio wanted against white.
+    /// - Returns: The grey that produces it.
+    private func greyMeasuring(_ ratio: Double) -> RGB {
+        let luminance = 1.05 / ratio - 0.05
+        let component = 1.055 * pow(luminance, 1 / 2.4) - 0.055
+        return RGB(red: component, green: component, blue: component)
+    }
+
+    /// Twenty per cent ink of `colour`, eighty per cent white — the shape of an ordinary crop, and
+    /// the shape the analyser identifies the ink from.
+    ///
+    /// - Parameter colour: The ink.
+    /// - Returns: One hundred pixels.
+    private func inkOnWhite(_ colour: RGB) -> [RGB] {
+        Array(repeating: RGB(red: 1, green: 1, blue: 1), count: 80) + Array(repeating: colour, count: 20)
+    }
+
+    /// WCAG 1.4.3's 4.5:1 is a *number*, and until now nothing on the branch said so.
+    ///
+    /// Every threshold test turned on one fixture at ≈3.35:1 plus one at ≈3.98:1, which between
+    /// them require only `textRatio > 3.98`. Nothing bounded it above: `textRatio = 21` — flag all
+    /// text except pure black on white — left the whole suite green. A pair either side of 4.5
+    /// bounds it from both directions, and pins the `<` in `guard measured.ratio < threshold` at
+    /// the same time.
+    func testTheTextThresholdIsWCAGsFourAndAHalfToOne() {
+        func findings(atRatio ratio: Double) -> Int {
+            let text = Node(label: "Body copy", traits: .staticText,
+                            frame: CGRect(x: 0, y: 0, width: 200, height: 16), isElement: true)
+            return AccessibilityAuditor().audit(root: Node(children: [text]),
+                                                checks: [.contrast],
+                                                sampler: StubSampler(pixels: inkOnWhite(greyMeasuring(ratio))))
+                .findings.count
+        }
+
+        XCTAssertEqual(findings(atRatio: 4.4), 1, "4.4:1 is below WCAG 1.4.3's 4.5 and must be reported")
+        XCTAssertEqual(findings(atRatio: 4.6), 0, "4.6:1 clears it and must not be")
+    }
+
+    /// And WCAG 1.4.11's 3:1 for non-text content, for the same reason and with more at stake:
+    /// nothing required `relaxedRatio` to be above **1**, and at 1.0 the non-text check is off
+    /// altogether — no icon, chevron or control boundary is ever flagged, and the report is the
+    /// clean bill of health nobody earned that this branch's own documentation keeps citing.
+    func testTheNonTextThresholdIsWCAGsThreeToOne() {
+        func findings(atRatio ratio: Double) -> Int {
+            let icon = Node(label: "Share", traits: .button,
+                            frame: CGRect(x: 0, y: 0, width: 44, height: 44), isElement: true,
+                            drawsText: false)
+            return AccessibilityAuditor().audit(root: Node(children: [icon]),
+                                                checks: [.contrast],
+                                                sampler: StubSampler(pixels: inkOnWhite(greyMeasuring(ratio))))
+                .findings.count
+        }
+
+        XCTAssertEqual(findings(atRatio: 2.9), 1, "2.9:1 is below WCAG 1.4.11's 3 and must be reported")
+        XCTAssertEqual(findings(atRatio: 3.1), 0, "3.1:1 clears it and must not be")
+    }
+}
+
+// MARK: - How much of the screen contrast actually read
+
+@MainActor
+extension AccessibilityAuditorChecksTests {
+
+    /// A sampler that answers differently for different rectangles.
+    ///
+    /// A list of pairs rather than a dictionary because `CGRect` only conforms to `Hashable` from
+    /// iOS 18, and this library's floor is 16.
+    private struct FrameKeyedSampler: ContrastSampling {
+        /// What to return for each frame; anything not listed comes back empty.
+        let byFrame: [(frame: CGRect, pixels: [RGB])]
+
+        /// Returns the pixels registered for `frame`.
+        ///
+        /// - Parameter frame: The region asked about.
+        /// - Returns: The registered pixels, or `[]`.
+        func samples(in frame: CGRect) -> [RGB] {
+            byFrame.first { $0.frame == frame }?.pixels ?? []
+        }
+    }
+
+    /// The pass publishes, per element, how many candidates contrast was asked about and how many
+    /// of them it could read.
+    ///
+    /// The report needs this to tell a check that read the screen from one that read almost none of
+    /// it, and it used to re-derive it: a wrapper counted the sampler's *crops* and asked the
+    /// analyser again on a strided subsample of each. That counted regions rather than elements —
+    /// a row of four labels counted four times — and answered a slightly different question from
+    /// the one the findings came from. The pass already knows; this asserts it says so.
+    func testAPassPublishesHowManyElementsContrastCouldRead() {
+        let readable = CGRect(x: 0, y: 0, width: 100, height: 16)
+        let flat = CGRect(x: 0, y: 20, width: 100, height: 16)
+        let root = Node(children: [
+            Node(label: "Readable", traits: .staticText, frame: readable, isElement: true),
+            Node(label: "Flat", traits: .staticText, frame: flat, isElement: true)
+        ])
+        let sampler = FrameKeyedSampler(byFrame: [
+            (readable, midThresholdPixels),
+            (flat, Array(repeating: RGB(red: 1, green: 1, blue: 1), count: 100))
+        ])
+
+        let result = AccessibilityAuditor().audit(root: root, checks: [.contrast], sampler: sampler)
+
+        XCTAssertEqual(result.contrastCandidates, 2, "both elements were text the check was asked about")
+        XCTAssertEqual(result.contrastMeasurements, 1, "only one of them had two colours in it")
+    }
+
+    /// An element the check does not grade at all is not a candidate, so a screen of photographs is
+    /// not a screen contrast failed to read.
+    func testAnElementContrastDoesNotGradeIsNotCountedAsACandidate() {
+        let image = Node(label: "Sunset", traits: .image,
+                         frame: CGRect(x: 0, y: 0, width: 200, height: 200), isElement: true)
+
+        let result = AccessibilityAuditor().audit(root: Node(children: [image]),
+                                                  checks: [.contrast],
+                                                  sampler: StubSampler(pixels: midThresholdPixels))
+
+        XCTAssertEqual(result.contrastCandidates, 0)
+        XCTAssertEqual(result.contrastMeasurements, 0)
+    }
+
+    /// The floor on a crop and the threshold on a screen have to be talking about the same crop.
+    ///
+    /// ``ContrastAnalyser/smallestUsefulSample`` refuses a crop of fewer than sixteen pixels,
+    /// because below that a "group" is one or two pixels and its mode is noise. The report's
+    /// measured-fraction threshold used to be fed by a probe over a *subsample* of each crop, so on
+    /// small elements the two rules ran over two different populations and an element whose full
+    /// crop measures perfectly well could be counted unreadable — a screen of small controls then
+    /// carried an unmeasurable banner over a check that had in fact read all of it. Taking the
+    /// count from the pass makes them the same rule by construction, and this is the fixture that
+    /// says so: exactly the smallest crop the analyser accepts, measured, and counted as measured.
+    func testASmallElementWhoseCropIsAtTheAnalysersFloorIsCountedAsMeasured() {
+        let grey = RGB(red: 0.55, green: 0.55, blue: 0.55)
+        let white = RGB(red: 1, green: 1, blue: 1)
+        let pixels = Array(repeating: white, count: 13) + Array(repeating: grey, count: 3)
+        XCTAssertEqual(pixels.count, ContrastAnalyser.smallestUsefulSample,
+                       "the fixture is only meaningful sitting exactly on the floor")
+
+        let small = Node(label: "12", traits: .staticText,
+                         frame: CGRect(x: 0, y: 0, width: 8, height: 8), isElement: true)
+        let result = AccessibilityAuditor().audit(root: Node(children: [small]),
+                                                  checks: [.contrast],
+                                                  sampler: StubSampler(pixels: pixels))
+
+        XCTAssertEqual(result.contrastMeasurements, 1, "the analyser accepts this crop, so the count must too")
+        XCTAssertTrue(AccessibilityAudit.checksUnmeasurableFromPartialMeasurement(
+            from: [.contrast],
+            candidates: result.contrastCandidates,
+            measured: result.contrastMeasurements
+        ).isEmpty, "and a check that read everything it was asked about has run")
+    }
+
+    /// The other side of the same join: a pass that could read almost nothing is reported as a
+    /// check that did not run, from the pass's own counts.
+    func testAPassThatCouldReadAlmostNothingIsReportedAsACheckThatDidNotRun() {
+        let readable = CGRect(x: 0, y: 0, width: 100, height: 16)
+        let root = Node(children: (0..<4).map { index in
+            Node(label: "row \(index)", traits: .staticText,
+                 frame: CGRect(x: 0, y: index * 20, width: 100, height: 16), isElement: true)
+        })
+        let sampler = FrameKeyedSampler(byFrame: [(readable, midThresholdPixels)])
+
+        let result = AccessibilityAuditor().audit(root: root, checks: [.contrast], sampler: sampler)
+
+        XCTAssertEqual(result.contrastCandidates, 4)
+        XCTAssertEqual(result.contrastMeasurements, 1)
+        XCTAssertEqual(AccessibilityAudit.checksUnmeasurableFromPartialMeasurement(
+            from: [.contrast],
+            candidates: result.contrastCandidates,
+            measured: result.contrastMeasurements
+        ), [.contrast], "one crop out of four is a minority report, not a result")
     }
 }
 

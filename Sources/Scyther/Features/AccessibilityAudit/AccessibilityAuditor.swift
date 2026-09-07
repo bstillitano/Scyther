@@ -265,8 +265,21 @@ struct AccessibilityAuditor {
         /// The time check comes first and applies to the root too: unlike a node count, elapsed
         /// time is spent by whatever ``AuditNode/children`` costs rather than by how many nodes
         /// it hands back, so it has to be read before the next node is touched rather than after.
-        /// All three limits raise the same `didHitLimit`, so the report has one thing to say —
-        /// "this is partial" — and does not need to learn a second reason for it.
+        ///
+        /// **Every limit stops the whole walk, not the branch it fired on.** `didHitLimit` is set
+        /// and the first line of this function then unwinds the recursion, so nothing after the
+        /// stopping point *in tree order* is walked at all — not the rest of the branch, and not the
+        /// toolbar, tab bar or floating button that came after it. That is deliberate for the
+        /// deadline and for the node cap, which exist to bound how long the main thread is held and
+        /// how much work one pass may do, and neither is bounded by truncating one branch and
+        /// carrying on. But it composes sharply with counting skipped nodes: a long list's
+        /// scrolled-away cells consume the budget, so the cap can fire *inside* the table and the
+        /// bottom half of an ordinary screen is never reached. The report is not allowed to describe
+        /// that as "there was too much to check" — see
+        /// ``AccessibilityAuditViewModel/truncationDescription``, which says instead that the walk
+        /// stopped at a limit and never reached the rest of the screen, and that what is missing is
+        /// unchecked rather than clean. All three limits raise the same flag because that one
+        /// sentence is true of all three; the report does not need to learn which fired.
         func walk(_ node: AuditNode, depth: Int) {
             guard !didHitLimit else { return }
             guard now() < deadline else {
@@ -340,12 +353,35 @@ struct AccessibilityAuditor {
         /// simply nothing legible to measure.
         let checksUnmeasurable: Set<AccessibilityCheck>
 
+        /// How many elements the contrast check was asked about.
+        ///
+        /// Published because the *caller* has to decide what the report may claim from a pass that
+        /// read some of the screen and not the rest, and it cannot re-derive this honestly. It was
+        /// re-derived, once: a wrapper around the sampler counted crops and asked
+        /// ``ContrastAnalyser/measure(pixels:)`` again on a strided subsample of each one. Three
+        /// things were wrong with that. It counted *regions*, not elements — one row with four
+        /// labels in it counted four times, so the fraction meant something different on a list
+        /// screen than on a form. Its stride walked a row-major grid 64 wide in steps that are
+        /// often factors of 64, so the probe read the same handful of columns of every row and
+        /// could miss a glyph stem entirely, calling a crop unreadable that measured fine. And it
+        /// answered a different question from the real one wherever the two rules underneath
+        /// disagreed — ``ContrastAnalyser/smallestUsefulSample`` refuses a crop of fewer than
+        /// sixteen pixels, which a subsample can fall under while the crop itself would not.
+        ///
+        /// The auditor already has the exact answer, per element, from the same call the findings
+        /// come from. Handing it over costs an `Int` and cannot drift.
+        let contrastCandidates: Int
+
+        /// How many of ``contrastCandidates`` yielded a measurement.
+        let contrastMeasurements: Int
+
         /// Creates a result.
         ///
         /// Written out rather than left to the synthesised memberwise initialiser so
-        /// ``checksSkippedWhileCovered`` and ``checksUnmeasurable`` can default to empty: nearly
-        /// every pass — and every test that predates them — has nothing in either, and a `let`
-        /// with an initial value would be left out of the synthesised initialiser altogether.
+        /// ``checksSkippedWhileCovered``, ``checksUnmeasurable`` and the two contrast counts can
+        /// default: nearly every pass — and every test that predates them — has nothing in any of
+        /// them, and a `let` with an initial value would be left out of the synthesised
+        /// initialiser altogether.
         ///
         /// - Parameters:
         ///   - findings: Every defect found, in tree order.
@@ -354,16 +390,22 @@ struct AccessibilityAuditor {
         ///   - checksSkippedWhileCovered: Which enabled checks were skipped because Scyther's own
         ///     UI was covering the app.
         ///   - checksUnmeasurable: Which checks ran but could measure nothing.
+        ///   - contrastCandidates: How many elements contrast was asked about.
+        ///   - contrastMeasurements: How many of those it could read.
         init(findings: [AccessibilityFinding],
              didHitLimit: Bool,
              checksRun: Set<AccessibilityCheck>,
              checksSkippedWhileCovered: Set<AccessibilityCheck> = [],
-             checksUnmeasurable: Set<AccessibilityCheck> = []) {
+             checksUnmeasurable: Set<AccessibilityCheck> = [],
+             contrastCandidates: Int = 0,
+             contrastMeasurements: Int = 0) {
             self.findings = findings
             self.didHitLimit = didHitLimit
             self.checksRun = checksRun
             self.checksSkippedWhileCovered = checksSkippedWhileCovered
             self.checksUnmeasurable = checksUnmeasurable
+            self.contrastCandidates = contrastCandidates
+            self.contrastMeasurements = contrastMeasurements
         }
     }
 
@@ -488,7 +530,9 @@ struct AccessibilityAuditor {
                       didHitLimit: didHitLimit,
                       checksRun: checks,
                       checksSkippedWhileCovered: checksSkippedWhileCovered,
-                      checksUnmeasurable: unmeasurable)
+                      checksUnmeasurable: unmeasurable,
+                      contrastCandidates: contrastCandidates,
+                      contrastMeasurements: contrastMeasurements)
     }
 
     /// The finding for an element VoiceOver could not name, if there is one.

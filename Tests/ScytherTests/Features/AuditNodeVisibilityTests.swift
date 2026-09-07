@@ -217,6 +217,36 @@ final class AuditNodeVisibilityTests: XCTestCase {
         XCTAssertTrue((absurd as AuditNode).children.isEmpty)
     }
 
+    /// A container at exactly the cap is still believed, so the cap is a number rather than an
+    /// inequality: without this, the test above passes for a cap of one.
+    func testAContainerAtExactlyTheCapIsStillRead() {
+        let atTheLimit = CountingLeafView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        let real = UIAccessibilityElement(accessibilityContainer: atTheLimit)
+        real.accessibilityLabel = "first" // scyther:unlocalised test fixture
+        real.accessibilityFrame = CGRect(x: 0, y: 0, width: 20, height: 20)
+        atTheLimit.claimedCount = AccessibilityAuditor.maximumNodes
+        atTheLimit.first = real
+
+        XCTAssertEqual((atTheLimit as AuditNode).children.compactMap(\.accessibilityLabelText), ["first"])
+    }
+
+    /// `NSObject`'s own `accessibilityElementCount()` answers `NSNotFound` when it has nothing to
+    /// say, and `NSNotFound` is `Int.max` to a `for` loop.
+    ///
+    /// This is the guard wave C's fix rests on — re-enabling the container pair for leaf views is
+    /// only safe because the count is sanity-capped — and nothing tested it. Note honestly what
+    /// removing the guard does: `(0..<NSNotFound).compactMap` is a hang, not a failure, so this
+    /// test cannot be *watched* going red. It is a regression guard, and the cap it guards is
+    /// pinned to a number by the two tests above it.
+    func testAContainerClaimingNSNotFoundChildrenVendsNothing() {
+        let nonsense = CountingLeafView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        nonsense.claimedCount = NSNotFound
+
+        XCTAssertTrue((nonsense as AuditNode).children.isEmpty)
+        XCTAssertGreaterThan(NSNotFound, AccessibilityAuditor.maximumNodes,
+                             "the cap is only a guard against NSNotFound while it is below it")
+    }
+
     /// A leaf that vends nothing is the ordinary case — every `UIView` in an app — and must cost
     /// an empty answer rather than a wrong one.
     func testALeafViewThatVendsNothingHasNoChildren() {
@@ -598,6 +628,31 @@ private final class VendingLeafView: UIView {
         Self.computations += 1
         return vended.indices.contains(index) ? vended[index] : nil
     }
+}
+
+/// A leaf view that claims a number of accessibility children without having to build them.
+///
+/// ``VendingLeafView`` derives its count from an array, so it cannot express the two answers that
+/// matter here: a count above the cap, which would mean allocating five thousand elements to make
+/// the point, and `NSNotFound`, which cannot be an array count at all.
+@MainActor
+private final class CountingLeafView: UIView {
+    /// What this view claims when asked how many elements it vends.
+    var claimedCount = 0
+
+    /// The one element it can actually produce, at index zero.
+    var first: UIAccessibilityElement?
+
+    /// Answers ``claimedCount``, however absurd it is.
+    ///
+    /// - Returns: The claimed count.
+    override func accessibilityElementCount() -> Int { claimedCount }
+
+    /// Answers ``first`` at index zero and nothing anywhere else.
+    ///
+    /// - Parameter index: The element to return.
+    /// - Returns: ``first`` when `index` is zero, otherwise `nil`.
+    override func accessibilityElement(at index: Int) -> Any? { index == 0 ? first : nil }
 }
 
 /// One of Scyther's own overlays, recognised by the `"Scyther"` name prefix rather than by a

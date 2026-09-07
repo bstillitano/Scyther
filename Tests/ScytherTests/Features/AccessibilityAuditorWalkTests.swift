@@ -96,6 +96,51 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
         XCTAssertTrue(walked.nodes.isEmpty, "the leaf sits below the cap")
     }
 
+    /// A chain of exactly ``AccessibilityAuditor/maximumDepth`` and one of exactly one more, which
+    /// together are what pin the cap to a number rather than to an inequality.
+    ///
+    /// The test above builds `maximumDepth + 5`, so its leaf sits at depth 105 and is out of reach
+    /// of *any* cap below 105: halving `maximumDepth` — silently truncating every deep SwiftUI
+    /// hierarchy and calling the result partial — left it green, and so did changing `<=` to `<`.
+    /// A tree at exactly the cap has to be walked to its leaf with nothing reported, and one link
+    /// deeper has to stop; nothing else satisfies both.
+    ///
+    /// - Parameter wrappers: How many containers to stack above the leaf.
+    /// - Returns: The outermost container, whose leaf therefore sits at depth `wrappers`.
+    private func chain(deep wrappers: Int) -> AuditNode {
+        var deepest: AuditNode = Node(label: "bottom", isElement: true)
+        for _ in 0..<wrappers { deepest = Node(children: [deepest]) }
+        return deepest
+    }
+
+    func testATreeAtExactlyTheDepthCapIsWalkedToItsLeaf() {
+        let walked = AccessibilityAuditor().collect(root: chain(deep: AccessibilityAuditor.maximumDepth))
+
+        XCTAssertEqual(walked.nodes.compactMap(\.accessibilityLabelText), ["bottom"],
+                       "a tree at exactly the cap is inside it, so its leaf must be collected")
+        XCTAssertFalse(walked.didHitLimit)
+    }
+
+    func testATreeOneLinkPastTheDepthCapIsStopped() {
+        let walked = AccessibilityAuditor().collect(root: chain(deep: AccessibilityAuditor.maximumDepth + 1))
+
+        XCTAssertTrue(walked.nodes.isEmpty)
+        XCTAssertTrue(walked.didHitLimit)
+    }
+
+    /// The three bounds are numbers the documentation quotes and a developer is told about, so they
+    /// are asserted against those numbers rather than against themselves.
+    ///
+    /// Every other test names them symbolically — `budget + 0.1`, `maximumNodes + 10`,
+    /// `maximumDepth + 5` — which is right for a test *about* the cap and useless as a record of
+    /// what the cap is: `budget = 25.0`, `maximumNodes = 10` and `maximumDepth = 3` all left the
+    /// suite green while making the README and the DocC page wrong.
+    func testTheWalksBoundsAreTheNumbersTheDocumentationQuotes() {
+        XCTAssertEqual(AccessibilityAuditor.maximumDepth, 100)
+        XCTAssertEqual(AccessibilityAuditor.maximumNodes, 5_000)
+        XCTAssertEqual(AccessibilityAuditor.budget, 0.25, accuracy: 0.000_1)
+    }
+
     func testAWalkThatFinishesDoesNotClaimALimitWasHit() {
         let root = Node(children: [Node(label: "one", isElement: true)])
         XCTAssertFalse(AccessibilityAuditor().collect(root: root).didHitLimit)

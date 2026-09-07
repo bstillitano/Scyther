@@ -522,6 +522,24 @@ final class AccessibilityAuditViewModel: ViewModel {
         return localized("\(names) ran but could not read enough of this screen to report on it. What it did not measure is missing from this report, not passing it.")
     }
 
+    /// The truncation banner's wording: that the walk stopped at a limit, and what that leaves out.
+    ///
+    /// The old sentence — "there was too much to check" — was a diagnosis the walk cannot support
+    /// and, on the shape that actually produces it, a false one. Every one of the three limits
+    /// abandons the *whole* remainder of the tree in tree order rather than the branch it fired on
+    /// (see ``AccessibilityAuditor/collectCandidates(root:deadline:)``), and the node cap counts the
+    /// nodes the walk skips as well as the ones it keeps. So a list holding a few thousand
+    /// scrolled-away cells — an ordinary screen, not an oversized one — exhausts the budget inside
+    /// the table, and the toolbar, tab bar and floating button below it are never looked at. The
+    /// developer was told their screen was too big; what they needed to be told is that the audit
+    /// never got to the bottom of it.
+    ///
+    /// It names no limit, because all three are one fact to a reader: the pass stopped, and what is
+    /// missing from this report is unchecked rather than clean.
+    var truncationDescription: String {
+        localized("This audit stopped at one of its limits and never reached the rest of the screen. Whatever it did not reach is unchecked, not clean.")
+    }
+
     /// The wording for a check switched on since the pass: which one, and what to do about it.
     ///
     /// Names the **Re-run** button through ``localized(_:comment:)`` rather than spelling it out,

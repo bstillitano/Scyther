@@ -161,14 +161,12 @@ final class AuditNodeAdapterTests: XCTestCase {
         XCTAssertTrue(sampler.samples(in: CGRect(x: 500, y: 500, width: 10, height: 10)).isEmpty)
     }
 
-    /// The walk runs on the main thread, inside the report screen's first appear, so "slow" and
-    /// "hung" are the same thing to a developer. Every other test in the audit's suite walks
-    /// doubles; this one walks a genuinely large *real* view hierarchy, which is the only shape
-    /// that exercises what UIAccessibility does when it is asked to compute a subtree.
-    func testWalkingALargeRealHierarchyIsFastEnoughToRunOnTheMainThread() {
+    /// A genuinely large real view hierarchy: 40 containers of 40 `UILabel`s, 1,642 nodes in all.
+    ///
+    /// - Returns: The window at the top of it, already unhidden — a `UIWindow` starts out hidden
+    ///   and the walk skips a node it cannot see, so without that the walk stops at the root.
+    private func largeRealHierarchy() -> UIWindow {
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
-        // A `UIWindow` starts out hidden, and the walk skips a node it cannot see — so without
-        // this the walk stops at the root and the test measures nothing at all.
         window.isHidden = false
         let root = UIView(frame: window.bounds)
         window.addSubview(root)
@@ -181,26 +179,75 @@ final class AuditNodeAdapterTests: XCTestCase {
             }
             root.addSubview(container)
         }
+        return window
+    }
 
-        let started = Date()
-        _ = AccessibilityAuditor().collect(root: window)
-        let elapsed = Date().timeIntervalSince(started)
+    /// The walk of a real hierarchy stops when the pass's deadline passes, rather than running it
+    /// to the end.
+    ///
+    /// **What this replaces, and why.** There used to be a wall-clock assertion here —
+    /// `elapsed < 1.0` over this same fixture — and it could not fail, for three reasons that all
+    /// still hold. `collect(root:)` takes a deadline unconditionally and abandons itself at
+    /// ``AccessibilityAuditor/budget``, so a walk of any hierarchy is *guaranteed by production* to
+    /// finish inside a second and the assertion was true by construction. The threshold was four
+    /// times the budget in any case, so it would not have objected to a pass four times over the
+    /// bound the branch spent a wave installing. And a bare `xctest` process has no accessibility
+    /// client, so the expensive call the fixture was built to provoke — `_accessibilityElements`
+    /// computing a subtree — costs nothing here whatever the walk does.
+    ///
+    /// The clock is the honest instrument instead: driven by hand, this asserts that the deadline
+    /// really does stop a walk of 1,642 *real* views, and that the stop is a stop rather than a
+    /// flag raised while the walk carries on to the end.
+    ///
+    /// **What now guards the hang the old test was aimed at.**
+    /// `testOnlyAViewWhoseClassImplementsThePairIsAskedToComputeItsChildren`, below, which asserts
+    /// the actual rule — a class that has not overridden the `UIAccessibilityContainer` pair
+    /// inherits `NSObject`'s implementation and is therefore never asked — against a call counter
+    /// rather than against a stopwatch. `AuditNodeVisibilityTests` covers the rest of the same
+    /// ground: the two container-cycle tests, and
+    /// `testAContainerClaimingMoreElementsThanTheWalkCanHoldVendsNothing`.
+    func testALargeRealHierarchyIsAbandonedAtTheDeadline() {
+        let window = largeRealHierarchy()
+        let start = Date()
+        var readings = 0
+        var auditor = AccessibilityAuditor()
+        auditor.now = {
+            readings += 1
+            return start.addingTimeInterval(readings > 200 ? AccessibilityAuditor.budget + 0.1 : 0)
+        }
 
-        XCTAssertLessThan(elapsed, 1.0, "the walk runs on the main thread, so a slow walk is a hang")
+        let walked = auditor.collect(root: window)
+
+        XCTAssertTrue(walked.didHitLimit, "a walk stopped by the deadline must say the report is partial")
+        XCTAssertLessThan(readings, 300,
+                          "the deadline must stop the walk, not be noticed once per node all the way down")
+    }
+
+    /// The other half: a real hierarchy that fits inside every bound is walked to the end and is
+    /// not reported as truncated. Without this, a walk that gave up immediately would satisfy the
+    /// test above.
+    func testALargeRealHierarchyInsideEveryBoundIsNotReportedAsTruncated() {
+        let window = largeRealHierarchy()
+        let start = Date()
+        var auditor = AccessibilityAuditor()
+        auditor.now = { start }
+
+        XCTAssertFalse(auditor.collect(root: window).didHitLimit,
+                       "1,642 nodes is inside the 5,000-node cap and 100-deep limit")
     }
 
     /// A `UIView` subclass that records every time it is asked to compute its accessibility
     /// children, standing in for what UIAccessibility does on a device.
     ///
-    /// The timing test above cannot fail in this test target: a bare `xctest` process has no
-    /// window scene and no accessibility client, so `_accessibilityElements` never computes
-    /// anything and `accessibilityElementCount()` answers `0` for every real view in microseconds
-    /// — the exact call that costs a recursive subtree walk on a device costs nothing here. This
-    /// class puts the cost back where the test host removed it, by counting the calls instead of
-    /// timing them. Note what overriding the pair *means*, though: this class is by definition a
-    /// custom accessibility container, so the walk is right to read it through the pair. What must
-    /// never happen is a *stock* class being asked, because a stock class inherits `NSObject`'s
-    /// implementation — the recursive subtree walk that hung the app.
+    /// A bare `xctest` process has no window scene and no accessibility client, so
+    /// `_accessibilityElements` never computes anything and `accessibilityElementCount()` answers
+    /// `0` for every real view in microseconds — the exact call that costs a recursive subtree walk
+    /// on a device costs nothing here. This class puts the cost back where the test host removed
+    /// it, by counting the calls instead of timing them. Note what overriding the pair *means*,
+    /// though: this class is by definition a custom accessibility container, so the walk is right
+    /// to read it through the pair. What must never happen is a *stock* class being asked, because
+    /// a stock class inherits `NSObject`'s implementation — the recursive subtree walk that hung
+    /// the app.
     private final class ComputingView: UIView {
         /// How many times any instance has been asked to compute its accessibility children.
         static var computations = 0

@@ -137,6 +137,75 @@ struct WindowContrastSampler: ContrastSampling {
         return min(displayScale, maximumCaptureScale)
     }
 
+    /// The size a snapshot of a window with these bounds would be taken at, or `nil` when there is
+    /// nothing to snapshot.
+    ///
+    /// Split out for the same reason ``captureScale(forDisplayScale:)`` is: the zero-area guard it
+    /// stands for cannot be observed through a real window in this test host. `drawHierarchy`
+    /// declines to render *any* window a hostless `xctest` process can build, so a test asserting
+    /// that a zero-sized window is not captured passes whether the guard exists or not — it is
+    /// asserting a property of the host rather than of this type. Asked as a function of one
+    /// rectangle, the guard is a fact about the code again.
+    ///
+    /// - Parameters:
+    ///   - bounds: The window's bounds, in points.
+    ///   - scale: The capture scale, from ``captureScale(forDisplayScale:)``.
+    /// - Returns: The snapshot's size in pixels, or `nil` when `bounds` has no area.
+    static func snapshotSize(for bounds: CGRect, scale: CGFloat) -> CGSize? {
+        guard bounds.width > 0, bounds.height > 0, scale > 0 else { return nil }
+        return CGSize(width: bounds.width * scale, height: bounds.height * scale)
+    }
+
+    /// Where in the snapshot's pixel grid an element's window-point frame lands.
+    ///
+    /// The whole of ``samples(in:)`` past its first guard is unreachable from a test in this host,
+    /// because `didCaptureWindow` is `false` for every window a hostless `xctest` process can
+    /// build. That left the two things most likely to be wrong — the points-to-pixels conversion
+    /// and the clamp to the image — covered by nothing: dropping `* scale` measures the top-left
+    /// third of every element on a 3× device, and dropping the intersection asks Core Graphics to
+    /// crop outside the bitmap, which returns `nil` and silently deletes every finding for an
+    /// element hanging over the edge of the window.
+    ///
+    /// `.integral` last, so the rectangle handed to `CGImage.cropping(to:)` is whole pixels: a
+    /// fractional origin makes Core Graphics round for itself, and it rounds *outward*, pulling a
+    /// row of the neighbouring view into the crop.
+    ///
+    /// - Parameters:
+    ///   - frame: The element's frame, in window points.
+    ///   - scale: The capture scale, from ``captureScale(forDisplayScale:)``.
+    ///   - imageSize: The snapshot's size, in pixels.
+    /// - Returns: The crop in pixels, clamped to the image and rounded out to whole pixels. Empty
+    ///   when `frame` does not overlap the image at all.
+    static func cropRect(for frame: CGRect, scale: CGFloat, imageSize: CGSize) -> CGRect {
+        let pixelRect = CGRect(x: frame.origin.x * scale,
+                               y: frame.origin.y * scale,
+                               width: frame.width * scale,
+                               height: frame.height * scale)
+        let imageBounds = CGRect(origin: .zero, size: imageSize)
+        let clamped = pixelRect.intersection(imageBounds)
+        return clamped.isNull ? .zero : clamped.integral
+    }
+
+    /// The most samples one crop is read at.
+    ///
+    /// 64 × 64 is 4,096 pixels — enough that a glyph stem cannot fall between two samples of any
+    /// element small enough to hold text a person can read, and few enough that the crop costs a
+    /// bounded amount however large the element is. Without the cap a full-width label on a 2×
+    /// device is hundreds of thousands of `RGB` values, allocated and linearised on the main thread,
+    /// once per element, inside a quarter-second budget.
+    static let maximumSampleGridSide = 64
+
+    /// How many columns and rows to read a crop of this pixel size at.
+    ///
+    /// - Parameters:
+    ///   - width: The crop's width in pixels.
+    ///   - height: The crop's height in pixels.
+    /// - Returns: The grid to downsample to, never larger than the crop and never larger than
+    ///   ``maximumSampleGridSide`` on a side.
+    static func sampleGrid(width: Int, height: Int) -> (columns: Int, rows: Int) {
+        (min(width, maximumSampleGridSide), min(height, maximumSampleGridSide))
+    }
+
     /// Scyther's own views sitting directly in `window`, which must not appear in the snapshot.
     ///
     /// `AuditNode.isScytherOwned` keeps Scyther's views out of the *walk*. Nothing kept them out
@@ -180,7 +249,7 @@ struct WindowContrastSampler: ContrastSampling {
     ///   `didDraw` of `false` is not usable — see ``didCaptureWindow``.
     private static func snapshot(of window: UIWindow, scale: CGFloat) -> (image: CGImage?, didDraw: Bool) {
         let bounds = window.bounds
-        guard bounds.width > 0, bounds.height > 0 else { return (nil, false) }
+        guard Self.snapshotSize(for: bounds, scale: scale) != nil else { return (nil, false) }
 
         let format = UIGraphicsImageRendererFormat()
         format.scale = scale
@@ -289,7 +358,13 @@ struct WindowContrastSampler: ContrastSampling {
         return pixels
     }
 
-    /// The pixels drawn inside `frame`, downsampled to at most 64 × 64.
+    /// The pixels drawn inside `frame`, downsampled to at most
+    /// ``maximumSampleGridSide`` × ``maximumSampleGridSide``.
+    ///
+    /// The geometry is in ``cropRect(for:scale:imageSize:)`` and the downsample grid in
+    /// ``sampleGrid(width:height:)``, both pure and both tested — everything below this method's
+    /// first guard is unreachable in a test host with no app, so any arithmetic left inline here
+    /// would be covered by nothing at all.
     ///
     /// - Parameter frame: The region to read, in window points.
     /// - Returns: The sampled pixels, or `[]` when there was nothing to snapshot, `frame` has no
@@ -297,17 +372,14 @@ struct WindowContrastSampler: ContrastSampling {
     func samples(in frame: CGRect) -> [RGB] {
         guard let image, didCaptureWindow, frame.width > 0, frame.height > 0 else { return [] }
 
-        let pixelRect = CGRect(x: frame.origin.x * captureScale,
-                               y: frame.origin.y * captureScale,
-                               width: frame.width * captureScale,
-                               height: frame.height * captureScale)
-        let imageBounds = CGRect(x: 0, y: 0, width: image.width, height: image.height)
-        let cropRect = pixelRect.intersection(imageBounds).integral
-        guard !cropRect.isEmpty, let cropped = image.cropping(to: cropRect) else { return [] }
+        let imageSize = CGSize(width: image.width, height: image.height)
+        let crop = Self.cropRect(for: frame, scale: captureScale, imageSize: imageSize)
+        guard !crop.isEmpty, let cropped = image.cropping(to: crop) else { return [] }
 
-        let columns = min(cropped.width, 64)
-        let rows = min(cropped.height, 64)
-        guard let bytes = Self.rgbaBytes(of: cropped, width: columns, height: rows) else { return [] }
+        let grid = Self.sampleGrid(width: cropped.width, height: cropped.height)
+        guard let bytes = Self.rgbaBytes(of: cropped, width: grid.columns, height: grid.rows) else {
+            return []
+        }
         return Self.pixels(fromPremultipliedRGBA: bytes)
     }
 }

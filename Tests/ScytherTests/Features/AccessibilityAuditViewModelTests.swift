@@ -326,6 +326,30 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.switchedOffChecks, [.touchTarget])
     }
 
+    /// The two lists the screen names checks from are ordered by `AccessibilityCheck.allCases`, so
+    /// a developer reading the same report twice reads the same sentence twice.
+    ///
+    /// Every other test in this file has one element in each list, or compares them as a `Set`, so
+    /// replacing the filter with `Array(someSet)` — a different order on every launch, since a
+    /// `Set`'s iteration order is seeded per process — left the suite green.
+    func testTheChecksNamedOnScreenAreInADeterministicOrder() async {
+        settings.setEnabled(.missingLabel, to: false)
+        settings.setEnabled(.touchTarget, to: false)
+        settings.setEnabled(.contrast, to: false)
+        let viewModel = viewModel { self.result([], checksRun: []) }
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.switchedOffChecks, AccessibilityCheck.allCases,
+                       "switched-off checks are listed in the enum's own order")
+
+        for check in AccessibilityCheck.allCases {
+            viewModel.checkBinding(for: check).wrappedValue = true
+        }
+
+        XCTAssertEqual(viewModel.checksAwaitingRerun, AccessibilityCheck.allCases,
+                       "and so are the checks waiting on a re-run")
+    }
+
     /// A third reason, and it must not be confused with either of the other two. A check that ran
     /// and could measure nothing — because iOS returned no pixels for the screen — is not a setting
     /// the developer chose, and is not something they can fix by getting Scyther out of the way.
@@ -413,6 +437,63 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
         await viewModel.load()
 
         XCTAssertTrue(viewModel.didHitLimit)
+    }
+
+    /// The toggle has to persist, or it is decoration.
+    ///
+    /// Both tests above drive `checkBinding(for:)` and then assert only on view-model-derived
+    /// state, every bit of which reads the local `checkEnabled` mirror. The setter's second line —
+    /// `settings.setEnabled(check, to: newValue)` — had nothing behind it, so deleting it left the
+    /// toggle purely cosmetic: nothing was written, and live mode went on running the check the
+    /// developer had just switched off. The suite already injects a throwaway `AccessibilityAudit`
+    /// for exactly this.
+    func testSwitchingACheckOffIsWrittenThroughToTheSettings() async {
+        let viewModel = viewModel { self.result([]) }
+        await viewModel.load()
+        XCTAssertTrue(settings.isEnabled(.contrast))
+
+        viewModel.checkBinding(for: .contrast).wrappedValue = false
+        XCTAssertFalse(settings.isEnabled(.contrast),
+                       "a switched-off check must stay switched off after this screen closes")
+
+        viewModel.checkBinding(for: .contrast).wrappedValue = true
+        XCTAssertTrue(settings.isEnabled(.contrast))
+        XCTAssertTrue(settings.isEnabled(.missingLabel), "and its neighbours are untouched")
+        XCTAssertTrue(settings.isEnabled(.touchTarget))
+    }
+
+    /// The same for live mode, whose `didSet` had no test at all: without the write-through, the
+    /// switch reads on and the overlay never appears.
+    func testSwitchingLiveModeOnIsWrittenThroughToTheSettings() async {
+        let viewModel = viewModel { self.result([]) }
+        await viewModel.load()
+        XCTAssertFalse(settings.liveEnabled)
+
+        viewModel.liveEnabled = true
+
+        XCTAssertTrue(settings.liveEnabled)
+    }
+
+    /// What the truncation banner is allowed to say.
+    ///
+    /// It used to read "there was too much to check", which is a diagnosis the walk cannot support
+    /// and, on the shape that actually produces it, a false one: every limit abandons the whole
+    /// remainder of the tree in tree order, and the node cap counts skipped nodes, so a list
+    /// holding a few thousand scrolled-away cells exhausts the budget inside the table and the
+    /// toolbar below it is never looked at. The developer was told their screen was too big. What
+    /// they needed to be told is that the audit never reached the bottom of it, and that the gap is
+    /// unchecked rather than clean.
+    func testTheTruncationBannerSaysWhatWasNotReachedRatherThanBlamingTheScreen() async {
+        let viewModel = viewModel { self.result([], didHitLimit: true) }
+        await viewModel.load()
+
+        let banner = viewModel.truncationDescription
+        XCTAssertTrue(banner.contains("never reached the rest of the screen"),
+                      "the banner has to say what was missed, not why: \(banner)")
+        XCTAssertTrue(banner.contains("unchecked, not clean"),
+                      "and that the gap is not a pass: \(banner)")
+        XCTAssertFalse(banner.contains("too much to check"),
+                       "the walk cannot tell a large screen from a skipped one: \(banner)")
     }
 
     /// Tapping a row asks the overlay behind to flash that element's box.
