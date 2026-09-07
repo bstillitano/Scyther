@@ -42,7 +42,12 @@ struct WaterfallView: View {
     /// - Parameter logs: The network log view model whose filtered requests are drawn.
     init(logs: NetworkLogsViewModel) {
         self.logs = logs
-        _viewModel = StateObject(wrappedValue: WaterfallViewModel(requests: logs.requests))
+        _viewModel = StateObject(
+            wrappedValue: WaterfallViewModel(
+                requests: logs.requests,
+                totalCount: logs.totalRequestCount
+            )
+        )
     }
 
     var body: some View {
@@ -60,60 +65,64 @@ struct WaterfallView: View {
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }
-        .onChange(of: logRevision) { _ in
-            viewModel.update(requests: logs.requests)
+        // The array itself, not a count derived from it. Watching counts meant a request that
+        // *completed* moved nothing the page was looking at, so its bar stayed orange and
+        // stretched to a stale "now" until unrelated traffic happened to arrive — on a page whose
+        // whole subject is when things started and finished.
+        .onReceive(logs.$requests) { requests in
+            viewModel.update(requests: requests, totalCount: logs.totalRequestCount)
         }
     }
 
-    /// What the page watches the log for.
-    ///
-    /// The filtered count and the unfiltered count together, matching
-    /// ``TrafficStatsView``: with a filter active, new traffic the filter excludes moves the
-    /// unfiltered count only, and a page watching the filtered count alone would sit still while
-    /// the screen it was opened from updated.
-    private var logRevision: [Int] { [logs.requests.count, logs.totalRequestCount] }
-
     /// The bars, under a pinned ruler, inside the grouped card.
+    ///
+    /// Wrapped in a `GeometryReader` for one reason: every plot on the page — the ruler's and
+    /// each row's — is framed to ``WaterfallChartStyle/plotWidth(inPageWidth:)`` of the width it
+    /// reports. That is what makes a tick and the bar beneath it line up by construction rather
+    /// than by two hand-matched stacks of insets, and it is what lets a bar know how many seconds
+    /// a point is worth, which is what its minimum rendered width is expressed in.
     private var timeline: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                Section {
-                    ForEach(viewModel.rows) { row in
-                        NavigationLink {
-                            LogDetailsView(httpRequest: row.request)
-                        } label: {
-                            WaterfallRowView(row: row, upperBound: viewModel.upperBound)
-                        }
-                        // Plain, because the row is a chart: the automatic link style would
-                        // tint the bar's label and its duration in the accent colour, and the
-                        // two surfaces would no longer look like the same chart.
-                        .buttonStyle(.plain)
-                        .background(Color(uiColor: .secondarySystemGroupedBackground))
-                        // The last row closes the card. Asking the array rather than enumerating
-                        // it keeps this O(1) per row, so a thousand-row log does not pay for the
-                        // corner treatment on every redraw.
-                        .clipShape(
-                            WaterfallCardShape(
-                                corners: row.id == viewModel.rows.last?.id
-                                    ? [.bottomLeft, .bottomRight]
-                                    : [],
-                                radius: WaterfallChartStyle.cardCornerRadius
+        GeometryReader { geometry in
+            let plotWidth = WaterfallChartStyle.plotWidth(inPageWidth: geometry.size.width)
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    Section {
+                        ForEach(viewModel.rows) { row in
+                            NavigationLink {
+                                LogDetailsView(httpRequest: row.request)
+                            } label: {
+                                WaterfallRowView(
+                                    row: row,
+                                    upperBound: viewModel.upperBound,
+                                    plotWidth: plotWidth
+                                )
+                            }
+                            // Plain, because the row is a chart: the automatic link style would
+                            // tint the bar's label and its duration in the accent colour, and the
+                            // two surfaces would no longer look like the same chart.
+                            .buttonStyle(.plain)
+                            .background(Color(uiColor: .secondarySystemGroupedBackground))
+                            .clipShape(
+                                WaterfallCardShape(
+                                    corners: row.isLast ? [.bottomLeft, .bottomRight] : [],
+                                    radius: WaterfallChartStyle.cardCornerRadius
+                                )
                             )
-                        )
-                        .padding(.horizontal, WaterfallChartStyle.cardInset)
+                            .padding(.horizontal, WaterfallChartStyle.cardInset)
+                        }
+                        Text(viewModel.caption)
+                            .font(.footnote)
+                            .foregroundStyle(Color.secondary)
+                            // Aligned with the card's content rather than its edge, the way a
+                            // grouped List aligns a section footer.
+                            .padding(
+                                .horizontal,
+                                WaterfallChartStyle.cardInset + WaterfallChartStyle.cardContentPadding
+                            )
+                            .padding(.vertical, 12)
+                    } header: {
+                        WaterfallRulerView(upperBound: viewModel.upperBound, plotWidth: plotWidth)
                     }
-                    Text(viewModel.caption)
-                        .font(.footnote)
-                        .foregroundStyle(Color.secondary)
-                        // Aligned with the card's content rather than its edge, the way a grouped
-                        // List aligns a section footer.
-                        .padding(
-                            .horizontal,
-                            WaterfallChartStyle.cardInset + WaterfallChartStyle.cardContentPadding
-                        )
-                        .padding(.vertical, 12)
-                } header: {
-                    WaterfallRulerView(upperBound: viewModel.upperBound)
                 }
             }
         }
@@ -127,7 +136,7 @@ struct WaterfallView: View {
                 localized("No Traffic Captured"),
                 systemImage: "chart.bar.xaxis",
                 description: Text(
-                    localized("Every request that has been logged appears here as a bar on one shared axis.")
+                    localized("Bars appear once requests are logged. The page follows the log's search and filters, so it draws whatever the list is showing.")
                 )
             )
         } else {
@@ -137,7 +146,7 @@ struct WaterfallView: View {
                     .foregroundStyle(.secondary)
                 Text(localized("No Traffic Captured"))
                     .font(.headline)
-                Text(localized("Every request that has been logged appears here as a bar on one shared axis."))
+                Text(localized("Bars appear once requests are logged. The page follows the log's search and filters, so it draws whatever the list is showing."))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -149,17 +158,34 @@ struct WaterfallView: View {
 
 /// One request's row on the full-log waterfall.
 ///
-/// A chart of exactly one bar, with the name drawn beside it rather than by the chart's own y
-/// axis. Charts sizes a leading axis to the labels it is given, so a per-row axis would be a
-/// different width on every row and no two bars would start at the same x — which would quietly
-/// destroy the only claim the chart makes, that bars which overlap were in flight together. A
-/// fixed label column keeps every plot the same width, and therefore the axis genuinely shared.
+/// A chart of exactly one bar, at a constant height, with the name drawn beside it rather than by
+/// the chart's own y axis.
+///
+/// The height is the whole reason the page is worth opening. A chart left to fill its container
+/// divides the screen between however many rows there are, so twenty-two requests came out as
+/// twenty-two thin bars on one screen — the same picture the preview already showed — and a
+/// thousand would have been a thousand hairlines. Pinning the height makes the stack as tall as
+/// the log is long and hands the scrolling back to the `ScrollView`.
+///
+/// The name is drawn outside the chart because Charts sizes a leading axis to the labels it is
+/// given, so a per-row axis would be a different width on every row and no two bars would start
+/// at the same x — which would quietly destroy the only claim the chart makes, that bars which
+/// overlap were in flight together.
 private struct WaterfallRowView: View {
     /// The row to draw.
     let row: WaterfallViewModel.Row
 
     /// The far end of the shared axis, identical for every row on the page.
     let upperBound: Double
+
+    /// How wide the plot is, identical for every row and for the ruler above them.
+    let plotWidth: CGFloat
+
+    /// The row's height, scaled against the reader's text size.
+    ///
+    /// Scaled rather than constant because the label beside the bar grows with Dynamic Type; a
+    /// constant height would clip it at exactly the sizes where it most needs to be legible.
+    @ScaledMetric(relativeTo: .caption) private var rowHeight: CGFloat = WaterfallChartStyle.rowHeight
 
     var body: some View {
         HStack(spacing: WaterfallChartStyle.labelColumnSpacing) {
@@ -170,18 +196,24 @@ private struct WaterfallRowView: View {
                 .foregroundStyle(Color.secondary)
                 .frame(width: WaterfallChartStyle.labelColumnWidth, alignment: .trailing)
             Chart {
-                WaterfallChartStyle.bar(id: row.id, entry: row.entry, upperBound: upperBound)
+                WaterfallChartStyle.bar(
+                    id: row.id,
+                    entry: row.entry,
+                    upperBound: upperBound,
+                    plotWidth: plotWidth
+                )
             }
             .chartForegroundStyleScale(WaterfallChartStyle.styleScale)
             .chartXScale(domain: 0...upperBound)
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
             .chartLegend(.hidden)
-            .frame(height: WaterfallChartStyle.barHeight)
+            .frame(width: plotWidth)
         }
+        .frame(height: rowHeight)
         .padding(.horizontal, WaterfallChartStyle.cardContentPadding)
-        // The whole row is the target, not just the bar: a two millisecond request is a couple of
-        // points wide and would otherwise be unhittable even though it is now visible.
+        // The whole row is the target, not just the bar: a request drawn at the minimum width is
+        // a point across and would otherwise be unhittable even though it is now visible.
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
@@ -203,18 +235,30 @@ private struct WaterfallRowView: View {
 /// The legend and the seconds ruler, pinned to the top of the page as the head of the card.
 ///
 /// Both are drawn by Charts rather than by hand, so they are the same legend and the same ruler
-/// the Traffic Stats section shows. They are two charts rather than one, and that split is the
-/// fix for a real defect: sharing a chart put the legend inside the label column's offset, where
-/// it had about a third less width than the section gives it and wrapped "Stubbed" onto a second
-/// line. The legend now spans the card's full content width, exactly as the section's does, and
-/// only the ruler is inset to line up with the bars — so it still wraps if the reader's text size
-/// genuinely needs it to, and not before.
+/// the preview section shows. They are two charts rather than one, and that split is the fix for a
+/// real defect: sharing a chart put the legend inside the label column's offset, where it had
+/// about a third less width than the preview gives it and wrapped "Stubbed" onto a second line.
+/// The legend now spans the card's full content width, exactly as the preview's does, and only
+/// the ruler is inset to line up with the bars.
+///
+/// Both heights are fixed — a header that resized as the reader scrolled would shift every bar
+/// under it — but scaled against the reader's text size, because a constant height clips the tick
+/// labels and a wrapped legend at the sizes where either would actually happen.
 ///
 /// In each chart the zero-width marks exist only to give Charts something to derive its output
 /// from, and the plot they sit in is collapsed to a point.
 private struct WaterfallRulerView: View {
     /// The far end of the shared axis.
     let upperBound: Double
+
+    /// How wide the plot is, identical to every row's below.
+    let plotWidth: CGFloat
+
+    /// The legend's height, scaled against the reader's text size.
+    @ScaledMetric(relativeTo: .caption) private var legendHeight: CGFloat = WaterfallChartStyle.legendHeight
+
+    /// The ruler's height, scaled against the reader's text size.
+    @ScaledMetric(relativeTo: .caption) private var rulerHeight: CGFloat = WaterfallChartStyle.rulerHeight
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -260,7 +304,7 @@ private struct WaterfallRulerView: View {
         .chartPlotStyle { plot in
             plot.frame(height: 1)
         }
-        .frame(height: WaterfallChartStyle.legendHeight)
+        .frame(height: legendHeight)
     }
 
     /// The seconds axis the bars below are measured against.
@@ -281,7 +325,7 @@ private struct WaterfallRulerView: View {
         .chartPlotStyle { plot in
             plot.frame(height: 1)
         }
-        .frame(height: WaterfallChartStyle.rulerHeight)
+        .frame(width: plotWidth, height: rulerHeight)
     }
 }
 

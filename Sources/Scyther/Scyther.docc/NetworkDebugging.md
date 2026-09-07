@@ -121,19 +121,30 @@ the session.
 - **Elapsed leaves stubs out too.** A stub answered an hour after the last real request would
   otherwise report an hour of network activity that never happened.
 
-The **waterfall** draws the most recent forty requests as bars on a shared seconds axis, labelled
-with their durations and coloured by outcome. Bars that overlap were in flight at the same time; a
-staircase means the calls were serialised. A request still in flight runs to the end of the axis,
-which is the moment the chart was computed, because its real end is not yet known. A request that
-failed is drawn for as long as it actually ran, in red, not as one still running.
+The **waterfall** draws requests as bars on a shared seconds axis, labelled with their durations
+and coloured by outcome. Bars that overlap were in flight at the same time; a staircase means the
+calls were serialised. A request still in flight runs to the end of the axis, which is the moment
+the chart was computed, because its real end is not yet known. A request that failed is drawn for
+as long as it actually ran, in red, not as one still running.
 
-**See all**, in the waterfall's section header, opens the same chart over every request in the log
-rather than the most recent forty. The rows are lazy and run oldest first so time reads downward,
-the seconds ruler and the legend are pinned to the top so the axis never scrolls out of reach, and
-tapping a bar opens that request's details. A sub-millisecond request is widened to the narrowest
-width that can be seen and tapped, while its label keeps reporting the duration it really took.
-One axis covers the whole log, so overlap means the same thing on both surfaces, and the page
-follows the log's search and filters live just as the figures do.
+The section itself is a preview of the seven most recent requests, at a fixed row height, so it
+reads at a glance; its caption says as much and points at the page holding the rest.
+
+**See all**, in the waterfall's section header, opens the same chart over every request the log is
+showing. The rows are lazy, run oldest first so time reads downward, and each keeps the same fixed
+height — a hundred requests are a hundred readable rows to scroll, not a hundred hairlines divided
+across one screen, which is the whole reason the page exists. The seconds ruler and the legend are
+pinned to the top so the axis never scrolls out of reach, and tapping a bar opens that request's
+details. One axis covers the whole log, so overlap means the same thing on both surfaces.
+
+Both surfaces are handed the log's *filtered* requests, and the page's caption names which it is
+— `Every request in the log…`, or `21 of 340 requests…` under a filter.
+
+A bar too narrow to see is drawn one point wide so that it can be found. That floor is a minimum
+rendered *width*, not a minimum duration: it adds at most one point of ink however long the session
+ran, and the bar's label still reports the real measurement. The preview draws every bar at its
+true length instead, because Charts sizes that chart's leading axis and the section therefore
+cannot say how many seconds a point is worth.
 
 **Slowest Endpoints** groups by `METHOD host/path`, dropping the query string and collapsing any
 numeric or UUID path segment to `:id`, so `/users/1` and `/users/2` aggregate. A GraphQL operation

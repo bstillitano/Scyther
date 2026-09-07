@@ -56,10 +56,10 @@ final class WaterfallPageCostTests: XCTestCase {
     /// their content constantly while scrolling, and recomputing the series on every one of those
     /// reads would rebuild a thousand-entry chart per frame.
     func testTheLayoutIsHeldRatherThanRecomputedOnEveryRead() async {
-        let viewModel = WaterfallViewModel(requests: log(of: 10))
+        let viewModel = WaterfallViewModel(requests: log(of: 10), totalCount: 10)
         await viewModel.recompute()
         let first = viewModel.rows
-        viewModel.update(requests: log(of: 20))
+        viewModel.update(requests: log(of: 20), totalCount: 20)
         XCTAssertEqual(viewModel.rows.map(\.id), first.map(\.id),
                        "reading rows must not lay the log out again")
         await viewModel.recompute()

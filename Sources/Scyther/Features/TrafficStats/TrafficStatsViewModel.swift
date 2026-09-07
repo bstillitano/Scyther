@@ -149,6 +149,13 @@ final class TrafficStatsViewModel: ViewModel {
     func recompute() async {
         let snapshot = requests
         let snapshotTotal = totalCount
+        // Force each capture's lazily assigned hash while still on the main actor. `HTTPRequest`
+        // is `@unchecked Sendable` and `getRandomHash()` writes on first call, so leaving it to
+        // the detached pass would have two threads racing to assign it — and the waterfall bakes
+        // that id into the bar it draws.
+        for request in snapshot {
+            _ = request.getRandomHash()
+        }
         let computed = await Task.detached(priority: .userInitiated) {
             (statistics: TrafficStatistics.compute(from: snapshot), waterfall: WaterfallSeries.build(from: snapshot))
         }.value
@@ -212,12 +219,19 @@ final class TrafficStatsViewModel: ViewModel {
 
     // MARK: - Waterfall
 
-    /// How tall the chart is drawn, so every bar keeps its own row.
-    var chartHeight: CGFloat {
-        max(
-            Self.minimumChartHeight,
-            CGFloat(waterfall.entries.count) * WaterfallChartStyle.barHeight + Self.chartChrome
-        )
+    /// How tall the chart is drawn at the default text size, so every bar keeps its own row.
+    var chartHeight: CGFloat { chartHeight(rowHeight: WaterfallChartStyle.rowHeight) }
+
+    /// How tall the chart is drawn for a given row height.
+    ///
+    /// Taken as a parameter so the view can pass a row height scaled against the reader's text
+    /// size: the y-axis labels grow with Dynamic Type, and a chart sized from the unscaled figure
+    /// clips them.
+    ///
+    /// - Parameter rowHeight: The vertical space one bar takes, in points.
+    /// - Returns: The chart's height in points, never below the floor.
+    func chartHeight(rowHeight: CGFloat) -> CGFloat {
+        max(Self.minimumChartHeight, CGFloat(waterfall.entries.count) * rowHeight + Self.chartChrome)
     }
 
     /// The far end of the chart's seconds axis.
@@ -231,33 +245,16 @@ final class TrafficStatsViewModel: ViewModel {
     /// The axis labels of the waterfall's bars, oldest first, which is the chart's y-axis domain.
     var chartDomain: [String] { chartRows.map(\.id) }
 
-    /// What one bar's outcome is called, which is also its key in the chart's colour scale.
-    ///
-    /// Delegated to ``WaterfallChartStyle/outcomeTitle(for:)`` so this section and the full-log
-    /// page behind **See all** can never disagree about what a bar is: the two are meant to be
-    /// the same chart, and a request drawn green on one and orange on the other would be the
-    /// clearest possible way of breaking that.
-    ///
-    /// - Parameter entry: The bar.
-    /// - Returns: The localised outcome name.
-    func outcomeTitle(for entry: WaterfallEntry) -> String {
-        WaterfallChartStyle.outcomeTitle(for: entry)
-    }
-
-    /// The value label drawn at the end of one bar.
-    ///
-    /// Delegated to ``WaterfallChartStyle/valueLabel(for:)``, for the same reason
-    /// ``outcomeTitle(for:)`` is.
-    ///
-    /// - Parameter entry: The bar.
-    /// - Returns: The bar's length as text.
-    func valueLabel(for entry: WaterfallEntry) -> String {
-        WaterfallChartStyle.valueLabel(for: entry)
-    }
-
     /// The sentence under the chart explaining what it is showing.
+    ///
+    /// The chart is a preview: it draws the most recent ``WaterfallSeries/defaultLimit`` requests,
+    /// not the log. When the log holds more than that, the caption has to say where the rest are,
+    /// or the section quietly under-reports the session it claims to describe.
     var waterfallCaption: String {
-        localized("The most recent \(waterfall.entries.count) requests on a shared axis. Bars that overlap were in flight at the same time.")
+        let shown = localized("The most recent \(waterfall.entries.count) requests on a shared axis. Bars that overlap were in flight at the same time.")
+        guard captionCount > waterfall.entries.count else { return shown }
+        return [shown, localized("See all draws the whole log.")]
+            .joined(separator: " ") // scyther:unlocalised space between localised sentences
     }
 
     // MARK: - Breakdowns
