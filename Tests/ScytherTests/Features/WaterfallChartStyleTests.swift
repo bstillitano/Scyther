@@ -42,20 +42,6 @@ final class WaterfallChartStyleTests: XCTestCase {
         )
     }
 
-    // MARK: - The axis
-
-    /// The value label sits past the end of its bar, so the axis needs headroom or the longest
-    /// bar's label falls outside the plot.
-    func testTheAxisLeavesRoomForTheLongestBarsLabel() {
-        XCTAssertEqual(WaterfallChartStyle.upperBound(forSpan: 2), 2.7, accuracy: 0.0001)
-    }
-
-    /// A session where nothing has been measured yet still has to have somewhere to draw.
-    func testTheAxisIsNeverZeroWide() {
-        XCTAssertGreaterThan(WaterfallChartStyle.upperBound(forSpan: 0), 0,
-                             "a zero-wide axis has nothing to draw on")
-    }
-
     // MARK: - Page geometry
 
     /// The defect the owner found: rows that shrank to share the screen turned a scrollable

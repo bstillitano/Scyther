@@ -15,9 +15,9 @@ import SwiftUI
 /// ``WaterfallOverviewStrip``) and the full-log page behind its **See all** button — and the
 /// requirement they were built under is that they are the *same chart*, not two charts that
 /// resemble each other. Anything a reader could compare across the two lives here: the colours,
-/// what an outcome is called, how tall a row is and how wide the axis runs. A second
-/// implementation would drift the first time either screen was touched, and the drift would be
-/// invisible until someone compared a bar's length on one against its length on the other.
+/// what an outcome is called, and how tall a row is. A second implementation would drift the
+/// first time either screen was touched, and the drift would be invisible until someone compared
+/// a bar's length on one against its length on the other.
 ///
 /// The type holds no state and draws no chrome. It is the geometry, the colour and the naming;
 /// each surface still decides its own layout, because that is the only thing the two legitimately
@@ -59,16 +59,6 @@ enum WaterfallChartStyle {
     /// hit target; the preview uses the same figure so a burst has the same visual density on both
     /// surfaces and a staircase reads at the same slope.
     static let rowHeight: CGFloat = 44
-
-    /// How much wider than the longest bar the axis runs.
-    ///
-    /// The value label sits past the end of its bar, so the axis needs headroom or the longest
-    /// bar's label falls outside the plot.
-    private static let chartHeadroom = 1.35
-
-    /// The narrowest axis the chart will draw, in seconds, so a session with no measured duration
-    /// still has somewhere to put its bars.
-    private static let minimumChartSpan = 0.05
 
     /// The narrowest a bar is ever *rendered*, in points.
     ///
@@ -203,17 +193,6 @@ enum WaterfallChartStyle {
         if entry.isStubbed { return localized("Stubbed") }
         if entry.isFailure { return localized("Failed") }
         return entry.isPending ? localized("Pending") : localized("Succeeded")
-    }
-
-    /// The far end of the chart's seconds axis for a series of the given span.
-    ///
-    /// Wider than the longest bar so the value label past its end stays inside the plot, and
-    /// never zero, which would leave the axis with no extent to draw on.
-    ///
-    /// - Parameter span: The seconds the series covers.
-    /// - Returns: The axis' upper bound in seconds.
-    static func upperBound(forSpan span: TimeInterval) -> Double {
-        max(span * chartHeadroom, minimumChartSpan)
     }
 
     /// The value label drawn at the end of one bar.

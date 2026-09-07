@@ -345,12 +345,6 @@ final class WaterfallViewModel: ViewModel {
     /// when the host is not drawn at all.
     var showsHost: Bool { layout.showsHost }
 
-    /// The far end of the shared seconds axis.
-    ///
-    /// Computed by ``WaterfallChartStyle/upperBound(forSpan:)`` rather than by a rule of its own,
-    /// so both surfaces stop their axis in the same place.
-    var upperBound: Double { WaterfallChartStyle.upperBound(forSpan: layout.series.span) }
-
     /// The sentence under the bars saying what the page is showing.
     ///
     /// It says "every request" only when that is true. The page is handed the log's *filtered*
