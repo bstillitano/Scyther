@@ -256,6 +256,13 @@ That last row is the important one, and it is stated on the toggle itself, not o
 Scyther's interface now, and your app's UIKit views on its next launch. Your app's SwiftUI views are
 unaffected: Scyther cannot reach their environment."*
 
+Switching the mode **off** un-mirrors Scyther's own interface just as immediately, which took a fix:
+`UIView.appearance()` stamps its value onto each view as the view joins a window and never revisits
+it, so setting the proxy back cannot undo a view that already exists. Scyther therefore resets the
+views it owns — its menu, everything presented from it, and its overlays — directly. Your app's
+UIKit views are not touched either way; they un-mirror on the next launch, for the same reason they
+mirror on one.
+
 A SwiftUI view takes its direction from `\.layoutDirection` in **its own** environment, which your
 app owns. No public API lets a library modify another view tree's environment, and
 `UIView.appearance()` — which is what mirrors UIKit — does not seed it. Being early does not help
@@ -305,7 +312,9 @@ defect the developer will spend an afternoon chasing in their own code.
   and does flip this page along with everything else; the text stays legible, which is what the
   exemption is for.
 - Right to Left mirrors Scyther's own interface immediately and your app's UIKit views on its next
-  launch. It does not mirror your app's SwiftUI views at all; see the table above.
+  launch. It does not mirror your app's SwiftUI views at all; see the table above. Switching it off
+  is immediate for Scyther's own views too — Scyther resets the ones it owns rather than waiting for
+  the appearance proxy, which cannot undo a view it has already stamped.
 
 #### Adding or correcting a translation
 

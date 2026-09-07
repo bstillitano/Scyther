@@ -287,9 +287,16 @@ internal enum ScytherPresentation {
     /// add another level and none of this is hot code — it runs once per audit, over a chain that
     /// is nearly always empty.
     ///
+    /// - Note: Internal rather than private because ``PseudoLocalizationLayout`` needs the same
+    ///   answer for the same reason: when it resets the layout direction of Scyther's own views it
+    ///   has to recognise the whole of Scyther's menu, and the outermost view of that menu belongs
+    ///   to the stock `UINavigationController` rather than to the ``ScytherHostingController``
+    ///   inside it. A navigation bar left mirrored above an un-mirrored list is exactly the
+    ///   half-reset this containment search prevents.
+    ///
     /// - Parameter controller: The controller to inspect.
     /// - Returns: `true` when it or one of its descendants is Scyther's.
-    private static func containsScytherUI(_ controller: UIViewController) -> Bool {
+    internal static func containsScytherUI(_ controller: UIViewController) -> Bool {
         if controller is ScytherPresentedUI { return true }
         return controller.children.contains(where: containsScytherUI)
     }

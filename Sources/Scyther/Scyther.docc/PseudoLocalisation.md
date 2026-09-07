@@ -75,6 +75,14 @@ strength of how the mechanism *ought* to behave. The rows marked "no" rest on do
 appearance-proxy behaviour and have not been observed here: the example app is SwiftUI, so there is
 no UIKit host in this repository to look at.
 
+Switching the mode off restores Scyther's own interface just as immediately, and that took a fix
+rather than falling out of the mechanism: `UIView.appearance()` stamps its value onto each view as
+the view joins a window and never revisits it, so putting the proxy back changes nothing that
+already exists. The first version of this mode therefore left the menu mirrored for the rest of the
+session. ``PseudoLocalizationLayout/applyToOwnedViews(rightToLeft:in:)`` resets the views Scyther
+owns — and only those — in both directions. Nothing above changes for the host app: its UIKit views
+un-mirror on the next launch exactly as they mirror on one.
+
 The reason for the split is ``PseudoLocalizationLayout``'s two halves. SwiftUI reads
 `\.layoutDirection` from **its own** environment, which the host app owns; `UIView.appearance()`
 governs UIKit views created after it changes and does not seed that environment at any point.
