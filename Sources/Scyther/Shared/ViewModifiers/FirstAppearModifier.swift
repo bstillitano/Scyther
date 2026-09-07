@@ -27,12 +27,17 @@ extension View {
     ///
     /// ## Re-entrancy
     ///
-    /// The action is also guaranteed not to be started a second time while it is still running.
-    /// A `@State` flag alone could not promise that: SwiftUI is free to discard and re-create a
-    /// view, the re-created copy gets a fresh `false`, and its `.task` then runs the action again
-    /// on top of the one still suspended. That is exactly what happens when something is
-    /// presented over a screen — and if the action is what triggered the presentation, the two
-    /// feed each other. See ``FirstAppearGuard`` for where the surviving half of the guard lives.
+    /// Two first appearances from the same call site never run at the same time. A `@State` flag
+    /// alone could not promise that: SwiftUI is free to discard and re-create a view, the
+    /// re-created copy gets a fresh `false`, and its `.task` then runs the action again on top of
+    /// the one still suspended. That is exactly what happens when something is presented over a
+    /// screen — and if the action is what triggered the presentation, the two feed each other.
+    ///
+    /// A second appearance is **queued, not dropped**. It waits for the one in flight and then
+    /// runs its own action. Dropping it would be worse than the bug: SwiftUI discarded the first
+    /// view, and with it the `@StateObject` its action was loading, so the model the developer is
+    /// actually looking at belongs to the *second* view — refusing it outright leaves that screen
+    /// unloaded for good. See ``FirstAppearGuard``.
     ///
     /// - Parameters:
     ///   - id: An optional discriminator, needed only when one call site backs several views that
@@ -56,7 +61,7 @@ extension View {
     }
 }
 
-/// Tracks which first-appear actions are currently running, so that none is ever started twice.
+/// Serialises first-appear actions, so that two never run at the same time from one call site.
 ///
 /// ## Why the guard cannot live in the view
 ///
@@ -72,22 +77,53 @@ extension View {
 /// the fetch alone would have left the same trap set for the next slow first-appear.
 ///
 /// So the half of the guard that has to outlive the view lives here instead — a process-wide set
-/// of the actions currently running. Membership is claimed before the action starts and released
-/// however it ends, cancellation included.
+/// of the actions currently running.
+///
+/// ## Queued, not refused
+///
+/// A caller that finds the key taken **waits and then runs**. It is tempting to refuse it
+/// instead, and that is a worse bug than the one this fixes: the premise of the whole thing is
+/// that SwiftUI *discarded* the first view, and a discarded view takes its `@StateObject` with
+/// it. The action still in flight is therefore loading a model nothing is rendering, and the
+/// model on screen belongs to the caller being refused. Refusing turns "the screen loads twice"
+/// into "the screen never loads", which at least the original bug did not do.
+///
+/// Serialising is enough on its own, because what made the menu unusable was *concurrency*: each
+/// overlapping run issued its own request, and each request was held. One at a time, with the
+/// screens that have gone away dropping out of the queue, is a bounded queue of live views.
+///
+/// ## What ends a wait
+///
+/// Three things, in the order they are checked:
+///
+/// - the incumbent finishing, which is the ordinary case;
+/// - the waiter's own `.task` being cancelled, which means its view has gone away — it stops
+///   waiting and does not run at all, so the queue prunes itself to the views still on screen;
+/// - ``maximumWait`` elapsing. Swift cancellation is cooperative and an action is free to ignore
+///   it — `NetworkHelper.ipAddress` does, which is exactly why the discarded menu's fetch stayed
+///   in flight — so an action that never returns would otherwise hold its key for the life of the
+///   process and that screen could never load again. The deadline bounds the damage to a wait
+///   rather than a brick, at the cost of allowing a second action alongside one that has clearly
+///   hung, which is the right way round.
+///
+/// The wait is a poll rather than a queue of continuations. A continuation queue has to resume
+/// exactly once per waiter across cancellation, timeout and the ordinary path, and resuming one
+/// twice is a crash; the poll is a `while` loop with three exits, it only runs while something is
+/// genuinely waiting, and this is a feature that has already shipped one subtle bug.
 ///
 /// ## What identifies an action
 ///
 /// A `#fileID`/`#line`/`#column` triple: stable across a view being re-created, and distinct for
 /// every `.onFirstAppear` in the codebase. Two views that share one call site and are on screen
-/// together would share an entry, which is what ``View/onFirstAppear(id:_:fileID:line:column:)``'s
-/// `id` parameter is for; every call site in Scyther backs a single screen, so none passes one.
+/// together share an entry, which is what ``View/onFirstAppear(id:_:fileID:line:column:)``'s `id`
+/// parameter is for — and there are two such call sites, `FileBrowserView` and `LogDetailsView`,
+/// both of which push themselves to arbitrary depth. Both pass one.
 ///
-/// Membership is deliberately released when the action finishes rather than kept forever. A
-/// screen that is genuinely left and returned to is a new view with a new first appearance, and
-/// keeping the entry would stop it ever loading again.
+/// Membership is released when the action finishes rather than kept forever, so a screen
+/// genuinely left and returned to still loads.
 ///
-/// - Note: `@MainActor` throughout, which is what makes claim-then-run atomic: the check and the
-///   insert happen in one main-actor step, with no suspension in between for another caller to
+/// - Note: `@MainActor` throughout, which is what makes claim-then-run atomic: the wait ends and
+///   the key is taken in one main-actor step, with no suspension in between for another caller to
 ///   slip through.
 @MainActor
 final class FirstAppearGuard {
@@ -113,29 +149,60 @@ final class FirstAppearGuard {
     /// The actions currently running.
     private var running: Set<Key> = []
 
-    /// Creates the guard. Private so that ``shared`` is the only instance in production; a test
-    /// makes its own to keep the process-wide one clean.
+    /// The longest a queued first appearance waits for the one in flight before going ahead
+    /// anyway.
     ///
-    /// - Note: Internal rather than private, so a test can drive an instance of its own.
+    /// Long enough that no first-appear anyone would write reaches it, short enough that an
+    /// action which never returns costs a wait rather than a screen that can never load again.
+    ///
+    /// - Note: Internal and settable so a test can observe the bound without waiting a minute for
+    ///   it. Nothing in production changes it.
+    internal var maximumWait: TimeInterval = 60
+
+    /// How often a waiter re-checks. Small enough to be invisible on screen, large enough that
+    /// waiting costs nothing — and nothing waits unless a first appearance is genuinely in
+    /// flight.
+    private static let pollInterval: UInt64 = 20_000_000
+
+    /// Creates the guard.
+    ///
+    /// - Note: Internal rather than private, so a test can drive an instance of its own instead
+    ///   of the process-wide one.
     internal init() { }
 
-    /// Runs `action`, unless the same first-appear is already running.
+    /// Waits for any first appearance already running for `key`, then runs `action`.
     ///
     /// - Parameters:
     ///   - key: What identifies this first-appear.
     ///   - action: The work to run.
-    /// - Returns: Whether the action was started. `false` means an earlier call is still running
-    ///   it, and this one deliberately did nothing.
+    /// - Returns: Whether the action ran. `false` means the caller was cancelled while waiting —
+    ///   its view has gone away — so running would only have loaded a model nobody is rendering.
     @discardableResult
     func run(_ key: Key, action: () async -> Void) async -> Bool {
-        guard running.insert(key).inserted else { return false }
+        guard await waitForTurn(key) else { return false }
 
-        /// Released on every exit, including the one that matters most: the enclosing `.task`
-        /// being cancelled because the view went away mid-action. Leaving the entry behind there
-        /// would stop the screen ever loading again.
+        running.insert(key)
         defer { running.remove(key) }
 
         await action()
+        return true
+    }
+
+    /// Waits until nothing is running for `key`, this caller is cancelled, or ``maximumWait``
+    /// elapses.
+    ///
+    /// - Parameter key: The first-appear to wait for.
+    /// - Returns: Whether the caller should go ahead and run. `false` only for a cancelled
+    ///   caller.
+    private func waitForTurn(_ key: Key) async -> Bool {
+        guard running.contains(key) else { return true }
+
+        let deadline = Date().addingTimeInterval(maximumWait)
+        while running.contains(key) {
+            if Task.isCancelled { return false }
+            if Date() >= deadline { return true }
+            try? await Task.sleep(nanoseconds: Self.pollInterval)
+        }
         return true
     }
 
@@ -154,9 +221,14 @@ final class FirstAppearGuard {
 ///
 /// Two guards, because one is not enough. The `@State` flag stops the action re-running when the
 /// *same* view appears again — a push and a pop — and is the reason a screen returned to does not
-/// reload. ``FirstAppearGuard`` stops it re-running when SwiftUI replaces the view with a fresh
-/// copy while the action is still suspended, which `@State` cannot see because the fresh copy has
-/// a fresh flag.
+/// reload. ``FirstAppearGuard`` stops two runs overlapping when SwiftUI replaces the view with a
+/// fresh copy while the action is still suspended, which `@State` cannot see because the fresh
+/// copy has a fresh flag.
+///
+/// The flag is committed before the guard is asked, and that is deliberate: the guard queues
+/// rather than refuses, so every appearance that gets this far does eventually run its action.
+/// The one case it does not — a waiter cancelled because its view went away — is a view that no
+/// longer needs loading.
 private struct FirstAppearModifier: ViewModifier {
     let action: () async -> Void
 
