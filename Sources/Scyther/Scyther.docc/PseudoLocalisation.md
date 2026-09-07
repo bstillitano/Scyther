@@ -87,13 +87,18 @@ Switching the mode off needed a fix of its own, because the appearance proxy can
 stamps its value onto each view as the view joins a window and never revisits it, so putting the
 proxy back changes nothing that already exists, and the first version of this mode left the menu
 mirrored for the rest of the session. ``PseudoLocalizationLayout/clearForcedDirection(in:)`` takes
-that stamp back off Scyther's own UIKit chrome — the container its menu is presented in, and its
-overlays — and writes nothing else, in that direction only. What SwiftUI hosts is deliberately out
-of its reach: mirroring Scyther's interface, both ways, is the environment value ``MenuView`` and
-``PseudoLocalizationView`` install, and forcing the UIKit attribute onto a hosting view as well
-makes it mirror the text it *renders* — measured on a device as a menu whose every label read
-backwards. Nothing above changes for the host app: its UIKit views un-mirror on the next launch
-exactly as they mirror on one.
+that stamp back off Scyther's own views, in that direction only, and the one value it ever writes
+is `.unspecified`.
+
+Never `.forceRightToLeft`, and that restraint is the whole of what keeps it safe. Mirroring
+Scyther's interface is the environment value ``MenuView`` and ``PseudoLocalizationView`` install;
+forcing the UIKit attribute as well gives a view two signals, and a hosting view told to force a
+direction mirrors the text it *renders* rather than reordering what it lays out. Measured on a
+device: with the mode on, environment and stamp agree and the menu is mirrored and readable; with
+the mode off, a leftover stamp disagrees with the environment and the rows come back as `stnoF` and
+`stnenopmoC ecafretnI`. Removing the stamp settles the disagreement; adding one causes it. Nothing
+above changes for the host app: its UIKit views un-mirror on the next launch exactly as they mirror
+on one.
 
 The reason for the split is ``PseudoLocalizationLayout``'s two halves. SwiftUI reads
 `\.layoutDirection` from **its own** environment, which the host app owns; `UIView.appearance()`

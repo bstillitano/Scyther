@@ -264,13 +264,14 @@ unaffected: Scyther cannot reach their environment."*
 
 Switching the mode **off** needed a fix of its own, because the appearance proxy cannot undo
 itself: it stamps its value onto each view as the view joins a window and never revisits it, so
-putting the proxy back leaves everything built while the mode was on still mirrored. Scyther takes
-that stamp back off its own UIKit chrome — the navigation container its menu is presented in, and
-the overlays it installs into your window — and writes nothing else. What SwiftUI draws is left to
-the environment value Scyther installs in its own views, which is what mirrors and un-mirrors the
-interface in both directions; forcing the UIKit attribute onto a hosting view instead makes it
-mirror the text it renders, which is unreadable rather than mirrored. Your app's UIKit views are
-untouched either way — they un-mirror on the next launch, for the same reason they mirror on one.
+putting the proxy back leaves everything built while the mode was on still forcing a direction the
+rest of the interface has left behind. Scyther takes that stamp back off its own views — its menu
+and everything inside it, and the overlays it installs into your window — and the only value it
+ever writes is `.unspecified`. It never forces a direction onto a view, in either direction:
+mirroring Scyther's interface is the environment value Scyther installs in its own views, and
+forcing the UIKit attribute as well makes a hosting view mirror the text it *renders*, which is
+unreadable rather than mirrored. Your app's UIKit views are untouched either way — they un-mirror
+on the next launch, for the same reason they mirror on one.
 
 A SwiftUI view takes its direction from `\.layoutDirection` in **its own** environment, which your
 app owns. No public API lets a library modify another view tree's environment, and
@@ -325,7 +326,7 @@ defect the developer will spend an afternoon chasing in their own code.
 - Right to Left mirrors Scyther's own interface immediately and your app's UIKit views on its next
   launch. It does not mirror your app's SwiftUI views at all; see the table above. Switching it off
   is immediate for Scyther's own interface too: the environment value flips back, and Scyther
-  clears the appearance proxy's stamp from its own UIKit chrome, which the proxy cannot do itself.
+  clears the appearance proxy's stamp from its own views, which the proxy cannot do itself.
 
 #### Adding or correcting a translation
 

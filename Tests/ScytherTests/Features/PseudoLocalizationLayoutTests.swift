@@ -24,8 +24,13 @@ import XCTest
 /// said more than it could. They can say which attribute a view carries afterwards. They cannot
 /// say what the screen looks like: an earlier fix forced `.forceRightToLeft` onto Scyther's own
 /// views, passed every assertion here, and rendered the menu's text reversed glyph by glyph on a
-/// device. Hence ``testNothingSwiftUIHostsIsEverWrittenTo``, which is the assertion that would
-/// have caught it.
+/// device.
+///
+/// The property that actually matters is therefore pinned directly rather than approximated. It is
+/// not "hosted views are never written to" — that restriction was tried, and it left the reversed
+/// text in place, since the stamps doing the damage were inside the hosting view. It is
+/// ``testNothingIsEverForcedRightToLeft``: whatever this walk touches, it only ever *removes* a
+/// forced direction.
 @MainActor
 final class PseudoLocalizationLayoutTests: XCTestCase {
 
@@ -130,19 +135,77 @@ final class PseudoLocalizationLayoutTests: XCTestCase {
         XCTAssertEqual(views.grandchild.semanticContentAttribute, foreignValue)
     }
 
-    /// The assertion the earlier fix would have failed: the walk must not write to a view SwiftUI
-    /// hosts, even one the appearance proxy stamped, because forcing a direction on a hosting view
-    /// mirrors the text it renders.
-    func testNothingSwiftUIHostsIsEverWrittenTo() {
+    /// The property that matters, and the one an attribute-by-attribute assertion kept missing:
+    /// this walk only ever *removes* a forced direction. Forcing one is what made a hosting view
+    /// mirror the text it renders, and nothing here may do it — to Scyther's views, to the app's,
+    /// or to a view SwiftUI hosts.
+    func testNothingIsEverForcedRightToLeft() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
+        let app = UIViewController()
+        let appViews = hierarchy(app, setTo: .unspecified)
+        window.rootViewController = app
+
+        let container = UIViewController()
+        let chrome = hierarchy(container, setTo: foreignValue)
         let hosting = HostingController()
-        let views = hierarchy(hosting, setTo: stamped)
-        PseudoLocalizationLayout.clearForcedDirection(in: [views.root])
-        XCTAssertEqual(views.root.semanticContentAttribute, stamped)
-        XCTAssertEqual(views.child.semanticContentAttribute, stamped)
-        XCTAssertEqual(views.grandchild.semanticContentAttribute, stamped)
+        container.addChild(hosting)
+        container.view.addSubview(hosting.view)
+        let hosted = hierarchy(hosting, setTo: .unspecified)
+        window.addSubview(container.view)
+
+        PseudoLocalizationLayout.clearForcedDirection(in: [window])
+        PseudoLocalizationLayout.clearForcedDirection(in: [window])
+
+        let everything = [window, appViews.root, appViews.child, appViews.grandchild,
+                          chrome.root, chrome.child, chrome.grandchild,
+                          hosted.root, hosted.child, hosted.grandchild]
+        for view in everything {
+            XCTAssertNotEqual(view.semanticContentAttribute, .forceRightToLeft)
+        }
     }
 
-    func testTheWalkStopsAtAHostingViewWhileClearingTheChromeAroundIt() {
+    /// The check this round of the bug needed: a view stamped while the mode was on has to come
+    /// back to `.unspecified` when it is switched off, and it makes no difference that the view
+    /// sits inside a hosting view. That is where the reversed rows were.
+    func testAStampedViewInsideAHostingViewIsCleared() {
+        let hosting = HostingController()
+        let collection = UIView()
+        let cell = UIView()
+        let label = UIView()
+        cell.addSubview(label)
+        collection.addSubview(cell)
+        hosting.view.addSubview(collection)
+        for view in [hosting.view!, collection, cell, label] {
+            view.semanticContentAttribute = stamped
+        }
+
+        PseudoLocalizationLayout.clearForcedDirection(in: [hosting.view])
+
+        XCTAssertEqual(hosting.view.semanticContentAttribute, .unspecified)
+        XCTAssertEqual(collection.semanticContentAttribute, .unspecified)
+        XCTAssertEqual(cell.semanticContentAttribute, .unspecified)
+        XCTAssertEqual(label.semanticContentAttribute, .unspecified)
+    }
+
+    /// SwiftUI puts container view controllers of its own inside a hosting controller, so a cell's
+    /// *nearest* controller is a private SwiftUI type that neither is nor contains anything of
+    /// Scyther's. A classifier that stopped at the first controller called every row of the menu
+    /// the app's and left the stamps in place.
+    func testAViewUnderASwiftUIContainerControllerIsStillScythers() {
+        let hosting = HostingController()
+        let inner = UIViewController()
+        hosting.addChild(inner)
+        hosting.view.addSubview(inner.view)
+        let cell = UIView()
+        inner.view.addSubview(cell)
+        cell.semanticContentAttribute = stamped
+
+        XCTAssertEqual(PseudoLocalizationLayout.role(of: cell), .swiftUIHosted)
+        PseudoLocalizationLayout.clearForcedDirection(in: [hosting.view])
+        XCTAssertEqual(cell.semanticContentAttribute, .unspecified)
+    }
+
+    func testTheWalkClearsTheChromeAroundAHostingViewAndTheHostingViewItself() {
         let container = UIViewController()
         let bar = UIView()
         container.view.addSubview(bar)
@@ -159,8 +222,8 @@ final class PseudoLocalizationLayoutTests: XCTestCase {
 
         XCTAssertEqual(container.view.semanticContentAttribute, .unspecified)
         XCTAssertEqual(bar.semanticContentAttribute, .unspecified)
-        XCTAssertEqual(hosting.view.semanticContentAttribute, stamped)
-        XCTAssertEqual(hosted.semanticContentAttribute, stamped)
+        XCTAssertEqual(hosting.view.semanticContentAttribute, .unspecified)
+        XCTAssertEqual(hosted.semanticContentAttribute, .unspecified)
     }
 
     // MARK: - Descending from a window

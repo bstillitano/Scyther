@@ -77,9 +77,9 @@ import UIKit
 /// way too, and usefully: a view set back to `.unspecified` lays out left-to-right even while its
 /// superview is still forced right-to-left, so only the views that were stamped have to be found.
 ///
-/// ``clearForcedDirection(in:)`` is the answer, and it is narrow in three ways at once. It runs on
-/// the way *off* only; it writes only `.unspecified`, and only to a view that currently reads
-/// `.forceRightToLeft`; and it never touches a view SwiftUI hosts.
+/// ``clearForcedDirection(in:)`` is the answer, and it is narrow in two ways that matter. It runs
+/// on the way *off* only, and the only value it ever writes is `.unspecified`, to a view of
+/// Scyther's that currently reads `.forceRightToLeft`. It never forces a direction onto anything.
 ///
 /// ## Why it does nothing on the way on
 ///
@@ -91,6 +91,11 @@ import UIKit
 /// — while every unit test still passed, because the attribute values were exactly what the tests
 /// asked for. An attribute being set is not evidence that the result is readable. Switching on is
 /// therefore left entirely to the environment half, which is where it always worked.
+///
+/// The same mismatch, from the other side, is what the off direction has to repair: a stamp left
+/// behind there forces right-to-left on a view whose contents SwiftUI has since laid out
+/// left-to-right, and UIKit mirrors the difference. Clearing the stamp removes one of the two
+/// signals; forcing one adds a second. Only the first is ever done here.
 ///
 /// Testing ``apply(rightToLeft:allowed:)`` itself is honest only up to a point, and the point is
 /// `UIView.appearance()`: it is process-wide state with no reliable way to read the applied value
@@ -232,20 +237,31 @@ internal enum PseudoLocalizationLayout {
     ///
     /// Switching **off** is the half that genuinely needed fixing, because the proxy cannot undo
     /// itself: it stamps `.forceRightToLeft` onto each view as the view joins a window and never
-    /// revisits it, so views built while the mode was on stay mirrored for the rest of the session.
-    /// The narrowest repair is to take the stamp back off, which is what this does — write
-    /// `.unspecified` to a view that currently reads `.forceRightToLeft`, and nothing else. A view
-    /// holding any other value was never stamped by this feature and is left exactly as it is.
+    /// revisits it, so views built while the mode was on keep forcing a direction the environment
+    /// has already left behind. The repair is to take the stamp back off, which is all this does —
+    /// write `.unspecified` to a view of Scyther's that currently reads `.forceRightToLeft`, and
+    /// nothing else. A view holding any other value was never stamped by this feature and is left
+    /// exactly as it is.
     ///
-    /// ## What it does not touch
+    /// ## Why it reaches inside the hosting view, and why that is safe
     ///
-    /// Anything SwiftUI hosts. The descent stops at the root view of a ``ScytherPresentedUI``
-    /// controller — the hosting view of every screen Scyther presents — and neither clears it nor
-    /// looks below it. The environment half already governs what SwiftUI draws there, and the
-    /// evidence that reaching into it is dangerous is the reversed text above. What is left for
-    /// this to correct is exactly the UIKit chrome *around* that view: the navigation controller
-    /// Scyther's menu is presented in, its navigation bar, and the overlays Scyther installs
-    /// straight into the app's key window.
+    /// Because that is where the damage was. Measured on a device across the two states: with the
+    /// mode **on**, the environment and the stamp agree that everything is right-to-left and the
+    /// menu is mirrored and perfectly readable. With the mode **off**, the environment has flipped
+    /// back to left-to-right while the collection view backing the `List` is still stamped
+    /// `.forceRightToLeft`, and UIKit mirrors content SwiftUI has already laid out the other way —
+    /// which is text drawn backwards, `Fonts` as `stnoF`. The reversal is the *mismatch*, not the
+    /// stamp on its own, which is why only the off direction was ever broken.
+    ///
+    /// So the stamps inside a hosting view are cleared like any others, and the rule that keeps
+    /// this safe is the narrow one: never *set* `.forceRightToLeft` on anything, in either
+    /// direction. Removing a forced direction leaves the view where a view built with the mode off
+    /// would have been, and restores the agreement between the two halves. Imposing one is what
+    /// made a hosting view mirror its own rendering, and nothing here does it.
+    ///
+    /// The chrome around the hosting view is cleared too — the navigation controller Scyther's
+    /// menu is presented in, its navigation bar, and the overlays Scyther installs straight into
+    /// the app's key window.
     ///
     /// The host app's views are read to find Scyther's and never written, in either direction. Its
     /// UIKit views still mirror on the next launch and un-mirror on the one after, through the
@@ -271,22 +287,15 @@ internal enum PseudoLocalizationLayout {
     /// Clears `view` if it qualifies, then examines its subviews.
     ///
     /// Every view is asked individually rather than a subtree being cleared wholesale once its
-    /// root qualifies. That is the difference between undoing a stamp and applying one: the walk
-    /// must be able to leave a view alone, and a subtree sweep cannot, since it would also write
-    /// to views that were never stamped and to the hosting view it is supposed to stop at.
+    /// root qualifies. That is the difference between undoing a stamp and applying one: this walk
+    /// must be able to leave a view exactly as it found it, and a subtree sweep cannot, because it
+    /// would also write to views the proxy never stamped.
     ///
     /// - Parameter view: The view to examine.
     private static func clearForcedDirection(below view: UIView) {
-        switch role(of: view) {
-        case .swiftUIHosted:
-            return
-        case .scytherChrome:
-            if view.semanticContentAttribute == .forceRightToLeft {
-                view.semanticContentAttribute = .unspecified
-                view.setNeedsLayout()
-            }
-        case .foreign:
-            break
+        if role(of: view).isScythers, view.semanticContentAttribute == .forceRightToLeft {
+            view.semanticContentAttribute = .unspecified
+            view.setNeedsLayout()
         }
         for subview in view.subviews {
             clearForcedDirection(below: subview)
@@ -295,25 +304,34 @@ internal enum PseudoLocalizationLayout {
 
     /// What a view is, as far as clearing a forced direction is concerned.
     ///
+    /// Three cases rather than a boolean because the two Scyther ones are recognised by different
+    /// evidence and are worth telling apart when reading a hierarchy — but they are cleared
+    /// identically, and deliberately so. A stamp inside a hosting view is the same stamp,
+    /// left by the same proxy, and it was the one doing the damage.
+    ///
     /// ## Topics
     ///
     /// ### Cases
     /// - ``swiftUIHosted``
     /// - ``scytherChrome``
     /// - ``foreign``
+    ///
+    /// ### Deciding
+    /// - ``isScythers``
     internal enum ViewRole {
-        /// A view SwiftUI hosts for Scyther, and everything below it.
+        /// A view SwiftUI hosts for Scyther: the hosting view of a presented screen, and
+        /// everything the proxy stamped inside it — the collection view backing a `List`, its
+        /// cells, and whatever else was created while the mode was on.
         ///
-        /// Never written to and never descended into. What SwiftUI draws inside a hosting view is
-        /// governed by the `\.layoutDirection` environment value ``MenuView`` and
-        /// ``PseudoLocalizationView`` install, and the one time this walk reached in and set an
-        /// attribute there the menu came back with its text reversed glyph by glyph.
+        /// Cleared, never forced. The distinction is the whole of what went wrong on this
+        /// feature: *setting* `.forceRightToLeft` on a hosted view while SwiftUI's environment
+        /// says left-to-right makes UIKit mirror content SwiftUI has already laid out, which
+        /// renders text backwards — `Fonts` as `stnoF`. *Removing* that stamp is the repair for
+        /// exactly that mismatch, which is why this walk only ever writes `.unspecified`.
         case swiftUIHosted
 
         /// Scyther's own UIKit chrome: its overlays, and the containers around a screen it
         /// presents.
-        ///
-        /// The only views a `.forceRightToLeft` stamp is Scyther's to remove.
         case scytherChrome
 
         /// A view belonging to the app being debugged.
@@ -321,68 +339,66 @@ internal enum PseudoLocalizationLayout {
         /// Read to find Scyther's own, never written to. Its direction is the appearance proxy's
         /// business and the next launch's.
         case foreign
+
+        /// Whether a `.forceRightToLeft` stamp on a view with this role is Scyther's to remove.
+        internal var isScythers: Bool { self != .foreign }
     }
 
     /// Which of the three a view is.
     ///
-    /// Asked once per view and answered from the *owning controller* rather than the view's class,
-    /// because Scyther's presented screens are SwiftUI: the view a screen hangs off is
-    /// `_UIHostingView`, a private type that names Scyther nowhere, so a class test could never
-    /// find it. The controller can be asked instead, and is.
+    /// Answered from the *responder chain* rather than from the view's class, because Scyther's
+    /// screens are SwiftUI: the view a screen hangs off is `_UIHostingView`, a private type that
+    /// names Scyther nowhere, and the views inside it are private types too. What can be asked is
+    /// which controller the view ultimately belongs to.
     ///
-    /// The order of the three tests is the whole rule:
+    /// The climb does not stop at the first controller it meets, and that matters. SwiftUI puts
+    /// container view controllers of its own inside a hosting controller — a `List` is backed by
+    /// one — so a cell's nearest controller is a private SwiftUI type that is neither Scyther's
+    /// nor contains anything of Scyther's. Stopping there classified every row of the menu as the
+    /// app's and left the stamps that were reversing their text in place. Climbing on reaches the
+    /// ``ScytherHostingController`` above it.
     ///
-    /// - A ``ScytherPresentedUI`` owner means SwiftUI is hosting this view for Scyther, and the
-    ///   answer is ``ViewRole/swiftUIHosted`` before anything else is considered.
+    /// The three tests, in the order they are asked:
+    ///
     /// - `isScytherOwnedType(_:)` — the same rule the accessibility audit uses, shared rather than
     ///   restated — recognises the overlays Scyther installs straight into the app's key window,
     ///   which have no controller at all and can only be known by class.
+    /// - A ``ScytherPresentedUI`` anywhere up the chain means SwiftUI is hosting this view for
+    ///   Scyther.
     /// - ``ScytherPresentation/containsScytherUI(_:)`` recognises the chrome around a presented
     ///   screen. `Scyther.showMenu(from:)` presents a stock `UINavigationController` whose child
     ///   is the ``ScytherHostingController``, so the navigation bar's owning controller is a UIKit
-    ///   container and only its children give it away. A navigation bar left mirrored above a
-    ///   correctly laid-out menu is the same bug reported again.
+    ///   container and only its children give it away.
+    ///
+    /// The climb stops when the chain leaves views and controllers — at a `UIWindowScene`, and
+    /// beyond it `UIApplication` and the app's delegate. Those belong to the app and may be named
+    /// anything at all, which is the same boundary ``AuditNode`` draws for the same reason.
     ///
     /// - Parameter view: The view to classify.
     /// - Returns: The view's role.
     internal static func role(of view: UIView) -> ViewRole {
-        let controller = owningController(of: view)
-        if controller is ScytherPresentedUI { return .swiftUIHosted }
         if isScytherOwnedType(view) { return .scytherChrome }
-        guard let controller, ScytherPresentation.containsScytherUI(controller) else { return .foreign }
-        return .scytherChrome
+        var responder: UIResponder? = view.next
+        var steps = 0
+        var chrome = false
+        while let current = responder, steps < maximumResponderSteps {
+            if let controller = current as? UIViewController {
+                if controller is ScytherPresentedUI { return .swiftUIHosted }
+                if ScytherPresentation.containsScytherUI(controller) { chrome = true }
+            } else if !(current is UIView) {
+                break
+            }
+            responder = current.next
+            steps += 1
+        }
+        return chrome ? .scytherChrome : .foreign
     }
 
-    /// How far ``owningController(of:)`` climbs before giving up.
+    /// How far ``role(of:)`` climbs before giving up.
     ///
     /// A responder chain is not cyclic, so this is belt-and-braces of the same kind
     /// ``ScytherPresentation`` and ``AuditNode`` already keep — and it costs one integer compare
     /// per link of a walk that runs once per view on a screen.
     private static let maximumResponderSteps = 100
-
-    /// The view controller a view belongs to, if any.
-    ///
-    /// Climbs the *responder* chain rather than `superview`, which is the whole trick:
-    /// `UIResponder.next` hands back a view's owning view controller when the view is that
-    /// controller's root view and its superview otherwise, so one loop crosses from the deepest
-    /// label in a SwiftUI list up to the controller hosting it. A `superview` walk would stop at
-    /// the hosting view and never reach the marker that identifies it as Scyther's.
-    ///
-    /// Stops as soon as the chain leaves views and controllers — at a `UIWindowScene`, and beyond
-    /// it `UIApplication` and the app's delegate — because those belong to the app.
-    ///
-    /// - Parameter view: The view to resolve an owner for.
-    /// - Returns: The owning controller, or `nil` when the chain runs out first.
-    private static func owningController(of view: UIView) -> UIViewController? {
-        var responder: UIResponder? = view.next
-        var steps = 0
-        while let current = responder, steps < maximumResponderSteps {
-            if let controller = current as? UIViewController { return controller }
-            guard current is UIView else { return nil }
-            responder = current.next
-            steps += 1
-        }
-        return nil
-    }
 }
 #endif
