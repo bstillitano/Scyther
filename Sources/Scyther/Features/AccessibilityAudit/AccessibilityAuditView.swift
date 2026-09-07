@@ -163,9 +163,9 @@ struct AccessibilityAuditView: View {
     /// Shown when the report is showing the live overlay's last pass rather than one of its own.
     ///
     /// That pass is always older than this screen — no pass can run while Scyther covers the app —
-    /// and the poll that keeps the overlay in step cannot see a scroll, a table reload or a cell
-    /// expanding, so a report opened after any of those describes rows that are no longer where it
-    /// says they are. The age is drawn with `Text(_:style:)` rather than formatted once, so it keeps
+    /// the trigger that keeps the overlay in step is the app laying out, which cannot see content
+    /// that changes with no `UIView` laying out — so a report opened after one of those describes
+    /// rows that are no longer where it says they are. The age is drawn with `Text(_:style:)` rather than formatted once, so it keeps
     /// counting up while the developer reads, and through stock `LabeledContent` so it reads as a
     /// measurement rather than as a second sentence.
     private var stalePassBanner: some View {

@@ -24,7 +24,6 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
     nonisolated(unsafe) private var originalPass: (@MainActor () -> AccessibilityAuditor.Result)!
     nonisolated(unsafe) private var originalReportPass: (@MainActor () -> AccessibilityAuditor.Result)!
     nonisolated(unsafe) private var originalCoverage: (@MainActor () -> Bool)!
-    nonisolated(unsafe) private var originalIdentity: (@MainActor () -> [ObjectIdentifier])!
     nonisolated(unsafe) private var originalClock: (@MainActor () -> Date)!
     nonisolated(unsafe) private var originalCanAudit: (@MainActor () -> Bool)!
 
@@ -40,15 +39,21 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
         originalPass = toolkit.runAccessibilityPass
         originalReportPass = toolkit.runAccessibilityReportPass
         originalCoverage = toolkit.isScytherCoveringScreen
-        originalIdentity = toolkit.accessibilityScreenIdentityProbe
         originalClock = toolkit.accessibilityClock
         originalCanAudit = toolkit.canAuditThisBuild
-        UserDefaults.scyther.setValue(true, forKey: AccessibilityAudit.LiveEnabledDefaultsKey)
         toolkit.isScytherCoveringScreen = { false }
         // `AppEnvironment.isTestCase` is unconditionally true here, so the real predicate would
         // refuse every pass and nothing below would ever be scheduled. Each test that is *about*
         // the refusal drives this seam itself.
         toolkit.canAuditThisBuild = { true }
+        // A clean slate, through the same door production uses: switching live mode off cancels any
+        // pending pass, stops watching layout and forgets a layout already counted this turn. The
+        // last of those matters most — `hasNotedALayoutThisTurn` is coalescing state whose reset is
+        // one run-loop turn out, so a test that inherited it set would silently suppress the very
+        // trigger it was written to assert.
+        UserDefaults.scyther.setValue(false, forKey: AccessibilityAudit.LiveEnabledDefaultsKey)
+        toolkit.showAccessibilityAudit()
+        UserDefaults.scyther.setValue(true, forKey: AccessibilityAudit.LiveEnabledDefaultsKey)
         toolkit.accessibilityAuditView.findings = []
     }
 
@@ -56,7 +61,6 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
         toolkit.runAccessibilityPass = originalPass
         toolkit.runAccessibilityReportPass = originalReportPass
         toolkit.isScytherCoveringScreen = originalCoverage
-        toolkit.accessibilityScreenIdentityProbe = originalIdentity
         toolkit.accessibilityClock = originalClock
         toolkit.canAuditThisBuild = { true }
         UserDefaults.scyther.setValue(originalLiveEnabled, forKey: AccessibilityAudit.LiveEnabledDefaultsKey)
@@ -84,65 +88,112 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
 
     // MARK: - Following The App
 
-    /// The defect: the boxes followed a rotation, a new `UIWindow` and the live-mode toggle, and
-    /// nothing else. A push left them pinned to a screen that had gone, with a pill still offering
-    /// a report about it.
-    func testANavigationPushIsNoticedAsADifferentScreen() {
-        let navigation = UINavigationController(rootViewController: UIViewController())
-        let before = InterfaceToolkit.accessibilityScreenIdentity(from: navigation)
-
-        navigation.pushViewController(UIViewController(), animated: false)
-
-        XCTAssertNotEqual(InterfaceToolkit.accessibilityScreenIdentity(from: navigation), before)
-    }
-
-    /// A tab change replaces the whole screen and changes no frame the overlay owns.
-    func testATabChangeIsNoticedAsADifferentScreen() {
-        let tabs = UITabBarController()
-        tabs.viewControllers = [UIViewController(), UIViewController()]
-        let before = InterfaceToolkit.accessibilityScreenIdentity(from: tabs)
-
-        tabs.selectedIndex = 1
-
-        XCTAssertNotEqual(InterfaceToolkit.accessibilityScreenIdentity(from: tabs), before)
-    }
-
-    /// The app presenting one of its own screens is not Scyther covering the app — the boxes stay
-    /// drawn, and they describe a screen the app's modal is now hiding.
-    func testTheAppPresentingItsOwnScreenIsNoticed() {
-        let root = PresentingController()
-        let before = InterfaceToolkit.accessibilityScreenIdentity(from: root)
-
-        // A real presentation needs a window, an anchor and an animation; what the walk reads is
-        // `presentedViewController`, so that is what is stood in for.
-        root.stubPresented = UIViewController()
-        let after = InterfaceToolkit.accessibilityScreenIdentity(from: root)
-
-        XCTAssertNotEqual(after, before)
-        XCTAssertEqual(after.count, 2, "the chain should reach the controller actually showing")
-    }
-
-    /// The poll runs twice a second for as long as live mode is on, and a re-audit is a full tree
-    /// walk plus a window snapshot — so only a *change* may schedule one. Arriving somewhere new
-    /// must, and standing still must not.
-    func testOnlyAChangeOfScreenSchedulesAReaudit() {
-        let first = UIViewController()
-        let second = UIViewController()
+    /// A view outside Scyther's own overlays laying out is the app's content changing, and it must
+    /// re-audit.
+    ///
+    /// The defect this replaces: the trigger was a poll of the *showing view-controller chain*, and
+    /// in a SwiftUI app that chain does not move for a `TabView` switch, a `NavigationStack` push or
+    /// a `List` scroll — it is all one hosting controller. Measured on a simulator, live mode took
+    /// one pass at launch and never another, however much the app was navigated.
+    func testTheAppLayingSomethingOutSchedulesAPass() {
         toolkit.runAccessibilityPass = { self.result("app") }
-        toolkit.accessibilityScreenIdentityProbe = { [ObjectIdentifier(first)] }
 
-        toolkit.pollAccessibilityScreen()
-        XCTAssertTrue(toolkit.hasPendingAccessibilityAudit, "arriving on a screen must re-audit")
+        toolkit.appViewDidLayout(UIView())
+
+        XCTAssertTrue(toolkit.hasPendingAccessibilityAudit)
+    }
+
+    /// And it reaches that hook through the swizzle production actually installs, not only through a
+    /// method a test can call directly.
+    ///
+    /// `InterfaceToolkit.swizzleLayout` is the one wire between UIKit laying a view out and this
+    /// feature noticing. Deleting the call from `UIView.swizzledLayoutSubviews()` leaves every other
+    /// test in this file green and the live overlay frozen at launch, which is precisely the bug.
+    func testARealLayoutPassReachesTheScheduler() {
+        // The same installation `InterfaceToolkit.start()` performs. Idempotent — it is a `static
+        // let` — and inert unless the debug-border or view-size settings are on, which they are not.
+        toolkit.swizzleLayout()
+        InterfaceToolkit.isObservingAppLayout = true
+        defer { InterfaceToolkit.isObservingAppLayout = false }
+
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+        view.setNeedsLayout()
+        view.layoutIfNeeded()
+
+        XCTAssertTrue(toolkit.hasPendingAccessibilityAudit)
+    }
+
+    /// A layout pass lays out every view that needs it — hundreds of them while a scroll is
+    /// tracking — and that has to cost one schedule, not hundreds.
+    ///
+    /// The debounce would collapse them into a single *pass* either way; what this is about is the
+    /// `DispatchWorkItem` cancelled, allocated and armed on each call, per view, per frame.
+    func testABurstOfLayoutsInOneTurnIsCountedOnce() {
+        toolkit.runAccessibilityPass = { self.result("app") }
+
+        toolkit.appViewDidLayout(UIView())
+        let first = toolkit.pendingAccessibilityAuditDeadline
+        XCTAssertTrue(toolkit.hasNotedALayoutThisTurn)
+
+        toolkit.accessibilityClock = { Date(timeIntervalSince1970: 9_999) }
+        for _ in 0..<200 { toolkit.appViewDidLayout(UIView()) }
+
+        XCTAssertEqual(toolkit.pendingAccessibilityAuditDeadline, first,
+                       "the rest of the layout pass must not re-arm the debounce 200 times")
+    }
+
+    /// And however many layouts arrive, one pass runs.
+    ///
+    /// The end-to-end version of the debounce's contract, driven by the trigger that now feeds it:
+    /// a burst of layouts is one 121ms pass once the screen settles, not one per layout.
+    func testABurstOfLayoutsIsOnePassAndNotMany() async {
+        var passes = 0
+        toolkit.runAccessibilityPass = {
+            passes += 1
+            return self.result("app")
+        }
+
+        for _ in 0..<5 { toolkit.appViewDidLayout(UIView()) }
+        XCTAssertEqual(passes, 0, "nothing runs synchronously; the point of the debounce is to wait")
+
+        let ran = expectation(description: "the debounced pass runs")
+        DispatchQueue.main.asyncAfter(deadline: .now() + InterfaceToolkit.AccessibilityAuditDebounceInterval * 3) {
+            ran.fulfill()
+        }
+        await fulfillment(of: [ran], timeout: 5)
+
+        XCTAssertEqual(passes, 1, "a burst of layouts is one pass, not many")
+    }
+
+    /// A pass draws boxes, and drawing is layout — so a pass that counted its own drawing would
+    /// schedule the next one for ever.
+    ///
+    /// Everything the live overlay puts on screen lives inside ``TopLevelViewsWrapper``: the boxes,
+    /// the count pill, the flash layer, and the grid and FPS overlays beside them. A layout in there
+    /// is refused, which is what makes the loop impossible rather than merely short.
+    ///
+    /// The second line of defence — a pass that found what the last one found repaints nothing at
+    /// all, so there is no drawing for a layout to come out of — is
+    /// `AccessibilityAuditOverlayViewTests.testAPassThatFoundTheSameThingsDoesNotRepaintTheOverlay()`.
+    func testDrawingTheFindingsCannotScheduleAnotherPass() {
+        toolkit.runAccessibilityPass = { self.result("app") }
+        // Production parents the overlay in `setupAccessibilityAudit()`, which does not run in a
+        // hostless test process.
+        if toolkit.accessibilityAuditView.superview !== toolkit.topLevelViewsWrapper {
+            toolkit.topLevelViewsWrapper.addSubview(toolkit.accessibilityAuditView)
+        }
 
         toolkit.runAccessibilityAudit()
-        toolkit.pollAccessibilityScreen()
-        XCTAssertFalse(toolkit.hasPendingAccessibilityAudit, "nothing moved, so nothing re-audits")
+        XCTAssertFalse(toolkit.accessibilityAuditView.findings.isEmpty, "a pass drew something")
 
-        toolkit.accessibilityScreenIdentityProbe = { [ObjectIdentifier(second)] }
-        toolkit.pollAccessibilityScreen()
+        toolkit.appViewDidLayout(toolkit.accessibilityAuditView)
+        XCTAssertFalse(toolkit.hasPendingAccessibilityAudit, "the boxes must not re-audit themselves")
 
-        XCTAssertTrue(toolkit.hasPendingAccessibilityAudit,
-                      "a push, a tab change or a modal must re-audit")
+        toolkit.appViewDidLayout(toolkit.accessibilityAuditView.reportButton)
+        XCTAssertFalse(toolkit.hasPendingAccessibilityAudit, "nor may the pill's own count")
+
+        toolkit.appViewDidLayout(toolkit.topLevelViewsWrapper)
+        XCTAssertFalse(toolkit.hasPendingAccessibilityAudit, "nor the wrapper they all sit in")
     }
 
     // MARK: - The Debounce
@@ -175,31 +226,35 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
         XCTAssertFalse(toolkit.hasPendingAccessibilityAudit)
     }
 
-    /// The three intervals the feature's cost is expressed in, as literals.
+    /// The two intervals the feature's cost is expressed in, as literals.
     ///
-    /// Named in no test until now: any of them could have been `0.001` — a pass on every run-loop
+    /// Named in no test until now: either could have been `0.001` — a pass on every run-loop
     /// turn — or `60`, with the whole suite green and the README wrong.
     func testTheFeaturesIntervalsAreTheNumbersTheDocumentationQuotes() {
         XCTAssertEqual(InterfaceToolkit.AccessibilityAuditDebounceInterval, 0.5, accuracy: 0.000_1)
-        XCTAssertEqual(InterfaceToolkit.AccessibilityScreenPollInterval, 0.5, accuracy: 0.000_1)
         XCTAssertEqual(InterfaceToolkit.AccessibilityAuditMaximumDeferral, 2, accuracy: 0.000_1)
     }
 
-    /// With live mode off there is nothing to keep in step with, so a stray trigger — the overlay's
-    /// own frame hook firing after the developer switched the feature off — must schedule nothing.
-    /// Without the guard, Scyther rasterises the user's window every half-second for a feature
-    /// nobody has switched on.
+    /// With live mode off there is nothing to keep in step with, so no trigger may schedule
+    /// anything — and the app laying out, which now happens on every frame of every scroll in every
+    /// app that has ever linked Scyther, must not even reach the scheduler to be turned away.
     func testNothingIsScheduledWithLiveModeSwitchedOff() {
         UserDefaults.scyther.setValue(false, forKey: AccessibilityAudit.LiveEnabledDefaultsKey)
+        toolkit.showAccessibilityAudit()
+
+        XCTAssertFalse(InterfaceToolkit.isObservingAppLayout,
+                       "a layout must be ruled out on one static load, not on a UserDefaults read")
 
         toolkit.scheduleAccessibilityReaudit()
         toolkit.windowDidBecomeVisibleNotification(notification: NSNotification(name: .init("test"), object: nil))
-        toolkit.pollAccessibilityScreen()
+        InterfaceToolkit.appViewDidLayout(UIView())
+        toolkit.appViewDidLayout(UIView())
 
         XCTAssertFalse(toolkit.hasPendingAccessibilityAudit)
     }
 
-    /// Switching live mode off has to leave nothing behind: no boxes, no pending pass, no timer.
+    /// Switching live mode off has to leave nothing behind: no boxes, no pending pass, and nothing
+    /// still watching the app lay out.
     /// A stale box left over the app after the developer turned the feature off reads as a bug in
     /// the audit rather than as the setting they chose.
     func testSwitchingLiveModeOffClearsTheBoxesAndCancelsWhatWasScheduled() {
@@ -209,14 +264,15 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
         toolkit.scheduleAccessibilityReaudit()
         XCTAssertFalse(toolkit.accessibilityAuditView.findings.isEmpty)
         XCTAssertTrue(toolkit.hasPendingAccessibilityAudit)
-        XCTAssertTrue(toolkit.isPollingAccessibilityScreen)
+        XCTAssertTrue(InterfaceToolkit.isObservingAppLayout)
 
         UserDefaults.scyther.setValue(false, forKey: AccessibilityAudit.LiveEnabledDefaultsKey)
         toolkit.showAccessibilityAudit()
 
         XCTAssertTrue(toolkit.accessibilityAuditView.findings.isEmpty, "the boxes go with the setting")
         XCTAssertFalse(toolkit.hasPendingAccessibilityAudit)
-        XCTAssertFalse(toolkit.isPollingAccessibilityScreen)
+        XCTAssertFalse(InterfaceToolkit.isObservingAppLayout)
+        XCTAssertFalse(toolkit.hasNotedALayoutThisTurn)
         XCTAssertTrue(toolkit.accessibilityAuditView.isHidden)
     }
 
@@ -426,10 +482,10 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
 
     // MARK: - A Pass Always Eventually Runs
 
-    /// The poll's period and the debounce's period are both half a second, so a screen whose
-    /// controller chain changes on every poll cancelled the pending pass at about the instant it was
-    /// due, over and over: the boxes never updated, with no spinner and no banner. Nothing capped
-    /// the number of consecutive cancellations.
+    /// A trigger arriving one debounce after the last one cancels the pending pass at about the
+    /// instant it was due, over and over: the boxes never update, with no spinner and no banner.
+    /// Nothing capped the number of consecutive cancellations. It is the live case for any screen
+    /// that never stops laying out — a spinner, a video layer, an animation that does not settle.
     func testAPassIsNotDeferredForever() {
         var clock = Date(timeIntervalSince1970: 0)
         toolkit.accessibilityClock = { clock }
@@ -473,6 +529,35 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
                           "the clock on the floor starts again once a pass has run")
     }
 
+    /// What that floor costs, said out loud, because the trigger is now the app laying out.
+    ///
+    /// A scroll lays out on every frame it tracks, so an unbroken scroll longer than the floor plus
+    /// a debounce takes a live pass — about 121ms of main thread — while the screen is still moving.
+    /// That is the deliberate exception to "a pass lands only once the screen stops": without it,
+    /// a screen that never settles never gets a pass at all.
+    func testAnUnbrokenStreamOfLayoutsStillLetsAPassThrough() {
+        var clock = Date(timeIntervalSince1970: 0)
+        toolkit.accessibilityClock = { clock }
+
+        toolkit.appViewDidLayout(UIView())
+        let due = toolkit.pendingAccessibilityAuditDeadline
+        XCTAssertEqual(due, Date(timeIntervalSince1970: InterfaceToolkit.AccessibilityAuditDebounceInterval))
+
+        // Every frame of a scroll, for longer than the floor. Each one is a fresh turn, so each one
+        // reaches the scheduler rather than being coalesced away.
+        for _ in 0..<200 {
+            clock = clock.addingTimeInterval(1.0 / 60.0)
+            toolkit.forgetTheLayoutNotedThisTurn()
+            toolkit.appViewDidLayout(UIView())
+        }
+
+        XCTAssertNotNil(toolkit.pendingAccessibilityAuditDeadline)
+        XCTAssertLessThanOrEqual(toolkit.pendingAccessibilityAuditDeadline ?? .distantFuture,
+                                 Date(timeIntervalSince1970: InterfaceToolkit.AccessibilityAuditMaximumDeferral
+                                      + InterfaceToolkit.AccessibilityAuditDebounceInterval),
+                                 "a scroll that never stops must still be audited at the floor")
+    }
+
     // MARK: - Production Builds
 
     /// The capture and the accessibility walk are blocked on a build the audit may not run on; the
@@ -485,8 +570,8 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
 
         toolkit.showAccessibilityAudit()
 
-        XCTAssertFalse(toolkit.isPollingAccessibilityScreen,
-                       "no run-loop wakeups for a result that is empty by construction")
+        XCTAssertFalse(InterfaceToolkit.isObservingAppLayout,
+                       "no per-frame work for a result that is empty by construction")
         XCTAssertFalse(toolkit.hasPendingAccessibilityAudit)
         XCTAssertTrue(toolkit.accessibilityAuditView.isHidden,
                       "and nothing left over the app for every touch to be hit-tested against")
@@ -509,7 +594,7 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
 
         toolkit.showAccessibilityAudit()
 
-        XCTAssertTrue(toolkit.isPollingAccessibilityScreen)
+        XCTAssertTrue(InterfaceToolkit.isObservingAppLayout)
         XCTAssertFalse(toolkit.accessibilityAuditView.isHidden)
     }
 
@@ -533,16 +618,4 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
 
         XCTAssertNil(probe, "a pass must drain its own autoreleased objects rather than piling them up")
     }
-}
-
-/// A controller that can be told it is presenting something.
-///
-/// A real presentation needs a window to anchor to and an animation to finish, neither of which
-/// would make `presentedViewController` — the only thing the screen walk reads — any more true.
-@MainActor
-private final class PresentingController: UIViewController {
-    /// What this controller reports as presented.
-    var stubPresented: UIViewController?
-
-    override var presentedViewController: UIViewController? { stubPresented }
 }

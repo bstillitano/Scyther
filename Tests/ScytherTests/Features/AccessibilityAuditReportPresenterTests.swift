@@ -205,4 +205,41 @@ final class AccessibilityAuditReportPresenterTests: XCTestCase {
         toolkit.accessibilityAuditView.onOpenReport?()
         XCTAssertEqual(log.presented, 1)
     }
+
+    /// A tap on the pill takes a *fresh* pass, through the real default wiring.
+    ///
+    /// This is the escape hatch the live surface depends on. The boxes and the count describe a pass
+    /// taken when the screen last settled, and a trigger that has not fired — content a `UIView`
+    /// never laid out for — leaves them describing a screen that has moved on. The report says how
+    /// old its pass is, and tapping the pill is how a developer gets a current one; that only holds
+    /// if the tap really runs a pass rather than presenting the stale one.
+    ///
+    /// `takePassForReport` is deliberately left at its default here — every other test in this file
+    /// replaces it, so nothing asserted that the default reaches `InterfaceToolkit` at all.
+    func testTappingThePillTakesAFreshPassRatherThanShowingTheStaleOne() {
+        let toolkit = InterfaceToolkit.instance
+        let originalReportPass = toolkit.runAccessibilityReportPass
+        let originalCanAudit = toolkit.canAuditThisBuild
+        let originalCoverage = toolkit.isScytherCoveringScreen
+        defer {
+            toolkit.runAccessibilityReportPass = originalReportPass
+            toolkit.canAuditThisBuild = originalCanAudit
+            toolkit.isScytherCoveringScreen = originalCoverage
+        }
+        toolkit.canAuditThisBuild = { true }
+        toolkit.isScytherCoveringScreen = { false }
+
+        var passes = 0
+        toolkit.runAccessibilityReportPass = {
+            passes += 1
+            return AccessibilityAuditor.Result(findings: [], didHitLimit: false, checksRun: [])
+        }
+
+        let presenter = AccessibilityAuditReportPresenter()
+        presenter.presentReport = { _ in true }
+
+        presenter.openReport()
+
+        XCTAssertEqual(passes, 1, "the pill must be a way out of a stale pass, not a window onto it")
+    }
 }

@@ -203,17 +203,37 @@ bottom centre it sat on top of tab bars and primary action buttons and took thei
 The overlay doesn't swallow anything else: only the count pill itself is interactive, so you can
 keep using the app underneath with the boxes on screen.
 
-It follows the app. As well as rotations, it re-audits whenever you push, pop, switch tab, or
-present a screen of your own, half a second after things settle — noticed by checking twice a second
-which view controllers are showing and re-auditing only when the answer changes. What it does *not*
-notice is a screen changing without the controllers changing: a scroll, a table reload, a form being
-filled in. Those keep the last pass's boxes until something else moves.
+It follows the app by watching it lay out. Anything that changes what is on screen lays something
+out — a push lays out the incoming view, adding a subview marks its new superview as needing layout,
+a scroll lays out on every frame it tracks, a reload lays out the cells that changed — so a tab
+switch, a push, a swipe-back, a sheet of your own and a scroll that comes to rest all re-audit, half
+a second after the screen stops moving. Scyther already swizzles `UIView.layoutSubviews` for the
+view-borders overlay, so this costs no new hook.
+
+It watches layout rather than which view controllers are showing, which is what it used to do. That
+question has an honest answer in a UIKit app and almost none in a SwiftUI one: a `TabView` switch, a
+`NavigationStack` push and a `List` scroll all happen inside one `UIHostingController`, so the chain
+never moved and the overlay drew one pass at launch and then described a screen that had gone.
+
+Nothing runs while you are still moving. Every layout restarts the half-second debounce, so the pass
+lands once the screen settles — with one deliberate exception: a screen that *never* settles (a
+spinner, a video layer, an auto-advancing carousel) would otherwise defer the pass for ever, so a
+pass is let through after two seconds of unbroken movement. On a long scroll that means one live
+pass — about 121ms — roughly every two and a half seconds, which is the price of the boxes ever being
+right on a screen that never stops.
+
+A pass cannot make itself run again. Everything the overlay draws — the boxes, the pill, the flash —
+lives inside Scyther's own top-level view wrapper, and a layout in there is ignored; and a pass that
+found what the last one found repaints nothing at all, so there is nothing to lay out either way.
+
+What it does *not* notice is content that changes with no `UIView` laying out at all. Those keep the
+last pass's boxes; tapping the pill takes a fresh pass, which is the way out of any stale one.
 
 Tapping a finding's row in the report flashes its box on the live overlay. Because the report is
 always in front of the app, the flash waits until you close it and then plays over the app itself.
 
 **Nothing at all is installed or scheduled on a build the audit may not run on** — no overlay in the
-hit-testing chain, no poll timer, no pass. See <doc:AccessibilityAuditing#Never-on-an-App-Store-Build>.
+hit-testing chain, nothing watching the app lay out, no pass. See <doc:AccessibilityAuditing#Never-on-an-App-Store-Build>.
 
 ## The Report Is Frozen
 
@@ -291,7 +311,7 @@ audit to find defects; do not use it to certify their absence.
 Every other Scyther feature is gated by `Scyther.start()` alone. The audit refuses on its own account
 as well: on an App Store build it does not run even with `Scyther.start(allowProductionBuilds: true)`,
 because it is the only feature that reads the user's screen as pixels. On such a build no overlay is
-installed, no poll timer is scheduled, and no trigger — including the notification observers
+installed, nothing watches the app lay out, and no trigger — including the notification observers
 registered at launch — can schedule a pass.
 
 ## See Also

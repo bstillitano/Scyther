@@ -1521,12 +1521,31 @@ no live box to flash.
 **Show Issues On Screen** draws a box around every current missing-label and touch-target finding
 directly over the running app,
 live, the same way `GridOverlay` and `FPSCounter` stay on screen without a manual refresh. The
-overlay follows the app: as well as rotations, it re-audits whenever you push, pop, switch tab, or
-present a screen of your own, half a second after the app settles. It notices that by checking
-twice a second which view controllers are showing — a handful of pointer reads — and re-auditing
-only when the answer changes. What it does *not* notice is a screen changing without the
-controllers changing: a scroll, a table reload, a form being filled in. Those keep the last pass's
-boxes until something else moves.
+overlay follows the app by watching it lay out. Anything that changes what is on screen lays
+something out — a push lays out the incoming view, adding a subview marks its new superview as
+needing layout, a scroll lays out on every frame it tracks, a reload lays out the cells that changed
+— so a SwiftUI tab switch, a `NavigationStack` push, a swipe-back, a sheet of your own and a scroll
+that comes to rest all re-audit, half a second after the screen stops moving. Scyther already
+swizzles `UIView.layoutSubviews` for the view-borders overlay, so this costs no new hook.
+
+It watches layout rather than which view controllers are showing, which is what it used to do: that
+question has an honest answer in a UIKit app and almost none in a SwiftUI one, where a `TabView`
+switch, a `NavigationStack` push and a `List` scroll all happen inside a single
+`UIHostingController`. The chain never moved, so the boxes were drawn once at launch and then
+described a screen that was no longer there.
+
+Nothing runs while you are still moving: every layout restarts the half-second debounce, so the pass
+lands once the screen settles. The one deliberate exception is a screen that *never* settles — a
+spinner, a video layer, an auto-advancing carousel — which would otherwise defer the pass for ever,
+so a pass is let through after two seconds of unbroken movement. On a long scroll that is one live
+pass, about 121ms, roughly every two and a half seconds.
+
+A pass cannot make itself run again. Everything the overlay draws — the boxes, the pill, the flash —
+lives inside Scyther's own top-level view wrapper, and a layout in there is ignored; and a pass that
+found what the last one found repaints nothing at all, so there is nothing to lay out either way.
+
+What it does *not* notice is content that changes with no `UIView` laying out. Those keep the last
+pass's boxes, and the way out of any stale pass is the pill: tapping it takes a fresh one.
 
 A pill down the trailing edge of the screen counts the current findings; tapping it opens the
 report over whatever you're looking at, without going back through the menu. Closing it puts you
@@ -1640,14 +1659,15 @@ about if a ratio ever looks wrong:
   and that number comes from the *display's* scale rather than the window's own
   `contentScaleFactor` — which is always 1, so the cap used to never apply and every snapshot was a
   3 → 1 downscale that measurably degraded small text. The per-element crop is capped at 64 × 64 in
-  any case, so nothing above 2× is measured, and a full-window bitmap re-taken every half-second in
-  live mode is memory a host app can ill afford.
+  any case, so nothing above 2× is measured, and a full-window bitmap is memory a host app can ill
+  afford — which is why a live pass no longer takes one at all.
 
 The audit also never runs on an App Store build, even with `Scyther.start(allowProductionBuilds:
 true)`. Every other Scyther feature is gated by `start()` alone; this is the only one that reads
 the user's screen as pixels, so it refuses on its own account as well. Nothing at all is set up on
-such a build: no overlay is installed in the app's hit-testing chain, no poll timer is scheduled,
-and no trigger — including the notification observers registered at launch — can schedule a pass.
+such a build: no overlay is installed in the app's hit-testing chain, nothing watches the app lay
+out, and no trigger — including the notification observers registered at launch — can schedule a
+pass.
 
 **What the audit cannot see.** A clean report is not a statement that your app is accessible. It is
 a statement that three checks found nothing on one screen as it looked at one moment, and the report

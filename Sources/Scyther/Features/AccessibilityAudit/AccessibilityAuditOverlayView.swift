@@ -107,12 +107,14 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     /// ``InterfaceToolkit/scheduleAccessibilityReaudit()`` after a fresh audit — only has to
     /// assign the new array and never has to remember to ask for a redraw itself.
     /// A pass that found the same things as the last one changes nothing on screen and is dropped
-    /// here. It is not a rare case — it is the common one: the poll re-audits on every navigation
-    /// and every window appearing, and a screen that has not moved produces an identical set. Every
-    /// ``AccessibilityFinding`` carries a fresh `UUID`, so `==` cannot recognise two passes over one
-    /// unchanged screen; ``describeTheSameElements(_:_:)`` compares what the findings *say* instead.
-    /// Without it, this view's backing store — the size of the screen, around 12 MiB at 3× — was
-    /// re-rendered on every pass, up to twice a second, to draw exactly what was already there.
+    /// here. It is not a rare case — it is the common one: the app laying anything out re-audits (see
+    /// ``InterfaceToolkit/appViewDidLayout(_:)``), and a screen that only *moved* rather than
+    /// changed produces an identical set. Every ``AccessibilityFinding`` carries a fresh `UUID`, so
+    /// `==` cannot recognise two passes over one unchanged screen;
+    /// ``describeTheSameElements(_:_:)`` compares what the findings *say* instead. Without it, this
+    /// view's backing store — the size of the screen, around 12 MiB at 3× — was re-rendered on every
+    /// pass to draw exactly what was already there. It is also the second of the two things that
+    /// stop a pass feeding itself: drawing nothing lays nothing out.
     internal var findings: [AccessibilityFinding] = [] {
         didSet {
             guard !Self.describeTheSameElements(findings, oldValue) else { return }

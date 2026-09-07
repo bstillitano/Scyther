@@ -394,10 +394,11 @@ final class AccessibilityAuditViewModel: ViewModel {
     /// True for exactly the seeded case, and that case is not an edge: the report opens onto the
     /// live overlay's last pass — see ``seed`` — and no pass can run while Scyther covers the app,
     /// so the seed is always older than the tap that opened the report. Everything that changed the
-    /// screen in between and did not change which view controllers are showing — a scroll, a table
-    /// reload, a cell expanding — is missing from it, and the poll cannot see any of those. A report
-    /// of twelve findings for rows that have been scrolled away is not wrong about the pass; it is
-    /// wrong about *when*, and the screen has to say so.
+    /// screen in between is missing from it, and some of it is invisible to the live trigger as well
+    /// — see ``InterfaceToolkit/appViewDidLayout(_:)``, which follows the app laying out and so
+    /// cannot see content that changes with no `UIView` laying out at all. A report of twelve
+    /// findings for rows that have been scrolled away is not wrong about the pass; it is wrong about
+    /// *when*, and the screen has to say so.
     ///
     /// Cleared by ``rerun()``, which takes a pass of the screen as it is now.
     @Published private(set) var passPredatesThisScreen: Bool = false

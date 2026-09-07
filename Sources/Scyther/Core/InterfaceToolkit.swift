@@ -38,28 +38,25 @@ public final class InterfaceToolkit: NSObject, Sendable {
     /// ``scheduleAccessibilityReaudit()`` exists to avoid.
     nonisolated internal static let AccessibilityAuditDebounceInterval: TimeInterval = 0.5
 
-    /// How often, while live mode is on, Scyther asks whether the app has navigated somewhere else.
-    ///
-    /// See ``pollAccessibilityScreen()`` for why the question is asked on a clock rather than
-    /// answered by a notification. Half a second, matching
-    /// ``AccessibilityAuditDebounceInterval``, so the worst case between arriving on a screen and
-    /// its boxes being right is one poll plus one debounce.
-    nonisolated internal static let AccessibilityScreenPollInterval: TimeInterval = 0.5
-
     /// The longest a pending pass may be deferred by fresh triggers before it is left to run.
     ///
-    /// The poll's period and the debounce's period are the same half a second, and every poll that
-    /// sees a changed controller chain cancels the pending pass and schedules a fresh one exactly
-    /// one debounce out. On a screen whose chain changes on every poll — an auto-advancing
-    /// `UIPageViewController`, a media player recreating its controller, a SwiftUI screen whose
-    /// hosting children churn — the pass was therefore cancelled at about the instant it was due,
-    /// over and over, and the boxes never updated: no spinner, no banner, and no way to force a
-    /// pass short of opening the report. Nothing capped the number of consecutive cancellations.
+    /// A trigger arriving one debounce after the last one cancels the pending pass at about the
+    /// instant it was due, over and over. That is not a corner case now that the trigger is the
+    /// app laying out — see ``appViewDidLayout(_:)``: a screen with a spinner, a video layer, an
+    /// auto-advancing carousel or an animation that never settles lays out on every frame for as
+    /// long as it is on screen, so without a cap the boxes would never update on it at all — no
+    /// spinner, no banner, and no way to force a pass short of opening the report.
     ///
     /// Two seconds, measured from the *first* trigger of a run rather than the last, so a genuine
     /// burst still coalesces into one pass while an endless stream cannot starve it. Past the floor
     /// the pending pass is left alone rather than replaced: a pass of a screen two seconds stale is
     /// worth incomparably more than a pass that never happens.
+    ///
+    /// It is the one exception to "a pass lands only once the screen stops moving", and it is not
+    /// free: an unbroken scroll longer than the floor plus a debounce takes a live pass — about
+    /// 121ms of main thread — while it is still moving, roughly every two and a half seconds. That
+    /// is the price of the overlay ever being right on a screen that never settles, and it is paid
+    /// only in live mode, which is off unless a developer switched it on.
     nonisolated internal static let AccessibilityAuditMaximumDeferral: TimeInterval = 2
 
     /// Private Init to Stop re-initialisation and allow singleton creation.
@@ -85,13 +82,20 @@ public final class InterfaceToolkit: NSObject, Sendable {
     /// audit itself, which in a test host would do nothing anyway.
     internal var hasPendingAccessibilityAudit: Bool { pendingAccessibilityAudit != nil }
 
-    /// Watches for the app navigating somewhere else while live mode is on. See
-    /// ``pollAccessibilityScreen()``.
-    private var accessibilityScreenTimer: Timer?
-
-    /// The screen the last poll saw, so a change is noticed once rather than every half second
-    /// until the next audit lands.
-    private var lastAccessibilityScreenIdentity: [ObjectIdentifier] = []
+    /// Whether a layout this turn has already been counted, so a single layout pass — which lays
+    /// out every view that needs it, hundreds of them while a scroll is tracking — costs one
+    /// schedule rather than hundreds.
+    ///
+    /// Coalescing here rather than leaning on the debounce alone is about allocation, not about
+    /// correctness: the debounce would collapse them all into one pass either way, but each call to
+    /// ``scheduleAccessibilityReaudit()`` cancels a `DispatchWorkItem`, allocates another and arms a
+    /// timer, and doing that per view per frame is work the developer can feel. The pass still lands
+    /// one debounce after the *last* layout, because the last layout of the last frame still
+    /// restarts it.
+    ///
+    /// Cleared one run-loop turn later, which is the definition of "this turn" that costs nothing to
+    /// evaluate. Readable so a test can tell a coalesced burst from a suppressed trigger.
+    internal private(set) var hasNotedALayoutThisTurn = false
 
     /// When ``lastUncoveredAccessibilityResult`` was taken.
     private var lastUncoveredAccessibilityResultTakenAt: Date?
@@ -118,12 +122,11 @@ public final class InterfaceToolkit: NSObject, Sendable {
     /// That guard covers the pixels and the accessibility walk, which is what it was written for,
     /// and covers none of the apparatus around them: a host shipping
     /// `Scyther.start(allowProductionBuilds: true)` with ``AccessibilityAudit/liveEnabled``
-    /// persisted — the exact combination that guard names as the hole — installed a repeating
-    /// half-second `Timer` on the main run loop in `.common` mode for the life of the process, a
-    /// hundred-deep controller-chain walk two to four times a second, a `DispatchWorkItem` on every
-    /// navigation, and a full-screen overlay consulted on every touch, all to feed a function whose
-    /// only possible answer was an empty result. Nothing may be installed, observed or scheduled in
-    /// a build where the audit cannot run.
+    /// persisted — the exact combination that guard names as the hole — watched every view in the
+    /// app lay out for the life of the process (see ``appViewDidLayout(_:)``), scheduled a
+    /// `DispatchWorkItem` on every frame of every scroll, and left a full-screen overlay consulted
+    /// on every touch, all to feed a function whose only possible answer was an empty result.
+    /// Nothing may be installed, observed or scheduled in a build where the audit cannot run.
     ///
     /// Injected because `AppEnvironment.isTestCase` is unconditionally `true` under XCTest and
     /// `isAppStore` unconditionally `false`, so neither branch could otherwise be reached by a test.
@@ -132,9 +135,24 @@ public final class InterfaceToolkit: NSObject, Sendable {
                                              isAppStore: AppEnvironment.isAppStore)
     }
 
-    /// Whether the screen poll is installed right now. Readable so a test can assert that a build
-    /// the audit may not run on is not waking the run loop.
-    internal var isPollingAccessibilityScreen: Bool { accessibilityScreenTimer != nil }
+    /// Whether the app laying out currently triggers a re-audit.
+    ///
+    /// A `nonisolated(unsafe) static var` rather than a question asked of the singleton because
+    /// ``appViewDidLayout(_:)`` — the swizzled `layoutSubviews` that reads it — runs for every view
+    /// in the app, hundreds of times a frame while a scroll is tracking. It has to be able to rule
+    /// itself out in a single load: the guards in ``scheduleAccessibilityReaudit()`` are a
+    /// `ProcessInfo.environment` dictionary build (``AppEnvironment/isTestCase``), a
+    /// `Bundle.main.appStoreReceiptURL` read (``AppEnvironment/isTestFlight``) and a `UserDefaults`
+    /// lookup, none of which belongs on a per-view-per-frame path.
+    ///
+    /// `(unsafe)` for the same reason every other `nonisolated(unsafe)` flag in Scyther is: it is
+    /// only ever written from ``showAccessibilityAudit()`` and only ever read from `layoutSubviews`,
+    /// both of which are main-thread by construction, and the compiler cannot see that a swizzled
+    /// Objective-C entry point is main-actor isolated.
+    ///
+    /// Readable so a test can assert that a build the audit may not run on, or a session with live
+    /// mode off, is not watching anything.
+    nonisolated(unsafe) internal static var isObservingAppLayout = false
 
     /// The most recent pass taken while nothing of Scyther's was covering the app.
     ///
@@ -156,16 +174,6 @@ public final class InterfaceToolkit: NSObject, Sendable {
     /// reason as its sibling: a hostless test process has no key window to walk.
     internal var runAccessibilityReportPass: @MainActor () -> AccessibilityAuditor.Result = {
         AccessibilityAudit.instance.auditKeyWindow(purpose: .report)
-    }
-
-    /// Reads which screen the app is showing. Replaced by a test.
-    ///
-    /// A seam in the same style as `ScytherPresentation.isCoveringScreenProbe` and
-    /// `AccessibilityAuditor.now`: a hostless `xctest` process has no key window, so the real
-    /// reader answers with an empty array forever and a test that could not replace it would be
-    /// asserting that nothing ever changes — which is precisely the bug.
-    internal var accessibilityScreenIdentityProbe: @MainActor () -> [ObjectIdentifier] = {
-        InterfaceToolkit.accessibilityScreenIdentity(from: InterfaceToolkit.rootViewController)
     }
 
     /// Answers whether Scyther's own UI is in front of the app, at the moment it is asked.
@@ -437,14 +445,18 @@ extension InterfaceToolkit {
     /// Switching live mode off clears ``AccessibilityAuditOverlayView/findings`` and cancels any
     /// re-audit already in flight — a stale box left on screen after the developer has turned
     /// the feature off would look like a bug in the audit rather than a setting they chose.
+    ///
+    /// It is also the only place ``isObservingAppLayout`` is written, which is what makes the app
+    /// laying out cost one static load rather than a `ProcessInfo.environment` build and a
+    /// `UserDefaults` lookup in every app that has never switched this on.
     @MainActor internal func showAccessibilityAudit() {
         let enabled = canAuditThisBuild() && AccessibilityAudit.instance.liveEnabled
         accessibilityAuditView.isHidden = !enabled
+        Self.isObservingAppLayout = enabled
         if enabled {
-            startAccessibilityScreenPolling()
             scheduleAccessibilityReaudit()
         } else {
-            stopAccessibilityScreenPolling()
+            hasNotedALayoutThisTurn = false
             pendingAccessibilityAudit?.cancel()
             pendingAccessibilityAudit = nil
             pendingAccessibilityAuditDeadline = nil
@@ -455,105 +467,79 @@ extension InterfaceToolkit {
         }
     }
 
-    /// Starts asking, twice a second, whether the app has navigated somewhere else.
+    /// Schedules a re-audit because the app just laid something out.
     ///
-    /// Only while live mode is on: with the overlay off there is nothing to keep in step with, and
-    /// a debugging toolkit has no business waking the run loop for a screen nobody is drawing.
-    /// Scheduled in `.common` mode so a push that happens during a scroll is still noticed while
-    /// the scroll is tracking.
-    @MainActor private func startAccessibilityScreenPolling() {
-        guard accessibilityScreenTimer == nil else { return }
-        let timer = Timer(timeInterval: Self.AccessibilityScreenPollInterval, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.pollAccessibilityScreen()
-            }
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        accessibilityScreenTimer = timer
-    }
-
-    /// Stops the poll and forgets which screen it last saw, so switching live mode back on
-    /// re-audits rather than deciding nothing has changed since last time.
-    @MainActor private func stopAccessibilityScreenPolling() {
-        accessibilityScreenTimer?.invalidate()
-        accessibilityScreenTimer = nil
-        lastAccessibilityScreenIdentity = []
-    }
-
-    /// Schedules a re-audit when, and only when, the app is showing a different screen than it was
-    /// at the last poll.
+    /// ## Why layout, and not the controller chain
     ///
-    /// ## Why a poll
+    /// This used to poll, twice a second, for a change in which view controllers were showing. That
+    /// question has an honest answer in a UIKit app and almost none in a SwiftUI one: a `TabView`
+    /// switch, a `NavigationStack` push and a `List` scroll all happen inside a single
+    /// `UIHostingController`, so the chain never moved and the overlay drew one pass at launch and
+    /// then described a screen that had gone. Measured on a simulator: one pass, at launch, and not
+    /// another for the rest of the session however much the app was navigated.
     ///
-    /// The live overlay used to follow exactly three things: a device rotation, a new `UIWindow`
-    /// becoming visible, and live mode being switched on. A navigation push, a tab change, a
-    /// swipe-back, the app presenting one of its own sheets — none of them reach any of those, so
-    /// the boxes stayed pinned to a screen that had gone and the pill went on offering a report
-    /// about it. UIKit posts no notification for "the app navigated": there is no public signal for
-    /// a push, and the ones that exist (`UIWindow.didBecomeVisibleNotification`, the orientation
-    /// notification) are the ones already wired up. The alternatives were swizzling
-    /// `UIViewController.viewDidAppear` — a process-wide hook installed on the app under debug, for
-    /// this one feature — or watching every frame, which is the cost this whole debounce exists to
-    /// avoid.
+    /// Layout is the signal that actually moves. Nothing changes what is on screen without laying
+    /// something out — a push lays out the incoming view, `addSubview` marks its new superview as
+    /// needing layout, a scroll lays out the scroll view on every frame it tracks, a reload lays out
+    /// the cells that changed. Scyther already swizzles `UIView.layoutSubviews` process-wide for the
+    /// view-borders and view-sizes overlays, so this costs no new hook: see
+    /// `UIView.swizzledLayoutSubviews()`.
     ///
-    /// So the question is asked on a clock, and asked cheaply: ``accessibilityScreenIdentity(from:)``
-    /// reads a handful of object pointers and allocates one small array, and only a *change* in the
-    /// answer schedules anything. The audit itself still goes through the same debounce as
-    /// everything else, so a push straight into a tab change is one pass, not two.
+    /// ## Why it cannot feed itself
+    ///
+    /// A pass draws boxes, and drawing is layout, so the obvious failure is a pass that schedules
+    /// the next one for ever. Two independent things stop it, and either alone would be enough.
+    ///
+    /// Everything the live overlay draws — the boxes, the count pill, the flash layer — lives inside
+    /// ``topLevelViewsWrapper``, and a layout inside that wrapper is refused here. So is every other
+    /// overlay Scyther keeps on screen, which matters as much: ``FPSCounterView`` lays its label
+    /// out again on every frame it samples, and without this it alone would have kept a pass
+    /// permanently pending.
+    ///
+    /// And a pass that finds what the last one found changes nothing on screen at all —
+    /// ``AccessibilityAuditOverlayView/findings`` drops it before any redraw, see
+    /// ``AccessibilityAuditOverlayView/describeTheSameElements(_:_:)`` — so even without the wrapper
+    /// rule the loop would have to terminate on the second pass rather than run away.
     ///
     /// ## What it still misses
     ///
-    /// Anything that changes a screen without changing which view controllers are showing: a scroll,
-    /// a table reload, a cell expanding, a form being filled in, a sheet whose contents swap
-    /// underneath it. Those keep the boxes from the last pass until something else triggers one.
-    @MainActor internal func pollAccessibilityScreen() {
-        let identity = accessibilityScreenIdentityProbe()
-        guard identity != lastAccessibilityScreenIdentity else { return }
-        lastAccessibilityScreenIdentity = identity
+    /// Content that changes with no `UIView` laying out: a screen whose entire body is drawn by
+    /// SwiftUI into one backing view that never re-lays out, or a `CALayer` animating on its own.
+    /// Those keep the last pass's boxes until something else moves, and the escape is the same as
+    /// for a pass gone stale for any other reason — tapping the pill takes a fresh one.
+    ///
+    /// - Parameter view: The view that just laid out.
+    @MainActor internal static func appViewDidLayout(_ view: UIView) {
+        guard isObservingAppLayout else { return }
+        instance.appViewDidLayout(view)
+    }
+
+    /// The instance half of ``appViewDidLayout(_:)``, split out so the static entry point stays a
+    /// single load in the case that matters — live mode off, which is every app that has not asked
+    /// for this.
+    ///
+    /// - Parameter view: The view that just laid out.
+    @MainActor internal func appViewDidLayout(_ view: UIView) {
+        guard !hasNotedALayoutThisTurn else { return }
+        guard !view.isDescendant(of: topLevelViewsWrapper) else { return }
+
+        hasNotedALayoutThisTurn = true
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                self?.hasNotedALayoutThisTurn = false
+            }
+        }
         scheduleAccessibilityReaudit()
     }
 
-    /// Which view controllers are showing, innermost last.
+    /// Forgets that a layout has already been counted this turn.
     ///
-    /// Descends the way UIKit itself decides what is on screen: whatever is presented over a
-    /// controller wins, then a navigation controller's top, a tab bar controller's selection, and
-    /// otherwise the last child added. A push, a pop, a tab change, a modal appearing or being
-    /// dismissed and a root swapped out from under everything all change this array; nothing else
-    /// does, which is exactly the point.
-    ///
-    /// Identities rather than the controllers themselves, so nothing here keeps a dismissed screen
-    /// alive, and a plain array rather than a hash, so a test can read what it found.
-    ///
-    /// - Parameter root: The key window's root view controller, or `nil` when there is no window.
-    /// - Returns: The chain of controllers currently showing, in order.
-    ///
-    /// - SeeAlso: ``rootViewController``, which is where production gets `root` from.
-    @MainActor internal static func accessibilityScreenIdentity(from root: UIViewController?) -> [ObjectIdentifier] {
-        var identity: [ObjectIdentifier] = []
-        var current = root
-        var steps = 0
-        while let controller = current, steps < AccessibilityAuditor.maximumDepth {
-            identity.append(ObjectIdentifier(controller))
-            current = visibleDescendant(of: controller)
-            steps += 1
-        }
-        return identity
-    }
-
-    /// The key window's root view controller, which is where the screen the app is showing starts.
-    @MainActor private static var rootViewController: UIViewController? {
-        keyWindow?.rootViewController
-    }
-
-    /// The one controller below `controller` that the user is actually looking at.
-    ///
-    /// - Parameter controller: The controller to descend from.
-    /// - Returns: The presented, top, selected or last child controller, or `nil` at the bottom.
-    @MainActor private static func visibleDescendant(of controller: UIViewController) -> UIViewController? {
-        if let presented = controller.presentedViewController { return presented }
-        if let navigation = controller as? UINavigationController { return navigation.topViewController }
-        if let tabs = controller as? UITabBarController { return tabs.selectedViewController }
-        return controller.children.last
+    /// The reset production relies on is the `DispatchQueue.main.async` block above, one run-loop
+    /// turn out. A synchronous test cannot wait for that without turning every assertion about the
+    /// trigger into an asynchronous one, so this says "and now it is the next frame" in one line.
+    /// Nothing in Scyther calls it.
+    @MainActor internal func forgetTheLayoutNotedThisTurn() {
+        hasNotedALayoutThisTurn = false
     }
 
     /// Coalesces however many things just triggered a re-audit into a single audit, run
@@ -567,12 +553,17 @@ extension InterfaceToolkit {
     /// call from ``AccessibilityAuditOverlayView/onFrameChanged`` after the developer has
     /// switched the feature off does not schedule work that will just clear the overlay's
     /// already-empty findings a moment later.
+    ///
+    /// Every trigger restarts the debounce, which is what makes a 121ms pass affordable: the pass
+    /// lands once the screen stops moving rather than while it is moving. The one exception is
+    /// ``AccessibilityAuditMaximumDeferral``, below — a stream of triggers that never stops cannot
+    /// defer a pass for ever.
     @MainActor internal func scheduleAccessibilityReaudit() {
         guard canAuditThisBuild(), AccessibilityAudit.instance.liveEnabled else { return }
 
         let now = accessibilityClock()
         // Past the floor, the pass that has been waiting is left exactly where it is. Cancelling it
-        // again is what let a screen that changes on every poll defer it indefinitely.
+        // again is what would let a screen that never stops laying out defer it indefinitely.
         if let firstScheduledAt = accessibilityAuditFirstScheduledAt,
            pendingAccessibilityAudit != nil,
            now.timeIntervalSince(firstScheduledAt) >= Self.AccessibilityAuditMaximumDeferral {
