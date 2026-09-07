@@ -53,7 +53,11 @@ struct LogDetailsView: View {
                 exportButton
             }
         }
-        .onFirstAppear {
+        /// Keyed by the capture, because this screen pushes *itself* — at the **Replayed from**
+        /// row and at every row of the **Replays** section — so a parent and its child are alive
+        /// in the same stack on one `.onFirstAppear` call site. Without the discriminator the
+        /// child would queue behind a parent that is still formatting a large body.
+        .onFirstAppear(id: httpRequest.getRandomHash() as String) {
             await viewModel.onFirstAppear()
         }
         .sheet(item: $mockDraft) { rule in

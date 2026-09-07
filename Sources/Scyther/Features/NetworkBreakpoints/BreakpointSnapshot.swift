@@ -55,6 +55,14 @@ enum BreakpointSnapshot {
             self.breakpoints = breakpoints
         }
 
+        /// A state that holds nothing, whatever it is asked about.
+        ///
+        /// Read in place of ``current`` for a request Scyther itself sent — see
+        /// ``ScytherOriginatedRequest`` — so that the exemption is expressed once, as "there are
+        /// no breakpoints for this request", rather than as a condition repeated at each of the
+        /// two stages that could otherwise disagree.
+        static let empty = State(isEnabled: false, breakpoints: [])
+
         /// The first enabled breakpoint that holds `request` at `stage`, or `nil`.
         ///
         /// The first rather than every one: two breakpoints holding the same request would stop

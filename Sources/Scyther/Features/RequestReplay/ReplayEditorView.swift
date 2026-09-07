@@ -13,10 +13,16 @@ import SwiftUI
 /// `NavigationStack` — the sheet that presents it supplies one — so the body row can push the
 /// existing text editor.
 ///
-/// Sending is not special-cased anywhere: the request goes out on an ordinary session and comes
-/// back through the interceptor like traffic the app made, which means an enabled override
-/// matches it too. The overview footer says so, because a developer comparing a replay against
-/// an original needs to know whether they are looking at the network or at their own mock.
+/// The request goes out on an ordinary session and comes back through the interceptor, so a
+/// replay is captured and logged beside the original. A breakpoint never holds it and a header
+/// rewrite never touches it — a replay is marked as Scyther's own traffic, see
+/// ``ScytherOriginatedRequest`` — because holding one would stall this very editor and rewriting
+/// one would contradict the screen's promise of *exactly what you edited*.
+///
+/// Mocks and conditioning are the developer's call, on a toggle that defaults to off. Off is the
+/// honest comparison against the original; on is the workflow where a crafted request is fired at
+/// an override without waiting for the app to make the call itself. Either way the log row says
+/// what happened, in the badges it already has.
 struct ReplayEditorView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -37,6 +43,7 @@ struct ReplayEditorView: View {
     var body: some View {
         List {
             requestSection
+            overridesSection
             headersSection
             bodySection
         }
@@ -99,7 +106,7 @@ struct ReplayEditorView: View {
         }
     }
 
-    /// The warnings and the note about overrides, stacked under the overview section.
+    /// The warnings and the note that a replay is logged, stacked under the overview section.
     ///
     /// A `Section` takes one footer, so the lines that apply are gathered into a single stack
     /// rather than fighting over it. The warnings are the same list the confirmation alert
@@ -113,9 +120,25 @@ struct ReplayEditorView: View {
             ForEach(viewModel.warnings, id: \.self) { warning in
                 Text(warning)
             }
-            Text(localized("Replays are sent like app traffic, so any enabled override applies to them too."))
+            Text(localized("Replays appear in the log beside the original."))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The one decision the editor makes about interception, on its own row so it cannot be
+    /// mistaken for part of the request.
+    ///
+    /// Off is the default and the honest answer — this request, as edited, against the server —
+    /// which is what makes the comparison with the original mean anything. On exists because
+    /// "replay this captured request into the mock I have just written" is a real workflow, and
+    /// the only way to fire a crafted request at an override without waiting for the app to make
+    /// the call itself.
+    private var overridesSection: some View {
+        Section {
+            Toggle(localized("Apply Request Overrides"), isOn: $viewModel.appliesOverrides)
+        } footer: {
+            Text(localized("Off, the replay is sent exactly as edited. On, mocks and network conditioning apply to it as they would to app traffic. Breakpoints and header rewrites never apply to a replay."))
+        }
     }
 
     /// The editable header rows.
