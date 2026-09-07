@@ -35,7 +35,7 @@ struct AccessibilityAuditView: View {
     /// directly.
     @StateObject private var viewModel = AccessibilityAuditViewModel(
         seed: { InterfaceToolkit.instance.accessibilityPassForReport() },
-        run: { AccessibilityAudit.instance.auditKeyWindow() }
+        run: { AccessibilityAudit.instance.auditKeyWindow(purpose: .report) }
     )
 
     var body: some View {
@@ -68,6 +68,10 @@ struct AccessibilityAuditView: View {
 
             if viewModel.isHidingFindings, !viewModel.visibleGroups.isEmpty {
                 hiddenFindingsBanner
+            }
+
+            if let provenance = viewModel.passProvenanceDescription {
+                provenanceSection(provenance)
             }
 
             if viewModel.visibleGroups.isEmpty {
@@ -112,7 +116,28 @@ struct AccessibilityAuditView: View {
                 Toggle(check.title, isOn: viewModel.checkBinding(for: check))
             }
         } footer: {
-            Text(localized("Draws a box around every finding, live over the running app."))
+            Text(localized("Boxes missing labels and touch targets over the running app. Contrast is measured when you open this report, because it costs a snapshot of the whole screen."))
+        }
+    }
+
+    // MARK: - What This Pass Measured
+
+    /// Names the checks this pass ran and when it ran them.
+    ///
+    /// Live mode and the report no longer check the same things — see
+    /// ``AccessibilityAudit/checksDeferredToTheReport`` — so the report has to say which of the two
+    /// answers it is showing rather than leaving the reader to infer it from which sections happen
+    /// to be present. It is also the only thing on the screen that dates the contrast measurement,
+    /// which is the one finding on a report that can be invalidated by a scroll.
+    ///
+    /// - Parameter provenance: The sentence, from
+    ///   ``AccessibilityAuditViewModel/passProvenanceDescription``.
+    /// - Returns: The section.
+    private func provenanceSection(_ provenance: String) -> some View {
+        Section {
+            Label(provenance, systemImage: "clock")
+                .foregroundStyle(.secondary)
+                .font(.footnote)
         }
     }
 

@@ -87,6 +87,54 @@ internal final class AccessibilityAudit: Sendable {
         self.defaults = defaults
     }
 
+    /// A sampler, and whether the window it was taken from could actually be read.
+    ///
+    /// Two values rather than one because the pass has to tell "here are the pixels" apart from
+    /// "iOS declined to give me any" — see
+    /// ``AccessibilityAudit/checksUnmeasurableWithoutASnapshot(from:didCaptureWindow:)`` — and the
+    /// second is a fact about the capture rather than something a `ContrastSampling` is asked.
+    internal struct ContrastSource {
+        /// Where the contrast check reads pixels from.
+        let sampler: ContrastSampling
+
+        /// Whether the window snapshot behind it succeeded.
+        let didCaptureWindow: Bool
+
+        /// Creates a source.
+        ///
+        /// - Parameters:
+        ///   - sampler: Where the pixels come from.
+        ///   - didCaptureWindow: Whether the snapshot succeeded.
+        init(sampler: ContrastSampling, didCaptureWindow: Bool) {
+            self.sampler = sampler
+            self.didCaptureWindow = didCaptureWindow
+        }
+    }
+
+    /// How a pass gets its pixels, when it needs any.
+    ///
+    /// A seam, and the only way to assert the thing this wave is actually about: `ScytherTests` has
+    /// no host app, so `drawHierarchy(in:afterScreenUpdates:)` paints nothing and
+    /// `WindowContrastSampler` costs almost nothing to construct there. A test that timed a live
+    /// pass, or that inspected the findings it produced, would pass identically whether or not the
+    /// snapshot was ever taken. Counting calls to this closure is the one question with the same
+    /// answer in a test process and on a device.
+    ///
+    /// Production is unaffected: the default builds the real sampler.
+    internal var makeContrastSource: @MainActor (UIWindow) -> ContrastSource = { window in
+        let sampler = WindowContrastSampler(window: window)
+        return ContrastSource(sampler: sampler, didCaptureWindow: sampler.didCaptureWindow)
+    }
+
+    /// Reads the current time, so a test can spend a pass's budget deterministically.
+    ///
+    /// The same seam, and for the same reason, as ``AccessibilityAuditor/now``: a wall-clock budget
+    /// tested against the wall clock either sleeps or flakes. It matters more here than there,
+    /// because the budget's whole job on this path is to bound something a test cannot make slow —
+    /// the window snapshot — and the only way to write that test is to let it move the clock by
+    /// hand from inside ``makeContrastSource``.
+    internal var now: () -> Date = Date.init
+
     /// Controls whether the accessibility audit runs continuously against the live app and
     /// draws its findings as an overlay.
     ///
@@ -170,6 +218,82 @@ internal final class AccessibilityAudit: Sendable {
                                                               isCovering: Bool) -> Set<AccessibilityCheck> {
         guard isCovering else { return [] }
         return enabled.intersection(checksNeedingAnUncoveredScreen)
+    }
+
+    // MARK: - What A Pass Is For, And What It May Cost
+
+    /// Why a pass is being taken, which is what decides what it may afford to do.
+    ///
+    /// The two are not variations on one pass. A live pass runs on every navigation, unasked, while
+    /// the developer is using their app; a report pass runs once, because the developer tapped
+    /// something and is waiting for an answer. They can therefore afford completely different
+    /// amounts of main thread, and pretending otherwise is what made the live overlay freeze the
+    /// app for most of a second every time the screen changed.
+    internal enum Purpose: Sendable {
+        /// The pass behind the live overlay and its count pill, run on every navigation.
+        case live
+
+        /// The pass behind the report screen, run when the developer asks for one.
+        case report
+    }
+
+    /// The checks a live pass leaves to the report.
+    ///
+    /// Contrast, and contrast only, because contrast is the only check that reads pixels. Getting
+    /// those pixels means `drawHierarchy(in:afterScreenUpdates: true)` over the whole window — a
+    /// forced full re-render on the main thread, measured at 436ms of an 800ms pass on a real
+    /// screen. Live mode takes a pass on every navigation, so the developer paid that every time
+    /// they moved, for a check whose answer they were not looking at yet.
+    ///
+    /// Missing labels and touch targets read the accessibility tree and geometry. They need no
+    /// pixels, no snapshot, and no budget beyond the walk itself, which is why they are the two
+    /// that stay on the path that runs unasked.
+    ///
+    /// This is deliberately *not* the same set as ``checksNeedingAnUncoveredScreen``, even though
+    /// both happen to hold contrast alone: that one is about whether an answer would be *honest*,
+    /// this one is about whether it can be *afforded*. A future check that reads pixels through
+    /// something other than a window snapshot would belong to one and not the other.
+    internal nonisolated static let checksDeferredToTheReport: Set<AccessibilityCheck> = [.contrast]
+
+    /// Which of `enabled` a pass taken for `purpose` actually runs.
+    ///
+    /// Deferring a check to the report is not a way of switching it back on: a check the developer
+    /// has turned off is absent from `enabled` and is therefore in neither pass.
+    ///
+    /// - Parameters:
+    ///   - purpose: Why the pass is being taken.
+    ///   - enabled: The checks the developer has switched on.
+    /// - Returns: The checks to run.
+    internal nonisolated static func checks(for purpose: Purpose,
+                                            from enabled: Set<AccessibilityCheck>) -> Set<AccessibilityCheck> {
+        switch purpose {
+        case .live: return enabled.subtracting(checksDeferredToTheReport)
+        case .report: return enabled
+        }
+    }
+
+    /// How long a pass taken for `purpose` may hold the main thread.
+    ///
+    /// - Parameter purpose: Why the pass is being taken.
+    /// - Returns: The budget, in seconds — see ``AccessibilityAuditor/budget`` and
+    ///   ``AccessibilityAuditor/reportBudget`` for why they are different numbers.
+    internal nonisolated static func budget(for purpose: Purpose) -> TimeInterval {
+        switch purpose {
+        case .live: return AccessibilityAuditor.budget
+        case .report: return AccessibilityAuditor.reportBudget
+        }
+    }
+
+    /// Whether a pass running `checks` has to rasterise the window.
+    ///
+    /// The single most expensive thing a pass does, and it exists for one check. Asking this as a
+    /// question of the *checks* rather than of the purpose is what makes "contrast switched off"
+    /// and "contrast deferred" cost the same nothing: neither builds a sampler.
+    ///
+    /// - Parameter checks: The checks the pass is about to run.
+    /// - Returns: `true` only when something in `checks` needs pixels.
+    internal nonisolated static func needsAWindowSnapshot(checks: Set<AccessibilityCheck>) -> Bool {
+        !checks.intersection(checksDeferredToTheReport).isEmpty
     }
 
     /// Whether the audit is allowed to look at this build's screen at all.
@@ -290,11 +414,14 @@ internal final class AccessibilityAudit: Sendable {
     /// contrast ratio invented by Scyther's own dimming, or by a snapshot that never happened, is
     /// worse than an admitted gap.
     ///
+    /// - Parameter purpose: Why the pass is being taken — see ``Purpose``. A live pass runs missing
+    ///   labels and touch targets and takes no snapshot at all; a report pass runs everything the
+    ///   developer has switched on.
     /// - Returns: The audit's findings, whether the walk was truncated, which checks ran, which
     ///   were skipped because Scyther was covering the app, and which ran but could measure
     ///   nothing.
     @MainActor
-    func auditKeyWindow() -> AccessibilityAuditor.Result {
+    func auditKeyWindow(purpose: Purpose) -> AccessibilityAuditor.Result {
         guard Self.canAuditKeyWindow(isTestCase: AppEnvironment.isTestCase,
                                      isAppStore: AppEnvironment.isAppStore) else {
             return AccessibilityAuditor.Result(findings: [], didHitLimit: false, checksRun: [])
@@ -302,29 +429,50 @@ internal final class AccessibilityAudit: Sendable {
         guard let window = Self.keyWindow else {
             return AccessibilityAuditor.Result(findings: [], didHitLimit: false, checksRun: [])
         }
+        return audit(window: window, purpose: purpose)
+    }
 
-        let skipped = Self.checksSkippedWhileCovered(from: enabledChecks,
-                                                    isCovering: ScytherPresentation.isCoveringScreen)
-        let checks = enabledChecks.subtracting(skipped)
+    /// Audits `window` for `purpose`.
+    ///
+    /// Split out of ``auditKeyWindow(purpose:)`` because that method refuses to do anything at all
+    /// under a test — see ``canAuditKeyWindow(isTestCase:isAppStore:)`` — which left the whole
+    /// shape of a pass, including the decision this wave is about, as the one part of the audit no
+    /// test could reach. Everything expensive or conditional lives here, over a window a test can
+    /// hand in, and behind the ``makeContrastSource`` and ``now`` seams a test can replace.
+    ///
+    /// - Parameters:
+    ///   - window: The window to walk and, for a report pass, to snapshot.
+    ///   - purpose: Why the pass is being taken.
+    /// - Returns: What the pass found.
+    @MainActor
+    internal func audit(window: UIWindow, purpose: Purpose) -> AccessibilityAuditor.Result {
+        let wanted = Self.checks(for: purpose, from: enabledChecks)
+        let skipped = Self.checksSkippedWhileCovered(from: wanted,
+                                                     isCovering: ScytherPresentation.isCoveringScreen)
+        let checks = wanted.subtracting(skipped)
 
-        // The pass's clock starts here, before the snapshot rather than after it. Capturing the
-        // window is `drawHierarchy(afterScreenUpdates: true)` — a forced full re-render of the
-        // whole window on the main thread, and the single most expensive thing a pass does. A
-        // budget that only began once the walk started would exclude it from the one bound that
-        // exists on how long the app is frozen.
-        let auditor = AccessibilityAuditor()
-        let deadline = auditor.now().addingTimeInterval(AccessibilityAuditor.budget)
+        // The pass's clock starts here, before the snapshot rather than after it, and is read again
+        // the moment the snapshot returns. Capturing the window is
+        // `drawHierarchy(afterScreenUpdates: true)` — a forced full re-render of the whole window on
+        // the main thread, and the single most expensive thing a pass does. Starting the clock
+        // before it is not enough on its own: nothing can interrupt a capture once it has begun, so
+        // the budget's job is to notice afterwards that it is gone and stop rather than spend a
+        // second helping of it on the walk.
+        var auditor = AccessibilityAuditor()
+        auditor.now = now
+        let deadline = now().addingTimeInterval(Self.budget(for: purpose))
 
         // Built inside the `if`, and dropped the moment the capture is known to have failed, so
         // the snapshot's bitmap is the only one alive at any moment and does not outlive a pass
-        // it cannot be used for.
+        // it cannot be used for. A pass that runs no check needing pixels never gets here at all,
+        // which is the whole of what makes a live pass cheap.
         var sampler: ContrastSampling?
         var unmeasurable: Set<AccessibilityCheck> = []
-        if checks.contains(.contrast) {
-            let windowSampler = WindowContrastSampler(window: window)
+        if Self.needsAWindowSnapshot(checks: checks) {
+            let source = makeContrastSource(window)
             unmeasurable = Self.checksUnmeasurableWithoutASnapshot(from: checks,
-                                                                   didCaptureWindow: windowSampler.didCaptureWindow)
-            sampler = unmeasurable.isEmpty ? windowSampler : nil
+                                                                   didCaptureWindow: source.didCaptureWindow)
+            sampler = unmeasurable.isEmpty ? source.sampler : nil
         }
 
         // Contrast stays in `checks` even when there is nothing to sample: it *ran*, and was

@@ -46,6 +46,38 @@ final class AccessibilityAuditReportPresenterTests: XCTestCase {
         XCTAssertEqual(log.presented, 1)
     }
 
+    /// The pass the report opens onto is taken *before* the sheet goes up, and that order is the
+    /// whole of what makes the report's contrast check honest: UIKit dims and scales the app behind
+    /// a presented sheet, so from the moment this one is on screen the pixels in the window are
+    /// Scyther's rather than the app's.
+    func testTheReportPassIsTakenBeforeTheSheetIsPresented() {
+        var steps: [String] = []
+        let presenter = AccessibilityAuditReportPresenter()
+        presenter.takePassForReport = { steps.append("pass") }
+        presenter.presentReport = { _ in
+            steps.append("present")
+            return true
+        }
+
+        presenter.openReport()
+
+        XCTAssertEqual(steps, ["pass", "present"])
+    }
+
+    /// And a tap that opens nothing takes nothing either: a second tap while the report is already
+    /// up must not spend half a second rasterising the window for a report that is already there.
+    func testASecondTapTakesNoFurtherPass() {
+        var passes = 0
+        let presenter = AccessibilityAuditReportPresenter()
+        presenter.takePassForReport = { passes += 1 }
+        presenter.presentReport = { _ in true }
+        presenter.openReport()
+
+        presenter.openReport()
+
+        XCTAssertEqual(passes, 1)
+    }
+
     /// A second tap while the report is up does nothing. UIKit would happily accept a second
     /// presentation over the first, leaving the developer two identical reports deep with two
     /// dismissals between them and the app.

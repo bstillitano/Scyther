@@ -72,8 +72,9 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
     ///     about the age still gets a deterministic one.
     /// - Returns: The seeded pass.
     private func seeded(_ findings: [AccessibilityFinding],
-                        takenAt: Date = Date(timeIntervalSince1970: 1_000)) -> SeededAccessibilityPass {
-        SeededAccessibilityPass(result: result(findings), takenAt: takenAt)
+                        takenAt: Date = Date(timeIntervalSince1970: 1_000),
+                        checksRun: Set<AccessibilityCheck> = Set(AccessibilityCheck.allCases)) -> SeededAccessibilityPass {
+        SeededAccessibilityPass(result: result(findings, checksRun: checksRun), takenAt: takenAt)
     }
 
     /// Findings are grouped by check, errors first inside each group, so the report leads with
@@ -596,6 +597,64 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
         await viewModel.rerun()
 
         XCTAssertEqual(viewModel.visibleGroups.map(\.check), [.missingLabel])
+    }
+
+    // MARK: - Contrast Is Not In A Live Pass
+
+    /// A live pass runs missing labels and touch targets only — contrast costs a window snapshot,
+    /// which is most of a second of main thread, and live mode runs on every navigation. The
+    /// report opens onto that pass, so it has to say that the third check is not in it.
+    func testAReportSeededByALivePassSaysContrastIsNotInIt() async {
+        let pass = seeded([finding(.touchTarget, .warning, "chevron")],
+                          checksRun: [.missingLabel, .touchTarget])
+        let viewModel = AccessibilityAuditViewModel(settings: settings, seed: { pass }) {
+            self.result([])
+        }
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.checksAwaitingRerun, [.contrast])
+        XCTAssertFalse(viewModel.isComplete, "a pass missing a check has not checked everything")
+    }
+
+    /// The banner has two causes now — a check switched on since the pass, and a check a live pass
+    /// never runs — so it may not assert either one. It used to say the check had been "switched
+    /// on after this report was run", which is simply untrue of every live report.
+    func testTheAwaitingRerunBannerDoesNotClaimTheCheckWasJustSwitchedOn() async {
+        let pass = seeded([], checksRun: [.missingLabel, .touchTarget])
+        let viewModel = AccessibilityAuditViewModel(settings: settings, seed: { pass }) {
+            self.result([])
+        }
+        await viewModel.load()
+
+        let description = viewModel.awaitingRerunDescription
+        XCTAssertTrue(description.contains(AccessibilityCheck.contrast.title), description)
+        XCTAssertFalse(description.contains("switched on"),
+                       "nobody switched contrast on; a live pass does not run it")
+    }
+
+    /// The one thing that makes the two-checks/three-checks split readable: the report says when
+    /// the pass it is showing was taken, so a contrast result on it has a date and a report with
+    /// no contrast in it is visibly not claiming one.
+    func testTheReportSaysWhenThePassItIsShowingWasTaken() async {
+        let takenAt = Date(timeIntervalSince1970: 5_000)
+        let pass = seeded([], takenAt: takenAt)
+        let viewModel = AccessibilityAuditViewModel(settings: settings, seed: { pass }) {
+            self.result([])
+        }
+
+        await viewModel.load()
+
+        let described = try? XCTUnwrap(viewModel.passTakenAtDescription)
+        XCTAssertNotNil(described)
+        XCTAssertTrue(described?.isEmpty == false)
+    }
+
+    /// Before the first pass there is nothing to date, and a report that invented a time for it
+    /// would be dating a measurement that does not exist.
+    func testAReportWithNoPassYetHasNoTimeToShow() {
+        let viewModel = viewModel { self.result([]) }
+        XCTAssertNil(viewModel.passTakenAtDescription)
     }
 
     /// Notes what happened during a pass, from inside the audit closure.

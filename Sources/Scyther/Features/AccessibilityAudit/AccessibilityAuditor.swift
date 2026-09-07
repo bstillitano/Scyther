@@ -189,6 +189,21 @@ struct AccessibilityAuditor {
     /// fix — so the deadline is created once, at the top of the pass, and carried through both.
     nonisolated static let budget: TimeInterval = 0.25
 
+    /// How long a pass that also captures the window is allowed to take, in seconds.
+    ///
+    /// A separate number because the two passes do different amounts of work and are read by the
+    /// developer in different postures. ``budget`` bounds the pass that runs on every navigation,
+    /// where the only acceptable cost is one the developer cannot feel. A pass that runs the
+    /// contrast check has to rasterise the whole window first — `drawHierarchy(afterScreenUpdates:
+    /// true)`, measured at 436ms on a real screen — and that does not fit inside a quarter of a
+    /// second at all. Budgeting it at ``budget`` would not have made it faster; it would have made
+    /// every report an empty one with a truncation banner over it, which is the worst of both.
+    ///
+    /// Two seconds, because the snapshot is the floor and the walk and the per-element sampling sit
+    /// on top of it, and because this pass only ever happens when a developer has asked for a
+    /// report and is waiting for one. It is still a bound: a screen that cannot be audited in two
+    /// seconds gives back what it has and says it stopped early.
+    nonisolated static let reportBudget: TimeInterval = 2.0
 
     /// Reads the current time, so a test can spend the budget deterministically.
     ///

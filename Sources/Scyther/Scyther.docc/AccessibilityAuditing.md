@@ -24,6 +24,36 @@ A check that's switched off is not run at all, and the report says so explicitly
 "Nothing Wrong vs. Nothing Looked At" below. Read
 <doc:AccessibilityAuditing#What-the-Audit-Cannot-See> before you read a clean report as good news.
 
+### Two Checks Live, Three in the Report
+
+**The live overlay runs Missing Labels and Touch Targets. The report runs all three.** That is not
+an oversight and it is not configurable — it is the difference between a pass that runs unasked and
+one you asked for.
+
+Missing Labels and Touch Targets read the accessibility tree and the geometry of what is on screen.
+Contrast reads *pixels*, and getting those pixels means rasterising the entire window with
+`drawHierarchy(in:afterScreenUpdates: true)` — a forced full re-render on the main thread. On a real
+screen that measured **436ms of an 800ms pass**. The live overlay takes a pass on every navigation,
+so with contrast on that path the app froze for most of a second every time you pushed, popped or
+switched tab, for an answer you were not looking at yet.
+
+So contrast is measured at the two moments you asked for it: when you **open the report**, and when
+you tap **Re-run**. Opening the report from the count pill takes the contrast pass in the instant
+before the sheet appears, while your app is still the thing on screen — which is also the only
+moment it can be measured honestly, since a presented sheet dims and scales everything behind it.
+
+Two consequences worth knowing:
+
+- **The pill counts two checks; the report counts three.** The numbers are meant to differ. The pill
+  is a live count of what live mode checks.
+- **Contrast findings get no live box.** A contrast finding exists only in a report, so tapping its
+  row does not flash a box over the app the way a label or touch-target row does.
+
+The report never leaves this implicit. Every report carries a line naming the checks that ran and
+the time they ran at — `Missing Labels, Touch Targets measured at 10:42:11` — so a contrast result
+on screen is dated, and a report with no contrast in it is visibly not claiming one. When a check is
+switched on but is not in the pass you are reading, a banner says so and points at **Re-run**.
+
 ## Why the Accessibility Tree, Not the View Tree
 
 The audit walks `UIAccessibilityElement`s and accessibility containers, not `subviews`. A SwiftUI
@@ -54,9 +84,17 @@ never one the report has already counted.
 
 The walk gives up gracefully rather than hanging the app it's debugging. Three limits stop it:
 ``AccessibilityAuditor/maximumDepth`` (100), ``AccessibilityAuditor/maximumNodes`` (5,000 nodes
-*touched*, including the ones the visibility rules then discard) and ``AccessibilityAuditor/budget``
-— a 0.25s wall-clock budget covering the whole pass, the per-element pixel sampling included, not
-just the tree walk.
+*touched*, including the ones the visibility rules then discard) and a wall-clock budget covering
+the whole pass — the window snapshot and the per-element pixel sampling included, not just the tree
+walk.
+
+The budget is a different number for each kind of pass, because they do different amounts of work
+and you are in a different posture for each. ``AccessibilityAuditor/budget`` is **0.25s** and bounds
+the live pass, which runs unasked while you navigate; ``AccessibilityAuditor/reportBudget`` is
+**2s** and bounds a report pass, which has a window snapshot in it and which you are waiting for.
+The clock starts before the snapshot and is read again the moment it returns, so a capture that
+spends the whole budget stops the pass and raises the same truncation banner every other limit
+raises — rather than being excluded from the one bound on how long your app is held.
 
 Any of the three stopping the pass puts a banner at the top of the report. Read what it says
 carefully: **the limits abandon the whole remainder of the tree in tree order, not the branch they
@@ -155,9 +193,10 @@ as unmeasurable), and it is captured at no more than 2 pixels per point.
 
 ## The Live Overlay
 
-**Show Issues On Screen**, at the top of the report, draws a box around every current finding
-directly over the running app — red for an error, orange for a warning — with a pill down the
-**trailing edge** of the screen reporting the count. The pill sits on the side rather than the
+**Show Issues On Screen**, at the top of the report, draws a box around every missing-label and
+touch-target finding directly over the running app — red for an error, orange for a warning — with a
+pill down the **trailing edge** of the screen reporting the count. Contrast is not in a live pass;
+see <doc:AccessibilityAuditing#Two-Checks-Live-Three-in-the-Report>. The pill sits on the side rather than the
 bottom deliberately: it is the one thing Scyther puts over your app that takes touches, and at the
 bottom centre it sat on top of tab bars and primary action buttons and took their taps.
 
@@ -183,10 +222,19 @@ stays exactly as that pass left it — including if you switch a check on or off
 the app underneath — until you tap **Re-run**. A report that reflows under a developer mid-read
 is worse than a stale one that says plainly when it was taken.
 
-Opened from the pill it opens onto exactly the pass the pill counted, rather than taking one of its
-own from underneath itself. Every pass carries the moment it was taken, and a report showing a pass
-from before this screen opened says so and shows its age, because "this is the last pass over your
-app" and "this is your app now" are different claims.
+Opened from the pill it opens onto a pass taken in the instant before the sheet appeared — while
+your app, not Scyther, was on screen — rather than taking one from underneath itself. That pass runs
+all three checks; the brief pause before the report appears is the window snapshot contrast needs.
+
+Every pass carries the moment it was taken, and every report shows it: a line naming the checks that
+ran and the time they ran at. A report showing a pass from before this screen opened also says so
+and shows its age, because "this is the last pass over your app" and "this is your app now" are
+different claims — and a contrast ratio for a row you have since scrolled past is exactly the kind of
+claim that needs a date on it.
+
+Opened from **UI/UX → Accessibility Audit** inside the menu there was no such instant: Scyther was
+already covering the app before you got there. Such a report seeds off the last live pass if there
+is one, and contrast is reported as not run rather than measured through Scyther's own dimming.
 
 ### Nothing Wrong vs. Nothing Looked At
 
@@ -227,6 +275,9 @@ is a bug:
 - **Anything off screen.** Everything below the fold of a scroll view, every row of a list not
   currently laid out, every screen you have not navigated to, and — after a truncated pass —
   everything after the stopping point in tree order.
+- **Contrast, while you are only watching the live overlay.** The boxes and the pill cover two of
+  the three checks. A screen you never opened the report on has not had its contrast measured at
+  all, and the pill reading zero says nothing about it.
 - **Everything the three checks are not.** VoiceOver reading *order*, focus traps, custom rotors,
   accessibility actions, hint quality, Switch Control and Voice Control reachability, captions,
   haptics, timing and motion. None of it is measured here.

@@ -131,7 +131,19 @@ internal final class AccessibilityAuditReportPresenter {
     func openReport() {
         revalidatePresentation()
         guard !isPresenting else { return }
+        // Before the presentation, not after it: the report's contrast check reads the pixels in
+        // the window, and from the moment this sheet is up those pixels are Scyther's dimming of
+        // the app rather than the app. See ``InterfaceToolkit/takeAccessibilityPassForReport()``.
+        takePassForReport()
         isPresenting = presentReport(self)
+    }
+
+    /// Takes the pass the report will open onto, while the app is still what is on screen.
+    ///
+    /// A seam for the same reason ``presentReport`` is one: a test asserting the *order* of these
+    /// two steps must not need a real window to walk or a real sheet to present.
+    internal var takePassForReport: @MainActor () -> Void = {
+        InterfaceToolkit.instance.takeAccessibilityPassForReport()
     }
 
     /// Forgets — and releases — a presentation the developer has already dismissed.

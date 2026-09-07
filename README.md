@@ -92,7 +92,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Grid Overlay**: Display alignment grid over your UI
 - **FPS Counter**: Real-time frame rate overlay with color-coded performance indicators
 - **Touch Visualizer**: Show touch points for demos and recordings
-- **Accessibility Audit**: Walk the live accessibility tree for missing VoiceOver labels, undersized touch targets, and low-contrast text, with a live on-screen overlay
+- **Accessibility Audit**: Walk the live accessibility tree for missing VoiceOver labels, undersized touch targets, and low-contrast text, with a live on-screen overlay for the two checks that cost nothing
 - **View Frames**: Highlight view boundaries with colored borders
 - **View Sizes**: Display view dimensions as labels
 - **Slow Animations**: Reduce animation speed for debugging
@@ -1505,7 +1505,21 @@ of those rules is asked the same single question — "can this be seen?" — so 
 skips is never one the report has already counted, and a container that does not clip is never
 pruned for content its children still draw on screen.
 
-**Show Issues On Screen** draws a box around every current finding directly over the running app,
+**Two checks run live; the report runs three.** Missing Labels and Touch Targets read the
+accessibility tree and the geometry of what is on screen. Contrast reads *pixels*, and getting those
+pixels means rasterising the whole window with `drawHierarchy(in:afterScreenUpdates: true)` — a
+forced full re-render on the main thread, measured at 436ms of an 800ms pass on a real screen. The
+live overlay takes a pass on every navigation, so with contrast on that path the app froze for most
+of a second every time you pushed, popped or switched tab, for an answer nobody was looking at yet.
+So contrast is measured only at the moments you asked for a result: when you open the report, and
+when you tap **Re-run**. Opening the report from the count pill takes that pass in the instant
+before the sheet appears — while your app, not Scyther, is still what the window is showing, which
+is also the only moment contrast can be measured honestly. The pill therefore counts two checks and
+the report counts three, deliberately; and a contrast finding, existing only inside a report, gets
+no live box to flash.
+
+**Show Issues On Screen** draws a box around every current missing-label and touch-target finding
+directly over the running app,
 live, the same way `GridOverlay` and `FPSCounter` stay on screen without a manual refresh. The
 overlay follows the app: as well as rotations, it re-audits whenever you push, pop, switch tab, or
 present a screen of your own, half a second after the app settles. It notices that by checking
@@ -1527,14 +1541,22 @@ rectangle you can't see. It flashes where the element is *now*, and doesn't flas
 element has since gone.
 
 The report itself is frozen the moment it loads and only changes when **Re-run** is tapped, so
-findings never shift under you mid-read. Opened from the pill, it opens onto exactly the pass the
-pill counted, rather than taking one of its own from underneath itself — which is how a pill
-reading "7 issues" used to open onto "No Issues Found", having dropped contrast because by then the
-screen behind the report was Scyther's. **Re-run** always takes a fresh pass.
+findings never shift under you mid-read. Opened from the pill, it opens onto the pass taken in the
+instant before the sheet appeared, rather than taking one of its own from underneath itself — which
+is how a pill reading "7 issues" used to open onto "No Issues Found", having dropped contrast
+because by then the screen behind the report was Scyther's. **Re-run** always takes a fresh pass.
+
+Every report carries a line naming the checks that ran and the time they ran at — `Missing Labels,
+Touch Targets, Contrast measured at 10:42:11` — so a contrast result on screen is dated, and a
+report with no contrast in it is visibly not claiming one. That matters most for contrast, which is
+the finding a scroll can invalidate fastest.
 
 The toggles sit above the frozen report and take effect immediately, so the two can disagree. Switch
-a check off and its findings are hidden straight away; switch one on and the report says it was
-switched on after the pass and offers **Re-run**, rather than silently having no findings for it.
+a check off and its findings are hidden straight away; switch one on and the report says the check
+was not run in this pass and offers **Re-run**, rather than silently having no findings for it. The
+same banner covers the other way a check can be missing from a report you are reading — contrast,
+when the report opened onto a live pass — which is why it says only that the check was not run
+rather than asserting you had just switched it on.
 
 An empty report never claims more than the pass supports. A green tick and "No Issues Found" appear
 only when every enabled check ran over the whole screen and found nothing. A walk that stopped
@@ -1552,8 +1574,15 @@ as the current state of the app.
 The pass runs a moment *after* the screen appears, not inside its transition, so the push finishes
 and you see a spinner rather than a stalled navigation while the walk happens. The pass is bounded
 three ways — depth (100), node count (5,000 nodes *touched*, including the ones the visibility rules
-then discard) and a 0.25s wall-clock budget that covers the whole thing, including the per-element
-pixel sampling, rather than just the tree walk.
+then discard) and a wall-clock budget that covers the whole thing, including the window snapshot and
+the per-element pixel sampling, rather than just the tree walk.
+
+The budget is a different number for each kind of pass. A live pass gets **0.25s**, because it runs
+unasked while you navigate and the only acceptable cost is one you cannot feel. A report pass gets
+**2s**, because it has a window snapshot in it that does not fit inside a quarter of a second at
+all, and because you asked for it and are waiting. The clock starts before the snapshot and is read
+again the moment it returns, so a capture that spends the whole budget stops the pass and raises the
+truncation banner rather than being excluded from the one bound on how long your app is held.
 
 Any one of them stopping the pass puts a banner at the top of the report, and the banner says what
 that actually costs you: **each limit abandons the whole remainder of the tree in tree order, not
@@ -1587,12 +1616,13 @@ Re-run buttons as undersized touch targets. The skipped pass is taken as soon as
 goes away.
 
 It goes one step further for **Contrast**: while any Scyther screen is presented over
-the app — the menu, the report opened from the pill, the held-request editor — the check does not
+the app — the menu, the report reached from the menu, the held-request editor — the check does not
 run at all. A presented screen dims and scales everything behind it, so the pixels the sampler
 would read are your app seen through Scyther's own dimming, and every ratio measured from them is
-an artefact. The report says so, and points you at live mode, which measures the real screen.
-Missing Labels and Touch Targets come from the accessibility tree rather than from pixels, so
-nothing covering the screen changes their answer and they keep running either way.
+an artefact. The report says so, and points you at the count pill, which is the one route into the
+report that measures contrast before Scyther covers anything. Missing Labels and Touch Targets come
+from the accessibility tree rather than from pixels, so nothing covering the screen changes their
+answer and they keep running either way.
 
 The snapshot the contrast check reads is deliberately constrained, in three ways worth knowing
 about if a ratio ever looks wrong:
@@ -1639,6 +1669,9 @@ screen says so under its own green tick. The gaps, none of which is a bug:
   translations — and Increased Contrast, Reduce Transparency, Bold Text and Button Shapes.
 - **Anything off screen.** Below the fold of a scroll view, rows not laid out, screens you have not
   navigated to, and after a truncated pass everything past the stopping point in tree order.
+- **Contrast, while you are only watching the live overlay.** The boxes and the pill cover two of
+  the three checks, so a screen you never opened the report on has not had its contrast measured at
+  all and a pill reading zero says nothing about it.
 - **Everything the three checks are not.** Reading order, focus traps, custom rotors, accessibility
   actions, hint quality, Switch Control and Voice Control reachability, captions, timing and motion.
 

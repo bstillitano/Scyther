@@ -155,79 +155,156 @@
         }
       }
     },
-    "%@ not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on %@ to measure the real screen instead.": {
-      "comment": "Banner on the accessibility audit report: the first %@ is the list of checks that were skipped (in practice 'Contrast'), the second is the localized title of the 'Show Issues On Screen' toggle",
+    "%@ measured at %@.": {
+      "comment": "Footer line on the accessibility audit report naming what the pass checked and when: the first %@ is the list of checks that ran, the second is a locale-formatted time of day",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "لم يتم قياس %@ أثناء تغطية Scyther للتطبيق: الألوان خلف هذه الشاشة تخص Scyther وليس تطبيقك. فعّل %@ لقياس الشاشة الحقيقية."
+            "value": "تم قياس %@ في %@."
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ nicht gemessen, solange Scyther die App überdeckt: Die Farben hinter diesem Bildschirm gehören Scyther, nicht Ihrer App. Aktivieren Sie %@, um den echten Bildschirm zu messen."
+            "value": "%@ um %@ gemessen."
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ no se ha medido mientras Scyther cubre la app: los colores detrás de esta pantalla son de Scyther, no de tu app. Activa %@ para medir la pantalla real."
+            "value": "%@ medido a las %@."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ non mesuré tant que Scyther recouvre l'app : les couleurs derrière cet écran sont celles de Scyther, pas celles de votre app. Activez %@ pour mesurer l'écran réel."
+            "value": "%@ mesuré à %@."
           }
         },
         "it": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ non misurato mentre Scyther copre l'app: i colori dietro questa schermata sono di Scyther, non della tua app. Attiva %@ per misurare lo schermo reale."
+            "value": "%@ misurato alle %@."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Scytherがアプリを覆っている間は%@を測定できません。この画面の背後の色はアプリではなくScytherのものです。%@をオンにすると実際の画面を測定します。"
+            "value": "%@を%@に測定しました。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Scyther가 앱을 가리고 있는 동안에는 %@을(를) 측정하지 않습니다. 이 화면 뒤의 색은 앱이 아니라 Scyther의 색입니다. %@을(를) 켜면 실제 화면을 측정합니다."
+            "value": "%@을(를) %@에 측정했습니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ niet gemeten terwijl Scyther de app bedekt: de kleuren achter dit scherm zijn van Scyther, niet van je app. Schakel %@ in om het echte scherm te meten."
+            "value": "%@ gemeten om %@."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ não medido enquanto o Scyther cobre o app: as cores atrás desta tela são do Scyther, não do seu app. Ative %@ para medir a tela real."
+            "value": "%@ medido às %@."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ не измеряется, пока Scyther закрывает приложение: цвета за этим экраном принадлежат Scyther, а не вашему приложению. Включите %@, чтобы измерить настоящий экран."
+            "value": "%@ измерено в %@."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Scyther 覆盖应用时不会测量%@：此界面背后的颜色属于 Scyther，而非你的应用。开启%@即可测量真实屏幕。"
+            "value": "%@ 于 %@ 测量。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Scyther 覆蓋 App 時不會測量%@：此畫面背後的顏色屬於 Scyther，而非你的 App。開啟%@即可測量真實畫面。"
+            "value": "%@ 於 %@ 測量。"
+          }
+        }
+      }
+    },
+    "%@ not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on %@ and tap the count pill over your app to measure the real screen.": {
+      "comment": "Banner on the accessibility audit report: the first %@ is the list of checks that were skipped (in practice 'Contrast'), the second is the localized title of the 'Show Issues On Screen' toggle",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لم يتم قياس %@ أثناء تغطية Scyther للتطبيق: الألوان خلف هذه الشاشة تخص Scyther وليس تطبيقك. فعّل %@ ثم اضغط على شارة العدد فوق تطبيقك لقياس الشاشة الحقيقية."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ nicht gemessen, solange Scyther die App überdeckt: Die Farben hinter diesem Bildschirm gehören Scyther, nicht Ihrer App. Aktivieren Sie %@ und tippen Sie auf die Zähler-Pille über Ihrer App, um den echten Bildschirm zu messen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ no se ha medido mientras Scyther cubre la app: los colores detrás de esta pantalla son de Scyther, no de tu app. Activa %@ y toca la píldora de recuento sobre tu app para medir la pantalla real."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ non mesuré tant que Scyther recouvre l'app : les couleurs derrière cet écran sont celles de Scyther, pas celles de votre app. Activez %@ puis touchez la pastille de comptage au-dessus de votre app pour mesurer l'écran réel."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ non misurato mentre Scyther copre l'app: i colori dietro questa schermata sono di Scyther, non della tua app. Attiva %@ e tocca il badge del conteggio sopra la tua app per misurare la schermata reale."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scytherがアプリを覆っている間、%@は測定されません。この画面の背後の色はアプリではなくScytherのものです。%@をオンにし、アプリ上の件数ピルをタップすると実際の画面を測定できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther가 앱을 덮고 있는 동안에는 %@을(를) 측정하지 않습니다. 이 화면 뒤의 색은 앱이 아니라 Scyther의 것입니다. %@을(를) 켜고 앱 위의 개수 알약을 탭하면 실제 화면을 측정합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ niet gemeten terwijl Scyther de app bedekt: de kleuren achter dit scherm zijn die van Scyther, niet van je app. Schakel %@ in en tik op de tellerpil boven je app om het echte scherm te meten."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ não foi medido enquanto o Scyther cobre o app: as cores atrás desta tela são do Scyther, não do seu app. Ative %@ e toque na pílula de contagem sobre o seu app para medir a tela real."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "%@ не измеряется, пока Scyther закрывает приложение: цвета за этим экраном принадлежат Scyther, а не вашему приложению. Включите %@ и нажмите на счётчик поверх приложения, чтобы измерить настоящий экран."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther 覆盖应用时不测量 %@：此屏幕背后的颜色属于 Scyther，而非你的应用。开启%@并点按应用上方的计数标签即可测量真实屏幕。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scyther 覆蓋應用程式時不測量 %@：此畫面背後的顏色屬於 Scyther，而非你的應用程式。開啟%@並點一下應用程式上方的計數標籤即可測量真實畫面。"
           }
         }
       }
@@ -309,79 +386,79 @@
         }
       }
     },
-    "%@ switched on after this report was run. Tap %@ to include it.": {
-      "comment": "Banner on the accessibility audit report: the first %@ is the list of checks switched on since the report was run, the second is the localized title of the Re-run toolbar button",
+    "%@ was not run in this pass. Tap %@ to include it.": {
+      "comment": "Banner on the accessibility audit report: the first %@ is the list of checks that are switched on but were not part of this pass (either switched on since it ran, or deferred because a live pass does not run contrast), the second is the localized title of the Re-run toolbar button",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "تم تفعيل %@ بعد تشغيل هذا التقرير. اضغط %@ لتضمينه."
+            "value": "لم يتم تشغيل %@ في هذا المسح. اضغط %@ لتضمينه."
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ wurde nach diesem Bericht aktiviert. Tippen Sie auf %@, um es einzubeziehen."
+            "value": "%@ wurde in diesem Durchlauf nicht ausgeführt. Tippen Sie auf %@, um es einzubeziehen."
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ se activó después de generar este informe. Toca %@ para incluirlo."
+            "value": "%@ no se ejecutó en esta pasada. Toca %@ para incluirlo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ a été activé après l'exécution de ce rapport. Touchez %@ pour l'inclure."
+            "value": "%@ n'a pas été exécuté lors de ce passage. Touchez %@ pour l'inclure."
           }
         },
         "it": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ è stato attivato dopo l'esecuzione di questo report. Tocca %@ per includerlo."
+            "value": "%@ non è stato eseguito in questa scansione. Tocca %@ per includerlo."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "このレポートの実行後に%@がオンになりました。%@をタップすると結果に含まれます。"
+            "value": "このパスでは%@は実行されていません。%@をタップすると結果に含まれます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "이 보고서를 실행한 뒤에 %@이(가) 켜졌습니다. %@을(를) 탭하면 결과에 포함됩니다."
+            "value": "이번 검사에서는 %@이(가) 실행되지 않았습니다. %@을(를) 탭하면 결과에 포함됩니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ is ingeschakeld nadat dit rapport was uitgevoerd. Tik op %@ om het mee te nemen."
+            "value": "%@ is niet uitgevoerd in deze ronde. Tik op %@ om het mee te nemen."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ foi ativado depois que este relatório foi gerado. Toque em %@ para incluí-lo."
+            "value": "%@ não foi executado nesta passagem. Toque em %@ para incluí-lo."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ включено после того, как этот отчёт был составлен. Нажмите %@, чтобы включить в него."
+            "value": "%@ не выполнялось в этом проходе. Нажмите %@, чтобы включить в него."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ 是在生成此报告之后开启的。点按%@即可将其纳入。"
+            "value": "本次检查未运行 %@。点按%@即可将其纳入。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%@ 是在產生此報告之後開啟的。點一下%@即可將其納入。"
+            "value": "本次檢查未執行 %@。點一下%@即可將其納入。"
           }
         }
       }
@@ -10137,6 +10214,83 @@
         }
       }
     },
+    "Boxes missing labels and touch targets over the running app. Contrast is measured when you open this report, because it costs a snapshot of the whole screen.": {
+      "comment": "Footer under the settings section of the accessibility audit report screen, explaining that the live overlay runs only the two checks that need no pixels and that contrast is measured when the report is opened",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يرسم إطارات حول التسميات المفقودة وأهداف اللمس فوق التطبيق قيد التشغيل. أما التباين فيُقاس عند فتح هذا التقرير، لأنه يتطلب لقطة للشاشة بأكملها."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rahmt fehlende Beschriftungen und Tap-Ziele über der laufenden App ein. Der Kontrast wird beim Öffnen dieses Berichts gemessen, da er eine Aufnahme des gesamten Bildschirms kostet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Recuadra las etiquetas ausentes y los objetivos táctiles sobre la app en ejecución. El contraste se mide al abrir este informe, porque requiere una captura de toda la pantalla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Encadre les libellés manquants et les cibles tactiles par-dessus l'application en cours. Le contraste est mesuré à l'ouverture de ce rapport, car il coûte une capture de tout l'écran."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Riquadra le etichette mancanti e le aree di tocco sopra l'app in esecuzione. Il contrasto viene misurato all'apertura di questo report, perché richiede uno snapshot dell'intera schermata."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "実行中のアプリの上に、ラベル未設定の要素とタップ領域の枠を描画します。コントラストは画面全体のスナップショットを要するため、このレポートを開いたときに測定されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "실행 중인 앱 위에 레이블 누락과 터치 영역의 테두리를 표시합니다. 대비는 화면 전체 스냅숏이 필요하므로 이 보고서를 열 때 측정합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Kadert ontbrekende labels en tikdoelen in over de actieve app. Contrast wordt gemeten wanneer je dit rapport opent, omdat het een momentopname van het hele scherm kost."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Destaca rótulos ausentes e alvos de toque sobre o app em execução. O contraste é medido quando você abre este relatório, porque exige uma captura da tela inteira."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Обводит элементы без подписи и мелкие области нажатия поверх работающего приложения. Контраст измеряется при открытии этого отчёта, поскольку требует снимка всего экрана."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "在运行中的应用上方框出缺少标签的元素和点按目标。对比度需要整屏快照，因此在你打开此报告时测量。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "在執行中的應用程式上方框出缺少標籤的元素和點按目標。對比度需要整個畫面的快照，因此在你開啟此報告時測量。"
+          }
+        }
+      }
+    },
     "Break on requests like this": {
       "comment": "Button on a network log entry that creates a breakpoint matching requests like it",
       "localizations": {
@@ -19624,83 +19778,6 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "將地圖拖移至你想為App模擬的位置。此設定僅影響本App，其他所有定位服務仍保持準確。"
-          }
-        }
-      }
-    },
-    "Draws a box around every finding, live over the running app.": {
-      "comment": "Footer under the settings section of the accessibility audit report screen, explaining what the live-overlay toggle above it does",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "يرسم إطارًا حول كل نتيجة، مباشرةً فوق التطبيق قيد التشغيل."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Zeichnet einen Rahmen um jeden Befund, live über der laufenden App."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Dibuja un recuadro alrededor de cada hallazgo, en vivo sobre la aplicación en ejecución."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Dessine un cadre autour de chaque problème, en direct par-dessus l'application en cours d'exécution."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Disegna un riquadro attorno a ogni rilevamento, in tempo reale sopra l'app in esecuzione."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "実行中のアプリの上に、検出結果ごとの枠をリアルタイムで描画します。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "실행 중인 앱 위에 각 발견 항목의 테두리를 실시간으로 표시합니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Tekent een kader om elke bevinding, live over de actieve app heen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Desenha uma caixa ao redor de cada ocorrência, ao vivo sobre o aplicativo em execução."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Обводит рамкой каждую находку прямо поверх работающего приложения в реальном времени."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "在运行中的应用上方实时绘制每个发现项的边框。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "在執行中的應用程式上方即時繪製每個發現項目的邊框。"
           }
         }
       }

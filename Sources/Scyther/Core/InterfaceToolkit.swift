@@ -146,7 +146,16 @@ public final class InterfaceToolkit: NSObject, Sendable {
 
     /// Runs one pass of the audit. Replaced by a test, which has no window worth walking.
     internal var runAccessibilityPass: @MainActor () -> AccessibilityAuditor.Result = {
-        AccessibilityAudit.instance.auditKeyWindow()
+        AccessibilityAudit.instance.auditKeyWindow(purpose: .live)
+    }
+
+    /// Runs one *report* pass — every check the developer has switched on, contrast included.
+    ///
+    /// Separate from ``runAccessibilityPass`` because the two are taken at different moments for
+    /// different reasons, and only one of them may afford a window snapshot. Injected for the same
+    /// reason as its sibling: a hostless test process has no key window to walk.
+    internal var runAccessibilityReportPass: @MainActor () -> AccessibilityAuditor.Result = {
+        AccessibilityAudit.instance.auditKeyWindow(purpose: .report)
     }
 
     /// Reads which screen the app is showing. Replaced by a test.
@@ -632,6 +641,40 @@ extension InterfaceToolkit {
     /// measurement should get one — with the banners explaining what a measurement taken from
     /// under Scyther's own sheet cannot include.
     ///
+    /// Takes the pass the report is about to open onto, while the app is still what is on screen.
+    ///
+    /// Called from ``AccessibilityAuditReportPresenter/openReport()``, in the moment between the
+    /// developer tapping the count pill and Scyther's sheet rising in front of the app. That moment
+    /// is the only one in which a report pass can measure contrast honestly: a report is presented
+    /// over the app, UIKit dims and scales everything behind it, and from then until it is
+    /// dismissed the pixels in the window are Scyther's rather than the app's — which is why
+    /// ``AccessibilityAudit/checksSkippedWhileCovered(from:isCovering:)`` refuses to measure them.
+    /// Running the pass here is what makes "the report checks three things" true rather than
+    /// aspirational.
+    ///
+    /// It is also the moment a pause is affordable. This pass rasterises the window and costs
+    /// roughly half a second of main thread; the developer has just asked for a report and is
+    /// waiting for one, where the live pass this replaces ran unasked on every navigation.
+    ///
+    /// The overlay is handed only the findings from the checks a live pass runs. The pill counts
+    /// what live mode checks and the report counts what the report checked, and one number that
+    /// silently changed meaning depending on how the developer last opened a screen would be worse
+    /// than either.
+    @MainActor internal func takeAccessibilityPassForReport() {
+        guard canAuditThisBuild() else { return }
+        guard !isScytherCoveringScreen() else { return }
+
+        // The same pool, for the same reason, as `runAccessibilityAudit()` — and more so: this
+        // pass also holds a full-window bitmap and a crop per text element.
+        autoreleasepool {
+            let result = runAccessibilityReportPass()
+            lastUncoveredAccessibilityResult = result
+            lastUncoveredAccessibilityResultTakenAt = accessibilityClock()
+            let live = AccessibilityAudit.checks(for: .live, from: result.checksRun)
+            accessibilityAuditView.findings = result.findings.filter { live.contains($0.check) }
+        }
+    }
+
     /// - Returns: The most recent uncovered pass, or `nil` when there has not been one — live mode
     ///   off, or on but not yet past its first debounce.
     @MainActor internal func accessibilityPassForReport() -> SeededAccessibilityPass? {

@@ -340,6 +340,15 @@ final class AccessibilityAuditViewModel: ViewModel {
     /// no contrast in it and nothing saying why. Checks that were skipped for a reason re-running
     /// will not fix — ``checksSkippedWhileCovered`` and ``checksUnmeasurable`` — are left out, since
     /// their own banners already say more about them than this would.
+    ///
+    /// This is also how a report opened onto a *live* pass says that contrast is not in it. A live
+    /// pass runs missing labels and touch targets only — see
+    /// ``AccessibilityAudit/checksDeferredToTheReport`` — so contrast is switched on, absent from
+    /// the pass, skipped for no reason and unmeasured for no reason, which is precisely the state
+    /// this list already existed to describe. It is deliberately not a fourth kind of "did not
+    /// run": the developer's remedy is the same one this banner already names, and the report
+    /// having two nearly identical sentences for one situation is how a reader stops reading
+    /// either.
     var checksAwaitingRerun: [AccessibilityCheck] {
         AccessibilityCheck.allCases.filter {
             isChecked($0)
@@ -505,7 +514,7 @@ final class AccessibilityAuditViewModel: ViewModel {
     var coveredDescription: String {
         let names = ListFormatter.localizedString(byJoining: checksSkippedWhileCovered.map(\.title))
         let liveToggle = localized("Show Issues On Screen")
-        return localized("\(names) not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on \(liveToggle) to measure the real screen instead.")
+        return localized("\(names) not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on \(liveToggle) and tap the count pill over your app to measure the real screen.")
     }
 
     /// The unmeasurable banner's wording: which checks ran without being able to measure anything,
@@ -540,7 +549,15 @@ final class AccessibilityAuditViewModel: ViewModel {
         localized("This audit stopped at one of its limits and never reached the rest of the screen. Whatever it did not reach is unchecked, not clean.")
     }
 
-    /// The wording for a check switched on since the pass: which one, and what to do about it.
+    /// The wording for a check that is switched on and is not in this pass: which one, and what to
+    /// do about it.
+    ///
+    /// It says only that the check was not run, because there are now two ways for that to be true
+    /// and the banner cannot tell them apart from what it is given: the developer switched the
+    /// check on after the pass, or the pass was a live one and never runs contrast at all. It used
+    /// to assert the first — "switched on after this report was run" — which is untrue of every
+    /// report opened onto a live pass, and telling a developer they did something they did not do
+    /// is how they learn to stop believing the rest of the screen.
     ///
     /// Names the **Re-run** button through ``localized(_:comment:)`` rather than spelling it out,
     /// for the same reason ``coveredDescription`` names the live toggle that way: a developer
@@ -548,7 +565,45 @@ final class AccessibilityAuditViewModel: ViewModel {
     var awaitingRerunDescription: String {
         let names = ListFormatter.localizedString(byJoining: checksAwaitingRerun.map(\.title))
         let rerun = localized("Re-run")
-        return localized("\(names) switched on after this report was run. Tap \(rerun) to include it.")
+        return localized("\(names) was not run in this pass. Tap \(rerun) to include it.")
+    }
+
+    /// When the pass this report is showing was taken, formatted for the reader's locale, or `nil`
+    /// before the first pass has run.
+    ///
+    /// The report shows this because live mode and the report no longer run the same checks, and a
+    /// reader has to be able to tell which answer they are looking at and how old it is. Contrast
+    /// is the check that matters here: it is measured on the pass taken when the report is asked
+    /// for, and this is the only thing on the screen that dates that measurement. A contrast
+    /// finding with no date beside it is a claim about a screen that may have scrolled away.
+    ///
+    /// Time only, no date. Every pass a developer reads was taken seconds or minutes ago — the
+    /// stale-pass banner exists precisely because they are all recent — and a date on it would be
+    /// noise around the one component that changes.
+    var passTakenAtDescription: String? {
+        guard let passTakenAt else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .medium
+        return formatter.string(from: passTakenAt)
+    }
+
+    /// What this pass measured and when, as one sentence under the report.
+    ///
+    /// Names the checks rather than assuming the reader knows which pass they are looking at. A
+    /// report opened onto a live pass says "Missing Labels, Touch Targets measured at 10:42:11" and
+    /// the absence of Contrast from that list is the fact the awaiting-rerun banner then explains;
+    /// a report that took its own pass names all three, which is what makes the timestamp a date
+    /// for the contrast measurement rather than a decoration.
+    ///
+    /// `nil` when nothing has run, or when nothing ran in what did — an empty list with a time
+    /// beside it would date a measurement that was never made.
+    var passProvenanceDescription: String? {
+        guard let time = passTakenAtDescription else { return nil }
+        let ran = AccessibilityCheck.allCases.filter(checksRun.contains)
+        guard !ran.isEmpty else { return nil }
+        let names = ListFormatter.localizedString(byJoining: ran.map(\.title))
+        return localized("\(names) measured at \(time).")
     }
 
     /// Replaces ``groups``, ``didHitLimit``, ``checksRun``, ``checksSkippedWhileCovered`` and

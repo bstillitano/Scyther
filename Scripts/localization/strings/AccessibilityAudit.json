@@ -14,20 +14,35 @@
     "zh-Hans": "%@ 位于 %@，%@",
     "zh-Hant": "%@ 位於 %@，%@"
   },
-  "%@ not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on %@ to measure the real screen instead.": {
-    "ar": "لم يتم قياس %@ أثناء تغطية Scyther للتطبيق: الألوان خلف هذه الشاشة تخص Scyther وليس تطبيقك. فعّل %@ لقياس الشاشة الحقيقية.",
+  "%@ measured at %@.": {
+    "ar": "تم قياس %@ في %@.",
+    "comment": "Footer line on the accessibility audit report naming what the pass checked and when: the first %@ is the list of checks that ran, the second is a locale-formatted time of day",
+    "de": "%@ um %@ gemessen.",
+    "es": "%@ medido a las %@.",
+    "fr": "%@ mesuré à %@.",
+    "it": "%@ misurato alle %@.",
+    "ja": "%@を%@に測定しました。",
+    "ko": "%@을(를) %@에 측정했습니다.",
+    "nl": "%@ gemeten om %@.",
+    "pt-BR": "%@ medido às %@.",
+    "ru": "%@ измерено в %@.",
+    "zh-Hans": "%@ 于 %@ 测量。",
+    "zh-Hant": "%@ 於 %@ 測量。"
+  },
+  "%@ not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on %@ and tap the count pill over your app to measure the real screen.": {
+    "ar": "لم يتم قياس %@ أثناء تغطية Scyther للتطبيق: الألوان خلف هذه الشاشة تخص Scyther وليس تطبيقك. فعّل %@ ثم اضغط على شارة العدد فوق تطبيقك لقياس الشاشة الحقيقية.",
     "comment": "Banner on the accessibility audit report: the first %@ is the list of checks that were skipped (in practice 'Contrast'), the second is the localized title of the 'Show Issues On Screen' toggle",
-    "de": "%@ nicht gemessen, solange Scyther die App überdeckt: Die Farben hinter diesem Bildschirm gehören Scyther, nicht Ihrer App. Aktivieren Sie %@, um den echten Bildschirm zu messen.",
-    "es": "%@ no se ha medido mientras Scyther cubre la app: los colores detrás de esta pantalla son de Scyther, no de tu app. Activa %@ para medir la pantalla real.",
-    "fr": "%@ non mesuré tant que Scyther recouvre l'app : les couleurs derrière cet écran sont celles de Scyther, pas celles de votre app. Activez %@ pour mesurer l'écran réel.",
-    "it": "%@ non misurato mentre Scyther copre l'app: i colori dietro questa schermata sono di Scyther, non della tua app. Attiva %@ per misurare lo schermo reale.",
-    "ja": "Scytherがアプリを覆っている間は%@を測定できません。この画面の背後の色はアプリではなくScytherのものです。%@をオンにすると実際の画面を測定します。",
-    "ko": "Scyther가 앱을 가리고 있는 동안에는 %@을(를) 측정하지 않습니다. 이 화면 뒤의 색은 앱이 아니라 Scyther의 색입니다. %@을(를) 켜면 실제 화면을 측정합니다.",
-    "nl": "%@ niet gemeten terwijl Scyther de app bedekt: de kleuren achter dit scherm zijn van Scyther, niet van je app. Schakel %@ in om het echte scherm te meten.",
-    "pt-BR": "%@ não medido enquanto o Scyther cobre o app: as cores atrás desta tela são do Scyther, não do seu app. Ative %@ para medir a tela real.",
-    "ru": "%@ не измеряется, пока Scyther закрывает приложение: цвета за этим экраном принадлежат Scyther, а не вашему приложению. Включите %@, чтобы измерить настоящий экран.",
-    "zh-Hans": "Scyther 覆盖应用时不会测量%@：此界面背后的颜色属于 Scyther，而非你的应用。开启%@即可测量真实屏幕。",
-    "zh-Hant": "Scyther 覆蓋 App 時不會測量%@：此畫面背後的顏色屬於 Scyther，而非你的 App。開啟%@即可測量真實畫面。"
+    "de": "%@ nicht gemessen, solange Scyther die App überdeckt: Die Farben hinter diesem Bildschirm gehören Scyther, nicht Ihrer App. Aktivieren Sie %@ und tippen Sie auf die Zähler-Pille über Ihrer App, um den echten Bildschirm zu messen.",
+    "es": "%@ no se ha medido mientras Scyther cubre la app: los colores detrás de esta pantalla son de Scyther, no de tu app. Activa %@ y toca la píldora de recuento sobre tu app para medir la pantalla real.",
+    "fr": "%@ non mesuré tant que Scyther recouvre l'app : les couleurs derrière cet écran sont celles de Scyther, pas celles de votre app. Activez %@ puis touchez la pastille de comptage au-dessus de votre app pour mesurer l'écran réel.",
+    "it": "%@ non misurato mentre Scyther copre l'app: i colori dietro questa schermata sono di Scyther, non della tua app. Attiva %@ e tocca il badge del conteggio sopra la tua app per misurare la schermata reale.",
+    "ja": "Scytherがアプリを覆っている間、%@は測定されません。この画面の背後の色はアプリではなくScytherのものです。%@をオンにし、アプリ上の件数ピルをタップすると実際の画面を測定できます。",
+    "ko": "Scyther가 앱을 덮고 있는 동안에는 %@을(를) 측정하지 않습니다. 이 화면 뒤의 색은 앱이 아니라 Scyther의 것입니다. %@을(를) 켜고 앱 위의 개수 알약을 탭하면 실제 화면을 측정합니다.",
+    "nl": "%@ niet gemeten terwijl Scyther de app bedekt: de kleuren achter dit scherm zijn die van Scyther, niet van je app. Schakel %@ in en tik op de tellerpil boven je app om het echte scherm te meten.",
+    "pt-BR": "%@ não foi medido enquanto o Scyther cobre o app: as cores atrás desta tela são do Scyther, não do seu app. Ative %@ e toque na pílula de contagem sobre o seu app para medir a tela real.",
+    "ru": "%@ не измеряется, пока Scyther закрывает приложение: цвета за этим экраном принадлежат Scyther, а не вашему приложению. Включите %@ и нажмите на счётчик поверх приложения, чтобы измерить настоящий экран.",
+    "zh-Hans": "Scyther 覆盖应用时不测量 %@：此屏幕背后的颜色属于 Scyther，而非你的应用。开启%@并点按应用上方的计数标签即可测量真实屏幕。",
+    "zh-Hant": "Scyther 覆蓋應用程式時不測量 %@：此畫面背後的顏色屬於 Scyther，而非你的應用程式。開啟%@並點一下應用程式上方的計數標籤即可測量真實畫面。"
   },
   "%@ ran but could not read enough of this screen to report on it. What it did not measure is missing from this report, not passing it.": {
     "ar": "تم تشغيل %@ لكنه لم يتمكن من قراءة ما يكفي من هذه الشاشة لإعداد تقرير عنها. ما لم يُقَس غائب عن هذا التقرير، وليس ناجحًا.",
@@ -44,20 +59,20 @@
     "zh-Hans": "%@已运行，但无法读取此界面的足够内容来给出结论。未测量的部分只是不在本报告中，并不代表通过。",
     "zh-Hant": "%@已執行，但無法讀取此畫面的足夠內容來給出結論。未測量的部分只是不在本報告中，並不代表通過。"
   },
-  "%@ switched on after this report was run. Tap %@ to include it.": {
-    "ar": "تم تفعيل %@ بعد تشغيل هذا التقرير. اضغط %@ لتضمينه.",
-    "comment": "Banner on the accessibility audit report: the first %@ is the list of checks switched on since the report was run, the second is the localized title of the Re-run toolbar button",
-    "de": "%@ wurde nach diesem Bericht aktiviert. Tippen Sie auf %@, um es einzubeziehen.",
-    "es": "%@ se activó después de generar este informe. Toca %@ para incluirlo.",
-    "fr": "%@ a été activé après l'exécution de ce rapport. Touchez %@ pour l'inclure.",
-    "it": "%@ è stato attivato dopo l'esecuzione di questo report. Tocca %@ per includerlo.",
-    "ja": "このレポートの実行後に%@がオンになりました。%@をタップすると結果に含まれます。",
-    "ko": "이 보고서를 실행한 뒤에 %@이(가) 켜졌습니다. %@을(를) 탭하면 결과에 포함됩니다.",
-    "nl": "%@ is ingeschakeld nadat dit rapport was uitgevoerd. Tik op %@ om het mee te nemen.",
-    "pt-BR": "%@ foi ativado depois que este relatório foi gerado. Toque em %@ para incluí-lo.",
-    "ru": "%@ включено после того, как этот отчёт был составлен. Нажмите %@, чтобы включить в него.",
-    "zh-Hans": "%@ 是在生成此报告之后开启的。点按%@即可将其纳入。",
-    "zh-Hant": "%@ 是在產生此報告之後開啟的。點一下%@即可將其納入。"
+  "%@ was not run in this pass. Tap %@ to include it.": {
+    "ar": "لم يتم تشغيل %@ في هذا المسح. اضغط %@ لتضمينه.",
+    "comment": "Banner on the accessibility audit report: the first %@ is the list of checks that are switched on but were not part of this pass (either switched on since it ran, or deferred because a live pass does not run contrast), the second is the localized title of the Re-run toolbar button",
+    "de": "%@ wurde in diesem Durchlauf nicht ausgeführt. Tippen Sie auf %@, um es einzubeziehen.",
+    "es": "%@ no se ejecutó en esta pasada. Toca %@ para incluirlo.",
+    "fr": "%@ n'a pas été exécuté lors de ce passage. Touchez %@ pour l'inclure.",
+    "it": "%@ non è stato eseguito in questa scansione. Tocca %@ per includerlo.",
+    "ja": "このパスでは%@は実行されていません。%@をタップすると結果に含まれます。",
+    "ko": "이번 검사에서는 %@이(가) 실행되지 않았습니다. %@을(를) 탭하면 결과에 포함됩니다.",
+    "nl": "%@ is niet uitgevoerd in deze ronde. Tik op %@ om het mee te nemen.",
+    "pt-BR": "%@ não foi executado nesta passagem. Toque em %@ para incluí-lo.",
+    "ru": "%@ не выполнялось в этом проходе. Нажмите %@, чтобы включить в него.",
+    "zh-Hans": "本次检查未运行 %@。点按%@即可将其纳入。",
+    "zh-Hant": "本次檢查未執行 %@。點一下%@即可將其納入。"
   },
   "%@ × %@pt, under Apple's 44 × 44pt guidance.": {
     "ar": "%@ × %@pt، أقل من توصية Apple البالغة 44 × 44pt.",
@@ -235,6 +250,21 @@
     "zh-Hans": "辅助功能审核",
     "zh-Hant": "輔助使用稽核"
   },
+  "Boxes missing labels and touch targets over the running app. Contrast is measured when you open this report, because it costs a snapshot of the whole screen.": {
+    "ar": "يرسم إطارات حول التسميات المفقودة وأهداف اللمس فوق التطبيق قيد التشغيل. أما التباين فيُقاس عند فتح هذا التقرير، لأنه يتطلب لقطة للشاشة بأكملها.",
+    "comment": "Footer under the settings section of the accessibility audit report screen, explaining that the live overlay runs only the two checks that need no pixels and that contrast is measured when the report is opened",
+    "de": "Rahmt fehlende Beschriftungen und Tap-Ziele über der laufenden App ein. Der Kontrast wird beim Öffnen dieses Berichts gemessen, da er eine Aufnahme des gesamten Bildschirms kostet.",
+    "es": "Recuadra las etiquetas ausentes y los objetivos táctiles sobre la app en ejecución. El contraste se mide al abrir este informe, porque requiere una captura de toda la pantalla.",
+    "fr": "Encadre les libellés manquants et les cibles tactiles par-dessus l'application en cours. Le contraste est mesuré à l'ouverture de ce rapport, car il coûte une capture de tout l'écran.",
+    "it": "Riquadra le etichette mancanti e le aree di tocco sopra l'app in esecuzione. Il contrasto viene misurato all'apertura di questo report, perché richiede uno snapshot dell'intera schermata.",
+    "ja": "実行中のアプリの上に、ラベル未設定の要素とタップ領域の枠を描画します。コントラストは画面全体のスナップショットを要するため、このレポートを開いたときに測定されます。",
+    "ko": "실행 중인 앱 위에 레이블 누락과 터치 영역의 테두리를 표시합니다. 대비는 화면 전체 스냅숏이 필요하므로 이 보고서를 열 때 측정합니다.",
+    "nl": "Kadert ontbrekende labels en tikdoelen in over de actieve app. Contrast wordt gemeten wanneer je dit rapport opent, omdat het een momentopname van het hele scherm kost.",
+    "pt-BR": "Destaca rótulos ausentes e alvos de toque sobre o app em execução. O contraste é medido quando você abre este relatório, porque exige uma captura da tela inteira.",
+    "ru": "Обводит элементы без подписи и мелкие области нажатия поверх работающего приложения. Контраст измеряется при открытии этого отчёта, поскольку требует снимка всего экрана.",
+    "zh-Hans": "在运行中的应用上方框出缺少标签的元素和点按目标。对比度需要整屏快照，因此在你打开此报告时测量。",
+    "zh-Hant": "在執行中的應用程式上方框出缺少標籤的元素和點按目標。對比度需要整個畫面的快照，因此在你開啟此報告時測量。"
+  },
   "Checking every element on screen…": {
     "ar": "جارٍ فحص كل عنصر على الشاشة…",
     "comment": "Progress label shown while an accessibility audit pass is walking the screen",
@@ -279,21 +309,6 @@
     "ru": "Коэффициенты контрастности оцениваются по выборке пикселей на экране, а не измеряются по точным цветам.",
     "zh-Hans": "对比度是通过采样屏幕像素估算得出的，并非根据精确颜色测量。",
     "zh-Hant": "對比度是透過取樣螢幕像素估算得出的，並非根據精確顏色測量。"
-  },
-  "Draws a box around every finding, live over the running app.": {
-    "ar": "يرسم إطارًا حول كل نتيجة، مباشرةً فوق التطبيق قيد التشغيل.",
-    "comment": "Footer under the settings section of the accessibility audit report screen, explaining what the live-overlay toggle above it does",
-    "de": "Zeichnet einen Rahmen um jeden Befund, live über der laufenden App.",
-    "es": "Dibuja un recuadro alrededor de cada hallazgo, en vivo sobre la aplicación en ejecución.",
-    "fr": "Dessine un cadre autour de chaque problème, en direct par-dessus l'application en cours d'exécution.",
-    "it": "Disegna un riquadro attorno a ogni rilevamento, in tempo reale sopra l'app in esecuzione.",
-    "ja": "実行中のアプリの上に、検出結果ごとの枠をリアルタイムで描画します。",
-    "ko": "실행 중인 앱 위에 각 발견 항목의 테두리를 실시간으로 표시합니다.",
-    "nl": "Tekent een kader om elke bevinding, live over de actieve app heen.",
-    "pt-BR": "Desenha uma caixa ao redor de cada ocorrência, ao vivo sobre o aplicativo em execução.",
-    "ru": "Обводит рамкой каждую находку прямо поверх работающего приложения в реальном времени.",
-    "zh-Hans": "在运行中的应用上方实时绘制每个发现项的边框。",
-    "zh-Hant": "在執行中的應用程式上方即時繪製每個發現項目的邊框。"
   },
   "Findings Hidden": {
     "ar": "النتائج مخفية",

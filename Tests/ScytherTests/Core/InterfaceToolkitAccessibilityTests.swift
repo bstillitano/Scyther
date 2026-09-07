@@ -22,6 +22,7 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
     private let toolkit = InterfaceToolkit.instance
     nonisolated(unsafe) private var originalLiveEnabled = false
     nonisolated(unsafe) private var originalPass: (@MainActor () -> AccessibilityAuditor.Result)!
+    nonisolated(unsafe) private var originalReportPass: (@MainActor () -> AccessibilityAuditor.Result)!
     nonisolated(unsafe) private var originalCoverage: (@MainActor () -> Bool)!
     nonisolated(unsafe) private var originalIdentity: (@MainActor () -> [ObjectIdentifier])!
     nonisolated(unsafe) private var originalClock: (@MainActor () -> Date)!
@@ -37,6 +38,7 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
         try await super.setUp()
         originalLiveEnabled = UserDefaults.scyther.bool(forKey: AccessibilityAudit.LiveEnabledDefaultsKey)
         originalPass = toolkit.runAccessibilityPass
+        originalReportPass = toolkit.runAccessibilityReportPass
         originalCoverage = toolkit.isScytherCoveringScreen
         originalIdentity = toolkit.accessibilityScreenIdentityProbe
         originalClock = toolkit.accessibilityClock
@@ -52,6 +54,7 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
 
     override func tearDown() async throws {
         toolkit.runAccessibilityPass = originalPass
+        toolkit.runAccessibilityReportPass = originalReportPass
         toolkit.isScytherCoveringScreen = originalCoverage
         toolkit.accessibilityScreenIdentityProbe = originalIdentity
         toolkit.accessibilityClock = originalClock
@@ -334,6 +337,91 @@ final class InterfaceToolkitAccessibilityTests: XCTestCase {
         toolkit.isScytherCoveringScreen = { true }
 
         XCTAssertEqual(toolkit.accessibilityPassForReport()?.takenAt, Date(timeIntervalSince1970: 5_000))
+    }
+
+    // MARK: - The Pass The Report Is Given
+
+    /// The report has to be able to measure contrast, and contrast is measured from the pixels in
+    /// the window. From the moment the report's sheet is up those pixels are Scyther's dimming of
+    /// the app, so the only moment a report pass can be honest is the one between the developer
+    /// tapping the pill and the sheet rising — which is where this runs.
+    func testTheReportPassIsTakenWhileTheAppIsStillOnScreen() {
+        var passes = 0
+        toolkit.runAccessibilityReportPass = {
+            passes += 1
+            return self.result("report")
+        }
+
+        toolkit.takeAccessibilityPassForReport()
+
+        XCTAssertEqual(passes, 1)
+        toolkit.isScytherCoveringScreen = { true }
+        XCTAssertEqual(toolkit.accessibilityPassForReport()?.result.findings.map(\.elementName), ["report"])
+    }
+
+    /// And it does not run once Scyther is already in front of the app: everything it measured
+    /// would be Scyther's own sheet, which is the whole reason the pass is taken early.
+    func testNoReportPassIsTakenOnceScytherIsAlreadyCoveringTheApp() {
+        var passes = 0
+        toolkit.runAccessibilityReportPass = {
+            passes += 1
+            return self.result("report")
+        }
+        toolkit.isScytherCoveringScreen = { true }
+
+        toolkit.takeAccessibilityPassForReport()
+
+        XCTAssertEqual(passes, 0)
+    }
+
+    /// The pill counts what live mode checks and the report counts what the report checked. A
+    /// report pass therefore seeds the report in full but hands the overlay only the findings from
+    /// the two checks a live pass runs, so the count on screen never silently changes meaning
+    /// depending on how the developer last opened a screen.
+    func testTheOverlayKeepsCountingOnlyWhatALivePassChecks() {
+        toolkit.runAccessibilityReportPass = {
+            AccessibilityAuditor.Result(
+                findings: [self.finding(.missingLabel, "button"), self.finding(.contrast, "caption")],
+                didHitLimit: false,
+                checksRun: Set(AccessibilityCheck.allCases)
+            )
+        }
+
+        toolkit.takeAccessibilityPassForReport()
+
+        XCTAssertEqual(toolkit.accessibilityAuditView.findings.map(\.elementName), ["button"])
+        toolkit.isScytherCoveringScreen = { true }
+        XCTAssertEqual(toolkit.accessibilityPassForReport()?.result.findings.count, 2,
+                       "the report itself still opens onto the whole pass")
+    }
+
+    /// A build the audit may not run on must not be snapshotted either, and this is a second door
+    /// into a pass that ``runAccessibilityAudit()``'s own guard does not cover.
+    func testNoReportPassIsTakenOnABuildTheAuditMayNotRunOn() {
+        toolkit.canAuditThisBuild = { false }
+        var passes = 0
+        toolkit.runAccessibilityReportPass = {
+            passes += 1
+            return self.result("report")
+        }
+
+        toolkit.takeAccessibilityPassForReport()
+
+        XCTAssertEqual(passes, 0)
+    }
+
+    /// One finding of a given check, so a pass's contents can be told apart by check.
+    ///
+    /// - Parameters:
+    ///   - check: Which check produced it.
+    ///   - name: What to call the element.
+    /// - Returns: The finding.
+    private func finding(_ check: AccessibilityCheck, _ name: String) -> AccessibilityFinding {
+        AccessibilityFinding(check: check,
+                             severity: .warning,
+                             frame: CGRect(x: 0, y: 0, width: 10, height: 10),
+                             elementName: name,
+                             detail: "detail")
     }
 
     // MARK: - A Pass Always Eventually Runs
