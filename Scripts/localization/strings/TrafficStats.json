@@ -220,6 +220,36 @@
     "zh-Hans": "结束",
     "zh-Hant": "結束"
   },
+  "Every request in the log on a shared axis, oldest first. Bars that overlap were in flight at the same time.": {
+    "ar": "جميع الطلبات في السجل على محور مشترك، الأقدم أولاً. الأشرطة المتداخلة كانت قيد التنفيذ في الوقت نفسه.",
+    "comment": "Caption under the bars on the full-log waterfall page, explaining what the chart shows",
+    "de": "Alle Anfragen im Protokoll auf einer gemeinsamen Achse, älteste zuerst. Überlappende Balken waren gleichzeitig unterwegs.",
+    "es": "Todas las solicitudes del registro en un eje compartido, de la más antigua a la más reciente. Las barras que se solapan estaban en curso al mismo tiempo.",
+    "fr": "Toutes les requêtes du journal sur un axe partagé, de la plus ancienne à la plus récente. Les barres qui se chevauchent étaient en cours en même temps.",
+    "it": "Tutte le richieste del registro su un asse condiviso, dalla più vecchia alla più recente. Le barre che si sovrappongono erano in corso nello stesso momento.",
+    "ja": "ログ内のすべてのリクエストを共有の軸上に、古い順に表示します。重なり合うバーは同時に実行中でした。",
+    "ko": "로그의 모든 요청을 공유 축에 오래된 순으로 표시합니다. 겹치는 막대는 동시에 진행 중이었습니다.",
+    "nl": "Alle verzoeken in het logboek op een gedeelde as, oudste eerst. Balken die elkaar overlappen liepen tegelijkertijd.",
+    "pt-BR": "Todas as solicitações do registro em um eixo compartilhado, da mais antiga para a mais recente. As barras que se sobrepõem estavam em andamento ao mesmo tempo.",
+    "ru": "Все запросы из журнала на общей оси, от самых старых. Пересекающиеся полосы выполнялись одновременно.",
+    "zh-Hans": "日志中的所有请求都在同一时间轴上，最早的在最上方。重叠的条形表示这些请求同时在进行。",
+    "zh-Hant": "記錄中的所有請求都在同一時間軸上，最早的在最上方。重疊的長條表示這些請求同時在進行。"
+  },
+  "Every request that has been logged appears here as a bar on one shared axis.": {
+    "ar": "يظهر هنا كل طلب مُسجَّل على هيئة شريط على محور مشترك.",
+    "comment": "Empty state description on the full-log waterfall page, shown when the log holds nothing",
+    "de": "Jede protokollierte Anfrage erscheint hier als Balken auf einer gemeinsamen Achse.",
+    "es": "Cada solicitud registrada aparece aquí como una barra en un eje común.",
+    "fr": "Chaque requête enregistrée apparaît ici sous forme de barre sur un axe commun.",
+    "it": "Ogni richiesta registrata compare qui come barra su un asse condiviso.",
+    "ja": "ログに記録されたすべてのリクエストが、共有の軸上にバーとして表示されます。",
+    "ko": "기록된 모든 요청이 하나의 공유 축에 막대로 표시됩니다.",
+    "nl": "Elk gelogd verzoek verschijnt hier als balk op één gedeelde as.",
+    "pt-BR": "Cada solicitação registrada aparece aqui como uma barra em um eixo compartilhado.",
+    "ru": "Каждый записанный запрос отображается здесь полосой на общей оси.",
+    "zh-Hans": "每个已记录的请求都会在同一时间轴上显示为一个条形。",
+    "zh-Hant": "每個已記錄的請求都會在同一時間軸上顯示為一個長條。"
+  },
   "Failed": {
     "ar": "فشل",
     "comment": "Chart legend entry for requests that failed",
@@ -384,6 +414,21 @@
     "ru": "Секунды",
     "zh-Hans": "秒",
     "zh-Hant": "秒"
+  },
+  "See all": {
+    "ar": "عرض الكل",
+    "comment": "Button in the Waterfall section header that opens the full-log waterfall page",
+    "de": "Alle anzeigen",
+    "es": "Ver todo",
+    "fr": "Tout afficher",
+    "it": "Mostra tutto",
+    "ja": "すべて表示",
+    "ko": "모두 보기",
+    "nl": "Toon alles",
+    "pt-BR": "Ver tudo",
+    "ru": "Показать все",
+    "zh-Hans": "查看全部",
+    "zh-Hant": "查看全部"
   },
   "Slowest": {
     "ar": "الأبطأ",

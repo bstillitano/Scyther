@@ -127,6 +127,14 @@ staircase means the calls were serialised. A request still in flight runs to the
 which is the moment the chart was computed, because its real end is not yet known. A request that
 failed is drawn for as long as it actually ran, in red, not as one still running.
 
+**See all**, in the waterfall's section header, opens the same chart over every request in the log
+rather than the most recent forty. The rows are lazy and run oldest first so time reads downward,
+the seconds ruler and the legend are pinned to the top so the axis never scrolls out of reach, and
+tapping a bar opens that request's details. A sub-millisecond request is widened to the narrowest
+width that can be seen and tapped, while its label keeps reporting the duration it really took.
+One axis covers the whole log, so overlap means the same thing on both surfaces, and the page
+follows the log's search and filters live just as the figures do.
+
 **Slowest Endpoints** groups by `METHOD host/path`, dropping the query string and collapsing any
 numeric or UUID path segment to `:id`, so `/users/1` and `/users/2` aggregate. A GraphQL operation
 carries its name — `POST api.example.com/graphql (GetUser)` — because every operation in a GraphQL

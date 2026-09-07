@@ -37,22 +37,6 @@ final class TrafficStatsViewModel: ViewModel {
     /// and every change would otherwise walk the whole array twice.
     static let recomputeDebounce: DispatchQueue.SchedulerTimeType.Stride = .milliseconds(500)
 
-    /// How much wider than the longest bar the waterfall's axis runs.
-    ///
-    /// The value label sits past the end of its bar, so the axis needs headroom or the longest
-    /// bar's label falls outside the plot.
-    private static let chartHeadroom = 1.35
-
-    /// The narrowest axis the chart will draw, in seconds, so a session with no measured duration
-    /// still has somewhere to put its bars.
-    private static let minimumChartSpan = 0.05
-
-    /// The vertical space one bar takes, in points.
-    private static let barHeight: CGFloat = 22
-
-    /// How thick each bar is drawn, in points, leaving a gap between neighbouring rows.
-    static let barThickness: CGFloat = 10
-
     /// The vertical space the chart's axis and labels take, in points.
     private static let chartChrome: CGFloat = 60
 
@@ -230,7 +214,10 @@ final class TrafficStatsViewModel: ViewModel {
 
     /// How tall the chart is drawn, so every bar keeps its own row.
     var chartHeight: CGFloat {
-        max(Self.minimumChartHeight, CGFloat(waterfall.entries.count) * Self.barHeight + Self.chartChrome)
+        max(
+            Self.minimumChartHeight,
+            CGFloat(waterfall.entries.count) * WaterfallChartStyle.barHeight + Self.chartChrome
+        )
     }
 
     /// The far end of the chart's seconds axis.
@@ -238,7 +225,7 @@ final class TrafficStatsViewModel: ViewModel {
     /// Wider than the longest bar so the value label past its end stays inside the plot, and
     /// never zero, which would leave the axis with no extent to draw on.
     var chartUpperBound: Double {
-        max(waterfall.span * Self.chartHeadroom, Self.minimumChartSpan)
+        WaterfallChartStyle.upperBound(forSpan: waterfall.span)
     }
 
     /// The axis labels of the waterfall's bars, oldest first, which is the chart's y-axis domain.
@@ -246,29 +233,27 @@ final class TrafficStatsViewModel: ViewModel {
 
     /// What one bar's outcome is called, which is also its key in the chart's colour scale.
     ///
-    /// A stub is named as one whatever its authored status code says, because the code was
-    /// written rather than returned. Beyond that,
-    /// ``WaterfallEntry/isPending`` and ``WaterfallEntry/isFailure`` are mutually exclusive, so
-    /// the remaining order decides nothing — it reads failure first regardless, because when the
-    /// two could both be set this test ran second and every failure in the log was drawn as
-    /// pending.
+    /// Delegated to ``WaterfallChartStyle/outcomeTitle(for:)`` so this section and the full-log
+    /// page behind **See all** can never disagree about what a bar is: the two are meant to be
+    /// the same chart, and a request drawn green on one and orange on the other would be the
+    /// clearest possible way of breaking that.
     ///
     /// - Parameter entry: The bar.
     /// - Returns: The localised outcome name.
     func outcomeTitle(for entry: WaterfallEntry) -> String {
-        if entry.isStubbed { return localized("Stubbed") }
-        if entry.isFailure { return localized("Failed") }
-        return entry.isPending ? localized("Pending") : localized("Succeeded")
+        WaterfallChartStyle.outcomeTitle(for: entry)
     }
 
     /// The value label drawn at the end of one bar.
     ///
-    /// In the same milliseconds-or-seconds form the summary uses, so a two millisecond bar reads
-    /// as `2 ms` rather than rounding away to `0 s`.
+    /// Delegated to ``WaterfallChartStyle/valueLabel(for:)``, for the same reason
+    /// ``outcomeTitle(for:)`` is.
     ///
     /// - Parameter entry: The bar.
     /// - Returns: The bar's length as text.
-    func valueLabel(for entry: WaterfallEntry) -> String { durationText(entry.duration * 1_000) }
+    func valueLabel(for entry: WaterfallEntry) -> String {
+        WaterfallChartStyle.valueLabel(for: entry)
+    }
 
     /// The sentence under the chart explaining what it is showing.
     var waterfallCaption: String {
@@ -304,18 +289,13 @@ final class TrafficStatsViewModel: ViewModel {
 
     /// A duration in milliseconds as text.
     ///
-    /// Milliseconds up to a second and seconds beyond it, because "1,842 ms" is a number a reader
-    /// has to divide before it means anything.
+    /// Delegated to ``DurationText/milliseconds(_:)``, which the waterfall's bar labels also use,
+    /// so the same round trip reads the same wherever the screen reports it.
     ///
     /// - Parameter milliseconds: The duration, or `nil` when there is nothing to show.
     /// - Returns: The formatted duration, or an em dash.
     func durationText(_ milliseconds: Double?) -> String {
-        guard let milliseconds, milliseconds.isFinite else { return "—" } // scyther:unlocalised em dash placeholder
-        guard milliseconds >= 1_000 else {
-            return Measurement(value: milliseconds.rounded(), unit: UnitDuration.milliseconds)
-                .formatted(.measurement(width: .abbreviated, usage: .asProvided))
-        }
-        return secondsText(milliseconds / 1_000)
+        DurationText.milliseconds(milliseconds)
     }
 
     /// A duration in seconds as text, to two decimal places.
@@ -323,13 +303,6 @@ final class TrafficStatsViewModel: ViewModel {
     /// - Parameter seconds: The duration.
     /// - Returns: The formatted duration.
     private func secondsText(_ seconds: TimeInterval) -> String {
-        Measurement(value: seconds, unit: UnitDuration.seconds)
-            .formatted(
-                .measurement(
-                    width: .abbreviated,
-                    usage: .asProvided,
-                    numberFormatStyle: .number.precision(.fractionLength(0...2))
-                )
-            )
+        DurationText.seconds(seconds)
     }
 }

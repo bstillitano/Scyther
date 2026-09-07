@@ -58,7 +58,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **cURL Export**: Generate cURL commands for any captured request
 - **Log Export**: Share the captured requests as a zip containing a HAR 1.2 file, raw bodies, and a cURL command per request, with best-effort redaction and a sensitivity warning
 - **Filter Chips**: Narrow the network log by method, status class, host, content type, API kind, GraphQL operation, duration, exact status code, or recency from glass chips pinned above the list, or edit every filter at once from the all-filters sheet
-- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall of the recent requests on a shared axis
+- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall of the recent requests on a shared axis with a **See all** page covering the whole log, where each bar opens its request
 - **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests — combined on one override — from the menu or from code
 - **Save as Mock**: Turn any captured response into a disabled mock override in one tap, and import a HAR file as a whole set of them
 - **Request Replay**: Reopen any captured request in an editor, change its method, URL, headers or body, and send it again — the resent request is logged with a `REPLAY` badge and listed on the original with its status, duration and size deltas
@@ -581,6 +581,14 @@ with its duration and coloured by outcome — succeeded, failed, pending or stub
 has not come back yet runs to the end of the axis, which is the moment the chart was computed,
 because its real end is not known. A request that failed is drawn for as long as it actually ran,
 not as one still running.
+
+**See all** in the section header opens the same chart over the whole log — every request, not
+the most recent forty — with the seconds ruler and the legend pinned to the top so the axis stays
+readable however far you scroll. Rows run oldest first, so time reads downward, and tapping a bar
+opens that request's details. A request too short to draw is widened just enough to be seen and
+hit; its label still reports the duration it actually took. The axis is shared across the whole
+log, so overlap still means "in flight at the same time", and the page follows the log's search
+and filter chips exactly as the figures above it do.
 
 #### The breakdowns
 
