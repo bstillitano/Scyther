@@ -21,8 +21,10 @@ import SwiftUI
 /// - It never re-audits on its own. ``load()`` runs the audit once and ``groups`` stays exactly
 ///   as that pass left it until ``rerun()`` is called — see that method's own documentation for
 ///   why a report that moves while it is being read is worse than a stale one.
-/// - It never hides that a check did not run. ``skippedChecks`` exists so an empty ``groups``
-///   can mean "nothing was wrong" or "nothing was looked at" and the screen can tell those apart.
+/// - It never hides that a check did not run. ``checksRun`` and the three lists worked out from
+///   it — ``switchedOffChecks``, ``checksSkippedWhileCovered`` and ``checksUnmeasurable`` — exist so
+///   an empty ``groups`` can mean "nothing was wrong", "nothing was looked at", or one of two
+///   different kinds of "this could not be measured", and the screen can tell all four apart.
 ///
 /// The settings toggles the report screen shows above its findings — live mode and the three
 /// per-check switches — are mirrored here as `@Published` state (``liveEnabled``,
@@ -54,6 +56,27 @@ final class AccessibilityAuditViewModel: ViewModel {
     /// the type-level documentation.
     private let run: @MainActor () -> AccessibilityAuditor.Result
 
+    /// The pass this report should open onto, when there is a better one than it could take for
+    /// itself.
+    ///
+    /// The live overlay's last pass, taken while nothing of Scyther's covered the app, is that
+    /// better pass: it is the one the pill counted and the one whose boxes the developer tapped
+    /// through to get here. A report that ran its own pass instead opened onto a *different*
+    /// answer — contrast dropped, because by then the screen behind it is Scyther's — which is how
+    /// a pill reading "7 issues" came to open onto "No Issues Found" under a green tick.
+    ///
+    /// Returns `nil` when there is no such pass, which is every case except a live report: live
+    /// mode off, or the menu opened before the first debounce elapsed. ``load()`` then runs its own.
+    private let seed: @MainActor () -> AccessibilityAuditor.Result?
+
+    /// The settings the toggles at the top of the report read and write.
+    ///
+    /// Injected rather than reached for as ``AccessibilityAudit/instance`` so a test can hand this
+    /// a manager over a throwaway `UserDefaults` suite — the same seam
+    /// ``AccessibilityAudit/init(defaults:)`` exists for — instead of writing a developer's real
+    /// settings while asserting what the report shows. Production passes the singleton.
+    private let settings: AccessibilityAudit
+
     /// Whether ``load()`` has already run once.
     ///
     /// Without this, a view redrawing and calling ``load()`` again — SwiftUI does this more
@@ -73,12 +96,13 @@ final class AccessibilityAuditViewModel: ViewModel {
     /// screen is clean when the audit simply never reached the rest of it.
     @Published private(set) var didHitLimit: Bool = false
 
-    /// Every check that did not run in the current report, because a developer switched it off
-    /// before running the audit.
+    /// Every check that actually ran in the current report.
     ///
-    /// Named explicitly, rather than left for the developer to infer from an empty ``groups``,
-    /// because "no findings" and "nothing was looked at" must never read the same way.
-    @Published private(set) var skippedChecks: [AccessibilityCheck] = []
+    /// The report's other lists are all worked out against this one. An empty set means nothing was
+    /// looked at at all, which the screen has to lead with differently from a screen that was fully
+    /// checked and came back clean — "no findings" and "nothing was looked at" must never read the
+    /// same way, and a green tick over "No Issues Found" says the first while meaning the second.
+    @Published private(set) var checksRun: Set<AccessibilityCheck> = []
 
     /// Every check that was switched on and still did not run, because Scyther's own UI was
     /// covering the app when the pass was made.
@@ -89,6 +113,18 @@ final class AccessibilityAuditViewModel: ViewModel {
     /// of the app rather than the app. Reporting the second as the first would tell a developer
     /// they had turned contrast off when they had not.
     @Published private(set) var checksSkippedWhileCovered: [AccessibilityCheck] = []
+
+    /// Every check that was switched on, was not skipped, ran — and still measured nothing,
+    /// because the screen could not be captured.
+    ///
+    /// A third reason, kept apart from the other two because it means something the other two do
+    /// not. ``skippedChecks`` is a setting the developer chose. ``checksSkippedWhileCovered`` is a
+    /// measurement Scyther declined to make because it would have measured its own dimming, and
+    /// can be had by getting Scyther out of the way. This one is neither: the check was attempted
+    /// and iOS returned no pixels — a window the system has never presented, or content it refuses
+    /// to let anything capture — so there is nothing the developer can switch to make it work, and
+    /// nothing here says anything at all about whether their screen is fine.
+    @Published private(set) var checksUnmeasurable: [AccessibilityCheck] = []
 
     /// Whether a pass is in flight right now, so the screen can show a progress indicator
     /// instead of an empty report it does not yet have an answer for.
@@ -104,7 +140,7 @@ final class AccessibilityAuditViewModel: ViewModel {
     /// the running app immediately rather than waiting for the next time this screen loads.
     @Published var liveEnabled: Bool {
         didSet {
-            AccessibilityAudit.instance.liveEnabled = liveEnabled
+            settings.liveEnabled = liveEnabled
         }
     }
 
@@ -123,13 +159,21 @@ final class AccessibilityAuditViewModel: ViewModel {
 
     /// Creates a report view model over `run`.
     ///
-    /// - Parameter run: Performs one pass of the audit. Called once by ``load()`` and once per
-    ///   call to ``rerun()`` — never on a timer, never in the background.
-    init(run: @escaping @MainActor () -> AccessibilityAuditor.Result) {
+    /// - Parameters:
+    ///   - settings: The settings the toggles read and write. Defaults to the shared singleton.
+    ///   - seed: The pass this report should open onto instead of taking one of its own, or `nil`
+    ///     when there is none. Defaults to none.
+    ///   - run: Performs one pass of the audit. Called by ``load()`` when there is no seed, and
+    ///     once per call to ``rerun()`` — never on a timer, never in the background.
+    init(settings: AccessibilityAudit = .instance,
+         seed: @escaping @MainActor () -> AccessibilityAuditor.Result? = { nil },
+         run: @escaping @MainActor () -> AccessibilityAuditor.Result) {
         self.run = run
-        self.liveEnabled = AccessibilityAudit.instance.liveEnabled
+        self.seed = seed
+        self.settings = settings
+        self.liveEnabled = settings.liveEnabled
         self.checkEnabled = Dictionary(
-            uniqueKeysWithValues: AccessibilityCheck.allCases.map { ($0, AccessibilityAudit.instance.isEnabled($0)) }
+            uniqueKeysWithValues: AccessibilityCheck.allCases.map { ($0, settings.isEnabled($0)) }
         )
         super.init()
     }
@@ -144,9 +188,17 @@ final class AccessibilityAuditViewModel: ViewModel {
     ///
     /// `async` on purpose — see ``performPass()`` for why the walk must not happen inside the
     /// caller's own turn on the main actor.
+    ///
+    /// Opens onto the ``seed`` pass when there is one, without running anything: see that
+    /// property for why the live overlay's own last pass is a better report than one this screen
+    /// could take from underneath itself.
     func load() async {
         guard !hasLoaded else { return }
         hasLoaded = true
+        if let seeded = seed() {
+            apply(seeded)
+            return
+        }
         await performPass()
     }
 
@@ -178,7 +230,16 @@ final class AccessibilityAuditViewModel: ViewModel {
     ///
     /// This does not loosen the frozen-report contract: still one `run()` per call, still nothing
     /// re-walking on its own — the pass is merely a turn later than it used to be.
+    ///
+    /// The guard at the top is the only thing that actually stops two passes overlapping.
+    /// `.disabled(isRunning)` on the **Re-run** button cannot: `isRunning` is published from
+    /// inside this method, and the render that would grey the button out has to wait for the main
+    /// actor, which this pass is holding. The button therefore stays drawn as enabled for the whole
+    /// of the first pass — the one that starts during the navigation push — and a tap on it used to
+    /// start a second pass that ran a second full walk, published `isRunning = false` while the
+    /// first was still going, and replaced ``groups`` under a developer mid-read.
     private func performPass() async {
+        guard !isRunning else { return }
         isRunning = true
         await Task.yield()
         let result = run()
@@ -215,15 +276,76 @@ final class AccessibilityAuditViewModel: ViewModel {
             get: { self.isChecked(check) },
             set: { newValue in
                 self.checkEnabled[check] = newValue
-                AccessibilityAudit.instance.setEnabled(check, to: newValue)
+                self.settings.setEnabled(check, to: newValue)
             }
         )
     }
 
-    /// Replaces ``groups``, ``didHitLimit``, ``skippedChecks`` and ``checksSkippedWhileCovered``
-    /// with what `result` found.
+    // MARK: - What The Screen Shows
+
+    /// The frozen report's groups, minus any check the developer has switched off since it ran.
     ///
-    /// Both lists of skipped checks are ordered by ``AccessibilityCheck/allCases`` rather than
+    /// The toggles and the report share one screen, and the toggles take effect immediately while
+    /// the report stays frozen until **Re-run**. Switching Contrast off and finding a Contrast
+    /// section still listed directly beneath the switch reads as a toggle that did nothing, so the
+    /// section goes; ``checksAwaitingRerun`` is what says the report is now behind the settings.
+    var visibleGroups: [Group] {
+        groups.filter { isChecked($0.check) }
+    }
+
+    /// Every check that is switched off right now.
+    ///
+    /// Read from the toggles rather than from the pass, so switching one back on takes
+    /// "Switched off: Contrast" off the screen in the same breath — it used to sit there
+    /// contradicting the switch three rows above it.
+    var switchedOffChecks: [AccessibilityCheck] {
+        AccessibilityCheck.allCases.filter { !isChecked($0) }
+    }
+
+    /// Every check that is switched on now but is not in this report, and could be if it were run
+    /// again.
+    ///
+    /// The other half of letting the toggles move under a frozen report. Without it, switching
+    /// Contrast on would simply remove the sentence saying it had not run and leave a report with
+    /// no contrast in it and nothing saying why. Checks that were skipped for a reason re-running
+    /// will not fix — ``checksSkippedWhileCovered`` and ``checksUnmeasurable`` — are left out, since
+    /// their own banners already say more about them than this would.
+    var checksAwaitingRerun: [AccessibilityCheck] {
+        AccessibilityCheck.allCases.filter {
+            isChecked($0)
+                && !checksRun.contains($0)
+                && !checksSkippedWhileCovered.contains($0)
+                && !checksUnmeasurable.contains($0)
+        }
+    }
+
+    /// Whether this report covers the whole screen and every check the developer has switched on.
+    ///
+    /// The one state in which an empty report may lead with a tick and the words "No Issues
+    /// Found". Everything else — a check switched off, a check Scyther declined to measure, a check
+    /// that could not be measured, a walk that stopped early, a toggle switched on since the pass —
+    /// means something on this screen has not been looked at, and a tick would say the opposite.
+    var isComplete: Bool {
+        !didHitLimit
+            && switchedOffChecks.isEmpty
+            && checksSkippedWhileCovered.isEmpty
+            && checksUnmeasurable.isEmpty
+            && checksAwaitingRerun.isEmpty
+    }
+
+    /// Whether this report is the result of nothing having been checked at all.
+    ///
+    /// Every check off, or every check refused, produces exactly the same empty ``groups`` as a
+    /// clean screen. They are not the same thing and the screen must not open with the same
+    /// sentence for both.
+    var nothingWasChecked: Bool {
+        checksRun.isEmpty
+    }
+
+    /// Replaces ``groups``, ``didHitLimit``, ``checksRun``, ``checksSkippedWhileCovered`` and
+    /// ``checksUnmeasurable`` with what `result` found.
+    ///
+    /// The two lists of skipped checks are ordered by ``AccessibilityCheck/allCases`` rather than
     /// left in whatever order a `Set` iterates in, so the screen names them the same way twice
     /// running.
     ///
@@ -235,11 +357,8 @@ final class AccessibilityAuditViewModel: ViewModel {
             return Group(check: check, findings: findings.sorted { $0.severity > $1.severity })
         }
         didHitLimit = result.didHitLimit
+        checksRun = result.checksRun
         checksSkippedWhileCovered = AccessibilityCheck.allCases.filter(result.checksSkippedWhileCovered.contains)
-        // A check skipped because Scyther was in the way is not a check the developer switched
-        // off, and must not be listed as one.
-        skippedChecks = AccessibilityCheck.allCases.filter {
-            !result.checksRun.contains($0) && !result.checksSkippedWhileCovered.contains($0)
-        }
+        checksUnmeasurable = AccessibilityCheck.allCases.filter(result.checksUnmeasurable.contains)
     }
 }

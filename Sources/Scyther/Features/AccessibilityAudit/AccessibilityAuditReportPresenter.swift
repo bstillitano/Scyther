@@ -56,19 +56,71 @@ internal final class AccessibilityAuditReportPresenter {
 
     /// The controller currently presented, or `nil` when nothing is on screen.
     ///
-    /// Held strongly, and cleared only in ``revalidatePresentation()``, which asks the controller
-    /// itself whether it is still presented — a reference that had been let go could not be asked.
-    private var hostingController: UIViewController?
+    /// Held strongly, and cleared in ``revalidatePresentation()``, which asks the controller itself
+    /// whether it is still presented — a reference that had been let go could not be asked.
+    ///
+    /// - Note: `internal` rather than `private` so a test can stand a controller in it. There is no
+    ///   other way to reach the release path: the seam a test replaces to avoid presenting for real
+    ///   is the very thing that would otherwise put a controller here.
+    internal var hostingController: UIViewController?
 
     /// Whether the report reached the screen and is still expected to be on it.
     ///
     /// Set from the outcome of the presentation rather than from the intention to present, so a
     /// refused presentation does not lock the pill out for good.
-    private var isPresenting: Bool = false
+    private(set) var isPresenting: Bool = false
 
-    /// Creates a presenter. Production uses ``shared``; a test makes its own so one test's
-    /// presentation state cannot leak into another's.
-    init() { }
+    /// Whether the report this presenter put up is still on screen. Replaced by a test.
+    ///
+    /// A presentation UIKit accepted has a presenting view controller for exactly as long as it is
+    /// up, so this is the honest question to ask. With no controller to ask — which is the case
+    /// under an injected ``presentReport`` — the answer is "still presented", because a test that
+    /// never presented anything for real has nothing that could have been dismissed.
+    internal var isReportStillPresented: @MainActor (AccessibilityAuditReportPresenter) -> Bool = {
+        $0.hostingController.map { $0.presentingViewController != nil } ?? true
+    }
+
+    /// The subscription that notices the report has been dismissed. See ``init()``.
+    ///
+    /// `nonisolated(unsafe)` only so ``deinit`` — which is not main-actor isolated — can hand the
+    /// token back to `NotificationCenter`. Nothing else touches it after `init`, and the token is
+    /// opaque: it is never read, only unregistered.
+    private nonisolated(unsafe) var coverageObserver: NSObjectProtocol?
+
+    /// Creates a presenter, subscribed to the one signal that says the report has gone.
+    ///
+    /// The report is an ordinary sheet: the developer swipes it away and nothing tells this type.
+    /// Asking only on the next tap of the pill was enough to make the *next* presentation correct,
+    /// but it left the whole dismissed screen — the hosting controller, its SwiftUI view graph, its
+    /// view model and every finding in it — alive for as long as nobody tapped the pill again,
+    /// which after switching live mode off is forever.
+    ///
+    /// ``ScytherPresentation/coverageDidChangeNotification`` is that signal, and it already exists:
+    /// every ``ScytherHostingController`` posts it when it disappears, including on a swipe. It is
+    /// not a dismissal notification — it fires for Scyther's menu as well — which is why the answer
+    /// still comes from ``isReportStillPresented`` rather than from the notification's arrival.
+    init() {
+        // `queue: nil` rather than `.main`: the notification is only ever posted from
+        // `ScytherPresentation.coverageDidChange()`, which is main-actor isolated, and a `nil`
+        // queue delivers on the posting thread rather than scheduling an operation. That keeps the
+        // release on the same turn as the dismissal — and makes `MainActor.assumeIsolated` below a
+        // statement of fact rather than a hope.
+        coverageObserver = NotificationCenter.default.addObserver(
+            forName: ScytherPresentation.coverageDidChangeNotification,
+            object: nil,
+            queue: nil
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.revalidatePresentation()
+            }
+        }
+    }
+
+    deinit {
+        if let coverageObserver {
+            NotificationCenter.default.removeObserver(coverageObserver)
+        }
+    }
 
     /// Opens the report, unless it is already open.
     ///
@@ -82,18 +134,19 @@ internal final class AccessibilityAuditReportPresenter {
         isPresenting = presentReport(self)
     }
 
-    /// Forgets a presentation the developer has already dismissed.
+    /// Forgets — and releases — a presentation the developer has already dismissed.
     ///
-    /// The report is an ordinary, swipe-away sheet: it goes without telling this presenter, which
-    /// would otherwise go on believing it is up and refuse every later tap on the pill. There is
-    /// no single notification for "the controller I presented is no longer presented", so it is
-    /// asked here, on the one path that reacts to a tap.
+    /// Reached from two places. The subscription set up in ``init()`` runs it whenever a Scyther
+    /// screen disappears, which is what stops a dismissed report being retained for the rest of the
+    /// process. ``openReport()`` runs it again before deciding whether to present, because that
+    /// decision must not be made on a stale answer and asking twice costs one property read.
     ///
     /// Does nothing when the report was put up by an injected ``presentReport``, which is what a
-    /// test does: there is no hosting controller to ask.
+    /// test does: there is no hosting controller to ask, and ``isReportStillPresented`` answers
+    /// accordingly.
     private func revalidatePresentation() {
-        guard isPresenting, let controller = hostingController else { return }
-        guard controller.presentingViewController == nil else { return }
+        guard isPresenting else { return }
+        guard !isReportStillPresented(self) else { return }
 
         hostingController = nil
         isPresenting = false

@@ -11,6 +11,38 @@ import XCTest
 @MainActor
 final class AccessibilityAuditViewModelTests: XCTestCase {
 
+    nonisolated(unsafe) private var suiteName: String!
+    nonisolated(unsafe) private var defaults: UserDefaults!
+
+    /// Settings over a throwaway suite.
+    ///
+    /// The toggles at the top of the report write straight through to `AccessibilityAudit`, so a
+    /// test that asserted anything about them through the shared singleton would be writing a
+    /// developer's real settings — and reading whatever the last test left there. The view model
+    /// takes its settings as an injection point for exactly this.
+    private var settings: AccessibilityAudit!
+
+    override func setUp() async throws {
+        try await super.setUp()
+        suiteName = "AccessibilityAuditViewModelTests.\(UUID().uuidString)"
+        defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        settings = AccessibilityAudit(defaults: defaults)
+    }
+
+    override func tearDown() async throws {
+        defaults.removePersistentDomain(forName: suiteName)
+        try await super.tearDown()
+    }
+
+    /// A view model over the throwaway settings, with no seeded pass.
+    ///
+    /// - Parameter run: What one pass of the audit returns.
+    /// - Returns: The view model to assert against.
+    private func viewModel(run: @escaping @MainActor () -> AccessibilityAuditor.Result)
+    -> AccessibilityAuditViewModel {
+        AccessibilityAuditViewModel(settings: settings, run: run)
+    }
+
     private func finding(_ check: AccessibilityCheck,
                          _ severity: AccessibilitySeverity,
                          _ name: String) -> AccessibilityFinding {
@@ -22,12 +54,14 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
     private func result(_ findings: [AccessibilityFinding],
                         didHitLimit: Bool = false,
                         checksRun: Set<AccessibilityCheck> = Set(AccessibilityCheck.allCases),
-                        checksSkippedWhileCovered: Set<AccessibilityCheck> = [])
+                        checksSkippedWhileCovered: Set<AccessibilityCheck> = [],
+                        checksUnmeasurable: Set<AccessibilityCheck> = [])
     -> AccessibilityAuditor.Result {
         AccessibilityAuditor.Result(findings: findings,
                                     didHitLimit: didHitLimit,
                                     checksRun: checksRun,
-                                    checksSkippedWhileCovered: checksSkippedWhileCovered)
+                                    checksSkippedWhileCovered: checksSkippedWhileCovered,
+                                    checksUnmeasurable: checksUnmeasurable)
     }
 
     /// Findings are grouped by check, errors first inside each group, so the report leads with
@@ -38,7 +72,7 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
             finding(.missingLabel, .error, "label"),
             finding(.touchTarget, .error, "error")
         ]
-        let viewModel = AccessibilityAuditViewModel { self.result(findings) }
+        let viewModel = viewModel { self.result(findings) }
         await viewModel.load()
 
         XCTAssertEqual(viewModel.groups.map(\.check), [.missingLabel, .touchTarget])
@@ -49,7 +83,7 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
     /// pass happens only when it is asked for.
     func testTheReportDoesNotChangeUntilItIsRerun() async {
         var passes = 0
-        let viewModel = AccessibilityAuditViewModel {
+        let viewModel = viewModel {
             passes += 1
             return self.result([self.finding(.missingLabel, .error, "pass \(passes)")])
         }
@@ -68,21 +102,25 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
     /// "No findings" and "nothing was looked at" must not read the same, so the empty state is
     /// handed the checks that did not run.
     func testTheEmptyStateNamesTheChecksThatWereSwitchedOff() async {
-        let viewModel = AccessibilityAuditViewModel {
+        settings.setEnabled(.touchTarget, to: false)
+        settings.setEnabled(.contrast, to: false)
+        let viewModel = viewModel {
             self.result([], checksRun: [.missingLabel])
         }
         await viewModel.load()
 
         XCTAssertTrue(viewModel.groups.isEmpty)
-        XCTAssertEqual(Set(viewModel.skippedChecks), [.touchTarget, .contrast])
+        XCTAssertEqual(Set(viewModel.switchedOffChecks), [.touchTarget, .contrast])
     }
 
     func testNothingIsReportedAsSkippedWhenEveryCheckRan() async {
-        let viewModel = AccessibilityAuditViewModel { self.result([]) }
+        let viewModel = viewModel { self.result([]) }
         await viewModel.load()
 
-        XCTAssertTrue(viewModel.skippedChecks.isEmpty)
+        XCTAssertTrue(viewModel.switchedOffChecks.isEmpty)
         XCTAssertTrue(viewModel.checksSkippedWhileCovered.isEmpty)
+        XCTAssertTrue(viewModel.checksAwaitingRerun.isEmpty)
+        XCTAssertTrue(viewModel.isComplete, "everything ran, so this report may lead with a tick")
     }
 
     /// A check that was on and still did not run — because Scyther's own screen was over the app
@@ -90,7 +128,7 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
     /// Telling a developer they had turned contrast off when they had not is a small lie the
     /// report has no business telling.
     func testACheckSkippedWhileCoveredIsNotReportedAsSwitchedOff() async {
-        let viewModel = AccessibilityAuditViewModel {
+        let viewModel = viewModel {
             self.result([],
                         checksRun: [.missingLabel, .touchTarget],
                         checksSkippedWhileCovered: [.contrast])
@@ -98,13 +136,14 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
         await viewModel.load()
 
         XCTAssertEqual(viewModel.checksSkippedWhileCovered, [.contrast])
-        XCTAssertTrue(viewModel.skippedChecks.isEmpty)
+        XCTAssertTrue(viewModel.switchedOffChecks.isEmpty)
     }
 
     /// The two reasons a check did not run are reported separately even when both apply at once,
     /// because the screen says something different about each.
     func testSwitchedOffAndCoveredChecksAreReportedApart() async {
-        let viewModel = AccessibilityAuditViewModel {
+        settings.setEnabled(.touchTarget, to: false)
+        let viewModel = viewModel {
             self.result([],
                         checksRun: [.missingLabel],
                         checksSkippedWhileCovered: [.contrast])
@@ -112,12 +151,91 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
         await viewModel.load()
 
         XCTAssertEqual(viewModel.checksSkippedWhileCovered, [.contrast])
-        XCTAssertEqual(viewModel.skippedChecks, [.touchTarget])
+        XCTAssertEqual(viewModel.switchedOffChecks, [.touchTarget])
+    }
+
+    /// A third reason, and it must not be confused with either of the other two. A check that ran
+    /// and could measure nothing — because iOS returned no pixels for the screen — is not a setting
+    /// the developer chose, and is not something they can fix by getting Scyther out of the way.
+    func testACheckThatCouldNotBeMeasuredIsKeptApartFromBothOtherReasons() async {
+        let viewModel = viewModel {
+            self.result([],
+                        checksRun: [.missingLabel, .touchTarget],
+                        checksUnmeasurable: [.contrast])
+        }
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.checksUnmeasurable, [.contrast])
+        XCTAssertTrue(viewModel.checksSkippedWhileCovered.isEmpty)
+        XCTAssertTrue(viewModel.switchedOffChecks.isEmpty)
+        XCTAssertTrue(viewModel.checksAwaitingRerun.isEmpty,
+                      "re-running will not produce pixels that iOS refused to hand over")
+        XCTAssertFalse(viewModel.isComplete, "an unmeasured screen has not passed anything")
+    }
+
+    /// A truncated walk reached only part of the screen, so the part it did not reach was never
+    /// checked. The report used to say "Every enabled check passed" here, directly under the orange
+    /// banner saying the walk had stopped early.
+    func testATruncatedWalkIsNeverReportedAsComplete() async {
+        let viewModel = viewModel { self.result([], didHitLimit: true) }
+        await viewModel.load()
+
+        XCTAssertTrue(viewModel.didHitLimit)
+        XCTAssertFalse(viewModel.isComplete)
+        XCTAssertFalse(viewModel.nothingWasChecked, "part of the screen really was checked")
+    }
+
+    /// Every check switched off produces exactly the same empty report as a clean screen, and used
+    /// to be presented with the same green tick and the same "No Issues Found". Nothing ran.
+    func testEveryCheckSwitchedOffReadsAsNothingChecked() async {
+        for check in AccessibilityCheck.allCases {
+            settings.setEnabled(check, to: false)
+        }
+        let viewModel = viewModel { self.result([], checksRun: []) }
+        await viewModel.load()
+
+        XCTAssertTrue(viewModel.nothingWasChecked)
+        XCTAssertFalse(viewModel.isComplete)
+        XCTAssertEqual(Set(viewModel.switchedOffChecks), Set(AccessibilityCheck.allCases))
+    }
+
+    /// The toggles take effect immediately; the report stays frozen until **Re-run**. A Contrast
+    /// section listed directly beneath a Contrast switch that is off reads as a switch that did
+    /// nothing, so the section goes.
+    func testSwitchingACheckOffHidesItsFindingsFromTheFrozenReport() async {
+        let viewModel = viewModel {
+            self.result([self.finding(.contrast, .warning, "caption"),
+                         self.finding(.missingLabel, .error, "button")])
+        }
+        await viewModel.load()
+        XCTAssertEqual(viewModel.visibleGroups.map(\.check), [.missingLabel, .contrast])
+
+        viewModel.checkBinding(for: .contrast).wrappedValue = false
+
+        XCTAssertEqual(viewModel.visibleGroups.map(\.check), [.missingLabel])
+        XCTAssertEqual(viewModel.groups.map(\.check), [.missingLabel, .contrast],
+                       "the pass itself is still frozen; only what is shown changed")
+    }
+
+    /// The other half of the same defect: switching a check back on used to leave "Switched off:
+    /// Contrast" sitting underneath the switch that now reads on. It goes — and because switching
+    /// it on cannot conjure findings the pass never looked for, the report says so instead.
+    func testSwitchingACheckOnAsksForARerunRatherThanLeavingItNamedAsOff() async {
+        settings.setEnabled(.contrast, to: false)
+        let viewModel = viewModel { self.result([], checksRun: [.missingLabel, .touchTarget]) }
+        await viewModel.load()
+        XCTAssertEqual(viewModel.switchedOffChecks, [.contrast])
+
+        viewModel.checkBinding(for: .contrast).wrappedValue = true
+
+        XCTAssertTrue(viewModel.switchedOffChecks.isEmpty)
+        XCTAssertEqual(viewModel.checksAwaitingRerun, [.contrast])
+        XCTAssertFalse(viewModel.isComplete)
     }
 
     /// A truncated walk says so rather than presenting a partial result as complete.
     func testATruncatedWalkIsReported() async {
-        let viewModel = AccessibilityAuditViewModel {
+        let viewModel = viewModel {
             self.result([self.finding(.contrast, .warning, "text")], didHitLimit: true)
         }
         await viewModel.load()
@@ -127,7 +245,7 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
 
     /// Tapping a row asks the overlay behind to flash that element's box.
     func testFlashingARowReachesTheOverlay() {
-        let viewModel = AccessibilityAuditViewModel { self.result([]) }
+        let viewModel = viewModel { self.result([]) }
         var flashed: AccessibilityFinding?
         viewModel.onFlash = { flashed = $0 }
 
@@ -143,7 +261,7 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
     /// competing main-actor task standing in for that transition has to get its turn first.
     func testThePassYieldsTheMainActorBeforeItWalks() async {
         let order = Recorder()
-        let viewModel = AccessibilityAuditViewModel {
+        let viewModel = viewModel {
             order.steps.append("walk")
             return self.result([])
         }
@@ -161,7 +279,7 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
     /// the only moment the flag is meant to be up.
     func testTheReportSaysItIsRunningWhileThePassIsInFlight() async {
         let recorder = Recorder()
-        let viewModel = AccessibilityAuditViewModel {
+        let viewModel = viewModel {
             recorder.isRunningDuringTheWalk = recorder.viewModel?.isRunning
             return self.result([])
         }
@@ -172,6 +290,59 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
 
         XCTAssertEqual(recorder.isRunningDuringTheWalk, true, "the spinner must be up while the walk runs")
         XCTAssertFalse(viewModel.isRunning, "and down once there is an answer")
+    }
+
+    /// **Re-run** is guarded by `.disabled(isRunning)`, and that guard cannot work: `isRunning` is
+    /// published from inside the pass, and the render that would grey the button out has to wait
+    /// for the main actor the pass is holding. So the button stays drawn as enabled for the whole
+    /// of the first pass — the one that starts during the navigation push — and a tap on it started
+    /// a second walk that published `isRunning = false` while the first was still going and
+    /// replaced the report under a developer mid-read.
+    func testASecondPassCannotStartWhileOneIsAlreadyRunning() async {
+        var passes = 0
+        let viewModel = viewModel {
+            passes += 1
+            return self.result([])
+        }
+
+        async let first: Void = viewModel.load()
+        async let second: Void = viewModel.rerun()
+        _ = await (first, second)
+
+        XCTAssertEqual(passes, 1, "the second tap must not start a second overlapping walk")
+    }
+
+    /// The pill counts a pass taken with nothing of Scyther's on screen, so it includes contrast.
+    /// The report used to run its *own* pass on opening, by which time it was itself the thing
+    /// covering the app, so contrast was dropped — which is how a pill reading "7 issues" opened
+    /// onto "No Issues Found". Opening onto the pass the pill counted is what makes the two agree.
+    func testTheReportOpensOntoTheLivePassRatherThanTakingItsOwn() async {
+        var passes = 0
+        let live = result([finding(.contrast, .warning, "caption")])
+        let viewModel = AccessibilityAuditViewModel(settings: settings, seed: { live }) {
+            passes += 1
+            return self.result([])
+        }
+
+        await viewModel.load()
+
+        XCTAssertEqual(passes, 0, "the report must not take a pass of its own over the seeded one")
+        XCTAssertEqual(viewModel.visibleGroups.map(\.check), [.contrast])
+    }
+
+    /// A developer who asks for a fresh measurement gets one. **Re-run** goes to the audit even
+    /// when the report opened onto the live overlay's pass; the banners explain what a pass taken
+    /// from under Scyther's own sheet cannot include.
+    func testRerunTakesAFreshPassEvenWhenTheReportWasSeeded() async {
+        let live = result([finding(.contrast, .warning, "caption")])
+        let viewModel = AccessibilityAuditViewModel(settings: settings, seed: { live }) {
+            self.result([self.finding(.missingLabel, .error, "button")])
+        }
+        await viewModel.load()
+
+        await viewModel.rerun()
+
+        XCTAssertEqual(viewModel.visibleGroups.map(\.check), [.missingLabel])
     }
 
     /// Notes what happened during a pass, from inside the audit closure.

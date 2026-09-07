@@ -33,9 +33,10 @@ struct AccessibilityAuditView: View {
     /// The view model, constructed with the one closure it needs to audit the real app — see
     /// ``AccessibilityAuditViewModel`` for why the audit itself is injected rather than called
     /// directly.
-    @StateObject private var viewModel = AccessibilityAuditViewModel {
-        AccessibilityAudit.instance.auditKeyWindow()
-    }
+    @StateObject private var viewModel = AccessibilityAuditViewModel(
+        seed: { InterfaceToolkit.instance.accessibilityResultForReport() },
+        run: { AccessibilityAudit.instance.auditKeyWindow() }
+    )
 
     var body: some View {
         List {
@@ -53,14 +54,22 @@ struct AccessibilityAuditView: View {
                 coveredBanner
             }
 
-            if viewModel.groups.isEmpty {
+            if !viewModel.checksUnmeasurable.isEmpty {
+                unmeasurableBanner
+            }
+
+            if !viewModel.checksAwaitingRerun.isEmpty {
+                awaitingRerunBanner
+            }
+
+            if viewModel.visibleGroups.isEmpty {
                 // Only once there is an answer: an empty report during a pass would say "No
                 // Issues Found" about a screen nothing has looked at yet.
                 if !viewModel.isRunning {
                     emptyState
                 }
             } else {
-                ForEach(viewModel.groups) { group in
+                ForEach(viewModel.visibleGroups) { group in
                     findingsSection(for: group)
                 }
             }
@@ -163,6 +172,59 @@ struct AccessibilityAuditView: View {
         return localized("\(names) not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on \(liveToggle) to measure the real screen instead.")
     }
 
+    // MARK: - Unmeasurable Screen
+
+    /// Shown when a check was switched on, was not skipped, and still measured nothing because the
+    /// screen could not be captured.
+    ///
+    /// Deliberately worded away from ``coveredBanner``, which it would otherwise be mistaken for.
+    /// That one describes a measurement Scyther declined to make and tells the developer how to get
+    /// it; this one describes a measurement iOS refused to supply the pixels for — a window the
+    /// system has never presented, or content it will not let anything capture — and there is
+    /// nothing to switch. What both must never do is read as an answer about the screen: an
+    /// unmeasured screen presented as a measured one is the failure this whole section exists for.
+    private var unmeasurableBanner: some View {
+        Section {
+            Label(unmeasurableDescription, systemImage: "exclamationmark.triangle")
+                .foregroundStyle(.orange)
+        }
+    }
+
+    /// The unmeasurable banner's wording: which checks ran without being able to measure anything,
+    /// and that this says nothing about whether the screen is fine.
+    private var unmeasurableDescription: String {
+        let names = ListFormatter.localizedString(byJoining: viewModel.checksUnmeasurable.map(\.title))
+        return localized("\(names) could not be measured: this screen could not be captured, so there were no pixels to read. This is not a result about your app.")
+    }
+
+    // MARK: - Settings Changed Since The Pass
+
+    /// Shown when a check has been switched on since this report was run.
+    ///
+    /// The report is frozen and the toggles are not, so the two can disagree on the same screen.
+    /// A check switched off since the pass simply has its findings hidden — see
+    /// ``AccessibilityAuditViewModel/visibleGroups`` — because a section of findings sitting under
+    /// a switch that is off reads as a switch that did nothing. Switching one *on* cannot conjure
+    /// findings, so it says so here instead of quietly leaving a report that has never looked for
+    /// them.
+    private var awaitingRerunBanner: some View {
+        Section {
+            Label(awaitingRerunDescription, systemImage: "arrow.clockwise")
+                .foregroundStyle(.orange)
+        }
+    }
+
+    /// The wording for a check switched on since the pass: which one, and what to do about it.
+    ///
+    /// Names the **Re-run** button through ``localized(_:comment:)`` rather than spelling it out,
+    /// for the same reason ``coveredDescription`` names the live toggle that way: a developer
+    /// reading Scyther in German should be pointed at the German button in the toolbar above.
+    private var awaitingRerunDescription: String {
+        let names = ListFormatter.localizedString(byJoining: viewModel.checksAwaitingRerun.map(\.title))
+        let rerun = localized("Re-run")
+        return localized("\(names) switched on after this report was run. Tap \(rerun) to include it.")
+    }
+
     // MARK: - Findings
 
     /// One section per check with at least one finding, headed by the check's name and, for
@@ -223,26 +285,36 @@ struct AccessibilityAuditView: View {
 
     // MARK: - Empty State
 
-    /// Shown when the current report has no findings.
+    /// Shown when the current report has no findings to show.
     ///
-    /// "No findings" and "nothing was looked at" must not read the same way: when
-    /// ``AccessibilityAuditViewModel/skippedChecks`` is not empty, ``emptyStateDescription``
-    /// names exactly which checks did not run, rather than letting an empty list of findings be
-    /// mistaken for a screen that passed everything.
+    /// Three distinct things produce an empty ``AccessibilityAuditViewModel/visibleGroups``, and
+    /// the screen leads with a different headline and a different symbol for each, because a green
+    /// tick over "No Issues Found" is a claim and two of the three cannot support it:
+    ///
+    /// - **Nothing ran.** Every check switched off, or every check refused. Nothing on this screen
+    ///   has been looked at, and the old empty state answered that with a tick.
+    /// - **Something ran, but not everything.** A check switched off, a check skipped, a check that
+    ///   could not be measured, or a walk the node or depth cap stopped early. The part that was
+    ///   checked was clean; the rest was never reached. The old empty state said "Every enabled
+    ///   check passed" here too, directly underneath the orange banner saying the walk stopped.
+    /// - **Everything ran and found nothing.** The one case that has earned a tick.
     @ViewBuilder
     private var emptyState: some View {
         if #available(iOS 17.0, *) {
             ContentUnavailableView(
-                localized("No Issues Found"),
-                systemImage: "checkmark.circle",
+                emptyStateTitle,
+                systemImage: emptyStateSymbol,
                 description: Text(emptyStateDescription)
             )
+            .frame(maxWidth: .infinity)
+            .padding()
+            .listRowBackground(Color.clear)
         } else {
             VStack(spacing: 16) {
-                Image(systemName: "checkmark.circle")
+                Image(systemName: emptyStateSymbol)
                     .font(.system(size: 48))
                     .foregroundStyle(.secondary)
-                Text(localized("No Issues Found"))
+                Text(emptyStateTitle)
                     .font(.headline)
                 Text(emptyStateDescription)
                     .font(.subheadline)
@@ -255,20 +327,42 @@ struct AccessibilityAuditView: View {
         }
     }
 
-    /// The empty state's explanation: that every enabled check passed, or — when something did
-    /// not run — that the checks which did run found nothing.
+    /// The empty state's headline. See ``emptyState`` for the three cases.
+    private var emptyStateTitle: String {
+        if viewModel.nothingWasChecked { return localized("Nothing Was Checked") }
+        if viewModel.isComplete { return localized("No Issues Found") }
+        return localized("No Issues In What Was Checked")
+    }
+
+    /// The empty state's symbol.
     ///
-    /// Three cases rather than two. A check the developer switched off is named here, because
-    /// nothing else on the screen says so. A check skipped because Scyther was covering the app
-    /// is *not* named here: ``coveredBanner`` has already said which, and why, in more detail than
-    /// belongs in an empty state — but "every enabled check passed" would still be untrue while
-    /// one of them never ran, so that wording is withheld too.
+    /// `checkmark.circle` is reserved for the one case that passed everything. The other two get
+    /// `questionmark.circle`, which is what an unanswered question looks like — the point being
+    /// that neither of them is a result about the app.
+    private var emptyStateSymbol: String {
+        viewModel.isComplete ? "checkmark.circle" : "questionmark.circle"
+    }
+
+    /// The empty state's explanation.
+    ///
+    /// It names the checks the developer switched off, because nothing else on the screen does.
+    /// It does not name the checks Scyther skipped or could not measure, or say that the walk
+    /// stopped early: ``coveredBanner``, ``unmeasurableBanner`` and ``truncatedBanner`` have each
+    /// already said which and why, in more detail than belongs under a headline. What it must
+    /// never do is claim more than the pass supports, which is why "every enabled check passed"
+    /// appears in exactly one of these branches.
     private var emptyStateDescription: String {
-        if !viewModel.skippedChecks.isEmpty {
-            let names = ListFormatter.localizedString(byJoining: viewModel.skippedChecks.map(\.title))
+        let switchedOff = viewModel.switchedOffChecks
+        if viewModel.nothingWasChecked {
+            guard !switchedOff.isEmpty else { return localized("No check on this screen could be run.") }
+            let names = ListFormatter.localizedString(byJoining: switchedOff.map(\.title))
+            return localized("No check ran. Switched off: \(names).")
+        }
+        if !switchedOff.isEmpty {
+            let names = ListFormatter.localizedString(byJoining: switchedOff.map(\.title))
             return localized("The checks that ran found nothing to report. Switched off: \(names).")
         }
-        if !viewModel.checksSkippedWhileCovered.isEmpty {
+        if !viewModel.isComplete {
             return localized("The checks that ran found nothing to report.")
         }
         return localized("Every enabled check passed.")

@@ -14,20 +14,50 @@
     "zh-Hans": "%@ 位于 %@, %@",
     "zh-Hant": "%@ 位於 %@, %@"
   },
+  "%@ could not be measured: this screen could not be captured, so there were no pixels to read. This is not a result about your app.": {
+    "ar": "تعذّر قياس %@: لم يتم التقاط هذه الشاشة، لذا لم تكن هناك وحدات بكسل لقراءتها. هذه ليست نتيجة عن تطبيقك.",
+    "comment": "Banner on the accessibility audit report: %@ is the list of checks that ran but could measure nothing because iOS returned no pixels for the screen (in practice 'Contrast')",
+    "de": "%@ konnte nicht gemessen werden: Dieser Bildschirm ließ sich nicht erfassen, es gab also keine Pixel zum Auslesen. Das ist kein Ergebnis über Ihre App.",
+    "es": "No se pudo medir %@: no se pudo capturar esta pantalla, así que no había píxeles que leer. Esto no es un resultado sobre tu app.",
+    "fr": "%@ n'a pas pu être mesuré : cet écran n'a pas pu être capturé, il n'y avait donc aucun pixel à lire. Ce n'est pas un résultat concernant votre app.",
+    "it": "Non è stato possibile misurare %@: questa schermata non è stata catturata, quindi non c'erano pixel da leggere. Questo non è un risultato sulla tua app.",
+    "ja": "%@を測定できませんでした。この画面をキャプチャできず、読み取るピクセルがありませんでした。これはアプリについての結果ではありません。",
+    "ko": "%@을(를) 측정할 수 없습니다. 이 화면을 캡처하지 못해 읽을 픽셀이 없었습니다. 앱에 대한 결과가 아닙니다.",
+    "nl": "%@ kon niet worden gemeten: dit scherm kon niet worden vastgelegd, dus er waren geen pixels om te lezen. Dit is geen uitspraak over je app.",
+    "pt-BR": "Não foi possível medir %@: esta tela não pôde ser capturada, então não havia pixels para ler. Isso não é um resultado sobre o seu app.",
+    "ru": "Не удалось измерить %@: этот экран не удалось захватить, поэтому читать было нечего. Это не вывод о вашем приложении.",
+    "zh-Hans": "无法测量%@：此界面无法截取，因此没有可读取的像素。这不是关于你的应用的结论。",
+    "zh-Hant": "無法測量%@：此畫面無法擷取，因此沒有可讀取的像素。這不是關於你的 App 的結論。"
+  },
   "%@ not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on %@ to measure the real screen instead.": {
+    "ar": "لم يتم قياس %@ أثناء تغطية Scyther للتطبيق: الألوان خلف هذه الشاشة تخص Scyther وليس تطبيقك. فعّل %@ لقياس الشاشة الحقيقية.",
     "comment": "Banner on the accessibility audit report: the first %@ is the list of checks that were skipped (in practice 'Contrast'), the second is the localized title of the 'Show Issues On Screen' toggle",
-    "fr": "%@ non mesuré tant que Scyther recouvre l'app : les couleurs derrière cet écran sont celles de Scyther, pas celles de votre app. Activez %@ pour mesurer l'écran réel.",
     "de": "%@ nicht gemessen, solange Scyther die App überdeckt: Die Farben hinter diesem Bildschirm gehören Scyther, nicht Ihrer App. Aktivieren Sie %@, um den echten Bildschirm zu messen.",
     "es": "%@ no se ha medido mientras Scyther cubre la app: los colores detrás de esta pantalla son de Scyther, no de tu app. Activa %@ para medir la pantalla real.",
+    "fr": "%@ non mesuré tant que Scyther recouvre l'app : les couleurs derrière cet écran sont celles de Scyther, pas celles de votre app. Activez %@ pour mesurer l'écran réel.",
     "it": "%@ non misurato mentre Scyther copre l'app: i colori dietro questa schermata sono di Scyther, non della tua app. Attiva %@ per misurare lo schermo reale.",
-    "pt-BR": "%@ não medido enquanto o Scyther cobre o app: as cores atrás desta tela são do Scyther, não do seu app. Ative %@ para medir a tela real.",
-    "nl": "%@ niet gemeten terwijl Scyther de app bedekt: de kleuren achter dit scherm zijn van Scyther, niet van je app. Schakel %@ in om het echte scherm te meten.",
     "ja": "Scytherがアプリを覆っている間は%@を測定できません。この画面の背後の色はアプリではなくScytherのものです。%@をオンにすると実際の画面を測定します。",
-    "zh-Hans": "Scyther 覆盖应用时不会测量%@：此界面背后的颜色属于 Scyther，而非你的应用。开启%@即可测量真实屏幕。",
-    "zh-Hant": "Scyther 覆蓋 App 時不會測量%@：此畫面背後的顏色屬於 Scyther，而非你的 App。開啟%@即可測量真實畫面。",
     "ko": "Scyther가 앱을 가리고 있는 동안에는 %@을(를) 측정하지 않습니다. 이 화면 뒤의 색은 앱이 아니라 Scyther의 색입니다. %@을(를) 켜면 실제 화면을 측정합니다.",
+    "nl": "%@ niet gemeten terwijl Scyther de app bedekt: de kleuren achter dit scherm zijn van Scyther, niet van je app. Schakel %@ in om het echte scherm te meten.",
+    "pt-BR": "%@ não medido enquanto o Scyther cobre o app: as cores atrás desta tela são do Scyther, não do seu app. Ative %@ para medir a tela real.",
     "ru": "%@ не измеряется, пока Scyther закрывает приложение: цвета за этим экраном принадлежат Scyther, а не вашему приложению. Включите %@, чтобы измерить настоящий экран.",
-    "ar": "لم يتم قياس %@ أثناء تغطية Scyther للتطبيق: الألوان خلف هذه الشاشة تخص Scyther وليس تطبيقك. فعّل %@ لقياس الشاشة الحقيقية."
+    "zh-Hans": "Scyther 覆盖应用时不会测量%@：此界面背后的颜色属于 Scyther，而非你的应用。开启%@即可测量真实屏幕。",
+    "zh-Hant": "Scyther 覆蓋 App 時不會測量%@：此畫面背後的顏色屬於 Scyther，而非你的 App。開啟%@即可測量真實畫面。"
+  },
+  "%@ switched on after this report was run. Tap %@ to include it.": {
+    "ar": "تم تفعيل %@ بعد تشغيل هذا التقرير. اضغط %@ لتضمينه.",
+    "comment": "Banner on the accessibility audit report: the first %@ is the list of checks switched on since the report was run, the second is the localized title of the Re-run toolbar button",
+    "de": "%@ wurde nach diesem Bericht aktiviert. Tippen Sie auf %@, um es einzubeziehen.",
+    "es": "%@ se activó después de generar este informe. Toca %@ para incluirlo.",
+    "fr": "%@ a été activé après l'exécution de ce rapport. Touchez %@ pour l'inclure.",
+    "it": "%@ è stato attivato dopo l'esecuzione di questo report. Tocca %@ per includerlo.",
+    "ja": "このレポートの実行後に%@がオンになりました。%@をタップすると結果に含まれます。",
+    "ko": "이 보고서를 실행한 뒤에 %@이(가) 켜졌습니다. %@을(를) 탭하면 결과에 포함됩니다.",
+    "nl": "%@ is ingeschakeld nadat dit rapport was uitgevoerd. Tik op %@ om het mee te nemen.",
+    "pt-BR": "%@ foi ativado depois que este relatório foi gerado. Toque em %@ para incluí-lo.",
+    "ru": "%@ включено после того, как этот отчёт был составлен. Нажмите %@, чтобы включить в него.",
+    "zh-Hans": "%@ 是在生成此报告之后开启的。点按%@即可将其纳入。",
+    "zh-Hant": "%@ 是在產生此報告之後開啟的。點一下%@即可將其納入。"
   },
   "%@ × %@pt, under the 44 × 44pt minimum.": {
     "ar": "%@ × %@pt، أقل من الحد الأدنى 44 × 44pt.",
@@ -53,7 +83,7 @@
       "two": "مشكلتان",
       "zero": "%lld مشكلة"
     },
-    "comment": "Title of the tappable pill at the bottom of the live accessibility audit overlay, reporting how many findings are currently on screen",
+    "comment": "Title of the tappable pill down the trailing edge of the live accessibility audit overlay, reporting how many findings are currently on screen",
     "de": {
       "one": "%lld Problem",
       "other": "%lld Probleme"
@@ -237,6 +267,66 @@
     "zh-Hans": "未发现问题",
     "zh-Hant": "未發現問題"
   },
+  "No Issues In What Was Checked": {
+    "ar": "لا توجد مشكلات فيما تم فحصه",
+    "comment": "Title of the empty state on the accessibility audit report screen, shown when the checks that ran found nothing but at least one check did not run or the walk stopped early",
+    "de": "Keine Probleme im geprüften Bereich",
+    "es": "Sin problemas en lo que se comprobó",
+    "fr": "Aucun problème dans ce qui a été vérifié",
+    "it": "Nessun problema in ciò che è stato controllato",
+    "ja": "確認できた範囲に問題はありません",
+    "ko": "확인한 범위에서는 문제 없음",
+    "nl": "Geen problemen in wat is gecontroleerd",
+    "pt-BR": "Nenhum problema no que foi verificado",
+    "ru": "В проверенной части проблем нет",
+    "zh-Hans": "已检查的部分未发现问题",
+    "zh-Hant": "已檢查的部分未發現問題"
+  },
+  "No check on this screen could be run.": {
+    "ar": "تعذّر تشغيل أي فحص على هذه الشاشة.",
+    "comment": "Description under the empty state's title on the accessibility audit report screen, shown when no check ran and none of them was switched off by the developer",
+    "de": "Auf diesem Bildschirm konnte keine Prüfung ausgeführt werden.",
+    "es": "No se pudo ejecutar ninguna comprobación en esta pantalla.",
+    "fr": "Aucune vérification n'a pu être effectuée sur cet écran.",
+    "it": "Non è stato possibile eseguire alcun controllo su questa schermata.",
+    "ja": "この画面ではどのチェックも実行できませんでした。",
+    "ko": "이 화면에서는 어떤 검사도 실행할 수 없었습니다.",
+    "nl": "Er kon geen enkele controle op dit scherm worden uitgevoerd.",
+    "pt-BR": "Não foi possível executar nenhuma verificação nesta tela.",
+    "ru": "На этом экране не удалось выполнить ни одной проверки.",
+    "zh-Hans": "此界面上没有任何检查能够运行。",
+    "zh-Hant": "此畫面上沒有任何檢查能夠執行。"
+  },
+  "No check ran. Switched off: %@.": {
+    "ar": "لم يتم تشغيل أي فحص. معطّلة: %@.",
+    "comment": "Description under the empty state's title on the accessibility audit report screen, shown when no check ran at all because they were switched off; %@ is the localized, comma-joined list of those checks",
+    "de": "Es wurde keine Prüfung ausgeführt. Deaktiviert: %@.",
+    "es": "No se ejecutó ninguna comprobación. Desactivadas: %@.",
+    "fr": "Aucune vérification n'a été effectuée. Désactivées : %@.",
+    "it": "Nessun controllo è stato eseguito. Disattivati: %@.",
+    "ja": "チェックは実行されませんでした。無効: %@。",
+    "ko": "실행된 검사가 없습니다. 꺼짐: %@.",
+    "nl": "Er is geen enkele controle uitgevoerd. Uitgeschakeld: %@.",
+    "pt-BR": "Nenhuma verificação foi executada. Desativadas: %@.",
+    "ru": "Ни одна проверка не выполнялась. Отключены: %@.",
+    "zh-Hans": "没有运行任何检查。已关闭：%@。",
+    "zh-Hant": "沒有執行任何檢查。已關閉：%@。"
+  },
+  "Nothing Was Checked": {
+    "ar": "لم يتم فحص أي شيء",
+    "comment": "Title of the empty state on the accessibility audit report screen, shown when no check ran at all — every check switched off, or every check refused",
+    "de": "Es wurde nichts geprüft",
+    "es": "No se comprobó nada",
+    "fr": "Rien n'a été vérifié",
+    "it": "Non è stato controllato nulla",
+    "ja": "何も確認されていません",
+    "ko": "아무것도 확인하지 않았습니다",
+    "nl": "Er is niets gecontroleerd",
+    "pt-BR": "Nada foi verificado",
+    "ru": "Ничего не проверялось",
+    "zh-Hans": "未进行任何检查",
+    "zh-Hant": "未進行任何檢查"
+  },
   "Re-run": {
     "ar": "إعادة التشغيل",
     "comment": "Toolbar button on the accessibility audit report screen that runs the audit again and replaces the current report",
@@ -268,19 +358,19 @@
     "zh-Hant": "在螢幕上顯示問題"
   },
   "The checks that ran found nothing to report.": {
+    "ar": "لم تجد الفحوصات التي تم تشغيلها ما يستدعي الإبلاغ عنه.",
     "comment": "Empty state of the accessibility audit report when every check that ran passed but at least one enabled check could not be run",
-    "fr": "Les vérifications effectuées n'ont rien trouvé à signaler.",
     "de": "Die ausgeführten Prüfungen haben nichts gefunden.",
     "es": "Las comprobaciones que se ejecutaron no encontraron nada que informar.",
+    "fr": "Les vérifications effectuées n'ont rien trouvé à signaler.",
     "it": "I controlli eseguiti non hanno trovato nulla da segnalare.",
-    "pt-BR": "As verificações executadas não encontraram nada a relatar.",
-    "nl": "De uitgevoerde controles hebben niets gevonden om te melden.",
     "ja": "実行されたチェックでは報告する問題は見つかりませんでした。",
-    "zh-Hans": "已运行的检查没有发现需要报告的问题。",
-    "zh-Hant": "已執行的檢查沒有發現需要回報的問題。",
     "ko": "실행된 검사에서 보고할 문제를 찾지 못했습니다.",
+    "nl": "De uitgevoerde controles hebben niets gevonden om te melden.",
+    "pt-BR": "As verificações executadas não encontraram nada a relatar.",
     "ru": "Выполненные проверки не нашли ничего, о чём стоит сообщить.",
-    "ar": "لم تجد الفحوصات التي تم تشغيلها ما يستدعي الإبلاغ عنه."
+    "zh-Hans": "已运行的检查没有发现需要报告的问题。",
+    "zh-Hant": "已執行的檢查沒有發現需要回報的問題。"
   },
   "The checks that ran found nothing to report. Switched off: %@.": {
     "ar": "لم تعثر الفحوصات التي تم تشغيلها على ما يستحق الإبلاغ عنه. معطّلة: %@.",

@@ -1476,16 +1476,41 @@ the report screen:
   certificate — it's always reported as a warning, never an error.
 
 **Show Issues On Screen** draws a box around every current finding directly over the running app,
-live, the same way `GridOverlay` and `FPSCounter` stay on screen without a manual refresh. Tapping
-a finding in the report flashes its box on the overlay so there's no doubt which element it means.
-A pill at the bottom of the screen counts the current findings; tapping it opens the report over
-whatever you're looking at, without going back through the menu. Closing it puts you straight back
-in the app with live mode still running.
+live, the same way `GridOverlay` and `FPSCounter` stay on screen without a manual refresh. The
+overlay follows the app: as well as rotations, it re-audits whenever you push, pop, switch tab, or
+present a screen of your own, half a second after the app settles. It notices that by checking
+twice a second which view controllers are showing — a handful of pointer reads — and re-auditing
+only when the answer changes. What it does *not* notice is a screen changing without the
+controllers changing: a scroll, a table reload, a form being filled in. Those keep the last pass's
+boxes until something else moves.
+
+A pill down the trailing edge of the screen counts the current findings; tapping it opens the
+report over whatever you're looking at, without going back through the menu. Closing it puts you
+straight back in the app with live mode still running. The pill sits on the side rather than the
+bottom deliberately: it is the one thing Scyther puts over your app that takes touches, and at the
+bottom centre it sat on top of tab bars and primary action buttons and took their taps.
+
+Tapping a finding in the report flashes its box on the overlay so there's no doubt which element it
+means. Because the report is always in front of the app, the flash waits until you close it and
+then plays over the app itself — a box stroked across Scyther's own report would be pointing at a
+rectangle you can't see. It flashes where the element is *now*, and doesn't flash at all if that
+element has since gone.
 
 The report itself is frozen the moment it loads and only changes when **Re-run** is tapped, so
-findings never shift under you mid-read. A check you switch off is not run at all, and an empty
-report says explicitly which checks didn't run rather than letting "nothing was wrong" and
-"nothing was looked at" read the same way.
+findings never shift under you mid-read. Opened from the pill, it opens onto exactly the pass the
+pill counted, rather than taking one of its own from underneath itself — which is how a pill
+reading "7 issues" used to open onto "No Issues Found", having dropped contrast because by then the
+screen behind the report was Scyther's. **Re-run** always takes a fresh pass.
+
+The toggles sit above the frozen report and take effect immediately, so the two can disagree. Switch
+a check off and its findings are hidden straight away; switch one on and the report says it was
+switched on after the pass and offers **Re-run**, rather than silently having no findings for it.
+
+An empty report never claims more than the pass supports. A green tick and "No Issues Found" appear
+only when every enabled check ran over the whole screen and found nothing. A walk that stopped
+early, or a check that was switched off, skipped or unmeasurable, gets "No Issues In What Was
+Checked"; nothing having run at all gets "Nothing Was Checked". "Nothing was wrong", "nothing was
+looked at" and "this could not be measured" never read the same way.
 
 The pass runs a moment *after* the screen appears, not inside its transition, so the push finishes
 and you see a spinner rather than a stalled navigation while the walk happens. The pass is bounded
@@ -1506,6 +1531,13 @@ side: while a Scyther screen is in front of the app it draws no boxes and no cou
 since every box describes an element of the app underneath and points at a rectangle where nothing
 it describes is still on screen. Live mode stays on; the boxes come straight back when you dismiss
 Scyther.
+
+The live overlay goes further still: while a Scyther screen is in front of the app, no live pass
+runs at all. The question is asked when the pass comes up rather than when a controller appeared,
+because half a second of debounce separates the two and Scyther's own report rises inside that gap
+— a pass that landed there walked a window containing Scyther's own report and listed its Close and
+Re-run buttons as undersized touch targets. The skipped pass is taken as soon as Scyther's screen
+goes away.
 
 It goes one step further for **Contrast**: while any Scyther screen is presented over
 the app — the menu, the report opened from the pill, the held-request editor — the check does not

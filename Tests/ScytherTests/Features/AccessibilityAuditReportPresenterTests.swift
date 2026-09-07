@@ -76,6 +76,44 @@ final class AccessibilityAuditReportPresenterTests: XCTestCase {
         XCTAssertEqual(log.presented, 2)
     }
 
+    /// A swiped-away report told this presenter nothing, and the only thing that asked was the next
+    /// tap on the pill. Switch live mode off after closing the report and that tap never comes, so
+    /// the hosting controller, its whole SwiftUI view graph, its view model and every finding in it
+    /// stayed resident for the life of the process.
+    func testADismissedReportIsReleasedRatherThanRetainedForTheProcess() {
+        let presenter = AccessibilityAuditReportPresenter()
+        let controller = UIViewController()
+        presenter.presentReport = { $0.hostingController = controller; return true }
+
+        presenter.openReport()
+        XCTAssertNotNil(presenter.hostingController)
+        XCTAssertTrue(presenter.isPresenting)
+
+        // What a swipe-dismissal really produces: the sheet's own disappearance, announced by
+        // `ScytherHostingController`, with the controller no longer presented by anything.
+        presenter.isReportStillPresented = { _ in false }
+        ScytherPresentation.coverageDidChange()
+
+        XCTAssertNil(presenter.hostingController, "the dismissed report must not be held on to")
+        XCTAssertFalse(presenter.isPresenting)
+    }
+
+    /// The same signal fires for Scyther's *menu* appearing and disappearing, and for the report
+    /// being covered by something presented over it. Neither means the report has gone, so the
+    /// answer comes from the controller rather than from the notification arriving.
+    func testTheReportIsKeptWhileItIsStillOnScreen() {
+        let presenter = AccessibilityAuditReportPresenter()
+        let controller = UIViewController()
+        presenter.presentReport = { $0.hostingController = controller; return true }
+        presenter.isReportStillPresented = { _ in true }
+
+        presenter.openReport()
+        ScytherPresentation.coverageDidChange()
+
+        XCTAssertNotNil(presenter.hostingController)
+        XCTAssertTrue(presenter.isPresenting)
+    }
+
     /// The defect this task exists for: the overlay declared `onOpenReport` and invoked it on
     /// tap, and nothing in the package ever assigned it, so the pill was dead. Setting the
     /// overlay up must leave the closure wired to something that opens the report.
