@@ -113,6 +113,63 @@ struct HomeView: View {
                 }
 
                 Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Deliberate: icon-only button with no accessibility label, for the Missing Labels check.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button {
+                        } label: {
+                            Image(systemName: "info.circle.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 44, height: 44)
+                        }
+                        // Suppressing the label SF Symbols provide automatically (e.g. "trash"
+                        // reads as "Bin") is the point here: without this, VoiceOver would
+                        // still name the button and the audit would find nothing to flag.
+                        .accessibilityLabel("")
+                    }
+                    .padding(.vertical, 4)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Deliberate: 30 × 30pt button, under the 44pt minimum, for the Touch Targets check.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button {
+                        } label: {
+                            Circle()
+                                .fill(Color.accentColor)
+                                .frame(width: 30, height: 30)
+                        }
+                        .accessibilityLabel("Small Button")
+                    }
+                    .padding(.vertical, 4)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Deliberate: low-contrast text, for the Contrast check.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        // Both colours are fixed rather than taken from the system. Against the
+                        // list's own background, a light grey foreground is low contrast in light
+                        // mode and *high* contrast in dark mode, so this row only failed in one
+                        // appearance and the audit found two of the three deliberate defects on a
+                        // dark simulator. Painting its own background as well as its foreground
+                        // makes the ratio (about 1.4:1) a property of this row rather than of
+                        // whichever appearance the device happens to be in.
+                        Text("Hard to read text")
+                            .foregroundStyle(Color(white: 0.72))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color(white: 0.60))
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("Accessibility Audit Demo")
+                } footer: {
+                    Text("These three controls are deliberately broken so Scyther's accessibility audit has something to find. Open Scyther → UI/UX → Accessibility Audit, or turn on Live Mode, to see them flagged.")
+                }
+
+                Section {
                     Button("Add More Records") {
                         addDemoRecords()
                     }

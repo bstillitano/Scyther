@@ -373,6 +373,7 @@ public struct MenuView: View {
         case .gridOverlay: GridOverlaySettingsView()
         case .fpsCounter: FPSCounterSettingsView()
         case .touchVisualiser: TouchVisualiserView()
+        case .accessibilityAudit: AccessibilityAuditView()
         case .appearance: AppearanceOverridesView()
         case .language: LanguageView(viewModel: LanguageViewModel())
         default: EmptyView()
@@ -552,6 +553,8 @@ public struct MenuView: View {
         case .fpsCounter:
             navigationRow(for: item)
         case .touchVisualiser:
+            navigationRow(for: item)
+        case .accessibilityAudit:
             navigationRow(for: item)
         case .appearance:
             navigationRow(for: item)

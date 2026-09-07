@@ -92,6 +92,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Grid Overlay**: Display alignment grid over your UI
 - **FPS Counter**: Real-time frame rate overlay with color-coded performance indicators
 - **Touch Visualizer**: Show touch points for demos and recordings
+- **Accessibility Audit**: Walk the live accessibility tree for missing VoiceOver labels, undersized touch targets, and low-contrast text, with a live on-screen overlay for the two checks that cost nothing
 - **View Frames**: Highlight view boundaries with colored borders
 - **View Sizes**: Display view dimensions as labels
 - **Slow Animations**: Reduce animation speed for debugging
@@ -1444,6 +1445,272 @@ config.showsTouchDuration = true
 config.touchIndicatorColor = .systemBlue
 TouchVisualiser.instance.config = config
 ```
+
+#### Accessibility Audit
+
+**UI/UX → Accessibility Audit** walks the live accessibility tree — not the view tree, which is
+why it works the same over SwiftUI and UIKit — and reports what a VoiceOver user or someone with
+low vision would run into. Three checks run independently, each with its own toggle at the top of
+the report screen:
+
+- **Missing Labels**: any element VoiceOver will land on whose accessibility label is empty. The
+  exemptions are the short list, not the rule: static text reads its own content, and an element
+  with an accessibility value reads that. A custom control whose author set
+  `isAccessibilityElement` and never set a trait is caught, which a trait-gated rule missed.
+- **Touch Targets**: an interactive element measured against Apple's 44 × 44pt minimum — below
+  24pt on its shortest side is an error, 24pt up to 44pt is a warning. 24 is WCAG 2.5.8 AA's
+  floor, the only number in this rule anyone can cite. The two severities say which number they
+  cite, so an error reads "under WCAG 2.5.8's 24 × 24pt minimum" and a warning "under Apple's
+  44 × 44pt guidance". Links are capped at a warning, since WCAG 2.5.8 exempts a target inline in
+  a sentence and nobody makes body-copy links 44pt tall.
+- **Contrast**: text measured against its background at 4.5:1, or 3:1 for large text (18pt, or
+  14pt bold) where the point size can actually be read off the element — a `UILabel`, `UIButton`,
+  `UITextField` or `UITextView`, including the smallest run of an attributed string and the size a
+  label that `adjustsFontSizeToFitWidth` can shrink to. Where the size can't be read the strict
+  threshold stands rather than being guessed at, and the finding *says* so, because the relaxation
+  can only ever hide a failure. Non-text content — an icon-only button, or an element carrying
+  `.image` — is graded at WCAG 1.4.11's 3:1 instead; but only an element that can affirmatively
+  say it draws no text earns that, so a SwiftUI `Button("Continue")`, which can't, keeps the
+  strict grade. A disabled control is not graded at all, since WCAG 1.4.3 exempts inactive
+  components.
+
+  The check is not gated on traits. A `UITableViewCell` or a SwiftUI row that makes itself one
+  VoiceOver stop carries neither `.staticText` nor `.button`, and gating on those meant that on a
+  list screen — the most ordinary screen in iOS — no text was sampled at all and the report printed
+  a green tick. Where the element is a real view, the check descends into it *for sampling only*
+  and measures each `UILabel`/`UITextField`/`UITextView` at its own bounds, so the finding boxes
+  the label that failed rather than the whole row. Where there is nothing to descend into it
+  measures the element's own frame instead — which is every SwiftUI screen, since SwiftUI draws its
+  text into private layers and hangs synthetic accessibility elements off the hosting view, with no
+  `UILabel` anywhere. An element with a non-empty label that isn't an image is text as far as this
+  check is concerned, whatever framework drew it.
+
+  **Contrast is an estimate**, not a measurement: the ratio is sampled from the pixels actually
+  drawn on screen. Those pixels are clustered into two tonal groups and each group is represented
+  by the colour *most* of it actually is — not by its mean, which antialiased glyph edges drag
+  toward the page, and not by its darkest or lightest pixels, which any icon or gradient inside the
+  frame can define. That is what lets `#767676` on white, WCAG's canonical exactly-passing grey,
+  report 4.54:1 rather than being failed, and what stops a `#333333` icon covering 3% of a label's
+  frame hiding `#949494` text at a real 3.03:1. When a crop has no such structure — text on a
+  gradient or a photograph, a glyph the sampler never caught at full coverage, or a pair too close
+  together to tell from the capture's own dither — the element is reported as **could not be
+  measured** rather than given a number nobody drew. (An element scrolled under an opaque bar never
+  reaches the analyser at all: the walk skips it as invisible, one rule earlier.) Treat a contrast
+  finding as worth a look, not as a certificate — it's always reported as a warning, never an error.
+
+The walk reports only what is actually reachable, which is what keeps it from filing findings you
+can do nothing about. It honours `accessibilityElementsHidden` and `accessibilityViewIsModal` —
+including a modal set on a dialog nested inside a dimming container or a presented controller's
+view, which is where apps really put it — and it skips content that cannot be seen: recycled cells
+scrolled out of a table, the parked pages of a carousel, anything clipped away by an ancestor, and
+anything covered by something opaque drawn over it. That last one is why a caption scrolled under a
+navigation bar is no longer reported at 1.0:1 against the bar's own near-black material. Every one
+of those rules is asked the same single question — "can this be seen?" — so a container the walk
+skips is never one the report has already counted, and a container that does not clip is never
+pruned for content its children still draw on screen.
+
+**Two checks run live; the report runs three.** Missing Labels and Touch Targets read the
+accessibility tree and the geometry of what is on screen. Contrast reads *pixels*, and getting those
+pixels means rasterising the whole window with `drawHierarchy(in:afterScreenUpdates: true)` — a
+forced full re-render on the main thread, measured at 436ms of an 800ms pass on a real screen. The
+live overlay takes a pass on every navigation, so with contrast on that path the app froze for most
+of a second every time you pushed, popped or switched tab, for an answer nobody was looking at yet.
+So contrast is measured only at the moments you asked for a result: when you open the report, and
+when you tap **Re-run**. Opening the report from the count pill takes that pass in the instant
+before the sheet appears — while your app, not Scyther, is still what the window is showing, which
+is also the only moment contrast can be measured honestly. The pill therefore counts two checks and
+the report counts three, deliberately; and a contrast finding, existing only inside a report, gets
+no live box to flash.
+
+**Show Issues On Screen** draws a box around every current missing-label and touch-target finding
+directly over the running app,
+live, the same way `GridOverlay` and `FPSCounter` stay on screen without a manual refresh. The
+overlay follows the app by watching it lay out. Anything that changes what is on screen lays
+something out — a push lays out the incoming view, adding a subview marks its new superview as
+needing layout, a scroll lays out on every frame it tracks, a reload lays out the cells that changed
+— so a SwiftUI tab switch, a `NavigationStack` push, a swipe-back, a sheet of your own and a scroll
+that comes to rest all re-audit, half a second after the screen stops moving. Scyther already
+swizzles `UIView.layoutSubviews` for the view-borders overlay, so this costs no new hook.
+
+It watches layout rather than which view controllers are showing, which is what it used to do: that
+question has an honest answer in a UIKit app and almost none in a SwiftUI one, where a `TabView`
+switch, a `NavigationStack` push and a `List` scroll all happen inside a single
+`UIHostingController`. The chain never moved, so the boxes were drawn once at launch and then
+described a screen that was no longer there.
+
+Nothing runs while you are still moving: every layout restarts the half-second debounce, so the pass
+lands once the screen settles. The one deliberate exception is a screen that *never* settles — a
+spinner, a video layer, an auto-advancing carousel — which would otherwise defer the pass for ever,
+so a pass is let through after two seconds of unbroken movement. On a long scroll that is one live
+pass, about 121ms, roughly every two and a half seconds.
+
+A pass cannot make itself run again. Everything the overlay draws — the boxes, the pill, the flash —
+lives inside Scyther's own top-level view wrapper, and a layout in there is ignored; and a pass that
+found what the last one found repaints nothing at all, so there is nothing to lay out either way.
+
+What it does *not* notice is content that changes with no `UIView` laying out. Those keep the last
+pass's boxes, and the way out of any stale pass is the pill: tapping it takes a fresh one.
+
+A pill down the trailing edge of the screen counts the current findings; tapping it opens the
+report over whatever you're looking at, without going back through the menu. Closing it puts you
+straight back in the app with live mode still running. The pill sits on the side rather than the
+bottom deliberately: it is the one thing Scyther puts over your app that takes touches, and at the
+bottom centre it sat on top of tab bars and primary action buttons and took their taps.
+
+Tapping a finding in the report flashes its box on the overlay so there's no doubt which element it
+means. Because the report is always in front of the app, the flash waits until you close it and
+then plays over the app itself — a box stroked across Scyther's own report would be pointing at a
+rectangle you can't see. It flashes where the element is *now*, and doesn't flash at all if that
+element has since gone.
+
+The report itself is frozen the moment it loads and only changes when **Re-run** is tapped, so
+findings never shift under you mid-read. Opened from the pill, it opens onto the pass taken in the
+instant before the sheet appeared, rather than taking one of its own from underneath itself — which
+is how a pill reading "7 issues" used to open onto "No Issues Found", having dropped contrast
+because by then the screen behind the report was Scyther's. **Re-run** always takes a fresh pass.
+
+Every report carries a line naming the checks that ran and the time they ran at — `Missing Labels,
+Touch Targets, Contrast measured at 10:42:11` — so a contrast result on screen is dated, and a
+report with no contrast in it is visibly not claiming one. That matters most for contrast, which is
+the finding a scroll can invalidate fastest.
+
+The toggles sit above the frozen report and take effect immediately, so the two can disagree. Switch
+a check off and its findings are hidden straight away; switch one on and the report says the check
+was not run in this pass and offers **Re-run**, rather than silently having no findings for it. The
+same banner covers the other way a check can be missing from a report you are reading — contrast,
+when the report opened onto a live pass — which is why it says only that the check was not run
+rather than asserting you had just switched it on.
+
+An empty report never claims more than the pass supports. A green tick and "No Issues Found" appear
+only when every enabled check ran over the whole screen and found nothing. A walk that stopped
+early, or a check that was switched off, skipped, unmeasurable or able to read only part of the
+screen, gets "No Issues In What Was Checked"; nothing having run at all gets "Nothing Was Checked"; a pass whose every finding the
+toggles are hiding gets "Findings Hidden" rather than pretending it found nothing. "Nothing was
+wrong", "nothing was looked at", "this could not be measured" and "you are not being shown this"
+never read the same way.
+
+Every pass carries the moment it was taken. A report opened from the pill is showing the last pass
+taken with nothing of Scyther's on screen, which is by definition older than the screen you are
+reading it on — so it says so, and shows its age, rather than presenting a pass from before a scroll
+as the current state of the app.
+
+The pass runs a moment *after* the screen appears, not inside its transition, so the push finishes
+and you see a spinner rather than a stalled navigation while the walk happens. The pass is bounded
+three ways — depth (100), node count (5,000 nodes *touched*, including the ones the visibility rules
+then discard) and a wall-clock budget that covers the whole thing, including the window snapshot and
+the per-element pixel sampling, rather than just the tree walk.
+
+The budget is a different number for each kind of pass. A live pass gets **0.25s**, because it runs
+unasked while you navigate and the only acceptable cost is one you cannot feel. A report pass gets
+**2s**, because it has a window snapshot in it that does not fit inside a quarter of a second at
+all, and because you asked for it and are waiting. The clock starts before the snapshot and is read
+again the moment it returns, so a capture that spends the whole budget stops the pass and raises the
+truncation banner rather than being excluded from the one bound on how long your app is held.
+
+Any one of them stopping the pass puts a banner at the top of the report, and the banner says what
+that actually costs you: **each limit abandons the whole remainder of the tree in tree order, not
+the branch it fired on.** A list holding a few thousand scrolled-away cells can exhaust the node
+budget inside the table, and the toolbar and tab bar after it are then never walked at all. What is
+missing from a truncated report is unchecked, not clean — which is what the banner says, rather than
+blaming the screen for being too big.
+
+A check that could read *nothing at all* is reported as exactly that, not as a check that passed —
+a window capture the system refused, or a screen captured fine on which nothing was legible.
+
+A check that read *some* of the screen is a different report, and the distinction matters because
+the analyser refuses any crop it cannot trust: on a screen of photographs and gradients, contrast
+can legitimately measure a handful of elements and find a real defect in one of them. So a partial
+pass keeps its findings and states its coverage instead — "Contrast read 3 of 41 elements on this
+screen" — with the same closing sentence the unmeasurable banner uses, because the consequence is
+the same: what was not measured is missing from the report, not passing it. Partial coverage still
+costs the green tick, so a clean result can never be mistaken for a guarantee. The counts are the
+pass's own tally, element by element, taken from the same call the findings come from.
+
+The audit skips Scyther's own UI, so its menu, its report and its overlays are never reported as
+findings about your app. Ownership is decided structurally — a view is walked up its responder
+chain to whichever view controller owns it, and everything Scyther presents is hosted in a
+controller of Scyther's own — rather than by what a class happens to be called, which is what
+matters in practice because every Scyther screen is SwiftUI and hangs off a private
+`_UIHostingView` naming Scyther nowhere. The live overlay follows the same rule from the other
+side: while a Scyther screen is in front of the app it draws no boxes and no count pill at all,
+since every box describes an element of the app underneath and points at a rectangle where nothing
+it describes is still on screen. Live mode stays on; the boxes come straight back when you dismiss
+Scyther.
+
+The live overlay goes further still: while a Scyther screen is in front of the app, no live pass
+runs at all. The question is asked when the pass comes up rather than when a controller appeared,
+because half a second of debounce separates the two and Scyther's own report rises inside that gap
+— a pass that landed there walked a window containing Scyther's own report and listed its Close and
+Re-run buttons as undersized touch targets. The skipped pass is taken as soon as Scyther's screen
+goes away.
+
+It goes one step further for **Contrast**: while any Scyther screen is presented over
+the app — the menu, the report reached from the menu, the held-request editor — the check does not
+run at all. A presented screen dims and scales everything behind it, so the pixels the sampler
+would read are your app seen through Scyther's own dimming, and every ratio measured from them is
+an artefact. The report says so, and points you at the count pill, which is the one route into the
+report that measures contrast before Scyther covers anything. Missing Labels and Touch Targets come
+from the accessibility tree rather than from pixels, so nothing covering the screen changes their
+answer and they keep running either way.
+
+The snapshot the contrast check reads is deliberately constrained, in three ways worth knowing
+about if a ratio ever looks wrong:
+
+- **It never contains Scyther's own drawing.** The grid overlay, the FPS counter and the audit's
+  own boxes and count pill are hidden for the instant the snapshot is taken and restored
+  immediately afterwards. Without that, live mode measured each element through the box the
+  *previous* pass had stroked around it, and a borderline element could flip between flagged and
+  clean forever.
+- **It never contains content iOS protects.** The snapshot is taken with `drawHierarchy`, which
+  honours the platform's non-capturable-content flags — secure text entry, DRM layers, Apple Pay.
+  When it declines to render, there is no fallback: contrast is reported as a check that could not
+  be measured, rather than measured through an API that ignores those flags.
+- **It is captured at no more than 2 pixels per point**, rather than a 3× device's native scale,
+  and that number comes from the *display's* scale rather than the window's own
+  `contentScaleFactor` — which is always 1, so the cap used to never apply and every snapshot was a
+  3 → 1 downscale that measurably degraded small text. The per-element crop is capped at 64 × 64 in
+  any case, so nothing above 2× is measured, and a full-window bitmap is memory a host app can ill
+  afford — which is why a live pass no longer takes one at all.
+
+The audit also never runs on an App Store build, even with `Scyther.start(allowProductionBuilds:
+true)`. Every other Scyther feature is gated by `start()` alone; this is the only one that reads
+the user's screen as pixels, so it refuses on its own account as well. Nothing at all is set up on
+such a build: no overlay is installed in the app's hit-testing chain, nothing watches the app lay
+out, and no trigger — including the notification observers registered at launch — can schedule a
+pass.
+
+**What the audit cannot see.** A clean report is not a statement that your app is accessible. It is
+a statement that three checks found nothing on one screen as it looked at one moment, and the report
+screen says so under its own green tick. The gaps, none of which is a bug:
+
+- **Anything your app never exposed to accessibility.** The audit walks the accessibility tree, so
+  an element that is not in it does not exist as far as this tool is concerned — a custom control
+  with no `isAccessibilityElement`, a view hidden behind `accessibilityElementsHidden`, anything
+  VoiceOver simply never reaches. Those pass silently, and they are precisely the defect a VoiceOver
+  user hits. This is the largest gap by far.
+- **Whether a label *means* anything.** The check tests that a label exists and is not whitespace.
+  "Button", "image1" and "asdf" all pass it.
+- **Non-text contrast beyond a flat element's own frame.** WCAG 1.4.11 covers icons, control
+  boundaries, focus indicators and meaningful graphics; this measures a two-tone crop, reports on an
+  icon over a plain background, and refuses a photograph, a gradient or a chart. Refusing is honest,
+  but it is not coverage.
+- **Any appearance that is not currently showing.** The other colour scheme, every Dynamic Type size
+  but the current one, every locale but the current one — including right-to-left layouts and long
+  translations — and Increased Contrast, Reduce Transparency, Bold Text and Button Shapes.
+- **Anything off screen.** Below the fold of a scroll view, rows not laid out, screens you have not
+  navigated to, and after a truncated pass everything past the stopping point in tree order.
+- **Contrast, while you are only watching the live overlay.** The boxes and the pill cover two of
+  the three checks, so a screen you never opened the report on has not had its contrast measured at
+  all and a pill reading zero says nothing about it.
+- **Everything the three checks are not.** Reading order, focus traps, custom rotors, accessibility
+  actions, hint quality, Switch Control and Voice Control reachability, captions, timing and motion.
+
+Contrast findings are estimates from rendered pixels and touch-target findings measure drawn frames
+rather than hit-testing insets, so a finding can also be wrong in the harmless direction. Use the
+audit to find defects; do not use it to certify their absence.
+
+There is no separate settings screen and no public code API for this feature yet — everything
+lives on the report screen itself, reached from **UI/UX → Accessibility Audit**.
 
 #### Debug View Frames and Sizes
 

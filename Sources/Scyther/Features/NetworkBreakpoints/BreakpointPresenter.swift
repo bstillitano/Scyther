@@ -384,7 +384,11 @@ internal final class BreakpointPresenter: ObservableObject {
             return false
         }
 
-        let controller = UIHostingController(rootView: HeldRequestsView(presenter: self))
+        // Hosted in Scyther's own controller subclass for the reason `Scyther.showMenu(from:)`
+        // uses it too: ``ScytherPresentation`` recognises it as Scyther's UI covering the app, so
+        // an accessibility audit running while this editor is up does not measure the app's
+        // contrast through this modal's dimming of it.
+        let controller = ScytherHostingController(rootView: HeldRequestsView(presenter: self))
         controller.isModalInPresentation = true
         presenter.present(controller, animated: true) {
             // UIKit runs this on the main thread; the compiler cannot see that through an

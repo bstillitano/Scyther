@@ -259,6 +259,15 @@ internal extension UIView {
     private func swizzledLayoutSubviews() {
         swizzledLayoutSubviews()
 
+        // The app laying something out is the only signal that reliably follows what is actually on
+        // screen: a SwiftUI tab switch, a `NavigationStack` push and a `List` scroll all happen
+        // inside one hosting controller, so nothing about the view-controller chain moves for any of
+        // them. See ``InterfaceToolkit/appViewDidLayout(_:)`` for why this is the hook, why it
+        // cannot make itself run again, and what it still cannot see. It is deliberately the first
+        // thing here and guards itself on a single static `Bool` load, because this method runs for
+        // every view in the app on every layout pass.
+        InterfaceToolkit.appViewDidLayout(self)
+
         // Only register for notifications once per view
         guard !hasRegisteredForDebugNotifications else { return }
         hasRegisteredForDebugNotifications = true

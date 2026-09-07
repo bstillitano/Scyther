@@ -1,0 +1,613 @@
+{
+  "%@ at %@, %@": {
+    "ar": "%@ عند %@، %@",
+    "comment": "Fallback name for an element with no accessibility label: %@ is the element's type name, then its x and y position in points, already formatted",
+    "de": "%@ bei %@, %@",
+    "es": "%@ en %@, %@",
+    "fr": "%@ à %@, %@",
+    "it": "%@ a %@, %@",
+    "ja": "%@（位置: %@, %@）",
+    "ko": "%@ (위치: %@, %@)",
+    "nl": "%@ bij %@, %@",
+    "pt-BR": "%@ em %@, %@",
+    "ru": "%@ в позиции %@, %@",
+    "zh-Hans": "%@ 位于 %@，%@",
+    "zh-Hant": "%@ 位於 %@，%@"
+  },
+  "%@ measured at %@.": {
+    "ar": "تم قياس %@ في %@.",
+    "comment": "Footer line on the accessibility audit report naming what the pass checked and when: the first %@ is the list of checks that ran, the second is a locale-formatted time of day",
+    "de": "%@ um %@ gemessen.",
+    "es": "%@ medido a las %@.",
+    "fr": "%@ mesuré à %@.",
+    "it": "%@ misurato alle %@.",
+    "ja": "%@を%@に測定しました。",
+    "ko": "%@을(를) %@에 측정했습니다.",
+    "nl": "%@ gemeten om %@.",
+    "pt-BR": "%@ medido às %@.",
+    "ru": "%@ измерено в %@.",
+    "zh-Hans": "%@ 于 %@ 测量。",
+    "zh-Hant": "%@ 於 %@ 測量。"
+  },
+  "%@ not measured while Scyther is covering the app: the colors behind this screen are Scyther's, not your app's. Switch on %@ and tap the count pill over your app to measure the real screen.": {
+    "ar": "لم يتم قياس %@ أثناء تغطية Scyther للتطبيق: الألوان خلف هذه الشاشة تخص Scyther وليس تطبيقك. فعّل %@ ثم اضغط على شارة العدد فوق تطبيقك لقياس الشاشة الحقيقية.",
+    "comment": "Banner on the accessibility audit report: the first %@ is the list of checks that were skipped (in practice 'Contrast'), the second is the localized title of the 'Show Issues On Screen' toggle",
+    "de": "%@ nicht gemessen, solange Scyther die App überdeckt: Die Farben hinter diesem Bildschirm gehören Scyther, nicht Ihrer App. Aktivieren Sie %@ und tippen Sie auf die Zähler-Pille über Ihrer App, um den echten Bildschirm zu messen.",
+    "es": "%@ no se ha medido mientras Scyther cubre la app: los colores detrás de esta pantalla son de Scyther, no de tu app. Activa %@ y toca la píldora de recuento sobre tu app para medir la pantalla real.",
+    "fr": "%@ non mesuré tant que Scyther recouvre l'app : les couleurs derrière cet écran sont celles de Scyther, pas celles de votre app. Activez %@ puis touchez la pastille de comptage au-dessus de votre app pour mesurer l'écran réel.",
+    "it": "%@ non misurato mentre Scyther copre l'app: i colori dietro questa schermata sono di Scyther, non della tua app. Attiva %@ e tocca il badge del conteggio sopra la tua app per misurare la schermata reale.",
+    "ja": "Scytherがアプリを覆っている間、%@は測定されません。この画面の背後の色はアプリではなくScytherのものです。%@をオンにし、アプリ上の件数ピルをタップすると実際の画面を測定できます。",
+    "ko": "Scyther가 앱을 덮고 있는 동안에는 %@을(를) 측정하지 않습니다. 이 화면 뒤의 색은 앱이 아니라 Scyther의 것입니다. %@을(를) 켜고 앱 위의 개수 알약을 탭하면 실제 화면을 측정합니다.",
+    "nl": "%@ niet gemeten terwijl Scyther de app bedekt: de kleuren achter dit scherm zijn die van Scyther, niet van je app. Schakel %@ in en tik op de tellerpil boven je app om het echte scherm te meten.",
+    "pt-BR": "%@ não foi medido enquanto o Scyther cobre o app: as cores atrás desta tela são do Scyther, não do seu app. Ative %@ e toque na pílula de contagem sobre o seu app para medir a tela real.",
+    "ru": "%@ не измеряется, пока Scyther закрывает приложение: цвета за этим экраном принадлежат Scyther, а не вашему приложению. Включите %@ и нажмите на счётчик поверх приложения, чтобы измерить настоящий экран.",
+    "zh-Hans": "Scyther 覆盖应用时不测量 %@：此屏幕背后的颜色属于 Scyther，而非你的应用。开启%@并点按应用上方的计数标签即可测量真实屏幕。",
+    "zh-Hant": "Scyther 覆蓋應用程式時不測量 %@：此畫面背後的顏色屬於 Scyther，而非你的應用程式。開啟%@並點一下應用程式上方的計數標籤即可測量真實畫面。"
+  },
+  "%@ ran but could not read enough of this screen to report on it. What it did not measure is missing from this report, not passing it.": {
+    "ar": "تم تشغيل %@ لكنه لم يتمكن من قراءة ما يكفي من هذه الشاشة لإعداد تقرير عنها. ما لم يُقَس غائب عن هذا التقرير، وليس ناجحًا.",
+    "comment": "Banner on the accessibility audit report: %@ is the list of checks that ran but could read too little of the screen to have run (in practice 'Contrast'). Covers all three causes: the screen could not be captured, it was captured but nothing was legible, or too few elements were legible.",
+    "de": "%@ lief, konnte aber nicht genug von diesem Bildschirm lesen, um darüber zu berichten. Was nicht gemessen wurde, fehlt in diesem Bericht — es ist nicht bestanden.",
+    "es": "%@ se ejecutó, pero no pudo leer lo suficiente de esta pantalla para informar sobre ella. Lo que no se midió falta en este informe; no está aprobado.",
+    "fr": "%@ s'est exécuté mais n'a pas pu lire assez de cet écran pour en rendre compte. Ce qui n'a pas été mesuré est absent de ce rapport, pas validé.",
+    "it": "%@ è stato eseguito ma non è riuscito a leggere abbastanza di questa schermata per riferirne. Ciò che non è stato misurato manca da questo rapporto, non è stato approvato.",
+    "ja": "%@は実行されましたが、この画面を十分に読み取れず報告できませんでした。測定できなかった部分はこのレポートに含まれていません。合格したわけではありません。",
+    "ko": "%@은(는) 실행되었지만 이 화면을 충분히 읽지 못해 보고할 수 없습니다. 측정하지 못한 부분은 이 보고서에 없을 뿐, 통과한 것이 아닙니다.",
+    "nl": "%@ is uitgevoerd maar kon te weinig van dit scherm lezen om erover te rapporteren. Wat niet is gemeten ontbreekt in dit rapport; het is niet goedgekeurd.",
+    "pt-BR": "%@ foi executado, mas não conseguiu ler o suficiente desta tela para relatá-la. O que não foi medido está ausente deste relatório, não aprovado.",
+    "ru": "%@ выполнилась, но не смогла прочитать достаточную часть экрана, чтобы сделать вывод. То, что не измерено, отсутствует в отчёте, а не пройдено.",
+    "zh-Hans": "%@已运行，但无法读取此界面的足够内容来给出结论。未测量的部分只是不在本报告中，并不代表通过。",
+    "zh-Hant": "%@已執行，但無法讀取此畫面的足夠內容來給出結論。未測量的部分只是不在本報告中，並不代表通過。"
+  },
+  "%@ read %lld of %lld elements on this screen. What it did not measure is missing from this report, not passing it.": {
+    "ar": "قرأ %@ %lld عنصرًا من أصل %lld في هذه الشاشة. ما لم يُقَس غائب عن هذا التقرير، وليس ناجحًا.",
+    "comment": "Banner on the accessibility audit report: %@ is the list of checks that read only part of the screen (in practice 'Contrast'), the first %lld is how many elements the check could read and the second how many it was asked about (always two or more). Its second sentence is deliberately identical to the 'ran but could not read enough' banner's.",
+    "de": "%@ hat %lld von %lld Elementen auf diesem Bildschirm gelesen. Was nicht gemessen wurde, fehlt in diesem Bericht — es ist nicht bestanden.",
+    "es": "%@ ha leído %lld de %lld elementos de esta pantalla. Lo que no se midió falta en este informe; no está aprobado.",
+    "fr": "%@ a lu %lld des %lld éléments de cet écran. Ce qui n'a pas été mesuré est absent de ce rapport, pas validé.",
+    "it": "%@ ha letto %lld elementi su %lld in questa schermata. Ciò che non è stato misurato manca da questo rapporto, non è stato approvato.",
+    "ja": "%@はこの画面の要素 %lld 個（全 %lld 個中）を読み取りました。測定できなかった部分はこのレポートに含まれていません。合格したわけではありません。",
+    "ko": "%@은(는) 이 화면의 요소 %lld개(전체 %lld개)를 읽었습니다. 측정하지 못한 부분은 이 보고서에 없을 뿐, 통과한 것이 아닙니다.",
+    "nl": "%@ heeft %lld van de %lld elementen op dit scherm gelezen. Wat niet is gemeten ontbreekt in dit rapport; het is niet goedgekeurd.",
+    "pt-BR": "%@ leu %lld de %lld elementos desta tela. O que não foi medido está ausente deste relatório, não aprovado.",
+    "ru": "%@ прочитала %lld из %lld элементов на этом экране. То, что не измерено, отсутствует в отчёте, а не пройдено.",
+    "zh-Hans": "%@已读取此界面 %lld 个元素（共 %lld 个）。未测量的部分只是不在本报告中，并不代表通过。",
+    "zh-Hant": "%@已讀取此畫面 %lld 個元素（共 %lld 個）。未測量的部分只是不在本報告中，並不代表通過。"
+  },
+  "%@ was not run in this pass. Tap %@ to include it.": {
+    "ar": "لم يتم تشغيل %@ في هذا المسح. اضغط %@ لتضمينه.",
+    "comment": "Banner on the accessibility audit report: the first %@ is the list of checks that are switched on but were not part of this pass (either switched on since it ran, or deferred because a live pass does not run contrast), the second is the localized title of the Re-run toolbar button",
+    "de": "%@ wurde in diesem Durchlauf nicht ausgeführt. Tippen Sie auf %@, um es einzubeziehen.",
+    "es": "%@ no se ejecutó en esta pasada. Toca %@ para incluirlo.",
+    "fr": "%@ n'a pas été exécuté lors de ce passage. Touchez %@ pour l'inclure.",
+    "it": "%@ non è stato eseguito in questa scansione. Tocca %@ per includerlo.",
+    "ja": "このパスでは%@は実行されていません。%@をタップすると結果に含まれます。",
+    "ko": "이번 검사에서는 %@이(가) 실행되지 않았습니다. %@을(를) 탭하면 결과에 포함됩니다.",
+    "nl": "%@ is niet uitgevoerd in deze ronde. Tik op %@ om het mee te nemen.",
+    "pt-BR": "%@ não foi executado nesta passagem. Toque em %@ para incluí-lo.",
+    "ru": "%@ не выполнялось в этом проходе. Нажмите %@, чтобы включить в него.",
+    "zh-Hans": "本次检查未运行 %@。点按%@即可将其纳入。",
+    "zh-Hant": "本次檢查未執行 %@。點一下%@即可將其納入。"
+  },
+  "%@ × %@pt, under Apple's 44 × 44pt guidance.": {
+    "ar": "%@ × %@pt، أقل من توصية Apple البالغة 44 × 44pt.",
+    "comment": "Detail of a touch-target warning finding: %@ is the measured width and %@ the measured height, both already formatted with one decimal place. 44 x 44pt is Apple's Human Interface Guidelines recommendation, not a standard.",
+    "de": "%@ × %@pt, unter Apples Empfehlung von 44 × 44pt.",
+    "es": "%@ × %@pt, por debajo de la recomendación de 44 × 44pt de Apple.",
+    "fr": "%@ × %@pt, sous la recommandation de 44 × 44pt d'Apple.",
+    "it": "%@ × %@pt, sotto la linea guida di 44 × 44pt di Apple.",
+    "ja": "%@ × %@pt。Apple の推奨値 44 × 44pt 未満です。",
+    "ko": "%@ × %@pt, Apple 권장 44 × 44pt 미만입니다.",
+    "nl": "%@ × %@pt, onder Apples richtlijn van 44 × 44pt.",
+    "pt-BR": "%@ × %@pt, abaixo da recomendação de 44 × 44pt da Apple.",
+    "ru": "%@ × %@pt, меньше рекомендованных Apple 44 × 44pt.",
+    "zh-Hans": "%@ × %@pt，低于 Apple 建议的 44 × 44pt。",
+    "zh-Hant": "%@ × %@pt，低於 Apple 建議的 44 × 44pt。"
+  },
+  "%@ × %@pt, under WCAG 2.5.8's 24 × 24pt minimum.": {
+    "ar": "%@ × %@pt، أقل من الحد الأدنى 24 × 24pt في WCAG 2.5.8.",
+    "comment": "Detail of a touch-target error finding: %@ is the measured width and %@ the measured height, both already formatted with one decimal place. 24 x 24pt is WCAG 2.5.8 Target Size (Minimum), the AA success criterion.",
+    "de": "%@ × %@pt, unter dem Minimum von 24 × 24pt aus WCAG 2.5.8.",
+    "es": "%@ × %@pt, por debajo del mínimo de 24 × 24pt de la WCAG 2.5.8.",
+    "fr": "%@ × %@pt, sous le minimum de 24 × 24pt de WCAG 2.5.8.",
+    "it": "%@ × %@pt, sotto il minimo di 24 × 24pt di WCAG 2.5.8.",
+    "ja": "%@ × %@pt。WCAG 2.5.8 の最小値 24 × 24pt 未満です。",
+    "ko": "%@ × %@pt, WCAG 2.5.8의 최소 24 × 24pt 미만입니다.",
+    "nl": "%@ × %@pt, onder het minimum van 24 × 24pt uit WCAG 2.5.8.",
+    "pt-BR": "%@ × %@pt, abaixo do mínimo de 24 × 24pt da WCAG 2.5.8.",
+    "ru": "%@ × %@pt, меньше минимума 24 × 24pt по WCAG 2.5.8.",
+    "zh-Hans": "%@ × %@pt，低于 WCAG 2.5.8 的 24 × 24pt 最小值。",
+    "zh-Hant": "%@ × %@pt，低於 WCAG 2.5.8 的 24 × 24pt 最小值。"
+  },
+  "%lld findings in this pass are hidden. Switched off since it ran: %@.": {
+    "ar": {
+      "few": "%lld نتائج من هذا الفحص مخفية. تم إيقافه بعد الفحص: %@.",
+      "many": "%lld نتيجة من هذا الفحص مخفية. تم إيقافه بعد الفحص: %@.",
+      "one": "%lld نتيجة من هذا الفحص مخفية. تم إيقافه بعد الفحص: %@.",
+      "other": "%lld نتيجة من هذا الفحص مخفية. تم إيقافه بعد الفحص: %@.",
+      "two": "%lld نتيجتان من هذا الفحص مخفيتان. تم إيقافه بعد الفحص: %@.",
+      "zero": "%lld نتيجة من هذا الفحص مخفية. تم إيقافه بعد الفحص: %@."
+    },
+    "comment": "Accessibility audit report: %lld is how many findings the frozen pass holds that are not being shown, %@ is the list of checks the developer switched off after the pass ran (for example 'Contrast')",
+    "de": {
+      "one": "%lld Ergebnis dieses Durchlaufs ist ausgeblendet. Seitdem deaktiviert: %@.",
+      "other": "%lld Ergebnisse dieses Durchlaufs sind ausgeblendet. Seitdem deaktiviert: %@."
+    },
+    "en": {
+      "one": "%lld finding in this pass is hidden. Switched off since it ran: %@.",
+      "other": "%lld findings in this pass are hidden. Switched off since it ran: %@."
+    },
+    "es": {
+      "one": "%lld resultado de este análisis está oculto. Desactivado desde entonces: %@.",
+      "other": "%lld resultados de este análisis están ocultos. Desactivado desde entonces: %@."
+    },
+    "fr": {
+      "one": "%lld résultat de cette analyse est masqué. Désactivé depuis : %@.",
+      "other": "%lld résultats de cette analyse sont masqués. Désactivé depuis : %@."
+    },
+    "it": {
+      "one": "%lld risultato di questa scansione è nascosto. Disattivato da allora: %@.",
+      "other": "%lld risultati di questa scansione sono nascosti. Disattivato da allora: %@."
+    },
+    "ja": {
+      "other": "この検査の%lld件の結果が非表示です。実行後にオフにされた項目: %@。"
+    },
+    "ko": {
+      "other": "이 검사 결과 중 %lld개가 숨겨져 있습니다. 검사 후 끈 항목: %@."
+    },
+    "nl": {
+      "one": "%lld bevinding uit deze ronde is verborgen. Sindsdien uitgeschakeld: %@.",
+      "other": "%lld bevindingen uit deze ronde zijn verborgen. Sindsdien uitgeschakeld: %@."
+    },
+    "plural": true,
+    "pt-BR": {
+      "one": "%lld resultado desta análise está oculto. Desativado desde então: %@.",
+      "other": "%lld resultados desta análise estão ocultos. Desativado desde então: %@."
+    },
+    "ru": {
+      "few": "%lld результата этой проверки скрыты. Отключено после проверки: %@.",
+      "many": "%lld результатов этой проверки скрыты. Отключено после проверки: %@.",
+      "one": "%lld результат этой проверки скрыт. Отключено после проверки: %@.",
+      "other": "%lld результатов этой проверки скрыты. Отключено после проверки: %@."
+    },
+    "zh-Hans": {
+      "other": "本次检查有 %lld 项结果被隐藏。检查后关闭的项目：%@。"
+    },
+    "zh-Hant": {
+      "other": "本次檢查有 %lld 項結果被隱藏。檢查後關閉的項目：%@。"
+    }
+  },
+  "%lld issues": {
+    "ar": {
+      "few": "%lld مشاكل",
+      "many": "%lld مشكلة",
+      "one": "مشكلة واحدة",
+      "other": "%lld مشكلة",
+      "two": "مشكلتان",
+      "zero": "%lld مشكلة"
+    },
+    "comment": "Title of the tappable pill down the trailing edge of the live accessibility audit overlay, reporting how many findings are currently on screen",
+    "de": {
+      "one": "%lld Problem",
+      "other": "%lld Probleme"
+    },
+    "en": {
+      "one": "%lld issue",
+      "other": "%lld issues"
+    },
+    "es": {
+      "one": "%lld problema",
+      "other": "%lld problemas"
+    },
+    "fr": {
+      "one": "%lld problème",
+      "other": "%lld problèmes"
+    },
+    "it": {
+      "one": "%lld problema",
+      "other": "%lld problemi"
+    },
+    "ja": {
+      "other": "%lld件の問題"
+    },
+    "ko": {
+      "other": "%lld개 문제"
+    },
+    "nl": {
+      "one": "%lld probleem",
+      "other": "%lld problemen"
+    },
+    "plural": true,
+    "pt-BR": {
+      "one": "%lld problema",
+      "other": "%lld problemas"
+    },
+    "ru": {
+      "few": "%lld проблемы",
+      "many": "%lld проблем",
+      "one": "%lld проблема",
+      "other": "%lld проблем"
+    },
+    "zh-Hans": {
+      "other": "%lld 个问题"
+    },
+    "zh-Hant": {
+      "other": "%lld 個問題"
+    }
+  },
+  "About %@:1, under %@:1. Estimated from %@ on %@.": {
+    "ar": "حوالي %@:1، أقل من %@:1. تقدير من %@ على %@.",
+    "comment": "Detail of a contrast finding: the first %@ is the measured ratio, the second is the threshold it fell under, both formatted to one decimal place; the third and fourth are the sampled foreground and background colours as #RRGGBB hex strings",
+    "de": "Etwa %@:1, unter %@:1. Geschätzt aus %@ auf %@.",
+    "es": "Aproximadamente %@:1, por debajo de %@:1. Estimado a partir de %@ sobre %@.",
+    "fr": "Environ %@:1, sous %@:1. Estimé à partir de %@ sur %@.",
+    "it": "Circa %@:1, sotto %@:1. Stimato da %@ su %@.",
+    "ja": "約%@:1で、%@:1を下回っています。%@ を %@ の上に置いた推定値です。",
+    "ko": "약 %@:1로 %@:1 미만입니다. %@ 을(를) %@ 위에 놓았을 때의 추정치입니다.",
+    "nl": "Ongeveer %@:1, onder %@:1. Geschat op basis van %@ op %@.",
+    "pt-BR": "Cerca de %@:1, abaixo de %@:1. Estimado a partir de %@ sobre %@.",
+    "ru": "Примерно %@:1, ниже %@:1. Оценено по %@ на %@.",
+    "zh-Hans": "约为 %@:1，低于 %@:1。基于 %@ 在 %@ 上的估算。",
+    "zh-Hant": "約為 %@:1，低於 %@:1。基於 %@ 在 %@ 上的估算。"
+  },
+  "Accessibility Audit": {
+    "ar": "تدقيق إمكانية الوصول",
+    "comment": "Navigation title of the accessibility audit's report screen",
+    "de": "Bedienungshilfen-Audit",
+    "es": "Auditoría de accesibilidad",
+    "fr": "Audit d'accessibilité",
+    "it": "Audit di accessibilità",
+    "ja": "アクセシビリティ監査",
+    "ko": "손쉬운 사용 감사",
+    "nl": "Toegankelijkheidsaudit",
+    "pt-BR": "Auditoria de acessibilidade",
+    "ru": "Аудит специальных возможностей",
+    "zh-Hans": "辅助功能审核",
+    "zh-Hant": "輔助使用稽核"
+  },
+  "Boxes missing labels and touch targets over the running app. Contrast is measured when you open this report, because it costs a snapshot of the whole screen.": {
+    "ar": "يرسم إطارات حول التسميات المفقودة وأهداف اللمس فوق التطبيق قيد التشغيل. أما التباين فيُقاس عند فتح هذا التقرير، لأنه يتطلب لقطة للشاشة بأكملها.",
+    "comment": "Footer under the settings section of the accessibility audit report screen, explaining that the live overlay runs only the two checks that need no pixels and that contrast is measured when the report is opened",
+    "de": "Rahmt fehlende Beschriftungen und Tap-Ziele über der laufenden App ein. Der Kontrast wird beim Öffnen dieses Berichts gemessen, da er eine Aufnahme des gesamten Bildschirms kostet.",
+    "es": "Recuadra las etiquetas ausentes y los objetivos táctiles sobre la app en ejecución. El contraste se mide al abrir este informe, porque requiere una captura de toda la pantalla.",
+    "fr": "Encadre les libellés manquants et les cibles tactiles par-dessus l'application en cours. Le contraste est mesuré à l'ouverture de ce rapport, car il coûte une capture de tout l'écran.",
+    "it": "Riquadra le etichette mancanti e le aree di tocco sopra l'app in esecuzione. Il contrasto viene misurato all'apertura di questo report, perché richiede uno snapshot dell'intera schermata.",
+    "ja": "実行中のアプリの上に、ラベル未設定の要素とタップ領域の枠を描画します。コントラストは画面全体のスナップショットを要するため、このレポートを開いたときに測定されます。",
+    "ko": "실행 중인 앱 위에 레이블 누락과 터치 영역의 테두리를 표시합니다. 대비는 화면 전체 스냅숏이 필요하므로 이 보고서를 열 때 측정합니다.",
+    "nl": "Kadert ontbrekende labels en tikdoelen in over de actieve app. Contrast wordt gemeten wanneer je dit rapport opent, omdat het een momentopname van het hele scherm kost.",
+    "pt-BR": "Destaca rótulos ausentes e alvos de toque sobre o app em execução. O contraste é medido quando você abre este relatório, porque exige uma captura da tela inteira.",
+    "ru": "Обводит элементы без подписи и мелкие области нажатия поверх работающего приложения. Контраст измеряется при открытии этого отчёта, поскольку требует снимка всего экрана.",
+    "zh-Hans": "在运行中的应用上方框出缺少标签的元素和点按目标。对比度需要整屏快照，因此在你打开此报告时测量。",
+    "zh-Hant": "在執行中的應用程式上方框出缺少標籤的元素和點按目標。對比度需要整個畫面的快照，因此在你開啟此報告時測量。"
+  },
+  "Checking every element on screen…": {
+    "ar": "جارٍ فحص كل عنصر على الشاشة…",
+    "comment": "Progress label shown while an accessibility audit pass is walking the screen",
+    "de": "Jedes Element auf dem Bildschirm wird geprüft…",
+    "es": "Comprobando todos los elementos de la pantalla…",
+    "fr": "Vérification de chaque élément à l’écran…",
+    "it": "Controllo di ogni elemento sullo schermo…",
+    "ja": "画面上のすべての要素を確認しています…",
+    "ko": "화면의 모든 요소를 확인하는 중…",
+    "nl": "Elk element op het scherm wordt gecontroleerd…",
+    "pt-BR": "Verificando todos os elementos na tela…",
+    "ru": "Проверка каждого элемента на экране…",
+    "zh-Hans": "正在检查屏幕上的每个元素…",
+    "zh-Hant": "正在檢查螢幕上的每個元素…"
+  },
+  "Contrast": {
+    "ar": "التباين",
+    "comment": "Name of the accessibility audit check for text too close in colour to what is behind it, shown in the report and the settings screen",
+    "de": "Kontrast",
+    "es": "Contraste",
+    "fr": "Contraste",
+    "it": "Contrasto",
+    "ja": "コントラスト",
+    "ko": "대비",
+    "nl": "Contrast",
+    "pt-BR": "Contraste",
+    "ru": "Контраст",
+    "zh-Hans": "对比度",
+    "zh-Hant": "對比度"
+  },
+  "Contrast ratios are estimated by sampling pixels on screen, not measured from exact colors.": {
+    "ar": "يتم تقدير نسب التباين عن طريق أخذ عينات من وحدات البكسل على الشاشة، وليس قياسها من الألوان الدقيقة.",
+    "comment": "Footer under the Contrast section of the accessibility audit report screen, noting that its findings are estimates rather than exact measurements",
+    "de": "Kontrastverhältnisse werden durch Stichproben von Bildschirmpixeln geschätzt, nicht anhand exakter Farbwerte gemessen.",
+    "es": "Las relaciones de contraste se estiman muestreando píxeles en pantalla, no se miden a partir de colores exactos.",
+    "fr": "Les ratios de contraste sont estimés en échantillonnant des pixels à l'écran, et non mesurés à partir des couleurs exactes.",
+    "it": "I rapporti di contrasto sono stimati campionando i pixel sullo schermo, non misurati a partire dai colori esatti.",
+    "ja": "コントラスト比は画面上のピクセルをサンプリングして推定した値であり、正確な色から測定したものではありません。",
+    "ko": "명암비는 화면의 픽셀을 샘플링하여 추정한 값이며, 정확한 색상으로 측정한 것이 아닙니다.",
+    "nl": "Contrastverhoudingen worden geschat door pixels op het scherm te bemonsteren, niet gemeten op basis van exacte kleuren.",
+    "pt-BR": "As taxas de contraste são estimadas por amostragem de pixels na tela, não medidas a partir de cores exatas.",
+    "ru": "Коэффициенты контрастности оцениваются по выборке пикселей на экране, а не измеряются по точным цветам.",
+    "zh-Hans": "对比度是通过采样屏幕像素估算得出的，并非根据精确颜色测量。",
+    "zh-Hant": "對比度是透過取樣螢幕像素估算得出的，並非根據精確顏色測量。"
+  },
+  "Findings Hidden": {
+    "ar": "النتائج مخفية",
+    "comment": "Headline of the accessibility audit report's empty state when the pass found things but every one of them belongs to a check the developer has since switched off",
+    "de": "Ergebnisse ausgeblendet",
+    "es": "Resultados ocultos",
+    "fr": "Résultats masqués",
+    "it": "Risultati nascosti",
+    "ja": "検出結果は非表示です",
+    "ko": "결과 숨김",
+    "nl": "Bevindingen verborgen",
+    "pt-BR": "Resultados ocultos",
+    "ru": "Результаты скрыты",
+    "zh-Hans": "结果已隐藏",
+    "zh-Hant": "結果已隱藏"
+  },
+  "Measured": {
+    "ar": "تم القياس",
+    "comment": "Label of a row in the accessibility audit report showing how long ago the pass being displayed was taken; the value beside it is a live-updating relative time",
+    "de": "Gemessen",
+    "es": "Medido",
+    "fr": "Mesuré",
+    "it": "Misurato",
+    "ja": "測定",
+    "ko": "측정",
+    "nl": "Gemeten",
+    "pt-BR": "Medido",
+    "ru": "Измерено",
+    "zh-Hans": "测量于",
+    "zh-Hant": "測量於"
+  },
+  "Missing Labels": {
+    "ar": "التسميات المفقودة",
+    "comment": "Name of the accessibility audit check for elements VoiceOver cannot name, shown in the report and the settings screen",
+    "de": "Fehlende Beschriftungen",
+    "es": "Etiquetas faltantes",
+    "fr": "Libellés manquants",
+    "it": "Etichette mancanti",
+    "ja": "ラベルの欠落",
+    "ko": "누락된 라벨",
+    "nl": "Ontbrekende labels",
+    "pt-BR": "Rótulos ausentes",
+    "ru": "Отсутствующие подписи",
+    "zh-Hans": "缺少标签",
+    "zh-Hant": "缺少標籤"
+  },
+  "No Issues Found": {
+    "ar": "لم يتم العثور على مشكلات",
+    "comment": "Title of the empty state on the accessibility audit report screen, shown when the current report has no findings",
+    "de": "Keine Probleme gefunden",
+    "es": "No se encontraron problemas",
+    "fr": "Aucun problème détecté",
+    "it": "Nessun problema rilevato",
+    "ja": "問題は見つかりませんでした",
+    "ko": "발견된 문제 없음",
+    "nl": "Geen problemen gevonden",
+    "pt-BR": "Nenhum problema encontrado",
+    "ru": "Проблем не найдено",
+    "zh-Hans": "未发现问题",
+    "zh-Hant": "未發現問題"
+  },
+  "No Issues In What Was Checked": {
+    "ar": "لا توجد مشكلات فيما تم فحصه",
+    "comment": "Title of the empty state on the accessibility audit report screen, shown when the checks that ran found nothing but at least one check did not run or the walk stopped early",
+    "de": "Keine Probleme im geprüften Bereich",
+    "es": "Sin problemas en lo que se comprobó",
+    "fr": "Aucun problème dans ce qui a été vérifié",
+    "it": "Nessun problema in ciò che è stato controllato",
+    "ja": "確認できた範囲に問題はありません",
+    "ko": "확인한 범위에서는 문제 없음",
+    "nl": "Geen problemen in wat is gecontroleerd",
+    "pt-BR": "Nenhum problema no que foi verificado",
+    "ru": "В проверенной части проблем нет",
+    "zh-Hans": "已检查的部分未发现问题",
+    "zh-Hant": "已檢查的部分未發現問題"
+  },
+  "No check on this screen could be run.": {
+    "ar": "تعذّر تشغيل أي فحص على هذه الشاشة.",
+    "comment": "Description under the empty state's title on the accessibility audit report screen, shown when no check ran and none of them was switched off by the developer",
+    "de": "Auf diesem Bildschirm konnte keine Prüfung ausgeführt werden.",
+    "es": "No se pudo ejecutar ninguna comprobación en esta pantalla.",
+    "fr": "Aucune vérification n'a pu être effectuée sur cet écran.",
+    "it": "Non è stato possibile eseguire alcun controllo su questa schermata.",
+    "ja": "この画面ではどのチェックも実行できませんでした。",
+    "ko": "이 화면에서는 어떤 검사도 실행할 수 없었습니다.",
+    "nl": "Er kon geen enkele controle op dit scherm worden uitgevoerd.",
+    "pt-BR": "Não foi possível executar nenhuma verificação nesta tela.",
+    "ru": "На этом экране не удалось выполнить ни одной проверки.",
+    "zh-Hans": "此界面上没有任何检查能够运行。",
+    "zh-Hant": "此畫面上沒有任何檢查能夠執行。"
+  },
+  "No check ran. Switched off: %@.": {
+    "ar": "لم يتم تشغيل أي فحص. معطّلة: %@.",
+    "comment": "Description under the empty state's title on the accessibility audit report screen, shown when no check ran at all because they were switched off; %@ is the localized, comma-joined list of those checks",
+    "de": "Es wurde keine Prüfung ausgeführt. Deaktiviert: %@.",
+    "es": "No se ejecutó ninguna comprobación. Desactivadas: %@.",
+    "fr": "Aucune vérification n'a été effectuée. Désactivées : %@.",
+    "it": "Nessun controllo è stato eseguito. Disattivati: %@.",
+    "ja": "チェックは実行されませんでした。無効: %@。",
+    "ko": "실행된 검사가 없습니다. 꺼짐: %@.",
+    "nl": "Er is geen enkele controle uitgevoerd. Uitgeschakeld: %@.",
+    "pt-BR": "Nenhuma verificação foi executada. Desativadas: %@.",
+    "ru": "Ни одна проверка не выполнялась. Отключены: %@.",
+    "zh-Hans": "没有运行任何检查。已关闭：%@。",
+    "zh-Hant": "沒有執行任何檢查。已關閉：%@。"
+  },
+  "No issues found by the checks that ran. The audit only sees what your app exposed to accessibility, cannot judge whether a label is meaningful, and only sees this screen as it is now.": {
+    "ar": "لم تجد الفحوصات التي تم تشغيلها أي مشكلات. لا يرى التدقيق سوى ما يعرضه تطبيقك لإمكانية الوصول، ولا يمكنه الحكم على ما إذا كانت التسمية ذات معنى، ولا يرى هذه الشاشة إلا كما هي الآن.",
+    "comment": "Accessibility audit report's empty state description for the one case where every enabled check ran and found nothing. Names the audit's limits so a clean report cannot be read as proof the app is accessible.",
+    "de": "Die durchgeführten Prüfungen haben nichts gefunden. Die Analyse sieht nur, was Ihre App der Bedienungshilfe zugänglich macht, kann nicht beurteilen, ob eine Beschriftung sinnvoll ist, und sieht diesen Bildschirm nur so, wie er jetzt ist.",
+    "es": "Las comprobaciones que se ejecutaron no encontraron problemas. La auditoría solo ve lo que tu app expone a la accesibilidad, no puede juzgar si una etiqueta es significativa y solo ve esta pantalla tal como está ahora.",
+    "fr": "Aucun problème trouvé par les vérifications effectuées. L'audit ne voit que ce que votre app expose à l'accessibilité, ne peut pas juger si un libellé est pertinent, et ne voit cet écran que tel qu'il est maintenant.",
+    "it": "I controlli eseguiti non hanno trovato problemi. L'analisi vede solo ciò che la tua app espone all'accessibilità, non può giudicare se un'etichetta sia significativa e vede questa schermata solo com'è adesso.",
+    "ja": "実行されたチェックでは問題は見つかりませんでした。この監査は、アプリがアクセシビリティに公開したものしか見えず、ラベルが意味のあるものかどうかは判断できず、この画面の現在の状態しか見ていません。",
+    "ko": "실행된 검사에서는 문제를 찾지 못했습니다. 이 감사는 앱이 손쉬운 사용에 노출한 것만 볼 수 있고, 레이블이 의미 있는지는 판단할 수 없으며, 이 화면의 현재 상태만 봅니다.",
+    "nl": "De uitgevoerde controles hebben niets gevonden. De audit ziet alleen wat je app aan toegankelijkheid blootstelt, kan niet beoordelen of een label zinvol is, en ziet dit scherm alleen zoals het nu is.",
+    "pt-BR": "As verificações executadas não encontraram problemas. A auditoria só vê o que o seu app expõe à acessibilidade, não pode julgar se um rótulo é significativo e só vê esta tela como ela está agora.",
+    "ru": "Выполненные проверки ничего не нашли. Аудит видит только то, что ваше приложение открыло для универсального доступа, не может судить об осмысленности подписи и видит этот экран только таким, какой он сейчас.",
+    "zh-Hans": "已运行的检查未发现问题。此审查只能看到你的应用向辅助功能公开的内容，无法判断标签是否有意义，也只能看到此界面此刻的样子。",
+    "zh-Hant": "已執行的檢查未發現問題。此審查只能看到你的 App 向輔助使用公開的內容，無法判斷標籤是否有意義，也只能看到此畫面此刻的樣子。"
+  },
+  "Nothing Was Checked": {
+    "ar": "لم يتم فحص أي شيء",
+    "comment": "Title of the empty state on the accessibility audit report screen, shown when no check ran at all — every check switched off, or every check refused",
+    "de": "Es wurde nichts geprüft",
+    "es": "No se comprobó nada",
+    "fr": "Rien n'a été vérifié",
+    "it": "Non è stato controllato nulla",
+    "ja": "何も確認されていません",
+    "ko": "아무것도 확인하지 않았습니다",
+    "nl": "Er is niets gecontroleerd",
+    "pt-BR": "Nada foi verificado",
+    "ru": "Ничего не проверялось",
+    "zh-Hans": "未进行任何检查",
+    "zh-Hant": "未進行任何檢查"
+  },
+  "Point size unknown, so the large-text allowance was not applied.": {
+    "ar": "حجم الخط غير معروف، لذلك لم يُطبَّق تخفيف النص الكبير.",
+    "comment": "Appended to a contrast finding when the element could not report the point size of its text, so WCAG's relaxed large-text threshold of 3:1 was withheld and the strict 4.5:1 used instead.",
+    "de": "Schriftgröße unbekannt, daher wurde die Ausnahme für großen Text nicht angewendet.",
+    "es": "Tamaño de fuente desconocido, así que no se aplicó la excepción para texto grande.",
+    "fr": "Taille de police inconnue : la tolérance pour le grand texte n'a pas été appliquée.",
+    "it": "Corpo del testo sconosciuto, quindi la tolleranza per il testo grande non è stata applicata.",
+    "ja": "文字サイズが不明なため、大きな文字の緩和基準は適用していません。",
+    "ko": "글자 크기를 알 수 없어 큰 텍스트 완화 기준을 적용하지 않았습니다.",
+    "nl": "Puntgrootte onbekend, dus de uitzondering voor grote tekst is niet toegepast.",
+    "pt-BR": "Tamanho da fonte desconhecido, então a tolerância para texto grande não foi aplicada.",
+    "ru": "Размер шрифта неизвестен, поэтому послабление для крупного текста не применялось.",
+    "zh-Hans": "字号未知，因此未应用大号文本的放宽标准。",
+    "zh-Hant": "字級未知，因此未套用大型文字的放寬標準。"
+  },
+  "Re-run": {
+    "ar": "إعادة التشغيل",
+    "comment": "Toolbar button on the accessibility audit report screen that runs the audit again and replaces the current report",
+    "de": "Erneut ausführen",
+    "es": "Volver a ejecutar",
+    "fr": "Relancer",
+    "it": "Riesegui",
+    "ja": "再実行",
+    "ko": "다시 실행",
+    "nl": "Opnieuw uitvoeren",
+    "pt-BR": "Executar novamente",
+    "ru": "Повторить",
+    "zh-Hans": "重新运行",
+    "zh-Hant": "重新執行"
+  },
+  "Show Issues On Screen": {
+    "ar": "إظهار المشكلات على الشاشة",
+    "comment": "Toggle on the accessibility audit report screen that switches on the live overlay, which draws a box over the running app around every current finding",
+    "de": "Probleme auf dem Bildschirm anzeigen",
+    "es": "Mostrar problemas en pantalla",
+    "fr": "Afficher les problèmes à l'écran",
+    "it": "Mostra i problemi sullo schermo",
+    "ja": "問題を画面に表示",
+    "ko": "화면에 문제 표시",
+    "nl": "Problemen op het scherm tonen",
+    "pt-BR": "Mostrar problemas na tela",
+    "ru": "Показывать проблемы на экране",
+    "zh-Hans": "在屏幕上显示问题",
+    "zh-Hant": "在螢幕上顯示問題"
+  },
+  "The checks that ran found nothing to report.": {
+    "ar": "لم تجد الفحوصات التي تم تشغيلها ما يستدعي الإبلاغ عنه.",
+    "comment": "Empty state of the accessibility audit report when every check that ran passed but at least one enabled check could not be run",
+    "de": "Die ausgeführten Prüfungen haben nichts gefunden.",
+    "es": "Las comprobaciones que se ejecutaron no encontraron nada que informar.",
+    "fr": "Les vérifications effectuées n'ont rien trouvé à signaler.",
+    "it": "I controlli eseguiti non hanno trovato nulla da segnalare.",
+    "ja": "実行されたチェックでは報告する問題は見つかりませんでした。",
+    "ko": "실행된 검사에서 보고할 문제를 찾지 못했습니다.",
+    "nl": "De uitgevoerde controles hebben niets gevonden om te melden.",
+    "pt-BR": "As verificações executadas não encontraram nada a relatar.",
+    "ru": "Выполненные проверки не нашли ничего, о чём стоит сообщить.",
+    "zh-Hans": "已运行的检查没有发现需要报告的问题。",
+    "zh-Hant": "已執行的檢查沒有發現需要回報的問題。"
+  },
+  "The checks that ran found nothing to report. Switched off: %@.": {
+    "ar": "لم تعثر الفحوصات التي تم تشغيلها على ما يستحق الإبلاغ عنه. معطّلة: %@.",
+    "comment": "Description under the empty state's title on the accessibility audit report screen, shown when the report has no findings but at least one check was switched off; %@ is the localized, comma-joined list of the checks that did not run",
+    "de": "Die durchgeführten Prüfungen haben nichts gemeldet. Deaktiviert: %@.",
+    "es": "Las comprobaciones realizadas no encontraron nada que informar. Desactivadas: %@.",
+    "fr": "Les vérifications effectuées n'ont rien signalé. Désactivées : %@.",
+    "it": "I controlli eseguiti non hanno rilevato nulla da segnalare. Disattivati: %@.",
+    "ja": "実行されたチェックでは報告する内容はありませんでした。無効: %@。",
+    "ko": "실행된 검사에서 보고할 내용이 없습니다. 꺼짐: %@.",
+    "nl": "De uitgevoerde controles hebben niets te melden. Uitgeschakeld: %@.",
+    "pt-BR": "As verificações realizadas não encontraram nada a relatar. Desativadas: %@.",
+    "ru": "Выполненные проверки ничего не обнаружили. Отключены: %@.",
+    "zh-Hans": "已运行的检查未发现需要报告的内容。已关闭:%@。",
+    "zh-Hant": "已執行的檢查未發現需要回報的內容。已關閉:%@。"
+  },
+  "This audit stopped at one of its limits and never reached the rest of the screen. Whatever it did not reach is unchecked, not clean.": {
+    "ar": "توقّف هذا التدقيق عند أحد حدوده ولم يصل إلى بقية الشاشة. كل ما لم يصل إليه غير مفحوص، وليس سليمًا.",
+    "comment": "Banner shown on the accessibility audit report screen when AccessibilityAuditor.Result.didHitLimit is true. Every limit — depth, node count and the time budget — abandons the whole remainder of the tree in tree order, so the point is that the rest of the screen was never looked at, not that the screen was too large.",
+    "de": "Dieses Audit endete an einer seiner Grenzen und hat den Rest des Bildschirms nie erreicht. Was es nicht erreicht hat, ist ungeprüft, nicht in Ordnung.",
+    "es": "Esta auditoría se detuvo en uno de sus límites y nunca llegó al resto de la pantalla. Todo lo que no alcanzó está sin comprobar, no aprobado.",
+    "fr": "Cet audit s'est arrêté à l'une de ses limites et n'a jamais atteint le reste de l'écran. Tout ce qu'il n'a pas atteint n'est pas vérifié, pas conforme.",
+    "it": "Questo audit si è fermato a uno dei suoi limiti e non ha mai raggiunto il resto della schermata. Ciò che non ha raggiunto non è stato controllato, non è approvato.",
+    "ja": "この監査は上限に達して停止し、画面の残りには到達しませんでした。到達しなかった部分は未確認であり、問題がないわけではありません。",
+    "ko": "이 감사는 한도에 도달해 중단되었고 화면의 나머지 부분에는 이르지 못했습니다. 확인하지 못한 부분은 미검사 상태이며, 문제가 없다는 뜻이 아닙니다.",
+    "nl": "Deze audit stopte bij een van zijn limieten en heeft de rest van het scherm nooit bereikt. Wat niet is bereikt, is ongecontroleerd, niet in orde.",
+    "pt-BR": "Esta auditoria parou em um de seus limites e nunca chegou ao resto da tela. Tudo o que não alcançou está sem verificação, não aprovado.",
+    "ru": "Проверка остановилась на одном из своих ограничений и не дошла до остальной части экрана. Всё, до чего она не дошла, не проверено, а не признано исправным.",
+    "zh-Hans": "本次审核在达到某项上限时停止，未检查屏幕的其余部分。未检查到的内容属于未审核，并非没有问题。",
+    "zh-Hant": "本次稽核在達到某項上限時停止，未檢查畫面的其餘部分。未檢查到的內容屬於未稽核，並非沒有問題。"
+  },
+  "This is the last pass taken over your app, from before this screen opened. Anything that changed since — a scroll, a reload — is not in it.": {
+    "ar": "هذا آخر فحص أُجري على تطبيقك، من قبل فتح هذه الشاشة. أي شيء تغيّر منذ ذلك الحين — تمرير أو إعادة تحميل — غير موجود فيه.",
+    "comment": "Banner at the top of the accessibility audit report when it is showing the live overlay's last pass, which was necessarily taken before this screen opened",
+    "de": "Dies ist der letzte Durchlauf über Ihre App, von vor dem Öffnen dieses Bildschirms. Alles, was sich seitdem geändert hat — Scrollen, Neuladen — steckt nicht darin.",
+    "es": "Este es el último análisis de tu app, de antes de que se abriera esta pantalla. Nada de lo que ha cambiado desde entonces — un desplazamiento, una recarga — está incluido.",
+    "fr": "Il s'agit de la dernière analyse de votre app, effectuée avant l'ouverture de cet écran. Tout ce qui a changé depuis — un défilement, un rechargement — n'y figure pas.",
+    "it": "Questa è l'ultima scansione della tua app, precedente all'apertura di questa schermata. Tutto ciò che è cambiato da allora — uno scorrimento, un ricaricamento — non è incluso.",
+    "ja": "これはこの画面を開く前に行われた、アプリに対する最後の検査です。それ以降の変化（スクロールや再読み込みなど）は含まれていません。",
+    "ko": "이 화면을 열기 전에 앱을 대상으로 수행한 마지막 검사입니다. 그 이후의 변화(스크롤, 새로고침 등)는 포함되어 있지 않습니다.",
+    "nl": "Dit is de laatste ronde over je app, van vóór het openen van dit scherm. Alles wat sindsdien is veranderd — scrollen, opnieuw laden — zit er niet in.",
+    "pt-BR": "Esta é a última análise do seu app, feita antes desta tela abrir. Nada do que mudou desde então — uma rolagem, um recarregamento — está incluído.",
+    "ru": "Это последняя проверка вашего приложения, сделанная до открытия этого экрана. Всё, что изменилось с тех пор — прокрутка, перезагрузка — сюда не попало.",
+    "zh-Hans": "这是打开此界面之前对你的应用进行的最后一次检查。此后的任何变化（滚动、重新加载等）都不在其中。",
+    "zh-Hant": "這是打開此畫面之前對你的 App 進行的最後一次檢查。此後的任何變化（捲動、重新載入等）都不在其中。"
+  },
+  "Touch Targets": {
+    "ar": "مناطق اللمس",
+    "comment": "Name of the accessibility audit check for controls smaller than a finger, shown in the report and the settings screen",
+    "de": "Berührungsziele",
+    "es": "Áreas táctiles",
+    "fr": "Zones tactiles",
+    "it": "Aree di tocco",
+    "ja": "タップ領域",
+    "ko": "터치 영역",
+    "nl": "Aanraakdoelen",
+    "pt-BR": "Áreas de toque",
+    "ru": "Области нажатия",
+    "zh-Hans": "触控区域",
+    "zh-Hant": "觸控區域"
+  },
+  "VoiceOver reads this element with no name.": {
+    "ar": "يقرأ VoiceOver هذا العنصر بدون اسم.",
+    "comment": "Detail of a missing-label finding: the element has a nameable trait but no accessibility label",
+    "de": "VoiceOver liest dieses Element ohne Namen vor.",
+    "es": "VoiceOver lee este elemento sin nombre.",
+    "fr": "VoiceOver lit cet élément sans nom.",
+    "it": "VoiceOver legge questo elemento senza nome.",
+    "ja": "VoiceOverはこの要素を名前なしで読み上げます。",
+    "ko": "VoiceOver가 이 요소를 이름 없이 읽습니다.",
+    "nl": "VoiceOver leest dit element voor zonder naam.",
+    "pt-BR": "O VoiceOver lê este elemento sem nome.",
+    "ru": "VoiceOver озвучивает этот элемент без названия.",
+    "zh-Hans": "VoiceOver 朗读此元素时没有名称。",
+    "zh-Hant": "VoiceOver 朗讀此元素時沒有名稱。"
+  },
+  "Warning": {
+    "ar": "تحذير",
+    "comment": "Accessibility label read by VoiceOver for the dot beside a warning-severity finding on the accessibility audit report screen",
+    "de": "Warnung",
+    "es": "Advertencia",
+    "fr": "Avertissement",
+    "it": "Avviso",
+    "ja": "警告",
+    "ko": "경고",
+    "nl": "Waarschuwing",
+    "pt-BR": "Aviso",
+    "ru": "Предупреждение",
+    "zh-Hans": "警告",
+    "zh-Hant": "警告"
+  }
+}

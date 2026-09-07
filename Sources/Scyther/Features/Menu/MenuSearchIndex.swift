@@ -126,6 +126,7 @@ enum MenuSearchIndex {
         .gridOverlay: ["alignment", "layout grid"],
         .fpsCounter: ["frame rate", "performance", "hitches"],
         .touchVisualiser: ["touches", "taps", "gestures"],
+        .accessibilityAudit: ["a11y", "voiceover", "contrast", "labels", "touch targets"],
         .appearance: ["dark mode", "light mode", "theme", "dynamic type", "contrast"],
         .language: ["locale", "translation", "localisation", "localization", "i18n", "l10n", "region"],
         .slowAnimations: ["animation speed"],
@@ -151,6 +152,10 @@ enum MenuSearchIndex {
         (.touchVisualiser, [
             localized("Show Screen Touches"), localized("Log Screen Touches"),
             localized("Show Touch Duration"), localized("Show Touch Radius")
+        ]),
+        (.accessibilityAudit, [
+            localized("Show Issues On Screen"), localized("Missing Labels"),
+            localized("Touch Targets"), localized("Contrast")
         ]),
         (.appearance, [
             localized("Color Scheme"), localized("Dynamic Type"), localized("Override Text Size"),
