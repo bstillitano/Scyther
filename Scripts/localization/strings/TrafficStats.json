@@ -638,6 +638,21 @@
     "zh-Hans": "流量统计",
     "zh-Hant": "流量統計"
   },
+  "Traffic overview": {
+    "ar": "نظرة عامة على حركة البيانات",
+    "comment": "Accessibility label for the overview strip that compresses the whole log into one band",
+    "de": "Traffic-Übersicht",
+    "es": "Resumen del tráfico",
+    "fr": "Aperçu du trafic",
+    "it": "Panoramica del traffico",
+    "ja": "トラフィック概要",
+    "ko": "트래픽 개요",
+    "nl": "Verkeersoverzicht",
+    "pt-BR": "Visão geral do tráfego",
+    "ru": "Обзор трафика",
+    "zh-Hans": "流量概览",
+    "zh-Hant": "流量概覽"
+  },
   "Waterfall": {
     "ar": "شلال",
     "comment": "Section header above the timeline chart",

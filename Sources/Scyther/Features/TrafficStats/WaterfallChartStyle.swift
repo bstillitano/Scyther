@@ -265,6 +265,18 @@ enum WaterfallChartStyle {
         colour(forOutcome: outcomeTitle(for: entry))
     }
 
+    /// The tint filling the overview strip's current window.
+    ///
+    /// Low alpha on the success colour: the window is a frame around what you are reading, not a
+    /// status, so it must not read as one of the four states the bars use.
+    static let windowTint = Color.green.opacity(0.14)
+
+    /// The rules on the window's left and right edges.
+    static let windowEdge = Color.green.opacity(0.9)
+
+    /// The strip's own ground, so the compressed bars have something to sit on.
+    static let stripBackground = Color.primary.opacity(0.06)
+
     // MARK: - Semantics
 
     /// What one bar's outcome is called, which is also its key in ``styleScale``.
