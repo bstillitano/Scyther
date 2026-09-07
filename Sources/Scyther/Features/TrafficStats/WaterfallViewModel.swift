@@ -36,6 +36,14 @@ final class WaterfallViewModel: ViewModel {
     /// disagree about how much traffic there is for up to half a second at a time.
     static let recomputeDebounce: DispatchQueue.SchedulerTimeType.Stride = .milliseconds(500)
 
+    /// How much of the span the page opens with when it is reached by tapping the Traffic Stats
+    /// strip.
+    ///
+    /// An eighth is wide enough to carry context around the moment tapped and narrow enough to be
+    /// worth the navigation. Opening at the narrowest allowed window would be well defined and
+    /// could land the developer inside a tenth of a second.
+    static let openingWindowFraction: Double = 1.0 / 8.0
+
     /// One row of the page: a bar, the name beside it, and the capture behind it.
     ///
     /// The request is carried rather than looked up when the row is tapped. Matching a bar back
@@ -90,13 +98,31 @@ final class WaterfallViewModel: ViewModel {
         /// above. Cached for the same reason.
         let tailDuration: Double?
 
+        /// The shortest finished, non-zero duration in the series, or `nil` when nothing
+        /// finished.
+        ///
+        /// Cached beside the median and the tail, and for the same reason: it is an input to the
+        /// zoom limit, the view recomputes that whenever its geometry changes, and a `List` asks
+        /// for geometry constantly.
+        let shortestMeasured: Double?
+
         /// Nothing laid out.
         static let empty = Layout(series: .empty, rows: [], count: 0, total: 0,
-                                  medianDuration: nil, tailDuration: nil)
+                                  medianDuration: nil, tailDuration: nil, shortestMeasured: nil)
     }
 
     /// The laid-out log the page is drawing.
     @Published private(set) var layout: Layout = .empty
+
+    /// The slice of the log the page is showing.
+    ///
+    /// Published rather than derived so the strip's overlay and the detail list are always
+    /// drawing the same window: two views deriving it separately is two views one layout pass
+    /// apart from disagreeing.
+    @Published private(set) var window: WaterfallWindow = WaterfallWindow(span: 0, narrowest: 0)
+
+    /// The width the detail list gives a bar, from the last ``configureWindow(plotWidth:)``.
+    private var plotWidth: CGFloat = WaterfallChartStyle.minimumPlotWidth
 
     /// The requests the page is drawing: the network log's filtered array.
     private(set) var requests: [HTTPRequest]
@@ -184,7 +210,9 @@ final class WaterfallViewModel: ViewModel {
     /// Lays the current requests out, off the main actor.
     ///
     /// Safe to call at any time; the whole snapshot is assigned in one write, so the page is
-    /// never drawn from two snapshots at once.
+    /// never drawn from two snapshots at once. The window is re-derived against the new series
+    /// afterwards, so a log that grew or shrank never leaves the published window describing a
+    /// span that no longer exists.
     func recompute() async {
         let snapshot = requests
         let snapshotTotal = totalCount
@@ -201,6 +229,7 @@ final class WaterfallViewModel: ViewModel {
         }.value
         guard !Task.isCancelled else { return }
         layout = computed
+        configureWindow(plotWidth: plotWidth)
     }
 
     /// Lays a whole log out on one shared axis.
@@ -225,7 +254,7 @@ final class WaterfallViewModel: ViewModel {
     ) -> Layout {
         guard !requests.isEmpty else {
             return Layout(series: .empty, rows: [], count: 0, total: totalCount,
-                          medianDuration: nil, tailDuration: nil)
+                          medianDuration: nil, tailDuration: nil, shortestMeasured: nil)
         }
         let series = WaterfallSeries.build(from: requests, limit: requests.count, now: now)
         var byHash = [String: HTTPRequest](minimumCapacity: requests.count)
@@ -242,13 +271,15 @@ final class WaterfallViewModel: ViewModel {
             )
         }
         let durations = WaterfallTimeScale.measuredDurations(of: series)
+        let shortestMeasured = durations.filter { $0 > 0 }.min()
         return Layout(
             series: series,
             rows: rows,
             count: requests.count,
             total: totalCount,
             medianDuration: WaterfallTimeScale.percentile(0.5, of: durations),
-            tailDuration: WaterfallTimeScale.percentile(WaterfallTimeScale.tailPercentile, of: durations)
+            tailDuration: WaterfallTimeScale.percentile(WaterfallTimeScale.tailPercentile, of: durations),
+            shortestMeasured: shortestMeasured
         )
     }
 
@@ -298,5 +329,73 @@ final class WaterfallViewModel: ViewModel {
         isFiltered
             ? localized("\(layout.count) of \(layout.total) requests on a shared axis, oldest first. Bars that overlap were in flight at the same time.")
             : localized("Every request in the log on a shared axis, oldest first. Bars that overlap were in flight at the same time.")
+    }
+
+    // MARK: - The window
+
+    /// The rows the window holds, oldest first.
+    ///
+    /// Intersection rather than containment, so a request already in flight when the window opens
+    /// is shown clipped rather than missing. See ``WaterfallWindow/contains(start:duration:)``.
+    var visibleRows: [Row] {
+        layout.rows.filter { window.contains(start: $0.entry.start, duration: $0.entry.duration) }
+    }
+
+    /// Whether the window is over a stretch of the log with no traffic in it.
+    ///
+    /// Distinct from an empty log, which the page answers with its `ContentUnavailableView`. This
+    /// one earns a row saying so, because a blank list after a drag reads as a bug.
+    var isWindowEmpty: Bool { !layout.rows.isEmpty && visibleRows.isEmpty }
+
+    /// Recomputes the zoom limits for a plot of `plotWidth`, keeping the current centre.
+    ///
+    /// Called whenever the list's geometry changes. Keeping the centre matters because a rotation
+    /// or a Dynamic Type change re-measures the plot, and throwing the developer back to the
+    /// start of the log because the row got narrower would be its own bug.
+    ///
+    /// - Parameter plotWidth: The width a bar is drawn across, in points.
+    func configureWindow(plotWidth: CGFloat) {
+        self.plotWidth = max(WaterfallChartStyle.minimumPlotWidth, plotWidth)
+        let span = layout.series.span
+        let narrowest = WaterfallWindow.narrowestDuration(
+            shortestMeasured: layout.shortestMeasured,
+            span: span,
+            plotWidth: self.plotWidth
+        )
+        let previousCentre = window.span > 0 ? window.centre : span / 2
+        let previousDuration = window.span > 0 ? window.duration : span
+        window = WaterfallWindow(start: previousCentre - previousDuration / 2,
+                                 duration: previousDuration,
+                                 span: span,
+                                 narrowest: narrowest)
+    }
+
+    /// Magnifies the window, holding its centre.
+    ///
+    /// - Parameter factor: The pinch's magnitude. Above 1 zooms in.
+    func zoom(by factor: Double) {
+        guard window.canZoom else { return }
+        window = window.zoomed(by: factor)
+    }
+
+    /// Moves the window's centre to `time`.
+    ///
+    /// - Parameter time: Seconds from the series origin.
+    func scrub(to time: TimeInterval) {
+        window = window.movedToCentre(time)
+    }
+
+    /// Opens the window at ``openingWindowFraction`` of the span, centred on `time`.
+    ///
+    /// - Parameter time: Seconds from the series origin.
+    func open(centredOn time: TimeInterval) {
+        let span = layout.series.span
+        guard span > 0 else { return }
+        window = window.centred(on: time, duration: span * Self.openingWindowFraction)
+    }
+
+    /// What the page says under the list about what is on screen.
+    var windowCaption: String {
+        localized("\(visibleRows.count) of \(layout.total) requests")
     }
 }

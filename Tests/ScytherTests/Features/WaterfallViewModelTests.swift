@@ -253,4 +253,106 @@ final class WaterfallViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.isEmpty, "no placeholder over a log that is full")
         XCTAssertEqual(viewModel.rows.count, 3)
     }
+
+    // MARK: - The window
+
+    /// Builds a view model over requests at known offsets, each lasting `duration` seconds.
+    ///
+    /// The brief this suite was written from called for a bare `WaterfallViewModel()` followed by
+    /// `update(requests:totalCount:)`, but the type has no such initialiser — every call site,
+    /// production included, builds it with `init(requests:totalCount:)`. That designated
+    /// initialiser is used here instead; see the task report for the discrepancy.
+    private func makeModel(starts: [TimeInterval], duration: TimeInterval = 0.05)
+        -> WaterfallViewModel {
+        let origin = Date(timeIntervalSince1970: 1_000)
+        let requests: [HTTPRequest] = starts.map { offset in
+            let request = HTTPRequest()
+            request.requestURL = "https://api.ipify.org/?format=json"
+            request.requestMethod = "GET"
+            request.requestDate = origin.addingTimeInterval(offset)
+            request.responseDate = origin.addingTimeInterval(offset + duration)
+            return request
+        }
+        return WaterfallViewModel(requests: requests, totalCount: requests.count)
+    }
+
+    func testThePageOpensShowingTheWholeSpan() async {
+        let model = makeModel(starts: [0, 10, 20, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+
+        XCTAssertEqual(model.window.start, 0, accuracy: 0.0001)
+        XCTAssertEqual(model.window.duration, model.series.span, accuracy: 0.0001,
+                       "the page opens honest, and zoom is the escape")
+        XCTAssertEqual(model.visibleRows.count, 4)
+    }
+
+    func testZoomingDropsTheRowsThatLeaveTheWindow() async {
+        let model = makeModel(starts: [0, 10, 20, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+        model.scrub(to: 0)
+        model.zoom(by: 8)
+
+        XCTAssertLessThan(model.visibleRows.count, 4)
+        XCTAssertTrue(model.visibleRows.allSatisfy {
+            model.window.contains(start: $0.entry.start, duration: $0.entry.duration)
+        })
+    }
+
+    func testScrubbingMovesTheWindowToTheTimeTouched() async {
+        let model = makeModel(starts: [0, 10, 20, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+        model.zoom(by: 8)
+        model.scrub(to: 20)
+
+        XCTAssertEqual(model.window.centre, 20, accuracy: 0.5)
+    }
+
+    /// Dragging into a stretch with no traffic must say so rather than showing a blank list.
+    func testAWindowOverAGapReportsItselfEmpty() async {
+        let model = makeModel(starts: [0, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+        model.zoom(by: 20)
+        model.scrub(to: 15)
+
+        XCTAssertTrue(model.visibleRows.isEmpty)
+        XCTAssertTrue(model.isWindowEmpty)
+    }
+
+    func testASingleRequestCannotZoom() async {
+        let model = makeModel(starts: [0])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+
+        XCTAssertFalse(model.window.canZoom)
+    }
+
+    func testOpeningCentredOnATimeUsesAnEighthOfTheSpan() async {
+        let model = makeModel(starts: [0, 10, 20, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+        model.open(centredOn: 20)
+
+        XCTAssertEqual(model.window.duration,
+                       model.series.span * WaterfallViewModel.openingWindowFraction,
+                       accuracy: 0.01)
+        XCTAssertEqual(model.window.centre, 20, accuracy: 0.5)
+    }
+
+    /// Re-measuring the plot must not throw away where the developer had scrolled to.
+    func testReconfiguringForANewWidthKeepsTheCentre() async {
+        let model = makeModel(starts: [0, 10, 20, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+        model.zoom(by: 4)
+        model.scrub(to: 20)
+        let centre = model.window.centre
+
+        model.configureWindow(plotWidth: 180)
+
+        XCTAssertEqual(model.window.centre, centre, accuracy: 0.5)
+    }
 }
