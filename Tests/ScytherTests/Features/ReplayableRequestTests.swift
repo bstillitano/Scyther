@@ -219,6 +219,28 @@ final class ReplayableRequestTests: XCTestCase {
         draft.setBodyText("")
         XCTAssertEqual(draft.bodyByteCount, 0)
     }
+    /// A replay is a request Scyther composed and sent, so it carries the mark that keeps
+    /// breakpoints and header rewrites off it. Nothing else in the suite drives a replay-built
+    /// request through the interceptor, so without this the whole replay half of the exemption
+    /// could be deleted and every test would still pass.
+    func testAReplayIsMarkedAsScythersOwn() throws {
+        let draft = ReplayableRequest(capturing: capture())
+        let request = try XCTUnwrap(draft.makeURLRequest(replayOf: "original-hash"))
+
+        XCTAssertTrue(ScytherOriginatedRequest.identifies(request))
+        XCTAssertFalse(ScytherOriginatedRequest.appliesOverrides(request),
+                       "and by default asks for no override to touch it")
+    }
+
+    /// The **Apply Request Overrides** toggle, on the request it produces.
+    func testAReplaySentWithOverridesOnCarriesTheOptIn() throws {
+        let draft = ReplayableRequest(capturing: capture())
+        let request = try XCTUnwrap(draft.makeURLRequest(replayOf: "original-hash", applyingOverrides: true))
+
+        XCTAssertTrue(ScytherOriginatedRequest.identifies(request),
+                      "opting into overrides does not stop it being Scyther's own request")
+        XCTAssertTrue(ScytherOriginatedRequest.appliesOverrides(request))
+    }
 }
 
 /// The capture side of a replay: the provenance property survives into the logged model, and is

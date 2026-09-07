@@ -15,8 +15,16 @@ import SwiftUI
 struct FileBrowserView: View {
     @StateObject private var viewModel: FileBrowserViewModel
 
+    /// The directory this instance browses, or `nil` at the root.
+    ///
+    /// Held on the view as well as inside the view model purely to discriminate this screen's
+    /// `.onFirstAppear` from the same call site in the parent it was pushed from — see the
+    /// modifier below.
+    private let directory: URL?
+
     /// Creates a file browser starting at the root directories.
     init() {
+        directory = nil
         _viewModel = StateObject(wrappedValue: FileBrowserViewModel(directory: nil, title: localized("File Browser")))
     }
 
@@ -25,6 +33,7 @@ struct FileBrowserView: View {
     ///   - directory: The directory to browse.
     ///   - title: The navigation title.
     init(directory: URL, title: String) {
+        self.directory = directory
         _viewModel = StateObject(wrappedValue: FileBrowserViewModel(directory: directory, title: title))
     }
 
@@ -98,7 +107,11 @@ struct FileBrowserView: View {
         .refreshable {
             await viewModel.refresh()
         }
-        .onFirstAppear {
+        /// Keyed by the directory, because this screen pushes *itself* for every subdirectory, to
+        /// arbitrary depth. Without the discriminator, drilling in while the parent is still
+        /// enumerating and sizing its folders would queue the child behind it on one call-site
+        /// key.
+        .onFirstAppear(id: directory?.path ?? "") {
             await viewModel.onFirstAppear()
         }
     }
