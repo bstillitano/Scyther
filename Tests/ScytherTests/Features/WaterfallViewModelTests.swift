@@ -276,6 +276,20 @@ final class WaterfallViewModelTests: XCTestCase {
         return WaterfallViewModel(requests: requests, totalCount: requests.count)
     }
 
+    /// The page's first body render happens before `onFirstAppear`'s asynchronous first
+    /// `recompute()` can run, so if `init` did not also configure the window, that first frame
+    /// would read `window` at its zero-valued default — an empty `visibleRows` and
+    /// `isWindowEmpty` `true` — over a `layout` that is already full. Deliberately does not
+    /// `await recompute()`, which is the case every other test in this file has already moved
+    /// past by the time it makes an assertion.
+    func testTheWindowIsAlreadyConfiguredBeforeTheFirstRecompute() {
+        let model = makeModel(starts: [0, 10, 20, 30])
+
+        XCTAssertFalse(model.visibleRows.isEmpty, "no flash of empty before recompute() runs")
+        XCTAssertEqual(model.visibleRows.count, 4)
+        XCTAssertFalse(model.isWindowEmpty)
+    }
+
     func testThePageOpensShowingTheWholeSpan() async {
         let model = makeModel(starts: [0, 10, 20, 30])
         await model.recompute()
@@ -287,17 +301,20 @@ final class WaterfallViewModelTests: XCTestCase {
         XCTAssertEqual(model.visibleRows.count, 4)
     }
 
+    /// Five requests, three of them clustered at the middle of the log (14s, 15s, 16s) and two
+    /// at the far ends (0s, 30s). The window opens on the whole 30.05s span, centred at 15.025s;
+    /// zooming in 8x narrows it to ~3.756s, still centred at 15.025s, which brackets exactly the
+    /// three middle requests and excludes both end ones. Checking the exact survivors — not just
+    /// that `visibleRows` agrees with `window.contains`, which holds by definition of
+    /// `visibleRows` however wrong the zoom arithmetic is — is what makes this catch a
+    /// mis-centred or mis-scaled zoom.
     func testZoomingDropsTheRowsThatLeaveTheWindow() async {
-        let model = makeModel(starts: [0, 10, 20, 30])
+        let model = makeModel(starts: [0, 14, 15, 16, 30])
         await model.recompute()
         model.configureWindow(plotWidth: 240)
-        model.scrub(to: 0)
         model.zoom(by: 8)
 
-        XCTAssertLessThan(model.visibleRows.count, 4)
-        XCTAssertTrue(model.visibleRows.allSatisfy {
-            model.window.contains(start: $0.entry.start, duration: $0.entry.duration)
-        })
+        XCTAssertEqual(model.visibleRows.map(\.entry.start), [14, 15, 16])
     }
 
     func testScrubbingMovesTheWindowToTheTimeTouched() async {
@@ -354,5 +371,29 @@ final class WaterfallViewModelTests: XCTestCase {
         model.configureWindow(plotWidth: 180)
 
         XCTAssertEqual(model.window.centre, centre, accuracy: 0.5)
+    }
+
+    /// The test above only ever narrows the plot, which lowers the narrowest allowed duration and
+    /// never forces the window wider than it already is. A rotation or a Dynamic Type change that
+    /// *widens* the plot raises the floor instead, and can raise it above the window's current
+    /// duration — the case that exposed the centre drifting by half of whatever the duration was
+    /// forced to grow.
+    func testReconfiguringForAWiderPlotThatForcesTheDurationUpKeepsTheCentre() async {
+        let model = makeModel(starts: [0, 10, 20, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+        model.zoom(by: 20)
+        model.scrub(to: 12)
+        let centre = model.window.centre
+        let durationBefore = model.window.duration
+        XCTAssertLessThan(durationBefore, 6,
+                          "the window must start out narrower than the new floor below")
+
+        // 0.05s (the shortest measured duration here) drawn at 24pt across a 2,880pt plot demands
+        // a 6s window — well above durationBefore, so the duration is forced to grow.
+        model.configureWindow(plotWidth: 2_880)
+
+        XCTAssertGreaterThan(model.window.duration, durationBefore, "the floor really was raised")
+        XCTAssertEqual(model.window.centre, centre, accuracy: 0.0001)
     }
 }

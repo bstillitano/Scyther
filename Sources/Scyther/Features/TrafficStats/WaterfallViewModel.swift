@@ -146,6 +146,13 @@ final class WaterfallViewModel: ViewModel {
     /// over a log that is full — which is what an empty initial value plus an asynchronous first
     /// pass produced.
     ///
+    /// The window is configured here too, for the same reason: ``onFirstAppear()`` runs its
+    /// asynchronous first ``recompute()`` *after* the page's first body render, so without this
+    /// the first frame would read ``window`` at its zero-valued default — an empty
+    /// ``visibleRows`` and ``isWindowEmpty`` `true` — over a `layout` that is already full. That
+    /// is the same flash the synchronous layout pass above exists to prevent, just one property
+    /// later.
+    ///
     /// - Parameters:
     ///   - requests: The requests to draw, usually the log's filtered array.
     ///   - totalCount: How many requests the log holds unfiltered.
@@ -154,6 +161,7 @@ final class WaterfallViewModel: ViewModel {
         self.totalCount = totalCount
         super.init()
         layout = Self.layout(of: requests, totalCount: totalCount)
+        configureWindow(plotWidth: plotWidth)
     }
 
     /// Cancels any layout pass in flight.
@@ -347,11 +355,20 @@ final class WaterfallViewModel: ViewModel {
     /// one earns a row saying so, because a blank list after a drag reads as a bug.
     var isWindowEmpty: Bool { !layout.rows.isEmpty && visibleRows.isEmpty }
 
-    /// Recomputes the zoom limits for a plot of `plotWidth`, keeping the current centre.
+    /// Recomputes the zoom limits for a plot of `plotWidth`, keeping the current centre wherever
+    /// the new limits leave room to.
     ///
     /// Called whenever the list's geometry changes. Keeping the centre matters because a rotation
     /// or a Dynamic Type change re-measures the plot, and throwing the developer back to the
     /// start of the log because the row got narrower would be its own bug.
+    ///
+    /// Near an edge — or when the re-measure raises ``WaterfallWindow/narrowest`` *above* the
+    /// current duration, which a widened plot does — it cannot be held exactly: the duration has
+    /// to grow to the new floor, and holding the *old* start while doing that would shift the
+    /// centre by half of whatever the duration was forced to grow. So the duration is clamped to
+    /// the new limits first, and only then is the window moved back to the old centre — the same
+    /// two-step ``WaterfallWindow/movedToCentre(_:)`` already uses internally, applied here across
+    /// a change in limits rather than a change in time.
     ///
     /// - Parameter plotWidth: The width a bar is drawn across, in points.
     func configureWindow(plotWidth: CGFloat) {
@@ -364,10 +381,9 @@ final class WaterfallViewModel: ViewModel {
         )
         let previousCentre = window.span > 0 ? window.centre : span / 2
         let previousDuration = window.span > 0 ? window.duration : span
-        window = WaterfallWindow(start: previousCentre - previousDuration / 2,
-                                 duration: previousDuration,
-                                 span: span,
-                                 narrowest: narrowest)
+        let candidate = WaterfallWindow(start: 0, duration: previousDuration, span: span,
+                                        narrowest: narrowest)
+        window = candidate.movedToCentre(previousCentre)
     }
 
     /// Magnifies the window, holding its centre.
