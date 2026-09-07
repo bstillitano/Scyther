@@ -11,26 +11,28 @@ import SwiftUI
 
 /// The one place the waterfall is drawn from.
 ///
-/// The chart has two surfaces — the compressed overview strip on ``TrafficStatsView`` (see
-/// ``WaterfallOverviewStrip``) and the full-log page behind its **See all** button — and the
-/// requirement they were built under is that they are the *same chart*, not two charts that
-/// resemble each other. Anything a reader could compare across the two lives here: the colours,
-/// what an outcome is called, and how tall a row is. A second implementation would drift the
-/// first time either screen was touched, and the drift would be invisible until someone compared
-/// a bar's length on one against its length on the other.
+/// The chart has two surfaces: the compressed overview strip — `WaterfallOverviewStrip`, one
+/// implementation used unchanged on both ``TrafficStatsView`` and the full-log page behind **See
+/// all**, so there is nothing there for two copies to drift apart on — and the full-log page's own
+/// detail list, which the strip has no equivalent of at all. What the two surfaces genuinely have
+/// to agree on is which colour an outcome is drawn in, since colour is the one thing both of them
+/// render; that lives here, in ``colour(forOutcome:)`` and ``colour(for:)``, so a failed request
+/// cannot end up red on one and a slightly different red on the other.
 ///
-/// The type holds no state and draws no chrome. It is the geometry, the colour and the naming;
-/// each surface still decides its own layout, because that is the only thing the two legitimately
-/// disagree about — the strip compresses the whole session into a fixed-height `Canvas`, and the
-/// full-log page lays out only the requests its current time window holds, over a plain `List`.
+/// The type holds no state and draws no chrome. Beyond that shared colour, everything else it
+/// holds belongs to the full-log page's own detail list and legend — the row height, the bar
+/// thickness, the label and duration column widths, and the outcome names its rows'
+/// accessibility labels and its own legend speak. None of it has anything on the Traffic Stats
+/// section to agree with, because that section draws the strip and nothing else.
 ///
-/// Both surfaces now draw their own bars rather than asking Charts for one: a log can hold
-/// thousands of requests and a `Chart` per row was a rendering hazard for no gain, and the
-/// section's own most-recent-seven `Chart` is gone too — see ``WaterfallOverviewStrip``. What
-/// still comes from here is everything a reader could compare across the two surfaces: the
-/// thickness, the colour, the outcome names, the row height and the duration label. Only the
-/// legend above the full-log page's rows is still drawn by Charts, from ``styleScale``, so the two
-/// surfaces' legends cannot drift apart.
+/// The detail list draws its own bars rather than asking Charts for one: a log can hold thousands
+/// of requests and a `Chart` per row was a rendering hazard for no gain, and the section's own
+/// most-recent-seven `Chart` — the "preview" this file's documentation used to compare against —
+/// is gone along with it; the section draws the overview strip and nothing else now. The strip
+/// draws its own bars too, from a single `Canvas` pass, using the geometry in
+/// ``WaterfallStripGeometry`` rather than anything declared here. The full-log page's legend is
+/// still drawn by Charts, from ``styleScale``, so its marks can never name a colour its own bars
+/// are not using — there is no second legend anywhere in the feature for it to stay in step with.
 ///
 /// ## Usage
 /// ```swift
@@ -50,14 +52,16 @@ enum WaterfallChartStyle {
     ///
     /// Fixed, and deliberately not "whatever divides the available height". Rows that shrink to
     /// fit turn a scrollable waterfall into a static one: twenty-two requests were squeezed onto a
-    /// single screen, which made the full-log page indistinguishable from the preview it was
-    /// opened from, and a thousand requests would have been a thousand hairlines. With a constant
-    /// row height the detail list's content height is rows × this, and the `List` scrolls the
-    /// moment that exceeds the screen — which is the entire point of the page.
+    /// single screen, which made the full-log page indistinguishable from the seven-row preview it
+    /// was opened from — back when the Traffic Stats section drew a preview of its own rows rather
+    /// than the overview strip it draws now — and a thousand requests would have been a thousand
+    /// hairlines. With a constant row height the detail list's content height is rows × this, and
+    /// the `List` scrolls the moment that exceeds the screen — which is the entire point of the
+    /// page.
     ///
     /// Forty-four points because the page's rows are tappable and that is the smallest comfortable
-    /// hit target; the preview uses the same figure so a burst has the same visual density on both
-    /// surfaces and a staircase reads at the same slope.
+    /// hit target. Nothing on the Traffic Stats section needs to match it any more: that section
+    /// draws the overview strip, not rows.
     static let rowHeight: CGFloat = 44
 
     /// The narrowest a bar is ever *rendered*, in points.
@@ -117,8 +121,8 @@ enum WaterfallChartStyle {
     ///
     /// Given as an explicit scale rather than left to Charts so that the legend shows all four
     /// outcomes whether or not the current log contains one of each — otherwise the legend
-    /// changes shape as traffic arrives, and the two surfaces show different legends for the same
-    /// session.
+    /// changes shape as traffic arrives, growing and shrinking a mark at a time instead of
+    /// standing still while the requests underneath it come and go.
     static var styleScale: KeyValuePairs<String, Color> {
         [
             localized("Succeeded"): Color.green,
@@ -130,8 +134,9 @@ enum WaterfallChartStyle {
 
     /// Every outcome name the chart can produce, in legend order.
     ///
-    /// Used to seed the page's legend with one mark per outcome, so Charts draws the same legend
-    /// there that it draws for the preview's chart.
+    /// Used to seed the full-log page's own legend with one mark per outcome. The Traffic Stats
+    /// section keeps no legend of its own to stay in step with it — it draws only the overview
+    /// strip, which speaks an outcome through colour alone.
     static var outcomeTitles: [String] {
         [localized("Succeeded"), localized("Failed"), localized("Pending"), localized("Stubbed")]
     }

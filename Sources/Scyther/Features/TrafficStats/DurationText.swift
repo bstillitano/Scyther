@@ -9,10 +9,11 @@ import Foundation
 
 /// Turns a measured duration into the text the traffic screens show it as.
 ///
-/// Extracted from ``TrafficStatsViewModel`` because the waterfall now has two surfaces — the
-/// section on **Traffic Stats** and the full-log page behind its **See all** button — and a bar
-/// that reads `2 ms` on one and `0 s` on the other would be the same request described two ways.
-/// One formatter is the only way to keep that promise.
+/// Extracted from ``TrafficStatsViewModel`` because a formatted duration now comes from more than
+/// one place — the summary figures and caption on **Traffic Stats**, and each row's duration label
+/// on the full-log page behind its **See all** button — and a duration that read `2 ms` in one and
+/// `0 s` in the other would describe the same measurement two ways. One formatter is the only way
+/// to keep that promise.
 ///
 /// ## Usage
 /// ```swift

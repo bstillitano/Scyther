@@ -55,8 +55,11 @@ final class WaterfallViewModel: ViewModel {
         /// The capture's own hash, so a row keeps its identity as newer traffic arrives above it.
         let id: String
 
-        /// The name drawn beside the bar: the position in the log and the bar's label, in the
-        /// form the preview chart already labels its axis with.
+        /// The row's position in the log and the bar's own label, `"1. GET /v1/users"`-shaped.
+        ///
+        /// Not what ``WaterfallDetailRow`` puts on screen — it reads ``entry``'s own `label`
+        /// unnumbered instead, stacked under the host when the log holds more than one. This
+        /// numbered form predates that row and nothing currently draws it.
         let label: String
 
         /// The bar this row draws.

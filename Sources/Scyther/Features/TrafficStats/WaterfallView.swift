@@ -14,9 +14,10 @@ import SwiftUI
 /// Reached from the Waterfall section of ``TrafficStatsView`` two ways: the **See all** link opens
 /// at the full span, and a tap on the section's own overview strip opens centred on the moment
 /// touched — see ``init(logs:openingTime:)``. Either way it shows the same session that section's
-/// strip already compresses — the same colours, the same outcome names, the same legend, the same
-/// row height, all from ``WaterfallChartStyle`` — but with every request its own tappable row
-/// leading to the capture behind it.
+/// strip already compresses — literally the same strip, ``WaterfallOverviewStrip``, drawing from
+/// the same ``WaterfallChartStyle`` colours, now carrying the current window as well — but with
+/// every request its own tappable row in a detail list underneath, leading to the capture behind
+/// it, which the section has no equivalent of at all.
 ///
 /// ## Why a window rather than a scroll
 ///
@@ -160,8 +161,10 @@ struct WaterfallView: View {
     }
 
     /// The colour legend, unchanged from the page's original design: four marks in one line,
-    /// still drawn by a `Chart` of its own so it stays pixel-for-pixel the legend the preview
-    /// section already draws. See ``WaterfallLegendView``.
+    /// still drawn by a `Chart` of its own from ``WaterfallChartStyle/styleScale``, the one place
+    /// the outcome colours are declared. The Traffic Stats section has no legend of its own for
+    /// this one to match — it draws only the overview strip — so this exists to give the full-log
+    /// page's own bars something naming what each colour means. See ``WaterfallLegendView``.
     private var legend: some View {
         WaterfallLegendView()
             .padding(.horizontal, WaterfallChartStyle.cardContentPadding)
@@ -303,8 +306,9 @@ struct WaterfallView: View {
 /// list. The bar is a filled rectangle rather than a `Chart`, for the same reason the old page's
 /// rows were: a `BarMark` with both axes and the legend hidden *is* a filled rectangle, and asking
 /// Charts to lay one out per row buys nothing a `RoundedRectangle` does not already give for free.
-/// Everything a reader could compare against the preview — the thickness, the colour, the row
-/// height and the duration label — still comes from ``WaterfallChartStyle``.
+/// The row's thickness, colour, row height and duration label all come from
+/// ``WaterfallChartStyle``, which is what keeps a request's colour here the same one the overview
+/// strip drew it in before this row existed to be tapped.
 ///
 /// The bar conveys a request's length by width and its outcome by fill colour, neither of which
 /// is anything to VoiceOver, so the row collapses itself into one accessibility element with a
@@ -451,10 +455,11 @@ private struct WaterfallDetailRow: View {
 
 /// What each colour means, at the page's full content width.
 ///
-/// Still a `Chart`, and deliberately: this is the one piece of the page that has to be laid out
-/// exactly as the preview's legend is, and the surest way to guarantee that is to let Charts draw
-/// both from the same ``WaterfallChartStyle/styleScale``. The zero-width marks exist only to give
-/// Charts something to derive a legend from, and the plot they sit in is collapsed to a point.
+/// Still a `Chart`, and deliberately: letting Charts derive the legend straight from
+/// ``WaterfallChartStyle/styleScale`` is what guarantees it can never name a colour the scale
+/// itself does not produce, rather than hand-drawing four marks that would need to be kept in step
+/// with the scale by hand. The zero-width marks exist only to give Charts something to derive a
+/// legend from, and the plot they sit in is collapsed to a point.
 private struct WaterfallLegendView: View {
     /// The legend's height, scaled against the reader's text size, because a constant height
     /// clips a wrapped legend at the sizes where it would actually wrap.

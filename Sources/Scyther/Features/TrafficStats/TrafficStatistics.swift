@@ -286,8 +286,9 @@ struct TrafficStatistics: Equatable, Sendable {
     ///
     /// A GraphQL operation carries its name, in parentheses. Every operation in a GraphQL API is
     /// posted to the same path, so without the name the breakdown collapsed a whole API into one
-    /// row called `POST api.example.com/graphql` — while the waterfall, ten lines away on the
-    /// same screen, named each operation individually. The name is what identifies the call.
+    /// row called `POST api.example.com/graphql` — while the full-log waterfall, one tap away
+    /// behind **See all**, already names each operation on its own row. The name is what
+    /// identifies the call.
     ///
     /// - Parameter request: The request to identify.
     /// - Returns: `"METHOD host/path"`, for example `"GET api.example.com/v1/users/:id"`, or
