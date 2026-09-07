@@ -56,6 +56,9 @@ import UIKit
 /// - ``showsKeys``
 /// - ``reset()``
 ///
+/// ### Effects
+/// - ``applyEffects(isTestCase:isAppStore:)``
+///
 /// ### Resolution
 /// - ``activeModes``
 /// - ``storedModes``
@@ -243,17 +246,41 @@ internal final class PseudoLocalization: @unchecked Sendable {
     ///
     /// Hops to the main actor because both effects touch UIKit. The hop is why the setters can
     /// stay `nonisolated`, which is what lets the toggles be driven from a `Binding` without the
-    /// view model having to await anything.
+    /// view model having to await anything. It deliberately carries nothing across the hop; see
+    /// ``applyEffects(isTestCase:isAppStore:)`` for why that matters.
     private nonisolated func synchronise() {
+        Task { @MainActor in self.applyEffects() }
+    }
+
+    /// Puts the host-app hook and the forced layout direction into the state the *current*
+    /// settings call for.
+    ///
+    /// The mode set is read here, on the main actor, rather than snapshotted by ``synchronise()``
+    /// before it hops. That is the whole point of the split. The hops are unstructured `Task`s and
+    /// the setters are `nonisolated`, so two changes in quick succession — a flurry of toggles, or
+    /// ``reset()`` racing a `didSet` — can arrive in either order. With a snapshot, the loser of
+    /// that race writes stale state and nothing re-syncs until the next toggle, which is how a
+    /// developer ends up with the swizzle installed or right-to-left forced while every switch is
+    /// persisted off: the feature cannot be turned off, which is the worst failure it has. Reading
+    /// the settings at the moment they are applied makes every ordering converge on the same
+    /// answer.
+    ///
+    /// - Parameters:
+    ///   - isTestCase: Whether the process is running under XCTest, per ``AppEnvironment/isTestCase``.
+    ///   - isAppStore: Whether this is an App Store build, per ``AppEnvironment/isAppStore``.
+    @MainActor
+    internal func applyEffects(
+        isTestCase: Bool = AppEnvironment.isTestCase,
+        isAppStore: Bool = AppEnvironment.isAppStore
+    ) {
         let modes = activeModes
-        Task { @MainActor in
-            guard Self.canAffectHostApp(
-                isTestCase: AppEnvironment.isTestCase,
-                isAppStore: AppEnvironment.isAppStore
-            ) else { return }
-            PseudoLocalizationHostHook.shared.setEnabled(!modes.intersection(.textAffecting).isEmpty)
-            PseudoLocalizationLayout.apply(rightToLeft: modes.contains(.rightToLeft))
-        }
+        let allowed = Self.canAffectHostApp(isTestCase: isTestCase, isAppStore: isAppStore)
+        PseudoLocalizationHostHook.shared.setEnabled(
+            !modes.intersection(.textAffecting).isEmpty,
+            isTestCase: isTestCase,
+            isAppStore: isAppStore
+        )
+        PseudoLocalizationLayout.apply(rightToLeft: modes.contains(.rightToLeft), allowed: allowed)
     }
 
     /// Re-applies the persisted state at launch, so a session picks up where the last one left off.

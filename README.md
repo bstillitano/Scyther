@@ -244,17 +244,35 @@ so it applies to the host app either way.
 
 #### Safety and limits
 
+The rule Scyther holds itself to here is that it must never produce broken text that is not a
+localisation problem. A mangled link or a plural that stops expanding is not a finding; it is a
+defect the developer will spend an afternoon chasing in their own code.
+
 - Off by default, persisted under `Scyther_pseudo_localization_*` in `UserDefaults.scyther`.
 - The swizzle is installed only while a text mode is on and removed when the last one is switched
   off. An app that never opens the page never has its string loading touched.
-- Only `Bundle.main` is transformed, so UIKit's own "Cancel" and "Done" are left alone.
-- Format specifiers (`%@`, `%lld`, `%1$@`, `%.2f`) survive accenting, so a hooked format string
-  still formats.
-- Nothing is installed on an App Store build or under XCTest, and an App Store build honours no
+- Only `Bundle.main` is transformed, so UIKit's own "Cancel" and "Done" are left alone — and
+  within it, **only the default `Localizable` table**. A table your app named on purpose is left
+  alone too, because teams routinely keep things there that are per-locale but are not copy:
+  analytics identifiers, feature-flag names, segment keys. The cost is real and worth knowing: if
+  your copy lives in a named table, the text modes will not reach it.
+- **`.stringsdict` plurals are left alone entirely.** A plural format resolves to
+  `%#@count@ items` carrying configuration that Foundation expands later; Scyther can preserve
+  neither the variable name through accenting nor the attached configuration through any transform
+  at all, so it returns the string Foundation produced, untouched, whatever the modes say. A plural
+  label is therefore one of the few places pseudo-localisation shows nothing.
+- Accenting preserves anything that is not copy: format specifiers (`%@`, `%lld`, `%1$@`, `%.2f`),
+  `.stringsdict` variables (`%#@count@`), brace placeholders (`{name}`), and URLs and email
+  addresses. `https://example.com` stays a working link rather than becoming
+  `ĥţţþš://éẋåɱþļé.çöɱ`.
+- Nothing is installed on an App Store build or under XCTest. That guard sits on the swizzle and on
+  the layout override themselves, not only on their caller, and an App Store build honours no
   persisted mode.
-- The Pseudo-localisation page and its menu row are never transformed, so the modes can always be
-  switched off — there is a **Turn Everything Off** button, and a **Sample** row that shows what
-  the modes do on the one page where they do not apply.
+- The **text** of the Pseudo-localisation page and its menu row is never transformed, so the modes
+  can always be switched off — there is a **Turn Everything Off** button, and a **Sample** row that
+  shows what the modes do on the one page where they do not apply. Right to Left is process-wide
+  and does flip this page along with everything else; the text stays legible, which is what the
+  exemption is for.
 - Flipping Right to Left on a screen that has already laid itself out can leave it half-flipped;
   relaunching settles it, because the persisted switch is re-applied before the app's own views
   exist.

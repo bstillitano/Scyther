@@ -73,6 +73,11 @@ enum PseudoLocalizationTransform {
     /// - ``PseudoLocalizationMode/rightToLeft`` is ignored here entirely: it is a layout
     ///   attribute applied by ``PseudoLocalizationLayout``, not a property of any string.
     ///
+    /// A string carrying plural configuration is returned untouched whatever the modes say — see
+    /// ``carriesPluralConfiguration(_:)``. That refusal cannot live in ``accentuate(_:)`` alone,
+    /// because lengthening and showing keys break a `.stringsdict` lookup just as thoroughly as
+    /// accenting does.
+    ///
     /// - Parameters:
     ///   - value: The already-resolved, already-formatted string.
     ///   - key: The catalog key `value` came from, used only by
@@ -81,6 +86,7 @@ enum PseudoLocalizationTransform {
     /// - Returns: The transformed string, or `value` unchanged when no text-affecting mode is on.
     static func apply(to value: String, key: String, modes: PseudoLocalizationMode) -> String {
         guard !modes.intersection(.textAffecting).isEmpty else { return value }
+        guard !carriesPluralConfiguration(value) else { return value }
         if modes.contains(.showsKeys) { return key }
 
         var result = value
@@ -88,6 +94,35 @@ enum PseudoLocalizationTransform {
         if modes.contains(.lengthened) { result = lengthen(result) }
         return result
     }
+
+    // MARK: - Plurals
+
+    /// Whether a resolved string is a `.stringsdict` format that Scyther must not touch.
+    ///
+    /// A `.stringsdict` entry resolves to a format containing `%#@variable@`, which
+    /// `String.localizedStringWithFormat` later expands using plural configuration attached to the
+    /// string Foundation returned. Scyther can preserve neither half of that reliably: accenting
+    /// would rename the variable so it no longer matched the dictionary, and any transform at all
+    /// produces a new string, losing the attachment — so `lengthened` and `showsKeys` would break
+    /// plurals just as completely as `accented`, and the developer would see a literal
+    /// `%#@count@` on screen with nothing to suggest Scyther put it there.
+    ///
+    /// Broken text that is not a localisation problem is the one thing this tool must never
+    /// produce, so these strings are left alone entirely. The cost is that a plural label is one
+    /// of the few places pseudo-localisation shows nothing; the alternative is corrupting copy
+    /// Scyther does not own.
+    ///
+    /// `%#@` is the whole test because nothing else emits it: it is not a printf specifier, and
+    /// Foundation writes it only for `.stringsdict` variables.
+    ///
+    /// - Parameter value: The resolved string.
+    /// - Returns: `true` when the string is a plural format.
+    static func carriesPluralConfiguration(_ value: String) -> Bool {
+        value.contains(pluralVariablePrefix)
+    }
+
+    /// The three characters that open a `.stringsdict` variable reference.
+    static let pluralVariablePrefix = "%#@"
 
     // MARK: - Accenting
 
@@ -107,16 +142,134 @@ enum PseudoLocalizationTransform {
         var result = ""
         result.reserveCapacity(value.count)
         var index = value.startIndex
+        var previous: Character?
         while index < value.endIndex {
-            if value[index] == "%", let end = specifierEnd(in: value, from: index) {
+            if let end = protectedRunEnd(in: value, from: index, atTokenStart: previous?.isWhitespace ?? true) {
                 result.append(contentsOf: value[index..<end])
+                previous = value[value.index(before: end)]
                 index = end
                 continue
             }
-            result.append(accentMap[value[index]] ?? value[index])
+            let character = value[index]
+            result.append(accentMap[character] ?? character)
+            previous = character
             index = value.index(after: index)
         }
         return result
+    }
+
+    /// The end index of a run that must be copied through verbatim, or `nil` to accent normally.
+    ///
+    /// Four kinds of run are protected, and the reason is the same for all four: accenting them
+    /// produces a defect the developer will spend time chasing in their own code, which is the
+    /// opposite of what a diagnostic tool is for.
+    ///
+    /// - A `.stringsdict` variable, `%#@count@`. Renamed, it stops matching the dictionary.
+    /// - A printf specifier, `%@` / `%lld` / `%1$@` / `%.2f`. Mangled, the format stops formatting.
+    /// - A brace placeholder, `{name}`. Cross-platform copy is commonly templated this way and
+    ///   substituted later with `replacingOccurrences`, which is an exact match.
+    /// - A URL or email address. Storing a support or deep-link URL in a `.strings` file is
+    ///   ordinary practice, and `ĥţţþš://éẋåɱþļé.çöɱ` is a dead link, not a finding.
+    ///
+    /// URLs and emails are recognised only at the start of a whitespace-delimited token, and the
+    /// whole token is protected including any trailing punctuation. That over-protects a full stop
+    /// at the end of a sentence, which costs nothing — punctuation is not accented anyway — and it
+    /// avoids the alternative of trying to decide where a URL stops, which no heuristic gets right.
+    ///
+    /// - Parameters:
+    ///   - value: The string being scanned.
+    ///   - start: The index to test.
+    ///   - atTokenStart: Whether `start` begins a whitespace-delimited token.
+    /// - Returns: The index just past the protected run, or `nil`.
+    private static func protectedRunEnd(
+        in value: String,
+        from start: String.Index,
+        atTokenStart: Bool
+    ) -> String.Index? {
+        if atTokenStart, let end = opaqueTokenEnd(in: value, from: start) { return end }
+        switch value[start] {
+        case "%":
+            return pluralVariableEnd(in: value, from: start) ?? specifierEnd(in: value, from: start)
+        case "{":
+            return bracePlaceholderEnd(in: value, from: start)
+        default:
+            return nil
+        }
+    }
+
+    /// The end index of a `%#@variable@` reference starting at `start`, or `nil` if there is none.
+    ///
+    /// Checked before ``specifierEnd(in:from:)`` because the generic parser would otherwise read
+    /// `%#@` as a complete specifier — `#` is a legal flag and `@` a legal conversion — and go on
+    /// to accent the variable name behind it.
+    ///
+    /// - Parameters:
+    ///   - value: The string being scanned.
+    ///   - start: The index of the `%`.
+    /// - Returns: The index just past the closing `@`, or `nil`.
+    private static func pluralVariableEnd(in value: String, from start: String.Index) -> String.Index? {
+        var index = value.index(after: start)
+        guard index < value.endIndex, value[index] == "#" else { return nil }
+        index = value.index(after: index)
+        guard index < value.endIndex, value[index] == "@" else { return nil }
+        index = value.index(after: index)
+        while index < value.endIndex, value[index] != "@" {
+            guard !value[index].isWhitespace else { return nil }
+            index = value.index(after: index)
+        }
+        guard index < value.endIndex else { return nil }
+        return value.index(after: index)
+    }
+
+    /// The end index of a `{placeholder}` starting at `start`, or `nil` if there is none.
+    ///
+    /// Whitespace ends the search unsuccessfully, so an ordinary sentence that happens to contain
+    /// an opening brace is still accented rather than swallowed to the end of the string.
+    ///
+    /// - Parameters:
+    ///   - value: The string being scanned.
+    ///   - start: The index of the `{`.
+    /// - Returns: The index just past the `}`, or `nil`.
+    private static func bracePlaceholderEnd(in value: String, from start: String.Index) -> String.Index? {
+        var index = value.index(after: start)
+        while index < value.endIndex, value[index] != "}" {
+            guard !value[index].isWhitespace else { return nil }
+            index = value.index(after: index)
+        }
+        guard index < value.endIndex else { return nil }
+        return value.index(after: index)
+    }
+
+    /// The end index of a whitespace-delimited token that must not be accented, or `nil`.
+    ///
+    /// - Parameters:
+    ///   - value: The string being scanned.
+    ///   - start: The first character of the token.
+    /// - Returns: The index just past the token, or `nil` when the token is ordinary copy.
+    private static func opaqueTokenEnd(in value: String, from start: String.Index) -> String.Index? {
+        var end = start
+        while end < value.endIndex, !value[end].isWhitespace {
+            end = value.index(after: end)
+        }
+        guard end > start, isOpaque(value[start..<end]) else { return nil }
+        return end
+    }
+
+    /// Whether a token is a URL or an email address rather than copy.
+    ///
+    /// Deliberately shape-based and lenient in one direction only: it would rather leave a strange
+    /// piece of copy unaccented than accent a live link. The `@` test requires something before
+    /// the `@` and a dot after it, so `%@` and `@mention` are still treated as copy and reach the
+    /// specifier parser.
+    ///
+    /// - Parameter token: The whitespace-delimited token.
+    /// - Returns: `true` when the token should be copied through verbatim.
+    private static func isOpaque(_ token: Substring) -> Bool {
+        if token.contains("://") { return true }
+        for scheme in ["www.", "mailto:", "tel:"] where token.hasPrefix(scheme) { return true }
+        guard let at = token.firstIndex(of: "@"), at > token.startIndex else { return false }
+        let domain = token[token.index(after: at)...]
+        return domain.contains(".") && !domain.contains("@")
     }
 
     /// The end index of the printf-style specifier starting at `start`, or `nil` if there is none.
@@ -182,7 +335,13 @@ enum PseudoLocalizationTransform {
     }
 
     /// The conversion letters that terminate a printf-style specifier.
-    private static let conversionCharacters: Set<Character> = Set("@dioux XeEfgGaAcCsSpn")
+    ///
+    /// There is deliberately no space in this set. A space here would make `%<space>` a complete
+    /// specifier and quietly undo the space-flag decision above, which is exactly the bug this set
+    /// shipped with in its first draft — and which neither of the two tests named for that
+    /// behaviour could detect, because `%` and space are both absent from ``accentMap`` and the
+    /// output is identical either way in the common shapes.
+    private static let conversionCharacters: Set<Character> = Set("@diouxXeEfgGaAcCsSpn")
 
     /// Latin letters mapped to visually similar accented forms.
     ///

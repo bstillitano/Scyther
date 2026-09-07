@@ -20,10 +20,40 @@ import XCTest
 @MainActor
 final class PseudoLocalizationHookTests: XCTestCase {
 
+    /// The developer's own switches, captured so the suite can put them back.
+    ///
+    /// An earlier version simply called `reset()` in `tearDown`, which meant running the test
+    /// suite silently switched off any pseudo-localisation the developer had left on. The shared
+    /// singleton cannot be pointed at a throwaway suite from here — `localized(_:)` is a free
+    /// function that reaches `PseudoLocalization.instance` with no seam to pass one through — so
+    /// the next best thing is to leave the suite exactly as it was found.
+    private var restore: [String: Bool] = [:]
+
+    override func setUp() {
+        super.setUp()
+        restore = [
+            PseudoLocalization.AccentedDefaultsKey: PseudoLocalization.instance.accented,
+            PseudoLocalization.LengthenedDefaultsKey: PseudoLocalization.instance.lengthened,
+            PseudoLocalization.RightToLeftDefaultsKey: PseudoLocalization.instance.rightToLeft,
+            PseudoLocalization.ShowsKeysDefaultsKey: PseudoLocalization.instance.showsKeys,
+        ]
+    }
+
     override func tearDown() {
         PseudoLocalizationHostHook.shared.setEnabled(false)
-        PseudoLocalization.instance.reset()
+        for (key, value) in restore {
+            UserDefaults.scyther.setValue(value, forKey: key)
+        }
         super.tearDown()
+    }
+
+    /// Installs the swizzle the way a real, non-test build would.
+    ///
+    /// ``PseudoLocalizationHostHook/setEnabled(_:isTestCase:isAppStore:)`` refuses to install
+    /// under XCTest, which is the point of it — so the tests that exercise the swizzle for real
+    /// have to say explicitly that they are standing in for a build where it is allowed.
+    private func installHook() {
+        PseudoLocalizationHostHook.shared.setEnabled(true, isTestCase: false, isAppStore: false)
     }
 
     // MARK: - Scyther's own strings
@@ -89,14 +119,14 @@ final class PseudoLocalizationHookTests: XCTestCase {
     }
 
     func testInstallingTheHookIsRecorded() {
-        PseudoLocalizationHostHook.shared.setEnabled(true)
+        installHook()
         XCTAssertTrue(PseudoLocalizationHostHook.shared.isInstalled)
     }
 
     func testInstallingTwiceDoesNotUninstall() {
         PseudoLocalization.instance.accented = true
-        PseudoLocalizationHostHook.shared.setEnabled(true)
-        PseudoLocalizationHostHook.shared.setEnabled(true)
+        installHook()
+        installHook()
 
         XCTAssertTrue(PseudoLocalizationHostHook.shared.isInstalled)
         XCTAssertEqual(mainBundleString(for: "ScytherHookProbe"), "ŠçýţĥéŕĤööķÞŕöƀé")
@@ -104,21 +134,21 @@ final class PseudoLocalizationHookTests: XCTestCase {
 
     func testTheHookTransformsStringsLoadedFromTheMainBundle() {
         PseudoLocalization.instance.accented = true
-        PseudoLocalizationHostHook.shared.setEnabled(true)
+        installHook()
 
         XCTAssertEqual(mainBundleString(for: "ScytherHookProbe"), "ŠçýţĥéŕĤööķÞŕöƀé")
     }
 
     func testTheHookReachesNSLocalizedString() {
         PseudoLocalization.instance.accented = true
-        PseudoLocalizationHostHook.shared.setEnabled(true)
+        installHook()
 
         XCTAssertEqual(NSLocalizedString("ScytherHookProbe", comment: ""), "ŠçýţĥéŕĤööķÞŕöƀé")
     }
 
     func testTheHookLeavesBundlesOtherThanTheMainBundleAlone() {
         PseudoLocalization.instance.accented = true
-        PseudoLocalizationHostHook.shared.setEnabled(true)
+        installHook()
 
         let other = ScytherLocalization.moduleBundle.localizedString(
             forKey: "ScytherHookProbe", value: nil, table: nil
@@ -127,13 +157,13 @@ final class PseudoLocalizationHookTests: XCTestCase {
     }
 
     func testTheHookDoesNothingWhileEveryModeIsOff() {
-        PseudoLocalizationHostHook.shared.setEnabled(true)
+        installHook()
         XCTAssertEqual(mainBundleString(for: "ScytherHookProbe"), "ScytherHookProbe")
     }
 
     func testRemovingTheHookRestoresTheOriginalLookup() {
         PseudoLocalization.instance.accented = true
-        PseudoLocalizationHostHook.shared.setEnabled(true)
+        installHook()
         PseudoLocalizationHostHook.shared.setEnabled(false)
 
         XCTAssertFalse(PseudoLocalizationHostHook.shared.isInstalled)
@@ -142,11 +172,132 @@ final class PseudoLocalizationHookTests: XCTestCase {
 
     func testRemovingTheHookTwiceIsHarmless() {
         PseudoLocalization.instance.accented = true
-        PseudoLocalizationHostHook.shared.setEnabled(true)
+        installHook()
         PseudoLocalizationHostHook.shared.setEnabled(false)
         PseudoLocalizationHostHook.shared.setEnabled(false)
 
         XCTAssertEqual(mainBundleString(for: "ScytherHookProbe"), "ScytherHookProbe")
+    }
+
+    // MARK: - The host-app hook: scope and guards
+
+    func testTheHookRefusesToInstallItselfUnderXCTest() {
+        PseudoLocalizationHostHook.shared.setEnabled(true)
+        XCTAssertFalse(PseudoLocalizationHostHook.shared.isInstalled)
+    }
+
+    func testTheHookRefusesToInstallItselfOnAnAppStoreBuild() {
+        PseudoLocalizationHostHook.shared.setEnabled(true, isTestCase: false, isAppStore: true)
+        XCTAssertFalse(PseudoLocalizationHostHook.shared.isInstalled)
+    }
+
+    func testRemovingTheHookIsNeverRefused() {
+        installHook()
+        PseudoLocalizationHostHook.shared.setEnabled(false, isTestCase: true, isAppStore: true)
+        XCTAssertFalse(PseudoLocalizationHostHook.shared.isInstalled)
+    }
+
+    func testOnlyTheDefaultTableIsInScope() {
+        XCTAssertTrue(PseudoLocalizationHostHook.transforms(table: nil))
+        XCTAssertTrue(PseudoLocalizationHostHook.transforms(table: "Localizable"))
+        XCTAssertFalse(PseudoLocalizationHostHook.transforms(table: "Analytics"))
+    }
+
+    func testTheHookLeavesANamedTableAlone() {
+        PseudoLocalization.instance.accented = true
+        installHook()
+
+        let named = Bundle.main.localizedString(forKey: "ScytherHookProbe", value: nil, table: "Analytics")
+        XCTAssertEqual(named, "ScytherHookProbe")
+    }
+
+    func testTheHookLeavesAPluralFormatAlone() {
+        PseudoLocalization.instance.accented = true
+        PseudoLocalization.instance.lengthened = true
+        installHook()
+
+        XCTAssertEqual(mainBundleString(for: "%#@count@ items"), "%#@count@ items")
+    }
+
+    /// Pins the limit the README's central claim rests on.
+    ///
+    /// `String(localized:)` is documented — in the README, in the DocC article and in this type's
+    /// own header — as *not* reachable by the swizzle, which is what makes the honest claim
+    /// "on a SwiftUI app this is a demonstration, not a test of your screens". That was measured
+    /// once, in prose. If a future Foundation routes it back through `NSBundle`, this test goes
+    /// red and the documentation has to be rewritten, rather than quietly becoming wrong.
+    func testStringLocalizedStillDoesNotReachTheHook() {
+        PseudoLocalization.instance.accented = true
+        installHook()
+
+        XCTAssertEqual(String(localized: "ScytherHookProbe", bundle: .main), "ScytherHookProbe")
+    }
+
+    // MARK: - Effects follow the settings
+
+    func testEffectsInstallTheHookWhenATextModeIsOn() {
+        PseudoLocalization.instance.accented = true
+        PseudoLocalization.instance.applyEffects(isTestCase: false, isAppStore: false)
+
+        XCTAssertTrue(PseudoLocalizationHostHook.shared.isInstalled)
+    }
+
+    func testEffectsLeaveTheHookOutForRightToLeftAlone() {
+        PseudoLocalization.instance.rightToLeft = true
+        PseudoLocalization.instance.applyEffects(isTestCase: false, isAppStore: false)
+
+        XCTAssertFalse(PseudoLocalizationHostHook.shared.isInstalled)
+    }
+
+    func testResettingAndReapplyingTearsTheHookBackOut() {
+        PseudoLocalization.instance.accented = true
+        PseudoLocalization.instance.applyEffects(isTestCase: false, isAppStore: false)
+        PseudoLocalization.instance.reset()
+        PseudoLocalization.instance.applyEffects(isTestCase: false, isAppStore: false)
+
+        XCTAssertFalse(PseudoLocalizationHostHook.shared.isInstalled,
+                       "the feature could not be switched off")
+    }
+
+    func testEffectsFollowTheSettingsAtTheMomentTheyAreAppliedRatherThanWhenTheyWereRequested() {
+        PseudoLocalization.instance.accented = true
+        PseudoLocalization.instance.reset()
+        PseudoLocalization.instance.applyEffects(isTestCase: false, isAppStore: false)
+
+        XCTAssertFalse(PseudoLocalizationHostHook.shared.isInstalled)
+    }
+
+    func testEffectsInstallNothingUnderXCTest() {
+        PseudoLocalization.instance.accented = true
+        PseudoLocalization.instance.applyEffects()
+
+        XCTAssertFalse(PseudoLocalizationHostHook.shared.isInstalled)
+    }
+
+    // MARK: - The settings page keeps its own copy readable
+
+    func testTheSettingsPageSampleSourceIsNeverTransformed() {
+        let viewModel = PseudoLocalizationViewModel()
+        let before = viewModel.sampleSource
+        PseudoLocalization.instance.accented = true
+        PseudoLocalization.instance.lengthened = true
+
+        XCTAssertEqual(viewModel.sampleSource, before)
+    }
+
+    func testTheSettingsPageSampleStillDemonstratesTheTransform() {
+        let viewModel = PseudoLocalizationViewModel()
+        viewModel.accented = true
+
+        XCTAssertNotEqual(viewModel.sampleText, viewModel.sampleSource)
+    }
+
+    func testSearchingForPseudoStillFindsTheEscapeHatchWhileAccentedIsOn() {
+        PseudoLocalization.instance.accented = true
+        let targets = MenuSearchIndex.entries(matching: "pseudo", developerOptions: []).map(\.target)
+
+        XCTAssertTrue(targets.contains(.pseudoLocalization),
+                      "the search route back to the escape hatch is gone")
     }
 
     /// Looks a key up in `Bundle.main` the way `NSLocalizedString` does.

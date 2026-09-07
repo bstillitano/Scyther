@@ -59,8 +59,95 @@ final class PseudoLocalizationTransformTests: XCTestCase {
         XCTAssertEqual(PseudoLocalizationTransform.accentuate("100% and up"), "100% åñð ûþ")
     }
 
+    func testAPercentFollowedByASpaceIsNotASpecifier() {
+        XCTAssertEqual(PseudoLocalizationTransform.accentuate("%l off"), "%ļ öƒƒ")
+    }
+
     func testAccentingHandlesATrailingPercent() {
         XCTAssertEqual(PseudoLocalizationTransform.accentuate("done %"), "ðöñé %")
+    }
+
+    // MARK: - Plurals
+
+    func testAccentingPreservesStringsdictVariables() {
+        XCTAssertEqual(PseudoLocalizationTransform.accentuate("%#@count@ items"), "%#@count@ îţéɱš")
+    }
+
+    func testAccentingPreservesStringsdictVariablesWhoseNamesLookLikeLengthModifiers() {
+        XCTAssertEqual(PseudoLocalizationTransform.accentuate("%#@lld_count@ found"), "%#@lld_count@ ƒöûñð")
+    }
+
+    func testNoTextModeTouchesAStringsdictFormat() {
+        let format = "%#@count@ items"
+        let combinations: [PseudoLocalizationMode] = [
+            .accented, .lengthened, .showsKeys,
+            [.accented, .lengthened], [.accented, .showsKeys], [.accented, .lengthened, .showsKeys],
+        ]
+        for modes in combinations {
+            XCTAssertEqual(
+                PseudoLocalizationTransform.apply(to: format, key: "items.count", modes: modes),
+                format,
+                "modes \(modes.rawValue) corrupted a plural format"
+            )
+        }
+    }
+
+    func testAnUnclosedStringsdictVariableIsTreatedAsOrdinaryCopy() {
+        XCTAssertEqual(PseudoLocalizationTransform.accentuate("%#@count items"), "%#@çöûñţ îţéɱš")
+    }
+
+    func testAPluralFormatIsRecognisedByItsVariableMarker() {
+        XCTAssertTrue(PseudoLocalizationTransform.carriesPluralConfiguration("%#@count@ items"))
+    }
+
+    func testAnOrdinaryFormatIsNotMistakenForAPluralOne() {
+        XCTAssertFalse(PseudoLocalizationTransform.carriesPluralConfiguration("Selected %lld items"))
+        XCTAssertFalse(PseudoLocalizationTransform.carriesPluralConfiguration("100% @ home"))
+    }
+
+    // MARK: - Opaque tokens
+
+    func testAccentingPreservesURLs() {
+        XCTAssertEqual(
+            PseudoLocalizationTransform.accentuate("Visit https://example.com today"),
+            "Ṽîšîţ https://example.com ţöðåý"
+        )
+    }
+
+    func testAccentingPreservesSchemelessWebAddresses() {
+        XCTAssertEqual(
+            PseudoLocalizationTransform.accentuate("go to www.example.com now"),
+            "ğö ţö www.example.com ñöŵ"
+        )
+    }
+
+    func testAccentingPreservesEmailAddresses() {
+        XCTAssertEqual(
+            PseudoLocalizationTransform.accentuate("Email user@example.com now"),
+            "Éɱåîļ user@example.com ñöŵ"
+        )
+    }
+
+    func testAccentingPreservesBracePlaceholders() {
+        XCTAssertEqual(PseudoLocalizationTransform.accentuate("Tap {name} here"), "Ţåþ {name} ĥéŕé")
+    }
+
+    func testAccentingTreatsAMentionAsOrdinaryCopy() {
+        XCTAssertEqual(PseudoLocalizationTransform.accentuate("@team"), "@ţéåɱ")
+    }
+
+    func testAccentingTreatsALoneBraceAsOrdinaryCopy() {
+        XCTAssertEqual(PseudoLocalizationTransform.accentuate("a { b }"), "å { ƀ }")
+    }
+
+    func testAnObjectSpecifierAtATokenStartIsStillASpecifierRatherThanAnEmailAddress() {
+        XCTAssertEqual(PseudoLocalizationTransform.accentuate("%@ sent"), "%@ šéñţ")
+    }
+
+    func testLengtheningPutsItsPaddingOutsideAURL() {
+        let lengthened = PseudoLocalizationTransform.lengthen("https://example.com")
+        XCTAssertTrue(lengthened.contains("https://example.com"))
+        XCTAssertTrue(lengthened.hasPrefix("["))
     }
 
     // MARK: - Lengthening

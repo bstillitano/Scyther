@@ -63,16 +63,29 @@ applies to the host app regardless of how its copy is loaded.
 
 ## Safety
 
+The rule behind all of this: **never produce broken text that is not a localisation problem.** A
+dead link or a plural that stops expanding is not a finding, it is a defect the developer will
+spend an afternoon chasing in their own code, and a diagnostic tool that manufactures those is
+worse than no tool.
+
 - Every mode is off by default and persisted under `Scyther_pseudo_localization_*` in
   `UserDefaults.scyther`.
 - The swizzle is installed only while a text mode is on, and removed the moment the last one is
   switched off. An app that never opens the page never has its string loading touched.
-- Only `Bundle.main` is transformed. UIKit's own "Cancel" and "Done", and any string a dependency
-  uses as an identifier rather than as copy, resolve normally.
-- Format specifiers survive accenting. `%@`, `%lld`, `%1$@` and `%.2f` are recognised and skipped,
-  so a hooked format string still formats.
+- Only `Bundle.main` is transformed, and within it only the default `Localizable` table. UIKit's
+  own "Cancel" and "Done" resolve normally, and so does a table the app named on purpose — teams
+  routinely keep analytics identifiers, feature-flag names and segment keys in one. The trade is
+  one-directional and deliberate: copy in a named table is missed, which costs coverage, whereas
+  transforming an identifier table would change what the app *does*.
+- `.stringsdict` plurals are returned untouched, as the exact object Foundation produced. See
+  ``PseudoLocalizationTransform/carriesPluralConfiguration(_:)`` for why neither the variable name
+  nor the attached configuration can be carried through a transform.
+- Accenting preserves everything that is not copy: format specifiers, `.stringsdict` variables,
+  brace placeholders, and URLs and email addresses. See
+  ``PseudoLocalizationTransform/accentuate(_:)``.
 - Neither the swizzle nor the forced layout direction is installed on an App Store build or under
-  XCTest, and an App Store build honours no persisted mode at all.
+  XCTest. Each carries that guard itself rather than relying on its caller, and an App Store build
+  honours no persisted mode at all.
 
 ## The escape hatch
 
@@ -80,10 +93,14 @@ Pseudo-localising a debug menu has an obvious trap: with Show Keys and Right to 
 switch that undoes it would be a raw catalog key laid out backwards, somewhere in a list of raw
 catalog keys laid out backwards.
 
-The Pseudo-localisation page, and its row in the menu, are therefore the one part of Scyther that
-is never transformed — they resolve their copy through `localizedChrome(_:comment:)` instead. The
-page carries a **Sample** row so it can still show what the modes do while remaining the one place
-they do not apply, and a **Turn Everything Off** button.
+The Pseudo-localisation page, and its row in the menu, are therefore the one part of Scyther whose
+*text* is never transformed — they resolve their copy through `localizedChrome(_:comment:)`
+instead. The page carries a **Sample** row so it can still show what the modes do while remaining
+the one place they do not apply, and a **Turn Everything Off** button.
+
+The exemption covers text only. Right to Left is a process-wide UIKit attribute, so this page flips
+along with everything else; that is deliberate, because the text stays perfectly legible mirrored
+and insulating one screen from the layout mode would misrepresent what the mode does.
 
 The exemption is deliberately narrow. Exempting the whole menu would be safer still and would also
 mean there was nothing to see.
@@ -100,7 +117,12 @@ mean there was nothing to see.
   not a contract. If a future OS changes it, the mode falls back to showing the resolved English
   copy rather than failing.
 - Pseudo-localised menu titles do not match what you type into the menu's search field, for the
-  same reason a French menu does not match English queries.
+  same reason a French menu does not match English queries. The search route back to this page
+  survives on its hand-written ASCII keyword aliases, which a test pins.
+- Copy kept in a named `.strings` table, and any `.stringsdict` plural, are not transformed.
+- URLs, email addresses and brace placeholders are recognised by shape, not parsed. A token that
+  merely looks like one is left alone; the bias is deliberately towards under-transforming, since
+  a missed string costs coverage and a mangled link costs the developer an afternoon.
 
 ## Topics
 
