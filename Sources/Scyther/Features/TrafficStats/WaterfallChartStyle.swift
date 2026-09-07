@@ -23,14 +23,14 @@ import SwiftUI
 /// The type holds no state and draws no chrome. It is the geometry, the colour and the naming;
 /// each surface still decides its own layout, because that is the only thing the two legitimately
 /// disagree about — the section stacks seven bars into one `Chart` sized to the screen, and the
-/// page lays every bar in the log out along a scrollable ``WaterfallTimeScale``.
+/// full-log page lays out only the requests its current time window holds, over a plain `List`.
 ///
-/// The page reached the point of drawing its own bars rather than asking Charts for them, because
-/// its plot is now tens of thousands of points wide and a `Chart` per row at that width is a
-/// rendering hazard for no gain — a single `BarMark` with hidden axes is a filled rectangle and a
-/// caption. What still comes from here is everything a reader could compare across the two
-/// surfaces: the thickness, the colour, the outcome names, the row height and the duration label.
-/// The preview is untouched and keeps drawing through ``bar(id:entry:upperBound:plotWidth:)``.
+/// The page draws its own bars rather than asking Charts for them, because a log can hold
+/// thousands of requests and a `Chart` per row is a rendering hazard for no gain — a single
+/// `BarMark` with hidden axes is a filled rectangle and a caption. What still comes from here is
+/// everything a reader could compare across the two surfaces: the thickness, the colour, the
+/// outcome names, the row height and the duration label. The preview is untouched and keeps
+/// drawing through ``bar(id:entry:upperBound:plotWidth:)``.
 ///
 /// ## Usage
 /// ```swift
@@ -89,19 +89,6 @@ enum WaterfallChartStyle {
     /// ``WaterfallTimeScale`` derived from the durations present, almost nothing does.
     static let minimumBarWidth: CGFloat = 1
 
-    /// How wide the full-log page's frozen label column is, in points.
-    ///
-    /// Two jobs, and both need it fixed. It keeps the axis genuinely shared — a column sized to
-    /// each row's own text would start every bar at a different x and destroy the only claim the
-    /// chart makes, that bars which overlap were in flight together. And it is the column that
-    /// stays put while the timeline scrolls sideways, which is how every waterfall a developer
-    /// has used behaves: a name that scrolls away while the reader inspects a bar leaves the page
-    /// showing coloured rectangles belonging to nothing.
-    static let labelColumnWidth: CGFloat = 132
-
-    /// The gap between the label column and the plot, in points.
-    static let labelColumnSpacing: CGFloat = 8
-
     /// The narrowest plot the page will draw, in points.
     ///
     /// A floor rather than a negative width in a split view or a very small window.
@@ -109,107 +96,31 @@ enum WaterfallChartStyle {
 
     /// How tall the page's legend is, in points, before Dynamic Type scales it.
     ///
-    /// The legend is drawn by a chart of its own, at the card's full content width, rather than
-    /// beside the ruler. Sharing the ruler's chart put it inside the label column's offset, where
-    /// it had roughly a third less room than the preview gives it and wrapped "Stubbed" onto a
-    /// second line.
+    /// The legend is drawn by a chart of its own, at the page's full content width, so it gets
+    /// its own line rather than sharing a row with anything else — which is what stopped
+    /// "Stubbed" wrapping onto a second line the way it did when an earlier layout squeezed it
+    /// beside the axis.
     static let legendHeight: CGFloat = 24
 
-    /// How tall the page's pinned ruler is, in points, before Dynamic Type scales it.
+    // MARK: - The detail row
+
+    /// The detail list row's label column, in points.
     ///
-    /// Enough for the collapsed plot, the tick labels and the axis title. Fixed rather than
-    /// measured because the header is pinned: a header that resized as the reader scrolled would
-    /// shift every bar under it. Fixed is not the same as constant, though — both this and
-    /// ``legendHeight`` are scaled by the view against the reader's text size, or the tick labels
-    /// clip at the sizes where they most need to be legible.
-    static let rulerHeight: CGFloat = 48
+    /// Fixed for the same reason the page's rows used to freeze a label column: a column sized to
+    /// each row's own text would start every bar at a different x and undercut the one claim the
+    /// chart makes, that bars sharing a moment on the window were genuinely in flight together.
+    static let detailLabelWidth: CGFloat = 132
 
-    // MARK: - The grouped card
+    /// The detail list row's duration column, in points. Sized for "1.25 s" plus a little, which
+    /// is what the row's fixed-width label column left for the figure beside it.
+    static let detailDurationWidth: CGFloat = 62
 
-    /// How far the card is inset from the edge of the page, in points.
+    /// The padding between the page's edge and its content, in points.
     ///
-    /// This and the two figures below are UIKit's inset-grouped metrics rather than invented
-    /// ones. The full-log page is a `ScrollView` rather than a `List`, so nothing draws the card
-    /// for it, and bars sitting on the plain page background read as a different component rather
-    /// than as the same chart with more room.
-    static let cardInset: CGFloat = 20
-
-    /// The padding between the card's edge and its content, in points.
+    /// Matches UIKit's inset-grouped content margin, which is what the legend above the detail
+    /// list is measured against so it reads as part of the same screen rather than a component
+    /// dropped onto it.
     static let cardContentPadding: CGFloat = 16
-
-    /// The radius the card's outer corners are rounded to, in points.
-    static let cardCornerRadius: CGFloat = 10
-
-    /// How much of the timeline is visible at once on the full-log page, for a page of the
-    /// given width.
-    ///
-    /// A *window*, not the plot. The plot is now ``WaterfallTimeScale/contentWidth`` and is
-    /// usually far wider than the screen; this is how much of it shows through at a time, which
-    /// the scale takes as its lower bound so a session too short to need scrolling still fills
-    /// the card instead of huddling at its leading edge.
-    ///
-    /// - Parameter pageWidth: The full width available to the page.
-    /// - Returns: The visible width in points, never below ``minimumPlotWidth``.
-    static func plotWidth(inPageWidth pageWidth: CGFloat) -> CGFloat {
-        let chrome = 2 * cardInset + 2 * cardContentPadding + labelColumnWidth + labelColumnSpacing
-        return max(minimumPlotWidth, pageWidth - chrome)
-    }
-
-    // MARK: - The frozen column
-
-    /// How much room the frozen label column occupies, in points.
-    ///
-    /// The names and the gap between them and the plot, together, because the column is opaque
-    /// and the bars pass *underneath* it as the timeline scrolls. A block only as wide as the
-    /// text would let a bar show through the gap, where it would read as a request starting at
-    /// zero — which is exactly the misreading the whole chart is built to prevent.
-    static var frozenColumnWidth: CGFloat { labelColumnWidth + labelColumnSpacing }
-
-    /// How far the label column has to travel to stay at the leading edge.
-    ///
-    /// The freeze is this one subtraction, applied inside the row's own layout pass from a
-    /// `GeometryReader` reading the row's position in the scroll view's coordinate space. Doing
-    /// it there rather than through a published scroll offset is what keeps the column in the
-    /// same frame as the bars: an offset routed through `@State` and a preference key arrives a
-    /// frame late, and a name that slides and snaps back while the reader drags is worse than one
-    /// that simply scrolled away.
-    ///
-    /// Negative leading edges only. A scroll view that is rubber-banding past its own start
-    /// reports a *positive* edge, and following that would push the column off the leading edge
-    /// and into the plot.
-    ///
-    /// - Parameter leadingEdge: Where the row's start sits in the scroll view's visible
-    ///   coordinate space: zero at rest, negative once scrolled.
-    /// - Returns: The offset to apply to the column, never negative.
-    static func frozenColumnOffset(leadingEdge: CGFloat) -> CGFloat {
-        max(0, -leadingEdge)
-    }
-
-    /// How wide one row is, in points: the frozen column plus the whole scrollable timeline.
-    ///
-    /// The scroll view sizes its content from this, and the ruler is laid out from the same call,
-    /// which is what makes a tick sit above its bar by construction rather than by two matching
-    /// stacks of hand-written insets. Sizing a row to the timeline alone would leave the last
-    /// column-width of the log unreachable at the far end of the scroll.
-    ///
-    /// - Parameter timelineWidth: ``WaterfallTimeScale/contentWidth``.
-    /// - Returns: The row's width in points.
-    static func rowWidth(timelineWidth: CGFloat) -> CGFloat {
-        frozenColumnWidth + timelineWidth
-    }
-
-    /// Where a moment on the axis is drawn within a row, in points from the row's leading edge.
-    ///
-    /// The plot starts after the frozen column, so every position on the timeline carries that
-    /// offset. The ruler and the bars both go through here, so neither can forget it.
-    ///
-    /// - Parameters:
-    ///   - seconds: Seconds from the series origin.
-    ///   - scale: The page's time scale.
-    /// - Returns: The offset in points.
-    static func plotX(forSeconds seconds: TimeInterval, on scale: WaterfallTimeScale) -> CGFloat {
-        frozenColumnWidth + scale.x(atSeconds: seconds)
-    }
 
     // MARK: - Colour
 
@@ -318,9 +229,9 @@ enum WaterfallChartStyle {
     /// chart it is about to build, and a floor computed from a guess would be a floor of unknown
     /// size — which is the exact defect this replaced.
     ///
-    /// Only the preview reaches this now. The full-log page works in points directly, through
-    /// ``WaterfallTimeScale/width(of:)``, because it knows its scale rather than inferring it
-    /// from a plot width.
+    /// Only the preview reaches this now. The full-log page's detail row computes its bar
+    /// directly from the current ``WaterfallWindow`` and its own measured width, so it has no
+    /// need for a floor computed from a guessed plot width in the first place.
     ///
     /// - Parameters:
     ///   - entry: The bar.

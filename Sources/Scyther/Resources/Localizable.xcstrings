@@ -36665,6 +36665,83 @@
         }
       }
     },
+    "No requests in this part of the log.": {
+      "comment": "Row shown in the detail list when the current time window holds no requests",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لا توجد طلبات في هذا الجزء من السجل."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Keine Anfragen in diesem Teil des Protokolls."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No hay solicitudes en esta parte del registro."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aucune requête dans cette partie du journal."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nessuna richiesta in questa parte del registro."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ログのこの部分にはリクエストがありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "로그의 이 부분에는 요청이 없습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Geen verzoeken in dit deel van het logboek."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nenhuma solicitação nesta parte do registro."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "В этой части журнала нет запросов."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "此日志片段中没有请求。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "此記錄片段中沒有請求。"
+          }
+        }
+      }
+    },
     "No results for \"%@\"": {
       "comment": "Empty state of menu search on iOS 16. %@ is the user's query",
       "localizations": {

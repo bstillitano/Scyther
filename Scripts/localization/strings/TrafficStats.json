@@ -370,6 +370,21 @@
     "zh-Hans": "未捕获流量",
     "zh-Hant": "未擷取流量"
   },
+  "No requests in this part of the log.": {
+    "ar": "لا توجد طلبات في هذا الجزء من السجل.",
+    "comment": "Row shown in the detail list when the current time window holds no requests",
+    "de": "Keine Anfragen in diesem Teil des Protokolls.",
+    "es": "No hay solicitudes en esta parte del registro.",
+    "fr": "Aucune requête dans cette partie du journal.",
+    "it": "Nessuna richiesta in questa parte del registro.",
+    "ja": "ログのこの部分にはリクエストがありません。",
+    "ko": "로그의 이 부분에는 요청이 없습니다.",
+    "nl": "Geen verzoeken in dit deel van het logboek.",
+    "pt-BR": "Nenhuma solicitação nesta parte do registro.",
+    "ru": "В этой части журнала нет запросов.",
+    "zh-Hans": "此日志片段中没有请求。",
+    "zh-Hant": "此記錄片段中沒有請求。"
+  },
   "Outcome": {
     "ar": "النتيجة",
     "comment": "Name of the waterfall chart's colour legend",

@@ -123,22 +123,6 @@ final class WaterfallChartStyleTests: XCTestCase {
 
     // MARK: - Page geometry
 
-    /// The ruler and every row are framed to this one figure, which is what makes a tick and the
-    /// bar beneath it line up by construction rather than by two hand-matched stacks of insets.
-    func testThePlotIsWhatIsLeftOfThePageAfterTheCardAndTheLabelColumn() {
-        let chrome = 2 * WaterfallChartStyle.cardInset
-            + 2 * WaterfallChartStyle.cardContentPadding
-            + WaterfallChartStyle.labelColumnWidth
-            + WaterfallChartStyle.labelColumnSpacing
-        XCTAssertEqual(WaterfallChartStyle.plotWidth(inPageWidth: 390), 390 - chrome)
-    }
-
-    /// A split view or a very small window must not produce a negative plot.
-    func testAVeryNarrowPageStillLeavesAPlotToDrawIn() {
-        XCTAssertEqual(WaterfallChartStyle.plotWidth(inPageWidth: 100),
-                       WaterfallChartStyle.minimumPlotWidth)
-    }
-
     /// The defect the owner found: rows that shrank to share the screen turned a scrollable
     /// waterfall into a static one — twenty-two requests on a single screen, and the full-log page
     /// showing the same picture as the preview it was opened from. A row has to be tall enough to

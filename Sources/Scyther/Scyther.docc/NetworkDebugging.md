@@ -131,40 +131,40 @@ The section itself is a preview of the seven most recent requests, at a fixed ro
 reads at a glance; its caption says as much and points at the page holding the rest.
 
 **See all**, in the waterfall's section header, opens the same session over every request the log
-is showing, and scrolls in both directions. The rows are lazy, run oldest first so time reads
-downward, and each keeps the same fixed height — a hundred requests are a hundred readable rows to
-scroll, not a hundred hairlines divided across one screen. Tapping a bar opens that request's
-details. One axis covers the whole log, so overlap means the same thing on both surfaces.
+is showing — not scrolled, but seen through a window the reader zooms and drags. Fitting the whole
+session into one screen width, or scrolling a plot wide enough not to, are both a *scroll* answer
+to what is really a *zoom* problem: against a three hundred second log of requests between
+thirty-two milliseconds and one and a half seconds either one either floors every bar to the same
+sliver or hands the reader a plot thousands of points wide to pan by hand.
 
-The page's horizontal scale is the point of it. Fitting the whole session into one screen width is
-a statement about the phone rather than about the traffic: against a three hundred second log of
-requests between thirty-two milliseconds and one and a half seconds it gave every bar less than a
-point of ink, floored them all to the one point minimum, and drew the fastest and the slowest
-request identically. `WaterfallTimeScale` replaces that with a scale derived from the durations
-present — the median request drawn at twenty-four points, the fastest tenth kept at least three,
-whichever demands more, clamped so the timeline neither shrinks below the visible plot nor grows
-past fifty thousand points. The same log then draws at about ninety-six points per second, where a
-32 ms request is three points and a 1.4 s request is a hundred and thirty-four.
+The page shows two things instead. An overview strip compresses the entire log into one short band
+and marks the current window on it as a highlighted region; dragging the strip moves that window
+anywhere in the log in a single gesture. Underneath it, a detail list holds only the requests the
+window currently contains, each a tappable row at the same fixed height the preview uses, running
+oldest first so time reads downward. A pinch on the detail list narrows or widens the window,
+holding its centre still; the window can never be pinched narrower than the point at which the
+shortest measured request in the log would draw under twenty-four points wide, so a pinch cannot
+zoom a reader into a blur of a single hairline. `.accessibilityAdjustableAction` on the strip puts
+the same zoom range behind VoiceOver's and Switch Control's adjustable gesture, so reaching it
+never requires a pinch at all.
 
-While the timeline scrolls sideways the request names stay frozen at the leading edge and the
-seconds ruler stays pinned to the top, travelling horizontally in step with the bars. Both are
-structural rather than synced: the ruler is a pinned section header inside the same scroll view as
-the bars, and the frozen column counter-offsets itself inside its own layout pass, so neither can
-arrive a frame behind the thing it labels.
+A request already running when the window opens, or one that outlives it, is drawn clipped flush
+to the window's edge rather than shrunk to fit — the clip reads as "continues", where a shrunk bar
+would read as a request shorter than it actually ran. Tapping a bar, on the strip or in the detail
+list, opens that request's details.
 
-Both surfaces are handed the log's *filtered* requests, and the page's caption names which it is
-— `Every request in the log…`, or `21 of 340 requests…` under a filter.
+Both surfaces are handed the log's *filtered* requests, and the page's caption under the detail
+list names how many of the log's total requests the current window holds.
 
-The preview keeps its appearance. It is a seven-row summary that fits by design, and the scale and
-the scrolling belong to the page alone; the two still share their colours, outcome names, row
-height, bar thickness and duration labels through `WaterfallChartStyle`.
+The preview keeps its appearance. It is a seven-row summary that fits by design, and the window,
+the strip and the detail list belong to the page alone; the two surfaces still share their
+colours, outcome names, row height, bar thickness and duration labels through `WaterfallChartStyle`.
 
-A bar too narrow to see is still drawn one point wide so that it can be found. That floor is a
-minimum rendered *width*, not a minimum duration: it adds at most one point of ink however long the
-session ran, and the bar's label still reports the real measurement. It matters far less than it
-did — at a scale derived from the durations present, almost nothing reaches it. The preview draws
-every bar at its true length instead, because Charts sizes that chart's leading axis and the
-section therefore cannot say how many seconds a point is worth.
+A bar too narrow to see on the *preview* is still drawn one point wide so that it can be found.
+That floor is a minimum rendered *width*, not a minimum duration: it adds at most one point of ink
+however long the session ran, and the bar's label still reports the real measurement. The page's
+own bars are floored the same way by the clipping arithmetic that fits them into the window, so
+neither surface ever draws a request that cannot be found.
 
 **Slowest Endpoints** groups by `METHOD host/path`, dropping the query string and collapsing any
 numeric or UUID path segment to `:id`, so `/users/1` and `/users/2` aggregate. A GraphQL operation

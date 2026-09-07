@@ -7,43 +7,38 @@
 
 import Charts
 import SwiftUI
-import UIKit
 
-/// Every logged request as a bar on one shared, scrollable time axis, oldest at the top.
+/// Every logged request as a bar on one shared time axis, oldest at the top, seen through a
+/// window the reader zooms and drags rather than scrolls.
 ///
 /// Reached from the **See all** button in the Waterfall section of ``TrafficStatsView``. It shows
 /// the same session that section previews — the same colours, the same outcome names, the same
 /// legend, the same row height, all from ``WaterfallChartStyle`` — over the whole log rather than
 /// the most recent seven, and made tappable so a bar leads to the request behind it.
 ///
-/// ## Why it scrolls in both directions
+/// ## Why a window rather than a scroll
 ///
-/// The page used to fit the session into one screen width and only scroll vertically. That is
-/// fine for a log whose requests are all roughly as long as each other and terrible for every
-/// other log: against a three hundred second session of requests between thirty-two milliseconds
-/// and one and a half seconds, every bar asked for less than a point of ink, every bar was floored
-/// to the one point minimum, and the fastest and the slowest request in the log drew the same
-/// size. A ruler running to 300 s over 190 points is a statement about the phone, not about the
-/// traffic.
+/// The page used to fit the session into one screen width and only scroll vertically, then — when
+/// that made every bar in a long session collapse to the same one-point floor — grew a plot tens
+/// of thousands of points wide with a frozen label column and a ruler pinned inside a two-axis
+/// `ScrollView`, the way Chrome's network panel and Charles both behave. Both of those are a
+/// *scroll* answer to what is really a *zoom* problem: a reader does not want to pan across five
+/// minutes of quiet network to find the one burst that mattered, and a plot wide enough to give a
+/// twenty-millisecond request room next to a three-second one is wide enough that panning it by
+/// hand is its own chore.
 ///
-/// So the axis is drawn at a scale derived from the durations present — see
-/// ``WaterfallTimeScale`` — and the reader scrolls it. Four things follow from that, and all four
-/// are load-bearing:
+/// So the page shows two things instead. ``WaterfallOverviewStrip`` compresses the *entire* log
+/// into one short band and marks the current window on it — a drag on the strip moves the window
+/// anywhere in the log in one gesture, which no amount of panning a wide plot could do. Beneath
+/// it, the detail list holds only the requests that window contains: a `List` of `NavigationLink`
+/// rows rather than a `LazyVStack` of hand-laid-out rectangles, because this is a menu screen and
+/// a bar without a row to sit in cannot happen — see ``WaterfallViewModel/visibleRows``. Zoom
+/// narrows the window with a pinch, described below.
 ///
-/// - **The rows are lazy.** A log holding thousands of captures only ever builds the handful of
-///   rows on screen, and each row is a rectangle and two labels rather than a `Chart`, because a
-///   chart per row at tens of thousands of points wide is a rendering hazard for no gain.
-/// - **The ruler is a pinned section header inside the same scroll view as the bars.** Pinned, so
-///   the axis never scrolls out of reach vertically; inside the same scroll view, so it moves
-///   horizontally with the bars in the same frame rather than a frame later. A tick that does not
-///   sit above its bar is worse than no ruler.
-/// - **The label column is frozen.** Names hold the leading edge while the timeline slides
-///   underneath them, the way Chrome's network panel and Charles both behave. Reading a bar
-///   against the request that produced it is the one task the page has.
-/// - **The card is a container rather than an assembly.** It used to be built out of its ends —
-///   the pinned header rounding the top corners, the last row the bottom — so that a lazily built
-///   stack still read as one block. With the scroll view living *inside* the card that is no
-///   longer needed: the card is one rounded rectangle and the timeline scrolls within it.
+/// - Important: `.accessibilityAdjustableAction` on the strip is what keeps zoom reachable without
+///   a pinch. VoiceOver and Switch Control users get the same range a sighted reader's fingers do;
+///   the toolkit does not get to ship an accessibility audit feature one release and a
+///   gesture-only control the next.
 ///
 /// ## Usage
 /// ```swift
@@ -56,8 +51,17 @@ struct WaterfallView: View {
     /// the log's search and filter chips the way the rest of the stats screen does.
     @ObservedObject private var logs: NetworkLogsViewModel
 
-    /// The page's own view model.
+    /// The page's own view model, which owns the laid-out log and the current time window.
     @StateObject private var viewModel: WaterfallViewModel
+
+    /// The last magnification the pinch gesture reported, so each change applies only the delta
+    /// since the previous callback rather than the whole gesture again.
+    ///
+    /// `MagnificationGesture` reports magnitude relative to where the pinch *started*, not to the
+    /// last callback. Feeding that straight to ``WaterfallViewModel/zoom(by:)`` would reapply the
+    /// entire pinch on every frame the gesture reports and slam the window into its zoom limit on
+    /// the first frame of motion.
+    @State private var lastMagnification: CGFloat = 1
 
     /// Creates the page.
     ///
@@ -77,11 +81,9 @@ struct WaterfallView: View {
             if viewModel.isEmpty {
                 emptyState
             } else {
-                timeline
+                content
             }
         }
-        // The ground the card sits on, which is what a grouped List paints behind its sections.
-        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(localized("Waterfall"))
         .navigationBarTitleDisplayMode(.inline)
         .onFirstAppear {
@@ -96,57 +98,115 @@ struct WaterfallView: View {
         }
     }
 
-    /// The card, and the caption underneath it.
+    /// The page's body once the log holds something: the legend, the overview strip carrying the
+    /// current window, the detail list the window holds, and the caption under it.
     ///
-    /// Wrapped in a `GeometryReader` because the page's scale needs to know how much of the
-    /// timeline shows at once: that is the lower bound on the scale, so that a session too short
-    /// to need scrolling still fills the card rather than huddling at its leading edge.
-    private var timeline: some View {
-        GeometryReader { geometry in
-            let scale = viewModel.scale(
-                visibleWidth: WaterfallChartStyle.plotWidth(inPageWidth: geometry.size.width)
-            )
-            VStack(alignment: .leading, spacing: 0) {
-                card(scale: scale)
-                Text(viewModel.caption)
-                    .font(.footnote)
-                    .foregroundStyle(Color.secondary)
-                    // Aligned with the card's content rather than its edge, the way a grouped
-                    // List aligns a section footer.
-                    .padding(
-                        .horizontal,
-                        WaterfallChartStyle.cardInset + WaterfallChartStyle.cardContentPadding
-                    )
-                    .padding(.vertical, 12)
+    /// A plain `VStack` rather than a `List` at the top level, because the strip needs a
+    /// continuous drag — see ``WaterfallOverviewStrip/Interaction/scrub(_:)`` — which only works
+    /// honestly outside a scroll view. The detail list underneath is its own `List`, so it still
+    /// gets a menu screen's row treatment without the strip losing its gesture to one.
+    private var content: some View {
+        VStack(spacing: 0) {
+            legend
+            WaterfallOverviewStrip(series: viewModel.series,
+                                   window: viewModel.window,
+                                   height: WaterfallOverviewStrip.pageHeight,
+                                   interaction: .scrub { viewModel.scrub(to: $0) })
+                .padding(.horizontal, 16)
+                .padding(.bottom, 10)
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: viewModel.zoom(by: 2)
+                    case .decrement: viewModel.zoom(by: 0.5)
+                    @unknown default: break
+                    }
+                }
+            detail
+            Text(viewModel.windowCaption)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+        }
+    }
+
+    /// The colour legend, unchanged from the page's original design: four marks in one line,
+    /// still drawn by a `Chart` of its own so it stays pixel-for-pixel the legend the preview
+    /// section already draws. See ``WaterfallLegendView``.
+    private var legend: some View {
+        WaterfallLegendView()
+            .padding(.horizontal, WaterfallChartStyle.cardContentPadding)
+            .padding(.top, 8)
+    }
+
+    /// The rows the window holds.
+    ///
+    /// A `List` rather than a `LazyVStack` in a `ScrollView`: rows are `NavigationLink`s and this
+    /// is a menu screen, so it takes the menu's row treatment, separators and press states for
+    /// free rather than hand-rolling them.
+    @ViewBuilder
+    private var detail: some View {
+        GeometryReader { proxy in
+            List {
+                if viewModel.isWindowEmpty {
+                    Text(localized("No requests in this part of the log."))
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(viewModel.visibleRows) { row in
+                        NavigationLink {
+                            LogDetailsView(httpRequest: row.request)
+                        } label: {
+                            WaterfallDetailRow(row: row, window: viewModel.window)
+                        }
+                    }
+                }
             }
+            .listStyle(.plain)
+            .onAppear { viewModel.configureWindow(plotWidth: plotWidth(in: proxy.size.width)) }
+            .onChange(of: proxy.size.width) { _ in
+                viewModel.configureWindow(plotWidth: plotWidth(in: proxy.size.width))
+            }
+            .gesture(magnification, including: .all)
         }
     }
 
-    /// The legend, and the scrollable timeline under it, in an inset grouped card.
+    /// The width a bar actually gets, which is the row less the label and duration columns.
     ///
-    /// The legend sits outside the scroll view rather than above the ruler inside it: it explains
-    /// four colours and has nothing to do with time, so scrolling it sideways with the axis would
-    /// be nonsense. Outside, it also gets the card's full content width, which is what stops
-    /// "Stubbed" wrapping onto a second line the way it did when it shared the ruler's row.
+    /// The zoom limit is computed from this rather than from the screen's width, so the shortest
+    /// request really is 24pt at maximum zoom instead of 24pt-minus-the-chrome. The trailing `48`
+    /// is the row's own overhead that ``WaterfallChartStyle/detailLabelWidth`` and
+    /// ``WaterfallChartStyle/detailDurationWidth`` do not already account for: the two 8pt gaps
+    /// ``WaterfallDetailRow``'s `HStack` puts between its three columns, plus the 16pt leading and
+    /// trailing insets a plain `List` gives every row.
     ///
-    /// - Parameter scale: The page's time scale.
-    /// - Returns: The card.
-    private func card(scale: WaterfallTimeScale) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            WaterfallLegendView()
-                .padding(.horizontal, WaterfallChartStyle.cardContentPadding)
-                .padding(.top, 8)
-            WaterfallTimelineView(rows: viewModel.rows, scale: scale)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: WaterfallChartStyle.cardCornerRadius,
-                                    style: .continuous))
-        .padding(.horizontal, WaterfallChartStyle.cardInset)
-        .padding(.top, 8)
+    /// - Parameter rowWidth: The full width one row is given, from the list's own geometry.
+    /// - Returns: The width left for the bar, never below ``WaterfallChartStyle/minimumPlotWidth``.
+    private func plotWidth(in rowWidth: CGFloat) -> CGFloat {
+        max(WaterfallChartStyle.minimumPlotWidth,
+            rowWidth - WaterfallChartStyle.detailLabelWidth - WaterfallChartStyle.detailDurationWidth - 48)
     }
 
-    /// The placeholder shown for a log with nothing in it.
+    /// Pinch to zoom, running alongside the list's scrolling rather than instead of it.
+    ///
+    /// `MagnificationGesture` and not `MagnifyGesture`: the package's floor is iOS 16 and
+    /// `MagnifyGesture` is iOS 17. Attached with `including: .all` so the list keeps recognising
+    /// its own scroll and press gestures simultaneously — a pinch and a scroll do not compete for
+    /// the same fingers.
+    private var magnification: some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                guard value.isFinite, value > 0, lastMagnification > 0 else { return }
+                viewModel.zoom(by: Double(value / lastMagnification))
+                lastMagnification = value
+            }
+            .onEnded { _ in lastMagnification = 1 }
+    }
+
+    /// The placeholder shown for a log with nothing in it at all.
+    ///
+    /// Distinct from ``WaterfallViewModel/isWindowEmpty``, which the detail list answers with its
+    /// own row: this is the whole log holding nothing to draw a strip or a window over in the
+    /// first place.
     @ViewBuilder
     private var emptyState: some View {
         if #available(iOS 17.0, *) {
@@ -174,300 +234,71 @@ struct WaterfallView: View {
     }
 }
 
-/// The scrollable part of the page: the ruler, pinned, over one lazily built row per request.
+/// One request in the waterfall's detail list: who it went to, what it was, when it happened
+/// inside the window, and how long it took.
 ///
-/// One scroll view carrying both axes, which is the whole trick. The ruler is a pinned section
-/// header inside it, so it holds the top of the card vertically while travelling horizontally
-/// with the bars — in the same layout pass, not a frame behind, which is what any solution built
-/// out of two scroll views and a published offset would give. The frozen label column is the
-/// mirror image: it lives inside each row and inside the header, and counter-offsets itself by
-/// the row's own position in the scroll view's coordinate space.
-private struct WaterfallTimelineView: View {
-    /// The rows to draw, oldest first.
-    let rows: [WaterfallViewModel.Row]
-
-    /// The page's time scale.
-    let scale: WaterfallTimeScale
-
-    /// The coordinate space the frozen column measures itself against.
-    ///
-    /// Named on the scroll view, so a row's `minX` in this space is zero at rest and negative
-    /// once the timeline has been scrolled — which is exactly the figure
-    /// ``WaterfallChartStyle/frozenColumnOffset(leadingEdge:)`` takes.
-    private static let coordinateSpace = "ScytherWaterfallTimeline"
-
-    var body: some View {
-        ScrollView([.horizontal, .vertical]) {
-            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                Section {
-                    ForEach(rows) { row in
-                        NavigationLink {
-                            LogDetailsView(httpRequest: row.request)
-                        } label: {
-                            WaterfallRowView(
-                                row: row,
-                                scale: scale,
-                                coordinateSpace: Self.coordinateSpace
-                            )
-                        }
-                        // Plain, because the row is a chart: the automatic link style would tint
-                        // the bar's label and its duration in the accent colour, and the two
-                        // surfaces would no longer look like the same chart.
-                        .buttonStyle(.plain)
-                    }
-                } header: {
-                    WaterfallRulerView(scale: scale, coordinateSpace: Self.coordinateSpace)
-                }
-            }
-        }
-        .coordinateSpace(name: Self.coordinateSpace)
-        // Outside the scroll view, not inside its content: an inset applied to the content would
-        // travel with it, and the frozen column would slide from the card's content margin to its
-        // bare edge the moment the reader scrolled.
-        .padding(.horizontal, WaterfallChartStyle.cardContentPadding)
-    }
-}
-
-/// One request's row on the full-log waterfall: its name, frozen at the leading edge, and its bar
-/// somewhere along a timeline far wider than the screen.
-///
-/// The bar is a filled rectangle rather than a `Chart`, and that is a deliberate step away from
-/// the preview. A `BarMark` with both axes and the legend hidden *is* a filled rectangle with a
-/// caption beside it, and asking Charts to lay one out inside a plot tens of thousands of points
-/// wide, once per row, buys nothing for a real cost. Everything a reader could compare against the
-/// preview — thickness, colour, the duration label and the four points of air before it — still
+/// Its own small view rather than a case inside ``WaterfallView``, since it exists only for this
+/// list. The bar is a filled rectangle rather than a `Chart`, for the same reason the old page's
+/// rows were: a `BarMark` with both axes and the legend hidden *is* a filled rectangle, and asking
+/// Charts to lay one out per row buys nothing a `RoundedRectangle` does not already give for free.
+/// Everything a reader could compare against the preview — the colour and the row height — still
 /// comes from ``WaterfallChartStyle``.
-private struct WaterfallRowView: View {
+private struct WaterfallDetailRow: View {
     /// The row to draw.
     let row: WaterfallViewModel.Row
 
-    /// The page's time scale, identical for every row and for the ruler above them.
-    let scale: WaterfallTimeScale
-
-    /// The scroll view's coordinate space, which the frozen column measures itself against.
-    let coordinateSpace: String
-
-    /// The row's height, scaled against the reader's text size.
-    ///
-    /// Scaled rather than constant because the label beside the bar grows with Dynamic Type; a
-    /// constant height would clip it at exactly the sizes where it most needs to be legible.
-    @ScaledMetric(relativeTo: .caption) private var rowHeight: CGFloat = WaterfallChartStyle.rowHeight
+    /// The current window, which is what the bar is placed and clipped against.
+    let window: WaterfallWindow
 
     var body: some View {
-        HStack(spacing: 0) {
-            WaterfallFrozenLabel(
-                text: row.label,
-                height: rowHeight,
-                coordinateSpace: coordinateSpace
-            )
-            track
-        }
-        .frame(
-            width: WaterfallChartStyle.rowWidth(timelineWidth: scale.contentWidth),
-            height: rowHeight,
-            alignment: .leading
-        )
-        // The whole row is the target, not just the bar: a request drawn at the minimum width is
-        // a point across and would otherwise be unhittable even though it is now visible.
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabel)
-    }
-
-    /// The bar and its duration label, placed along the timeline.
-    ///
-    /// The clear rectangle underneath is what gives the track its width; the bar is offset into
-    /// place rather than laid out with spacers, because an offset costs nothing and a leading
-    /// spacer of thirty thousand points is a layout the stack has to solve on every pass.
-    private var track: some View {
-        ZStack(alignment: .leading) {
-            Color.clear
-                .frame(width: scale.contentWidth, height: 1)
-            HStack(spacing: 4) {
-                Rectangle()
-                    .fill(WaterfallChartStyle.colour(for: row.entry))
-                    .frame(
-                        width: scale.width(of: row.entry),
-                        height: WaterfallChartStyle.barThickness
-                    )
-                Text(WaterfallChartStyle.valueLabel(for: row.entry))
-                    .font(.caption2)
-                    .monospacedDigit()
-                    .foregroundStyle(Color.secondary)
-                    .fixedSize()
-            }
-            .offset(x: scale.x(atSeconds: row.entry.start))
-        }
-        .frame(width: scale.contentWidth, alignment: .leading)
-    }
-
-    /// What VoiceOver reads for the row.
-    ///
-    /// The bar itself conveys length by width, which is nothing to a screen reader, so the name,
-    /// the outcome and the duration are spoken instead.
-    private var accessibilityLabel: String {
-        [
-            row.label,
-            WaterfallChartStyle.outcomeTitle(for: row.entry),
-            WaterfallChartStyle.valueLabel(for: row.entry),
-        ].joined(separator: ", ") // scyther:unlocalised separator between localised parts
-    }
-}
-
-/// A block that holds the leading edge of the timeline while the bars scroll underneath it.
-///
-/// The freeze is one subtraction — see ``WaterfallChartStyle/frozenColumnOffset(leadingEdge:)`` —
-/// applied to the block's own content from a `GeometryReader` wrapped around it. Because the
-/// geometry and the offset are read and applied in the same layout pass, the column moves in the
-/// same frame the bars do; an offset published through `@State` would arrive a frame late and the
-/// names would slide and snap back under the reader's thumb.
-///
-/// The background is opaque and covers the gap to the plot as well, because bars pass beneath it:
-/// a bar showing through the gap would read as a request that started at zero.
-private struct WaterfallFrozenLabel: View {
-    /// The name to draw, or `nil` for the ruler's corner, which is frozen but empty.
-    var text: String?
-
-    /// How tall the block is.
-    let height: CGFloat
-
-    /// The scroll view's coordinate space.
-    let coordinateSpace: String
-
-    var body: some View {
-        GeometryReader { proxy in
-            content
-                .frame(
-                    width: WaterfallChartStyle.labelColumnWidth,
-                    height: height,
-                    alignment: .trailing
-                )
-                .padding(.trailing, WaterfallChartStyle.labelColumnSpacing)
-                .background(Color(uiColor: .secondarySystemGroupedBackground))
-                .overlay(alignment: .trailing) {
-                    // A hairline saying the column is a column: without it the frozen names read
-                    // as bars that failed to move.
-                    Rectangle()
-                        .fill(Color(uiColor: .separator))
-                        .frame(width: 0.5)
-                }
-                .offset(
-                    x: WaterfallChartStyle.frozenColumnOffset(
-                        leadingEdge: proxy.frame(in: .named(coordinateSpace)).minX
-                    )
-                )
-        }
-        .frame(width: WaterfallChartStyle.frozenColumnWidth, height: height)
-        // Above the track, so the bars pass behind the column rather than over it.
-        .zIndex(1)
-    }
-
-    /// The name, or nothing.
-    @ViewBuilder
-    private var content: some View {
-        if let text {
-            Text(text)
-                .font(.caption2)
+        HStack(spacing: 8) {
+            Text(verbatim: "\(row.entry.shortHost) · \(row.entry.label)")
+                .font(.subheadline)
                 .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundStyle(Color.secondary)
-        } else {
-            Color.clear
-        }
-    }
-}
+                .truncationMode(.middle)
+                .frame(width: WaterfallChartStyle.detailLabelWidth, alignment: .leading)
 
-/// The seconds ruler, pinned to the top of the card.
-///
-/// Drawn by hand rather than by Charts, for the same reason the rows are: a chart whose plot is
-/// tens of thousands of points wide would be asked to choose its own tick interval across a span
-/// it cannot see, and the ticks would stop lining up with the bars the moment it chose differently
-/// from them. Here the interval comes from ``WaterfallTimeScale/tickInterval`` and every tick is
-/// placed by the same arithmetic that places a bar, so a tick sits above its bar by construction.
-///
-/// The ticks are lazy: at the widest scale the page allows there are a few hundred of them, and
-/// only the ones on screen are ever built.
-private struct WaterfallRulerView: View {
-    /// The page's time scale.
-    let scale: WaterfallTimeScale
-
-    /// The scroll view's coordinate space, which the frozen corner measures itself against.
-    let coordinateSpace: String
-
-    /// The ruler's height, scaled against the reader's text size.
-    ///
-    /// Fixed rather than measured because the header is pinned: a header that resized as the
-    /// reader scrolled would shift every bar under it. Fixed is not the same as constant, though
-    /// — a constant height clips the tick labels at the sizes where they most need to be legible.
-    @ScaledMetric(relativeTo: .caption) private var rulerHeight: CGFloat = WaterfallChartStyle.rulerHeight
-
-    var body: some View {
-        HStack(spacing: 0) {
-            WaterfallFrozenLabel(
-                text: nil,
-                height: rulerHeight,
-                coordinateSpace: coordinateSpace
-            )
-            ticks
-        }
-        .frame(
-            width: WaterfallChartStyle.rowWidth(timelineWidth: scale.contentWidth),
-            height: rulerHeight,
-            alignment: .leading
-        )
-        // Opaque and card-coloured, because the rows scroll underneath it and it is the top of
-        // the same card they are in.
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color(uiColor: .separator))
-                .frame(height: 0.5)
-        }
-    }
-
-    /// One cell per tick, each as wide as the interval it covers.
-    ///
-    /// A cell rather than an absolute offset so the stack does the arithmetic once and the labels
-    /// cannot collide: the interval was chosen to be at least
-    /// ``WaterfallTimeScale/minimumTickSpacing`` wide, so a cell is always wide enough for its own
-    /// label.
-    private var ticks: some View {
-        LazyHStack(alignment: .top, spacing: 0) {
-            ForEach(0..<scale.tickCount, id: \.self) { index in
-                let seconds = scale.seconds(ofTick: index)
-                VStack(alignment: .leading, spacing: 2) {
-                    Rectangle()
-                        .fill(Color(uiColor: .separator))
-                        .frame(width: 0.5, height: 5)
-                    Text(Self.label(forSeconds: seconds))
-                        .font(.caption2)
-                        .monospacedDigit()
-                        .foregroundStyle(Color.secondary)
-                        .fixedSize()
-                }
-                .frame(width: CGFloat(scale.tickInterval * scale.pointsPerSecond),
-                       alignment: .leading)
+            GeometryReader { proxy in
+                let rect = barRect(in: proxy.size)
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(WaterfallChartStyle.colour(for: row.entry))
+                    .frame(width: rect.width, height: 10)
+                    .offset(x: rect.minX, y: (proxy.size.height - 10) / 2)
             }
+
+            Text(row.entry.isPending
+                 ? "—" // scyther:unlocalised em dash for an unfinished request
+                 : DurationText.seconds(row.entry.duration))
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .frame(width: WaterfallChartStyle.detailDurationWidth, alignment: .trailing)
         }
-        .frame(width: scale.contentWidth, height: rulerHeight, alignment: .topLeading)
-        .padding(.top, 6)
+        .frame(height: 44)
     }
 
-    /// What one tick is labelled.
+    /// The bar's position inside the window, clipped at both edges.
     ///
-    /// The same milliseconds-or-seconds form the bars use, so a ruler zoomed in far enough to tick
-    /// every twenty milliseconds says `20 ms` rather than `0.02 s`. The origin is written as
-    /// seconds whatever the interval, because `0 ms` reads as a measurement rather than as the
-    /// start of the axis.
+    /// Clipping rather than shrinking: a request that outlives the window is drawn flush to the
+    /// edge, so the clip reads as "continues" instead of as a shorter request than it was.
     ///
-    /// - Parameter seconds: The moment the tick marks.
-    /// - Returns: The label.
-    private static func label(forSeconds seconds: TimeInterval) -> String {
-        seconds <= 0 ? DurationText.seconds(0) : DurationText.milliseconds(seconds * 1_000)
+    /// - Parameter size: The plot's measured size, from the row's own `GeometryReader`.
+    /// - Returns: The rect to fill, always inside `size`.
+    private func barRect(in size: CGSize) -> CGRect {
+        guard window.duration > 0, size.width > 0 else { return .zero }
+        let scale = size.width / CGFloat(window.duration)
+        let rawStart = CGFloat(row.entry.start - window.start) * scale
+        let rawEnd = CGFloat(row.entry.start + row.entry.duration - window.start) * scale
+        let clippedStart = min(max(0, rawStart), size.width)
+        let clippedEnd = min(max(0, rawEnd), size.width)
+        return CGRect(x: clippedStart,
+                      y: 0,
+                      width: max(3, clippedEnd - clippedStart),
+                      height: 10)
     }
 }
 
-/// What each colour means, at the card's full content width.
+/// What each colour means, at the page's full content width.
 ///
 /// Still a `Chart`, and deliberately: this is the one piece of the page that has to be laid out
 /// exactly as the preview's legend is, and the surest way to guarantee that is to let Charts draw

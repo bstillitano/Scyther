@@ -18,12 +18,12 @@ import XCTest
 @MainActor
 final class WaterfallTimeScaleTests: XCTestCase {
 
-    /// The plot window on an iPhone-sized page, in points.
-    ///
-    /// `402` is the iPhone 17 Pro's width; the chrome the card, its padding and the frozen label
-    /// column take is subtracted by the same function the view uses, so the figure the tests
-    /// reason about is the one the device draws.
-    private let visibleWidth = WaterfallChartStyle.plotWidth(inPageWidth: 402)
+    /// A representative plot width, in points: an iPhone 17 Pro's 402pt width less a page's worth
+    /// of chrome. The page no longer computes a plot width this way — the detail list measures
+    /// its own row instead — but the scale's own arithmetic does not care where the figure came
+    /// from, only that it is a plausible one, so a literal representative of a real device serves
+    /// this file just as well as a call into the view's own geometry did.
+    private let visibleWidth: CGFloat = 190
 
     /// The owner's session length, in seconds.
     private let ownersSpan: TimeInterval = 300
