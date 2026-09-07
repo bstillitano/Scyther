@@ -343,40 +343,49 @@ private struct WaterfallDetailRow: View {
         .accessibilityLabel(accessibilityLabel)
     }
 
-    /// The row's name column: the path alone, or the host and the path together when
+    /// The row's name column: the path alone, or the host stacked above the path when
     /// ``showsHost`` is true.
     ///
-    /// Two separate `Text`s rather than one interpolated string, so each can truncate on its own
-    /// terms. A host truncates from the tail and stays recognisable, because hosts differ near
-    /// their front — `jsonplaceholder…` is still `jsonplaceholder`. A path truncated the same way
-    /// is not, because the part that tells one request from another is usually at the *end* of
-    /// the path, and one interpolated string sharing a single `.truncationMode(.middle)` let the
-    /// host's own length eat into the path before the path had drawn anything at all: three
-    /// different endpoints on the same host all rendered as the same truncated host string.
+    /// Stacked, not side by side. Side by side was tried first — the host capped at a fixed
+    /// width, the path taking what was left — and it read worse than not showing the host at
+    /// all: the label column is 132pt, a capped host left roughly 60pt for the path, and a path
+    /// like `GET /posts/1` needs more than that, so it was the *path* that ended up giving way
+    /// per row. Because how much it gave way depended on how long that row's own host happened to
+    /// be, different rows truncated the host to different widths, so the paths no longer started
+    /// at a common x and the column stopped being scannable down. Widening the label column
+    /// instead would have taken width from the plot, which the zoom limit is computed against.
+    ///
+    /// Stacking removes the contest rather than refereeing it: each line gets the column's full
+    /// width, so nothing about one row's host affects where another row's path starts. It is also
+    /// the same subtitle shape the rest of the menu already uses — Network Logs stacks method and
+    /// status over the URL — so a two-line row here is a pattern the reader has already seen
+    /// rather than a new one.
     @ViewBuilder
     private var label: some View {
         if showsHost {
-            HStack(spacing: 4) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(verbatim: row.entry.shortHost)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    // Tail, because hosts differ near their front — `jsonplaceholder…` is still
+                    // `jsonplaceholder`.
                     .truncationMode(.tail)
-                    .frame(maxWidth: WaterfallChartStyle.detailHostWidth, alignment: .leading)
                 Text(verbatim: row.entry.label)
+                    .font(.subheadline)
                     .lineLimit(1)
-                    .truncationMode(.tail)
-                    // Higher than the host's default priority, so when the two together outrun
-                    // the column the host is what gives way first — the path is the one thing on
-                    // the row that tells this request apart from its neighbours.
-                    .layoutPriority(1)
+                    // Middle, not tail: a path's distinguishing content is usually at its *end* —
+                    // a query value in `/comments?postId=1`, a resolution suffix in
+                    // `/assets/logo@3x.png` — and tail truncation is exactly what cuts that off.
+                    // Middle keeps a fragment of both ends.
+                    .truncationMode(.middle)
             }
-            .font(.subheadline)
             .frame(width: WaterfallChartStyle.detailLabelWidth, alignment: .leading)
         } else {
             Text(verbatim: row.entry.label)
                 .font(.subheadline)
                 .lineLimit(1)
-                .truncationMode(.tail)
+                .truncationMode(.middle)
                 .frame(width: WaterfallChartStyle.detailLabelWidth, alignment: .leading)
         }
     }

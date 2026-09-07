@@ -115,18 +115,6 @@ enum WaterfallChartStyle {
     /// is what the row's fixed-width label column left for the figure beside it.
     static let detailDurationWidth: CGFloat = 62
 
-    /// The most a detail row's host label is allowed to take of ``detailLabelWidth``, in points,
-    /// when the row draws one at all.
-    ///
-    /// A ceiling rather than a fixed width, so a short host does not claim room the path could
-    /// use. Sized so a host truncates to something still recognisable — hosts differ near their
-    /// front (`jsonplaceholder…` is still `jsonplaceholder`), which is the opposite of a path,
-    /// where the part that tells one request from another is usually the tail. Giving the host an
-    /// unbounded share of the row let it swallow the path outright: three different endpoints on
-    /// the same host all truncated down to the same repeated host string, and the row that exists
-    /// to tell them apart could not.
-    static let detailHostWidth: CGFloat = 64
-
     /// The padding between the page's edge and its content, in points.
     ///
     /// Matches UIKit's inset-grouped content margin, which is what the legend above the detail
