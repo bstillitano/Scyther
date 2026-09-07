@@ -210,7 +210,7 @@ final class AuditNodeAdapterTests: XCTestCase {
         let window = largeRealHierarchy()
         let start = Date()
         var readings = 0
-        var auditor = AccessibilityAuditor()
+        var auditor = AccessibilityAuditor.unbudgeted()
         auditor.now = {
             readings += 1
             return start.addingTimeInterval(readings > 200 ? AccessibilityAuditor.budget + 0.1 : 0)
@@ -229,7 +229,7 @@ final class AuditNodeAdapterTests: XCTestCase {
     func testALargeRealHierarchyInsideEveryBoundIsNotReportedAsTruncated() {
         let window = largeRealHierarchy()
         let start = Date()
-        var auditor = AccessibilityAuditor()
+        var auditor = AccessibilityAuditor.unbudgeted()
         auditor.now = { start }
 
         XCTAssertFalse(auditor.collect(root: window).didHitLimit,
@@ -301,7 +301,7 @@ final class AuditNodeAdapterTests: XCTestCase {
             root.addSubview(container)
         }
 
-        _ = AccessibilityAuditor().collect(root: window)
+        _ = AccessibilityAuditor.unbudgeted().collect(root: window)
 
         XCTAssertGreaterThan(ComputingView.computations, 0,
                              "a class that implements the pair is read through it, subviews or not")
@@ -359,7 +359,7 @@ final class AuditNodeAdapterTests: XCTestCase {
             isReady: { HostedSwiftUIWindow.publishedAccessibilityElementCount($0) >= 3 }
         )
 
-        let walked = AccessibilityAuditor().collect(root: window)
+        let walked = AccessibilityAuditor.unbudgeted().collect(root: window)
         let labels = Set(walked.nodes.compactMap(\.accessibilityLabelText))
 
         XCTAssertTrue(labels.isSuperset(of: ["Hello world", "Tap me", "Star"]),

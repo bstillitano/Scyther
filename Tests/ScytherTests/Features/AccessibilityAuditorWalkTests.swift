@@ -40,7 +40,7 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
         let element = Node(label: "leaf", isElement: true, children: [hidden])
         let root = Node(children: [element])
 
-        let walked = AccessibilityAuditor().collect(root: root)
+        let walked = AccessibilityAuditor.unbudgeted().collect(root: root)
 
         XCTAssertEqual(walked.nodes.compactMap(\.accessibilityLabelText), ["leaf"])
     }
@@ -50,7 +50,7 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
         let second = Node(label: "two", isElement: true)
         let root = Node(children: [Node(children: [first]), second])
 
-        let walked = AccessibilityAuditor().collect(root: root)
+        let walked = AccessibilityAuditor.unbudgeted().collect(root: root)
 
         XCTAssertEqual(walked.nodes.compactMap(\.accessibilityLabelText), ["one", "two"])
     }
@@ -60,7 +60,7 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
         let inside = Node(label: "menu row", isElement: true)
         let root = Node(children: [Node(isScytherOwned: true, children: [inside])])
 
-        XCTAssertTrue(AccessibilityAuditor().collect(root: root).nodes.isEmpty)
+        XCTAssertTrue(AccessibilityAuditor.unbudgeted().collect(root: root).nodes.isEmpty)
     }
 
     func testInvisibleAndEmptyNodesAreSkipped() {
@@ -68,7 +68,7 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
         let empty = Node(label: "zero", frame: .zero, isElement: true)
         let root = Node(children: [invisible, empty])
 
-        XCTAssertTrue(AccessibilityAuditor().collect(root: root).nodes.isEmpty)
+        XCTAssertTrue(AccessibilityAuditor.unbudgeted().collect(root: root).nodes.isEmpty)
     }
 
     /// A pathological hierarchy must not hang the app, and a truncated walk must say so.
@@ -78,7 +78,7 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
         }
         let root = Node(children: children)
 
-        let walked = AccessibilityAuditor().collect(root: root)
+        let walked = AccessibilityAuditor.unbudgeted().collect(root: root)
 
         XCTAssertEqual(walked.nodes.count, AccessibilityAuditor.maximumNodes)
         XCTAssertTrue(walked.didHitLimit)
@@ -90,7 +90,7 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
             deepest = Node(children: [deepest])
         }
 
-        let walked = AccessibilityAuditor().collect(root: deepest)
+        let walked = AccessibilityAuditor.unbudgeted().collect(root: deepest)
 
         XCTAssertTrue(walked.didHitLimit)
         XCTAssertTrue(walked.nodes.isEmpty, "the leaf sits below the cap")
@@ -114,7 +114,7 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
     }
 
     func testATreeAtExactlyTheDepthCapIsWalkedToItsLeaf() {
-        let walked = AccessibilityAuditor().collect(root: chain(deep: AccessibilityAuditor.maximumDepth))
+        let walked = AccessibilityAuditor.unbudgeted().collect(root: chain(deep: AccessibilityAuditor.maximumDepth))
 
         XCTAssertEqual(walked.nodes.compactMap(\.accessibilityLabelText), ["bottom"],
                        "a tree at exactly the cap is inside it, so its leaf must be collected")
@@ -122,7 +122,7 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
     }
 
     func testATreeOneLinkPastTheDepthCapIsStopped() {
-        let walked = AccessibilityAuditor().collect(root: chain(deep: AccessibilityAuditor.maximumDepth + 1))
+        let walked = AccessibilityAuditor.unbudgeted().collect(root: chain(deep: AccessibilityAuditor.maximumDepth + 1))
 
         XCTAssertTrue(walked.nodes.isEmpty)
         XCTAssertTrue(walked.didHitLimit)
@@ -143,7 +143,7 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
 
     func testAWalkThatFinishesDoesNotClaimALimitWasHit() {
         let root = Node(children: [Node(label: "one", isElement: true)])
-        XCTAssertFalse(AccessibilityAuditor().collect(root: root).didHitLimit)
+        XCTAssertFalse(AccessibilityAuditor.unbudgeted().collect(root: root).didHitLimit)
     }
 
     /// The node cap counts every container traversed, not just elements collected.
@@ -158,7 +158,7 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
         }
         let root = Node(children: children)
 
-        let walked = AccessibilityAuditor().collect(root: root)
+        let walked = AccessibilityAuditor.unbudgeted().collect(root: root)
 
         XCTAssertTrue(walked.didHitLimit, "the cap should be hit")
         XCTAssertLessThan(walked.nodes.count, containerCount, "not all elements should be collected; cap stops before traversing all containers")
@@ -171,7 +171,7 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
     func testAWalkThatRunsOutOfTimeStopsAndSaysSo() {
         var ticks = 0
         let start = Date()
-        var auditor = AccessibilityAuditor()
+        var auditor = AccessibilityAuditor.unbudgeted()
         auditor.now = {
             ticks += 1
             return start.addingTimeInterval(ticks > 5 ? AccessibilityAuditor.budget + 0.1 : 0)
@@ -188,7 +188,7 @@ final class AccessibilityAuditorWalkTests: XCTestCase {
     /// to be truncated.
     func testAWalkInsideTheBudgetIsNotReportedAsTruncated() {
         let start = Date()
-        var auditor = AccessibilityAuditor()
+        var auditor = AccessibilityAuditor.unbudgeted()
         auditor.now = { start }
 
         let children = (0..<500).map { _ in Node(label: "row", isElement: true) as AuditNode }

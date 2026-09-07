@@ -54,7 +54,7 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
     func testAButtonWithNoLabelIsAnError() {
         let root = Node(children: [Node(traits: .button, isElement: true)])
 
-        let findings = AccessibilityAuditor().audit(root: root, checks: [.missingLabel], sampler: nil).findings
+        let findings = AccessibilityAuditor.unbudgeted().audit(root: root, checks: [.missingLabel], sampler: nil).findings
 
         XCTAssertEqual(findings.count, 1)
         XCTAssertEqual(findings.first?.check, .missingLabel)
@@ -63,25 +63,25 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
 
     func testAWhitespaceLabelIsNoLabelAtAll() {
         let root = Node(children: [Node(label: "   ", traits: .image, isElement: true)])
-        XCTAssertEqual(AccessibilityAuditor().audit(root: root, checks: [.missingLabel], sampler: nil).findings.count, 1)
+        XCTAssertEqual(AccessibilityAuditor.unbudgeted().audit(root: root, checks: [.missingLabel], sampler: nil).findings.count, 1)
     }
 
     /// Static text carries its content as its label; there is nothing missing.
     func testStaticTextIsExemptFromTheLabelCheck() {
         let root = Node(children: [Node(traits: .staticText, isElement: true)])
-        XCTAssertTrue(AccessibilityAuditor().audit(root: root, checks: [.missingLabel], sampler: nil).findings.isEmpty)
+        XCTAssertTrue(AccessibilityAuditor.unbudgeted().audit(root: root, checks: [.missingLabel], sampler: nil).findings.isEmpty)
     }
 
     func testALabelledButtonPasses() {
         let root = Node(children: [Node(label: "Close", traits: .button, isElement: true)])
-        XCTAssertTrue(AccessibilityAuditor().audit(root: root, checks: [.missingLabel], sampler: nil).findings.isEmpty)
+        XCTAssertTrue(AccessibilityAuditor.unbudgeted().audit(root: root, checks: [.missingLabel], sampler: nil).findings.isEmpty)
     }
 
     func testATargetWellUnderTheMinimumIsAnError() {
         let small = Node(label: "Close", traits: .button,
                          frame: CGRect(x: 0, y: 0, width: 20, height: 20), isElement: true)
 
-        let findings = AccessibilityAuditor().audit(root: Node(children: [small]), checks: [.touchTarget], sampler: nil).findings
+        let findings = AccessibilityAuditor.unbudgeted().audit(root: Node(children: [small]), checks: [.touchTarget], sampler: nil).findings
 
         XCTAssertEqual(findings.first?.severity, .error)
         XCTAssertTrue(findings.first?.detail.contains("20") == true, "the finding reports what it measured")
@@ -91,7 +91,7 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
         let short = Node(label: "Close", traits: .button,
                          frame: CGRect(x: 0, y: 0, width: 44, height: 36), isElement: true)
 
-        let findings = AccessibilityAuditor().audit(root: Node(children: [short]), checks: [.touchTarget], sampler: nil).findings
+        let findings = AccessibilityAuditor.unbudgeted().audit(root: Node(children: [short]), checks: [.touchTarget], sampler: nil).findings
 
         XCTAssertEqual(findings.first?.severity, .warning)
     }
@@ -99,7 +99,7 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
     func testAFortyFourPointTargetPasses() {
         let fine = Node(label: "Close", traits: .button,
                         frame: CGRect(x: 0, y: 0, width: 44, height: 44), isElement: true)
-        XCTAssertTrue(AccessibilityAuditor().audit(root: Node(children: [fine]), checks: [.touchTarget], sampler: nil).findings.isEmpty)
+        XCTAssertTrue(AccessibilityAuditor.unbudgeted().audit(root: Node(children: [fine]), checks: [.touchTarget], sampler: nil).findings.isEmpty)
     }
 
     /// A target between the AA floor and Apple's 44 is short of guidance but not of any
@@ -108,7 +108,7 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
         let boundary = Node(label: "Close", traits: .button,
                             frame: CGRect(x: 0, y: 0, width: 32, height: 32), isElement: true)
 
-        let findings = AccessibilityAuditor().audit(root: Node(children: [boundary]), checks: [.touchTarget], sampler: nil).findings
+        let findings = AccessibilityAuditor.unbudgeted().audit(root: Node(children: [boundary]), checks: [.touchTarget], sampler: nil).findings
 
         XCTAssertEqual(findings.first?.severity, .warning)
     }
@@ -117,14 +117,14 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
     func testTextIsExemptFromTheTargetCheck() {
         let text = Node(label: "Hello", traits: .staticText,
                         frame: CGRect(x: 0, y: 0, width: 10, height: 10), isElement: true)
-        XCTAssertTrue(AccessibilityAuditor().audit(root: Node(children: [text]), checks: [.touchTarget], sampler: nil).findings.isEmpty)
+        XCTAssertTrue(AccessibilityAuditor.unbudgeted().audit(root: Node(children: [text]), checks: [.touchTarget], sampler: nil).findings.isEmpty)
     }
 
     /// A check that is switched off is not run, and the result says which ones did run.
     func testOnlyTheRequestedChecksRun() {
         let bad = Node(traits: .button, frame: CGRect(x: 0, y: 0, width: 10, height: 10), isElement: true)
 
-        let result = AccessibilityAuditor().audit(root: Node(children: [bad]), checks: [.touchTarget], sampler: nil)
+        let result = AccessibilityAuditor.unbudgeted().audit(root: Node(children: [bad]), checks: [.touchTarget], sampler: nil)
 
         XCTAssertEqual(result.findings.map(\.check), [.touchTarget])
         XCTAssertEqual(result.checksRun, [.touchTarget])
@@ -136,7 +136,7 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
         let node = Node(traits: .button, frame: CGRect(x: 12, y: 34, width: 10, height: 10),
                         isElement: true, typeName: "UIButton")
 
-        let findings = AccessibilityAuditor().audit(root: Node(children: [node]), checks: [.missingLabel], sampler: nil).findings
+        let findings = AccessibilityAuditor.unbudgeted().audit(root: Node(children: [node]), checks: [.missingLabel], sampler: nil).findings
 
         XCTAssertTrue(findings.first?.elementName.contains("UIButton") == true)
         XCTAssertTrue(findings.first?.elementName.contains("12") == true)
@@ -184,7 +184,7 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
         let text = Node(label: "Body copy", traits: .staticText, frame: frame, isElement: true)
         let sampler = RecordingSampler(pixels: midThresholdPixels)
 
-        _ = AccessibilityAuditor().audit(root: Node(children: [text]),
+        _ = AccessibilityAuditor.unbudgeted().audit(root: Node(children: [text]),
                                          checks: [.contrast],
                                          sampler: sampler)
 
@@ -199,7 +199,7 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
         let text = Node(label: "Hello", traits: .staticText,
                         frame: CGRect(x: 0, y: 0, width: 80, height: 16), isElement: true)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [text]), checks: [.contrast], sampler: sampler).findings
 
         XCTAssertEqual(findings.first?.check, .contrast)
@@ -221,7 +221,7 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
                          frame: CGRect(x: 0, y: 0, width: 200, height: 30), isElement: true,
                          fontPointSize: 17)
 
-        let auditor = AccessibilityAuditor()
+        let auditor = AccessibilityAuditor.unbudgeted()
         XCTAssertTrue(auditor.audit(root: Node(children: [large]), checks: [.contrast], sampler: sampler).findings.isEmpty)
         XCTAssertEqual(auditor.audit(root: Node(children: [small]), checks: [.contrast], sampler: sampler).findings.count, 1)
     }
@@ -232,7 +232,7 @@ final class AccessibilityAuditorChecksTests: XCTestCase {
         let image = Node(label: "Sunset", traits: .image,
                          frame: CGRect(x: 0, y: 0, width: 200, height: 200), isElement: true)
 
-        XCTAssertTrue(AccessibilityAuditor().audit(root: Node(children: [image]), checks: [.contrast], sampler: sampler).findings.isEmpty)
+        XCTAssertTrue(AccessibilityAuditor.unbudgeted().audit(root: Node(children: [image]), checks: [.contrast], sampler: sampler).findings.isEmpty)
     }
 }
 
@@ -256,7 +256,7 @@ extension AccessibilityAuditorChecksTests {
                             frame: CGRect(x: 0, y: 0, width: 200, height: 16), isElement: true)
         let sampler = StubSampler(pixels: midThresholdPixels)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [disabled]), checks: [.contrast], sampler: sampler).findings
 
         XCTAssertTrue(findings.isEmpty, "WCAG 1.4.3 does not apply to an inactive component")
@@ -270,7 +270,7 @@ extension AccessibilityAuditorChecksTests {
                         drawsText: false)
         let sampler = StubSampler(pixels: midThresholdPixels)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [icon]), checks: [.contrast], sampler: sampler).findings
 
         XCTAssertTrue(findings.isEmpty, "3.35:1 clears 1.4.11's 3:1 for non-text content")
@@ -283,7 +283,7 @@ extension AccessibilityAuditorChecksTests {
                         frame: CGRect(x: 0, y: 0, width: 200, height: 16), isElement: true)
         let sampler = StubSampler(pixels: midThresholdPixels)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [text]), checks: [.contrast], sampler: sampler).findings
 
         XCTAssertEqual(findings.count, 1)
@@ -295,7 +295,7 @@ extension AccessibilityAuditorChecksTests {
         let link = Node(label: "Terms of Service", traits: .link,
                         frame: CGRect(x: 0, y: 0, width: 120, height: 18), isElement: true)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [link]), checks: [.touchTarget], sampler: nil).findings
 
         XCTAssertEqual(findings.first?.severity, .warning)
@@ -307,7 +307,7 @@ extension AccessibilityAuditorChecksTests {
         let untraited = Node(traits: .none, frame: CGRect(x: 0, y: 0, width: 20, height: 20),
                              isElement: true)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [untraited]), checks: [.missingLabel], sampler: nil).findings
 
         XCTAssertEqual(findings.count, 1)
@@ -320,7 +320,7 @@ extension AccessibilityAuditorChecksTests {
         let tiny = Node(label: "Close", traits: .button,
                         frame: CGRect(x: 0, y: 0, width: 44, height: 20), isElement: true)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [tiny]), checks: [.touchTarget], sampler: nil).findings
 
         XCTAssertEqual(findings.first?.severity, .error)
@@ -332,7 +332,7 @@ extension AccessibilityAuditorChecksTests {
         let boundary = Node(label: "Close", traits: .button,
                             frame: CGRect(x: 0, y: 0, width: 24, height: 24), isElement: true)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [boundary]), checks: [.touchTarget], sampler: nil).findings
 
         XCTAssertEqual(findings.first?.severity, .warning)
@@ -346,7 +346,7 @@ extension AccessibilityAuditorChecksTests {
                            frame: CGRect(x: 0, y: 0, width: 200, height: 40), isElement: true)
         let sampler = StubSampler(pixels: midThresholdPixels)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [wrapped]), checks: [.contrast], sampler: sampler).findings
 
         XCTAssertEqual(findings.count, 1, "a tall label is a wrapped label, not a large one")
@@ -387,7 +387,7 @@ extension AccessibilityAuditorChecksTests {
         func findings(atRatio ratio: Double) -> Int {
             let text = Node(label: "Body copy", traits: .staticText,
                             frame: CGRect(x: 0, y: 0, width: 200, height: 16), isElement: true)
-            return AccessibilityAuditor().audit(root: Node(children: [text]),
+            return AccessibilityAuditor.unbudgeted().audit(root: Node(children: [text]),
                                                 checks: [.contrast],
                                                 sampler: StubSampler(pixels: inkOnWhite(greyMeasuring(ratio))))
                 .findings.count
@@ -406,7 +406,7 @@ extension AccessibilityAuditorChecksTests {
             let icon = Node(label: "Share", traits: .button,
                             frame: CGRect(x: 0, y: 0, width: 44, height: 44), isElement: true,
                             drawsText: false)
-            return AccessibilityAuditor().audit(root: Node(children: [icon]),
+            return AccessibilityAuditor.unbudgeted().audit(root: Node(children: [icon]),
                                                 checks: [.contrast],
                                                 sampler: StubSampler(pixels: inkOnWhite(greyMeasuring(ratio))))
                 .findings.count
@@ -459,7 +459,7 @@ extension AccessibilityAuditorChecksTests {
             (flat, Array(repeating: RGB(red: 1, green: 1, blue: 1), count: 100))
         ])
 
-        let result = AccessibilityAuditor().audit(root: root, checks: [.contrast], sampler: sampler)
+        let result = AccessibilityAuditor.unbudgeted().audit(root: root, checks: [.contrast], sampler: sampler)
 
         XCTAssertEqual(result.contrastCandidates, 2, "both elements were text the check was asked about")
         XCTAssertEqual(result.contrastMeasurements, 1, "only one of them had two colours in it")
@@ -471,7 +471,7 @@ extension AccessibilityAuditorChecksTests {
         let image = Node(label: "Sunset", traits: .image,
                          frame: CGRect(x: 0, y: 0, width: 200, height: 200), isElement: true)
 
-        let result = AccessibilityAuditor().audit(root: Node(children: [image]),
+        let result = AccessibilityAuditor.unbudgeted().audit(root: Node(children: [image]),
                                                   checks: [.contrast],
                                                   sampler: StubSampler(pixels: midThresholdPixels))
 
@@ -498,7 +498,7 @@ extension AccessibilityAuditorChecksTests {
 
         let small = Node(label: "12", traits: .staticText,
                          frame: CGRect(x: 0, y: 0, width: 8, height: 8), isElement: true)
-        let result = AccessibilityAuditor().audit(root: Node(children: [small]),
+        let result = AccessibilityAuditor.unbudgeted().audit(root: Node(children: [small]),
                                                   checks: [.contrast],
                                                   sampler: StubSampler(pixels: pixels))
 
@@ -523,7 +523,7 @@ extension AccessibilityAuditorChecksTests {
         })
         let sampler = FrameKeyedSampler(byFrame: [(readable, midThresholdPixels)])
 
-        let result = AccessibilityAuditor().audit(root: root, checks: [.contrast], sampler: sampler)
+        let result = AccessibilityAuditor.unbudgeted().audit(root: root, checks: [.contrast], sampler: sampler)
 
         XCTAssertEqual(result.contrastCandidates, 4)
         XCTAssertEqual(result.contrastMeasurements, 1)
@@ -544,7 +544,7 @@ extension AccessibilityAuditorChecksTests {
                                         frame: CGRect(x: 0, y: 0, width: 100, height: 16),
                                         isElement: true)])
 
-        let result = AccessibilityAuditor().audit(root: root,
+        let result = AccessibilityAuditor.unbudgeted().audit(root: root,
                                                   checks: [.contrast],
                                                   sampler: StubSampler(pixels: []))
 
@@ -572,7 +572,7 @@ extension AccessibilityAuditorChecksTests {
                            frame: CGRect(x: 0, y: 0, width: 200, height: 16), isElement: true,
                            fontPointSize: 14)
         let sampler = StubSampler(pixels: midThresholdPixels)
-        let auditor = AccessibilityAuditor()
+        let auditor = AccessibilityAuditor.unbudgeted()
 
         XCTAssertTrue(auditor.audit(root: Node(children: [bold]), checks: [.contrast], sampler: sampler).findings.isEmpty)
         XCTAssertEqual(auditor.audit(root: Node(children: [regular]), checks: [.contrast], sampler: sampler).findings.count, 1)
@@ -585,7 +585,7 @@ extension AccessibilityAuditorChecksTests {
                           frame: CGRect(x: 0, y: 0, width: 200, height: 44), isElement: true,
                           drawsText: true)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [titled]), checks: [.contrast], sampler: StubSampler(pixels: midThresholdPixels)).findings
 
         XCTAssertEqual(findings.count, 1, "a padded button's title is still body text")
@@ -597,7 +597,7 @@ extension AccessibilityAuditorChecksTests {
         let unknown = Node(label: "Something", traits: .staticText,
                            frame: CGRect(x: 0, y: 0, width: 200, height: 60), isElement: true)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [unknown]), checks: [.contrast], sampler: StubSampler(pixels: midThresholdPixels)).findings
 
         XCTAssertEqual(findings.count, 1)
@@ -609,7 +609,7 @@ extension AccessibilityAuditorChecksTests {
         let slider = Node(traits: .adjustable, frame: CGRect(x: 0, y: 0, width: 200, height: 44),
                           isElement: true, value: "50%")
 
-        XCTAssertTrue(AccessibilityAuditor()
+        XCTAssertTrue(AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [slider]), checks: [.missingLabel], sampler: nil).findings.isEmpty)
     }
 
@@ -640,7 +640,7 @@ extension AccessibilityAuditorChecksTests {
         let text = Node(label: "Hello", traits: .staticText,
                         frame: CGRect(x: 0, y: 0, width: 80, height: 16), isElement: true)
 
-        let result = AccessibilityAuditor()
+        let result = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [text]), checks: [.contrast], sampler: StubSampler(pixels: []))
 
         XCTAssertTrue(result.findings.isEmpty)
@@ -653,7 +653,7 @@ extension AccessibilityAuditorChecksTests {
         let readable = Node(label: "Hello", traits: .staticText,
                             frame: CGRect(x: 0, y: 0, width: 80, height: 16), isElement: true)
 
-        let result = AccessibilityAuditor()
+        let result = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [readable]), checks: [.contrast], sampler: StubSampler(pixels: midThresholdPixels))
 
         XCTAssertTrue(result.checksUnmeasurable.isEmpty)
@@ -665,7 +665,7 @@ extension AccessibilityAuditorChecksTests {
         let image = Node(label: "Sunset", traits: .image,
                          frame: CGRect(x: 0, y: 0, width: 200, height: 200), isElement: true)
 
-        let result = AccessibilityAuditor()
+        let result = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [image]), checks: [.contrast], sampler: StubSampler(pixels: []))
 
         XCTAssertTrue(result.checksUnmeasurable.isEmpty)
@@ -694,7 +694,7 @@ extension AccessibilityAuditorChecksTests {
     func testTheBudgetStopsThePerElementLoopAndSaysSo() {
         let start = Date()
         var elapsed: TimeInterval = 0
-        var auditor = AccessibilityAuditor()
+        var auditor = AccessibilityAuditor.unbudgeted()
         auditor.now = { start.addingTimeInterval(elapsed) }
         let sampler = SlowSampler(pixels: midThresholdPixels) {
             elapsed = AccessibilityAuditor.budget + 0.1
@@ -714,7 +714,7 @@ extension AccessibilityAuditorChecksTests {
     /// be truncated.
     func testAPassInsideTheBudgetIsNotReportedAsTruncated() {
         let start = Date()
-        var auditor = AccessibilityAuditor()
+        var auditor = AccessibilityAuditor.unbudgeted()
         auditor.now = { start }
         let children = (0..<50).map { index in
             Node(label: "Row \(index)", traits: .staticText,
@@ -753,7 +753,7 @@ extension AccessibilityAuditorChecksTests {
         let row = Node(label: "Jane Appleseed, unread", traits: .none,
                        frame: CGRect(x: 0, y: 0, width: 375, height: 60), isElement: true)
 
-        let result = AccessibilityAuditor()
+        let result = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [row]), checks: [.contrast],
                    sampler: StubSampler(pixels: midThresholdPixels))
 
@@ -767,7 +767,7 @@ extension AccessibilityAuditorChecksTests {
                          frame: CGRect(x: 0, y: 0, width: 300, height: 34), isElement: true,
                          drawsText: true)
 
-        let result = AccessibilityAuditor()
+        let result = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [field]), checks: [.contrast],
                    sampler: StubSampler(pixels: midThresholdPixels))
 
@@ -782,7 +782,7 @@ extension AccessibilityAuditorChecksTests {
         let swiftUIButton = Node(label: "Continue", traits: .button,
                                  frame: CGRect(x: 0, y: 0, width: 200, height: 44), isElement: true)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [swiftUIButton]), checks: [.contrast],
                    sampler: StubSampler(pixels: midThresholdPixels)).findings
 
@@ -795,7 +795,7 @@ extension AccessibilityAuditorChecksTests {
         let icon = Node(label: "Share", traits: [.button, .image],
                         frame: CGRect(x: 0, y: 0, width: 44, height: 44), isElement: true)
 
-        XCTAssertTrue(AccessibilityAuditor()
+        XCTAssertTrue(AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [icon]), checks: [.contrast],
                    sampler: StubSampler(pixels: midThresholdPixels)).findings.isEmpty)
     }
@@ -807,7 +807,7 @@ extension AccessibilityAuditorChecksTests {
         let heading = Node(label: "Welcome", traits: .staticText,
                            frame: CGRect(x: 0, y: 0, width: 300, height: 40), isElement: true)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [heading]), checks: [.contrast],
                    sampler: StubSampler(pixels: midThresholdPixels)).findings
 
@@ -822,7 +822,7 @@ extension AccessibilityAuditorChecksTests {
                         frame: CGRect(x: 0, y: 0, width: 300, height: 20), isElement: true,
                         fontPointSize: 13)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [body]), checks: [.contrast],
                    sampler: StubSampler(pixels: midThresholdPixels)).findings
 
@@ -837,7 +837,7 @@ extension AccessibilityAuditorChecksTests {
                         frame: CGRect(x: 0, y: 0, width: 20, height: 20), isElement: true)
         let short = Node(label: "Close", traits: .button,
                          frame: CGRect(x: 0, y: 0, width: 36, height: 36), isElement: true)
-        let auditor = AccessibilityAuditor()
+        let auditor = AccessibilityAuditor.unbudgeted()
 
         let error = auditor.audit(root: Node(children: [tiny]), checks: [.touchTarget], sampler: nil).findings.first
         let warning = auditor.audit(root: Node(children: [short]), checks: [.touchTarget], sampler: nil).findings.first
@@ -859,7 +859,7 @@ extension AccessibilityAuditorChecksTests {
         let caption = Node(label: "Scrolled under the bar", traits: .staticText,
                            frame: CGRect(x: 32, y: 30, width: 333, height: 30), isElement: true)
 
-        let result = AccessibilityAuditor()
+        let result = AccessibilityAuditor.unbudgeted()
             .audit(root: Node(children: [caption]), checks: [.contrast], sampler: StubSampler(pixels: dither))
 
         XCTAssertTrue(result.findings.isEmpty, "no confident number from an untrustworthy crop")
@@ -932,7 +932,7 @@ extension AccessibilityAuditorChecksTests {
                                     inRegion: midThresholdPixels,
                                     elsewhere: clean)
 
-        let findings = AccessibilityAuditor()
+        let findings = AccessibilityAuditor.unbudgeted()
             .audit(root: window, checks: [.contrast], sampler: sampler).findings
 
         XCTAssertEqual(findings.count, 1, "one element still produces at most one finding")
@@ -1010,7 +1010,7 @@ extension AccessibilityAuditorChecksTests {
         let node = CountingNode()
         let root = Node(children: [node])
 
-        _ = AccessibilityAuditor().audit(root: root,
+        _ = AccessibilityAuditor.unbudgeted().audit(root: root,
                                          checks: [.missingLabel, .touchTarget, .contrast],
                                          sampler: StubSampler(pixels: midThresholdPixels))
 
@@ -1046,7 +1046,7 @@ extension AccessibilityAuditorChecksTests {
         XCTAssertTrue(AccessibilityAuditor.drawnTextViews(in: host).isEmpty,
                       "the fixture is only meaningful with no drawn text view to find")
 
-        let result = AccessibilityAuditor().audit(root: window,
+        let result = AccessibilityAuditor.unbudgeted().audit(root: window,
                                                   checks: [.contrast],
                                                   sampler: StubSampler(pixels: midThresholdPixels))
 
@@ -1071,7 +1071,7 @@ extension AccessibilityAuditorChecksTests {
             isReady: { HostedSwiftUIWindow.publishedAccessibilityElementCount($0) >= 2 }
         )
 
-        let auditor = AccessibilityAuditor()
+        let auditor = AccessibilityAuditor.unbudgeted()
         let walked = auditor.collect(root: window)
         XCTAssertFalse(walked.nodes.isEmpty, "SwiftUI put no accessibility elements on screen at all")
         XCTAssertTrue(walked.nodes.allSatisfy { !($0 is UIView) },
