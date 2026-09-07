@@ -31,7 +31,7 @@ private extension AccessibilitySeverity {
 /// `AccessibilityAuditOverlayView` is a ``TopLevelView`` — the same base ``GridOverlayView`` and
 /// ``FPSCounterView`` use — so ``InterfaceToolkit`` can keep it above the app's own content
 /// through ``TopLevelViewsWrapper`` without this view knowing anything about how that is
-/// arranged. It has exactly one interactive element, the pill at the bottom centre reporting how
+/// arranged. It has exactly one interactive element, the pill down the trailing edge reporting how
 /// many findings there are; everything else — the boxes ``draw(_:)`` strokes around each finding
 /// — is drawn, not a view, so there is nothing there for a touch to land on in the first place.
 ///
@@ -57,8 +57,18 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     /// Corner radius of the stroke drawn around each finding's frame.
     private static let strokeCornerRadius: CGFloat = 4
 
-    /// Gap between the pill and the bottom of the safe area.
-    private static let pillBottomPadding: CGFloat = 24
+    /// Gap between the pill and the trailing edge of the safe area.
+    ///
+    /// The pill used to sit at the bottom centre, which is the one band of the screen an app is
+    /// most likely to have already claimed: a `UITabBar` is 49pt tall plus the home indicator's
+    /// safe area and spans the full width, and a bottom primary action button occupies the same
+    /// place on a screen that has no tab bar. This is the only interactive region Scyther has ever
+    /// installed over the running app — ``GridOverlayView`` and ``FPSCounterView`` both switch
+    /// interaction off entirely — so a pill there does not merely overlap the app's controls, it
+    /// takes their taps. The trailing edge at the vertical midpoint is the emptiest band left: the
+    /// bars run along the top and bottom, and the only thing living down the side of a screen is a
+    /// scroll indicator, which is not interactive.
+    private static let pillTrailingPadding: CGFloat = 16
 
     /// How long one on/off cycle of ``flash(_:)``'s animation takes. Two cycles at this duration
     /// makes the full flash 0.6 seconds, matching the rest of Scyther's brief, noticeable
@@ -67,7 +77,7 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
 
     // MARK: - UI Elements
 
-    /// The tappable pill at the bottom centre of the screen reporting how many findings there
+    /// The tappable pill down the trailing edge of the screen reporting how many findings there
     /// are. A real `UIButton` rather than a drawn shape, because a drawn shape cannot receive
     /// touches — see the type-level discussion of how this view avoids swallowing the app's own
     /// touches everywhere *except* here.
@@ -88,8 +98,38 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
         didSet {
             setNeedsDisplay()
             updateReportButton()
+            reconcileFlash()
         }
     }
+
+    /// The flash animation currently on screen, if any.
+    ///
+    /// Held so a second flash can replace the first rather than stack on top of it, and so a pass
+    /// that replaces ``findings`` can move it to where the element is now — or take it away when
+    /// the element is gone. Nothing used to own it, so a flash outlived the finding it described
+    /// and went on stroking a rectangle nothing occupied for the rest of its 0.6 seconds.
+    private var flashLayer: CAShapeLayer?
+
+    /// Which finding ``flashLayer`` is describing, so a new pass can be asked whether that element
+    /// is still there and still in the same place.
+    private var flashedFinding: AccessibilityFinding?
+
+    /// How many flashes have been started, so the delayed removal of one flash cannot take a
+    /// later one away with it.
+    ///
+    /// A counter rather than a captured reference to the layer: the removal is scheduled on the
+    /// main queue with `asyncAfter`, which cannot be cancelled, so the block has to be able to
+    /// recognise that it is no longer the current flash.
+    private var flashGeneration = 0
+
+    /// A flash asked for while Scyther's own UI was in front of the app, kept until it is not.
+    ///
+    /// Every production flash arrives in exactly this state — the only way to ask for one is to tap
+    /// a row in the report, and the report is always covering the app — so refusing outright would
+    /// make a deliberate tap do nothing, ever. Holding it until Scyther's screen goes away is what
+    /// makes the tap mean something: the box the developer asked about flashes on the app itself,
+    /// which is the only place it describes anything.
+    private var deferredFlash: AccessibilityFinding?
 
     /// Called when the pill is tapped.
     ///
@@ -174,13 +214,38 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     /// way the older overlays in this file's neighbours do; both arrive at the same rectangle in
     /// practice, but going through the actual superview is one fewer assumption about how this
     /// view happens to be hosted.
+    ///
+    /// Asks for a redraw as well, exactly as ``GridOverlayView/updateFrame()`` does. A `UIView`'s
+    /// default `contentMode` is `.scaleToFill`, so changing the bounds without asking for a fresh
+    /// `draw(_:)` stretches the last-rendered content into the new shape: every box drawn in
+    /// portrait was smeared into the landscape aspect ratio, offset from the element it described,
+    /// for at least the length of the re-audit's debounce — and for good if that work item was
+    /// cancelled before it fired.
     internal override func updateFrame() {
         frame = superview?.bounds ?? UIScreen.main.bounds
         layoutReportButton()
+        setNeedsDisplay()
         onFrameChanged?()
     }
 
-    /// Centres ``reportButton`` at the bottom of the screen, clear of the home indicator.
+    /// The part of this view the app under audit actually occupies.
+    ///
+    /// This view is sized to its superview, ``TopLevelViewsWrapper``, which sizes itself to
+    /// `UIScreen.main.bounds` — the whole display. In iPad Split View or Slide Over the app's
+    /// window is a fraction of that, so laying the pill out against `bounds` puts it beside the app
+    /// or off it entirely. Everything else this view draws is a finding's own window-coordinate
+    /// frame and lands correctly regardless; the pill is the one thing positioned relative to an
+    /// edge, and the edge that matters is the window's.
+    private var appArea: CGRect {
+        guard let window else { return bounds }
+        let area = convert(window.bounds, from: window).intersection(bounds)
+        return area.isNull || area.isEmpty ? bounds : area
+    }
+
+    /// Puts ``reportButton`` against the trailing edge, halfway down the app's own window.
+    ///
+    /// See ``pillTrailingPadding`` for why not the bottom centre, where it used to be and where it
+    /// overlapped the example app's tab bar.
     ///
     /// Deliberately not `sizeToFit()`, which is what used to draw the pill's title across two
     /// lines. `sizeToFit()` asks the button to fit its *current* bounds, and those bounds are
@@ -196,12 +261,13 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
         reportButton.setNeedsLayout()
         reportButton.layoutIfNeeded()
 
-        let available = CGSize(width: max(bounds.width, 1), height: .greatestFiniteMagnitude)
+        let area = appArea
+        let available = CGSize(width: max(area.width, 1), height: .greatestFiniteMagnitude)
         let size = reportButton.sizeThatFits(available)
-        let bottomInset = window?.safeAreaInsets.bottom ?? 0
+        let trailingInset = window?.safeAreaInsets.right ?? 0
         reportButton.frame = CGRect(
-            x: (bounds.width - size.width) / 2,
-            y: bounds.height - bottomInset - Self.pillBottomPadding - size.height,
+            x: area.maxX - trailingInset - Self.pillTrailingPadding - size.width,
+            y: area.midY - (size.height / 2),
             width: size.width,
             height: size.height
         )
@@ -245,6 +311,16 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     internal func refreshForCoverageChange() {
         updateReportButton()
         setNeedsDisplay()
+
+        guard !isCoveredByScyther() else {
+            // A flash is a box, and a box drawn while Scyther is in front of the app is drawn on
+            // Scyther, describing something the developer cannot see. Same rule as `draw(_:)`.
+            removeFlash()
+            return
+        }
+        guard let deferred = deferredFlash else { return }
+        deferredFlash = nil
+        play(deferred)
     }
 
     // MARK: - Hit Testing
@@ -302,17 +378,64 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
     /// object `Core Animation` knows how to animate on its own, so the flash costs nothing beyond
     /// adding and, once it finishes, removing one layer.
     ///
+    /// Two things stop a flash happening as asked, and both used to be missing.
+    ///
+    /// It honours the same coverage rule ``draw(_:)`` does. `draw(_:)` refuses to stroke a box
+    /// while Scyther is in front of the app, because such a box lands on Scyther's own screen and
+    /// points at a rectangle nothing it describes occupies any more; a flash is the same box drawn
+    /// through `Core Animation` instead of `Core Graphics`, and used to slip past that rule
+    /// entirely — over the very report the developer tapped in. It is held until Scyther's screen
+    /// goes away rather than dropped; see ``deferredFlash``.
+    ///
+    /// And it flashes where the element is *now*, not where the report says it was. The report is
+    /// frozen by design, so the finding handed in here can be several passes old and its frame can
+    /// describe a screen that has since scrolled, rotated or been navigated away from. A finding
+    /// with no counterpart in the current ``findings`` is not flashed at all: a box at a coordinate
+    /// nothing occupies is worse than no box.
+    ///
     /// - Parameter finding: The finding whose box should flash. Its own severity colour is used,
     ///   matching the box ``draw(_:)`` already drew for it.
     internal func flash(_ finding: AccessibilityFinding) {
-        let path = UIBezierPath(roundedRect: finding.frame, cornerRadius: Self.strokeCornerRadius)
-        let flashLayer = CAShapeLayer()
-        flashLayer.path = path.cgPath
-        flashLayer.fillColor = UIColor.clear.cgColor
-        flashLayer.strokeColor = finding.severity.overlayStrokeColor.cgColor
-        flashLayer.lineWidth = Self.strokeWidth
-        flashLayer.opacity = 1
-        layer.addSublayer(flashLayer)
+        guard !isCoveredByScyther() else {
+            deferredFlash = finding
+            return
+        }
+        play(finding)
+    }
+
+    /// The finding in the current ``findings`` describing the same element as `finding`, if it is
+    /// still there.
+    ///
+    /// Identity first, for a finding that came from the very pass the overlay is drawing. Failing
+    /// that, the check and the element's name: every ``AccessibilityFinding`` is created with a
+    /// fresh `UUID`, so a finding read from the report's own pass can never be identical to the
+    /// live pass's finding about the same button, and matching on identity alone would mean no
+    /// report row ever flashed anything.
+    ///
+    /// - Parameter finding: The finding to look for, usually a frozen one from the report.
+    /// - Returns: The current finding about that element, or `nil` when it is gone.
+    private func currentFinding(matching finding: AccessibilityFinding) -> AccessibilityFinding? {
+        findings.first { $0.id == finding.id }
+            ?? findings.first { $0.check == finding.check && $0.elementName == finding.elementName }
+    }
+
+    /// Flashes `finding`'s box to full opacity and back, twice, over 0.6 seconds — if the element
+    /// it describes is still on screen.
+    ///
+    /// - Parameter finding: The finding to flash.
+    private func play(_ finding: AccessibilityFinding) {
+        guard let current = currentFinding(matching: finding) else { return }
+
+        removeFlash()
+        let shape = CAShapeLayer()
+        shape.path = UIBezierPath(roundedRect: current.frame, cornerRadius: Self.strokeCornerRadius).cgPath
+        shape.fillColor = UIColor.clear.cgColor
+        shape.strokeColor = current.severity.overlayStrokeColor.cgColor
+        shape.lineWidth = Self.strokeWidth
+        shape.opacity = 1
+        layer.addSublayer(shape)
+        flashLayer = shape
+        flashedFinding = current
 
         let animation = CABasicAnimation(keyPath: "opacity")
         animation.fromValue = 0.25
@@ -320,12 +443,45 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
         animation.duration = Self.flashCycleDuration
         animation.autoreverses = true
         animation.repeatCount = 2
-        flashLayer.add(animation, forKey: "flash")
+        shape.add(animation, forKey: "flash")
 
+        flashGeneration += 1
+        let generation = flashGeneration
         let totalDuration = Self.flashCycleDuration * Double(animation.repeatCount) * 2
-        DispatchQueue.main.asyncAfter(deadline: .now() + totalDuration) { [weak flashLayer] in
-            flashLayer?.removeFromSuperlayer()
+        DispatchQueue.main.asyncAfter(deadline: .now() + totalDuration) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.flashGeneration == generation else { return }
+                self.removeFlash()
+            }
         }
+    }
+
+    /// Moves an in-flight flash to where its element is now, or takes it away when the element is
+    /// gone.
+    ///
+    /// Called whenever ``findings`` is replaced. Leaving the flash where it was would leave a
+    /// stroked rectangle describing the previous pass's geometry; removing it outright would cut
+    /// nearly every flash short, because the pass that follows Scyther's screen going away lands
+    /// within the flash's own 0.6 seconds.
+    private func reconcileFlash() {
+        if let deferred = deferredFlash, currentFinding(matching: deferred) == nil {
+            deferredFlash = nil
+        }
+        guard let flashed = flashedFinding else { return }
+        guard let current = currentFinding(matching: flashed) else {
+            removeFlash()
+            return
+        }
+        flashedFinding = current
+        flashLayer?.path = UIBezierPath(roundedRect: current.frame,
+                                        cornerRadius: Self.strokeCornerRadius).cgPath
+    }
+
+    /// Takes any in-flight flash off the screen.
+    private func removeFlash() {
+        flashLayer?.removeFromSuperlayer()
+        flashLayer = nil
+        flashedFinding = nil
     }
 }
 #endif

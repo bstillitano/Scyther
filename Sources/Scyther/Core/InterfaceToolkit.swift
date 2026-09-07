@@ -38,6 +38,14 @@ public final class InterfaceToolkit: NSObject, Sendable {
     /// ``scheduleAccessibilityReaudit()`` exists to avoid.
     nonisolated internal static let AccessibilityAuditDebounceInterval: TimeInterval = 0.5
 
+    /// How often, while live mode is on, Scyther asks whether the app has navigated somewhere else.
+    ///
+    /// See ``pollAccessibilityScreen()`` for why the question is asked on a clock rather than
+    /// answered by a notification. Half a second, matching
+    /// ``AccessibilityAuditDebounceInterval``, so the worst case between arriving on a screen and
+    /// its boxes being right is one poll plus one debounce.
+    nonisolated internal static let AccessibilityScreenPollInterval: TimeInterval = 0.5
+
     /// Private Init to Stop re-initialisation and allow singleton creation.
     override private init() { }
 
@@ -55,6 +63,53 @@ public final class InterfaceToolkit: NSObject, Sendable {
     /// a second trigger arriving before it fires can cancel and replace it rather than stacking
     /// up a second audit behind the first.
     private var pendingAccessibilityAudit: DispatchWorkItem?
+
+    /// Whether a debounced re-audit is waiting to run. Readable so a test can assert that a
+    /// trigger reached ``scheduleAccessibilityReaudit()`` without waiting half a second for the
+    /// audit itself, which in a test host would do nothing anyway.
+    internal var hasPendingAccessibilityAudit: Bool { pendingAccessibilityAudit != nil }
+
+    /// Watches for the app navigating somewhere else while live mode is on. See
+    /// ``pollAccessibilityScreen()``.
+    private var accessibilityScreenTimer: Timer?
+
+    /// The screen the last poll saw, so a change is noticed once rather than every half second
+    /// until the next audit lands.
+    private var lastAccessibilityScreenIdentity: [ObjectIdentifier] = []
+
+    /// The most recent pass taken while nothing of Scyther's was covering the app.
+    ///
+    /// This is the only honest pass there is: it is the one whose contrast was measured against
+    /// the app's own pixels and whose geometry came through no sheet of Scyther's. The report
+    /// screen opens onto it — see ``accessibilityResultForReport()`` — so the count on the pill and
+    /// the report that pill opens describe the same pass rather than two different ones.
+    private var lastUncoveredAccessibilityResult: AccessibilityAuditor.Result?
+
+    /// Runs one pass of the audit. Replaced by a test, which has no window worth walking.
+    internal var runAccessibilityPass: @MainActor () -> AccessibilityAuditor.Result = {
+        AccessibilityAudit.instance.auditKeyWindow()
+    }
+
+    /// Reads which screen the app is showing. Replaced by a test.
+    ///
+    /// A seam in the same style as `ScytherPresentation.isCoveringScreenProbe` and
+    /// `AccessibilityAuditor.now`: a hostless `xctest` process has no key window, so the real
+    /// reader answers with an empty array forever and a test that could not replace it would be
+    /// asserting that nothing ever changes — which is precisely the bug.
+    internal var accessibilityScreenIdentityProbe: @MainActor () -> [ObjectIdentifier] = {
+        InterfaceToolkit.accessibilityScreenIdentity(from: InterfaceToolkit.rootViewController)
+    }
+
+    /// Answers whether Scyther's own UI is in front of the app, at the moment it is asked.
+    ///
+    /// Asked *when a pass runs* rather than tracked from ``ScytherHostingController``'s appearance
+    /// callbacks, which is the whole point of it being a closure that is called rather than a flag
+    /// that is set. `viewDidAppear` fires after the presentation animation finishes, so a pass
+    /// scheduled as Scyther's report was rising would look up a coverage flag that still said "the
+    /// app" and walk a window that by then contained Scyther's own report — which is how the
+    /// report came to list Scyther's own Close and Re-run buttons as 36 × 36pt touch-target errors.
+    /// Injected so a test can drive both answers without a window and a live presentation.
+    internal var isScytherCoveringScreen: @MainActor () -> Bool = { ScytherPresentation.isCoveringScreen }
 
     // MARK: - Data (nonisolated for UserDefaults access - thread-safe)
     internal nonisolated var visualiseTouches: Bool {
@@ -222,10 +277,17 @@ public final class InterfaceToolkit: NSObject, Sendable {
     ///
     /// This is the only signal there is. A modal presentation changes nothing about the overlay's
     /// own frame, so ``AccessibilityAuditOverlayView/updateFrame()`` never runs and the boxes drawn
-    /// for the app underneath would otherwise stay stroked across Scyther's own report. Deliberately
-    /// *not* routed through ``scheduleAccessibilityReaudit()``: covering the app changes what should
-    /// be drawn, not what the findings are, and half a second of boxes over Scyther's report while a
-    /// debounce runs down is exactly the thing being fixed.
+    /// for the app underneath would otherwise stay stroked across Scyther's own report. The redraw
+    /// is immediate and deliberately *not* debounced: covering the app changes what should be drawn
+    /// right now, and half a second of boxes over Scyther's report while a debounce runs down is
+    /// exactly the thing being fixed.
+    ///
+    /// A re-audit *is* scheduled once Scyther's screen has gone, which is the opposite question
+    /// with the opposite answer. No pass runs at all while Scyther covers the app — see
+    /// ``runAccessibilityAudit()`` — so the findings waiting underneath are as old as the moment
+    /// Scyther appeared, and they are also the only ones that ever had contrast measured against
+    /// the app's own pixels. Coming back to them without re-auditing would leave the developer
+    /// looking at boxes for whatever was on screen before they opened the menu.
     ///
     /// - Parameter notification: The posted notification. Unused: it carries no payload, because
     ///   whether Scyther covers the app is a fact about the whole presented chain rather than about
@@ -233,6 +295,8 @@ public final class InterfaceToolkit: NSObject, Sendable {
     @objc
     internal func scytherCoverageDidChangeNotification(notification: NSNotification) {
         accessibilityAuditView.refreshForCoverageChange()
+        guard !isScytherCoveringScreen() else { return }
+        scheduleAccessibilityReaudit()
     }
 }
 
@@ -304,12 +368,116 @@ extension InterfaceToolkit {
         let enabled = AccessibilityAudit.instance.liveEnabled
         accessibilityAuditView.isHidden = !enabled
         if enabled {
+            startAccessibilityScreenPolling()
             scheduleAccessibilityReaudit()
         } else {
+            stopAccessibilityScreenPolling()
             pendingAccessibilityAudit?.cancel()
             pendingAccessibilityAudit = nil
+            lastUncoveredAccessibilityResult = nil
             accessibilityAuditView.findings = []
         }
+    }
+
+    /// Starts asking, twice a second, whether the app has navigated somewhere else.
+    ///
+    /// Only while live mode is on: with the overlay off there is nothing to keep in step with, and
+    /// a debugging toolkit has no business waking the run loop for a screen nobody is drawing.
+    /// Scheduled in `.common` mode so a push that happens during a scroll is still noticed while
+    /// the scroll is tracking.
+    @MainActor private func startAccessibilityScreenPolling() {
+        guard accessibilityScreenTimer == nil else { return }
+        let timer = Timer(timeInterval: Self.AccessibilityScreenPollInterval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.pollAccessibilityScreen()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        accessibilityScreenTimer = timer
+    }
+
+    /// Stops the poll and forgets which screen it last saw, so switching live mode back on
+    /// re-audits rather than deciding nothing has changed since last time.
+    @MainActor private func stopAccessibilityScreenPolling() {
+        accessibilityScreenTimer?.invalidate()
+        accessibilityScreenTimer = nil
+        lastAccessibilityScreenIdentity = []
+    }
+
+    /// Schedules a re-audit when, and only when, the app is showing a different screen than it was
+    /// at the last poll.
+    ///
+    /// ## Why a poll
+    ///
+    /// The live overlay used to follow exactly three things: a device rotation, a new `UIWindow`
+    /// becoming visible, and live mode being switched on. A navigation push, a tab change, a
+    /// swipe-back, the app presenting one of its own sheets — none of them reach any of those, so
+    /// the boxes stayed pinned to a screen that had gone and the pill went on offering a report
+    /// about it. UIKit posts no notification for "the app navigated": there is no public signal for
+    /// a push, and the ones that exist (`UIWindow.didBecomeVisibleNotification`, the orientation
+    /// notification) are the ones already wired up. The alternatives were swizzling
+    /// `UIViewController.viewDidAppear` — a process-wide hook installed on the app under debug, for
+    /// this one feature — or watching every frame, which is the cost this whole debounce exists to
+    /// avoid.
+    ///
+    /// So the question is asked on a clock, and asked cheaply: ``accessibilityScreenIdentity(from:)``
+    /// reads a handful of object pointers and allocates one small array, and only a *change* in the
+    /// answer schedules anything. The audit itself still goes through the same debounce as
+    /// everything else, so a push straight into a tab change is one pass, not two.
+    ///
+    /// ## What it still misses
+    ///
+    /// Anything that changes a screen without changing which view controllers are showing: a scroll,
+    /// a table reload, a cell expanding, a form being filled in, a sheet whose contents swap
+    /// underneath it. Those keep the boxes from the last pass until something else triggers one.
+    @MainActor internal func pollAccessibilityScreen() {
+        let identity = accessibilityScreenIdentityProbe()
+        guard identity != lastAccessibilityScreenIdentity else { return }
+        lastAccessibilityScreenIdentity = identity
+        scheduleAccessibilityReaudit()
+    }
+
+    /// Which view controllers are showing, innermost last.
+    ///
+    /// Descends the way UIKit itself decides what is on screen: whatever is presented over a
+    /// controller wins, then a navigation controller's top, a tab bar controller's selection, and
+    /// otherwise the last child added. A push, a pop, a tab change, a modal appearing or being
+    /// dismissed and a root swapped out from under everything all change this array; nothing else
+    /// does, which is exactly the point.
+    ///
+    /// Identities rather than the controllers themselves, so nothing here keeps a dismissed screen
+    /// alive, and a plain array rather than a hash, so a test can read what it found.
+    ///
+    /// - Parameter root: The key window's root view controller, or `nil` when there is no window.
+    /// - Returns: The chain of controllers currently showing, in order.
+    ///
+    /// - SeeAlso: ``rootViewController``, which is where production gets `root` from.
+    @MainActor internal static func accessibilityScreenIdentity(from root: UIViewController?) -> [ObjectIdentifier] {
+        var identity: [ObjectIdentifier] = []
+        var current = root
+        var steps = 0
+        while let controller = current, steps < AccessibilityAuditor.maximumDepth {
+            identity.append(ObjectIdentifier(controller))
+            current = visibleDescendant(of: controller)
+            steps += 1
+        }
+        return identity
+    }
+
+    /// The key window's root view controller, which is where the screen the app is showing starts.
+    @MainActor private static var rootViewController: UIViewController? {
+        keyWindow?.rootViewController
+    }
+
+    /// The one controller below `controller` that the user is actually looking at.
+    ///
+    /// - Parameter controller: The controller to descend from.
+    /// - Returns: The presented, top, selected or last child controller, or `nil` at the bottom.
+    @MainActor private static func visibleDescendant(of controller: UIViewController) -> UIViewController? {
+        if let presented = controller.presentedViewController { return presented }
+        if let navigation = controller as? UINavigationController { return navigation.topViewController }
+        if let tabs = controller as? UITabBarController { return tabs.selectedViewController }
+        return controller.children.last
     }
 
     /// Coalesces however many things just triggered a re-audit into a single audit, run
@@ -340,9 +508,45 @@ extension InterfaceToolkit {
     /// immediately, even when live mode is first switched on, so that the very first audit
     /// after enabling live mode gets the same debounce as every subsequent one and does not
     /// race a layout pass that has not finished yet.
-    @MainActor private func runAccessibilityAudit() {
+    ///
+    /// A pass that would land while Scyther's own UI is in front of the app is abandoned rather
+    /// than run. Everything about such a pass is wrong in a way nothing downstream can undo: it
+    /// walks a window that contains Scyther's own report, it measures the app through the sheet's
+    /// transform, contrast is dropped because the pixels are Scyther's, and the honest findings
+    /// taken a moment earlier — the ones the pill counted and the boxes describe — are overwritten
+    /// by the poorer set. The coverage question is therefore asked *here*, when the pass is about
+    /// to run, rather than remembered from when a controller appeared; the debounce means half a
+    /// second routinely separates the two, and the report sheet rises inside that gap.
+    /// ``scytherCoverageDidChangeNotification(notification:)`` schedules the pass that was skipped
+    /// as soon as Scyther's screen goes away.
+    @MainActor internal func runAccessibilityAudit() {
         pendingAccessibilityAudit = nil
-        accessibilityAuditView.findings = AccessibilityAudit.instance.auditKeyWindow().findings
+        guard !isScytherCoveringScreen() else { return }
+
+        let result = runAccessibilityPass()
+        lastUncoveredAccessibilityResult = result
+        accessibilityAuditView.findings = result.findings
+    }
+
+    /// The pass the report screen should open onto.
+    ///
+    /// While Scyther is in front of the app, the last live pass — taken with nothing of Scyther's
+    /// on screen — is a better answer than anything the report could measure for itself, and it is
+    /// the answer the developer already has in their hand: it is what the pill counted, and what
+    /// the boxes they just tapped through describe. Running a fresh pass instead is how "7 issues"
+    /// came to open onto "No Issues Found": the fresh pass drops contrast, because by then the
+    /// screen behind the report is Scyther's.
+    ///
+    /// Only the report's *first* load asks this. **Re-run** deliberately goes to
+    /// ``AccessibilityAudit/auditKeyWindow()`` instead, because a developer asking for a fresh
+    /// measurement should get one — with the banners explaining what a measurement taken from
+    /// under Scyther's own sheet cannot include.
+    ///
+    /// - Returns: The most recent uncovered pass, or `nil` when there has not been one — live mode
+    ///   off, or on but not yet past its first debounce.
+    @MainActor internal func accessibilityResultForReport() -> AccessibilityAuditor.Result? {
+        guard isScytherCoveringScreen() else { return nil }
+        return lastUncoveredAccessibilityResult
     }
 }
 

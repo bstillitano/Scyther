@@ -98,6 +98,118 @@ final class AccessibilityAuditOverlayViewTests: XCTestCase {
         XCTAssertFalse(view.point(inside: view.reportButton.frame.origin, with: nil))
     }
 
+    /// How many flash animations are on the overlay right now.
+    ///
+    /// ``AccessibilityAuditOverlayView/flash(_:)`` draws through a `CAShapeLayer` added straight to
+    /// the view's own layer, which is exactly how it used to escape the rule `draw(_:)` follows, so
+    /// counting those layers is counting the thing that was wrong. The pill is a `UIButton`, whose
+    /// layer is a plain `CALayer`, so nothing else here answers to `CAShapeLayer`.
+    ///
+    /// - Parameter view: The overlay to inspect.
+    /// - Returns: The number of flash layers currently attached.
+    private func flashes(on view: AccessibilityAuditOverlayView) -> Int {
+        (view.layer.sublayers ?? []).filter { $0 is CAShapeLayer }.count
+    }
+
+    /// The pill is the only interactive thing Scyther has ever put over the running app — the grid
+    /// overlay and the FPS counter both switch interaction off — so wherever it sits, it takes the
+    /// app's taps there. At the bottom centre it sat squarely on a `UITabBar` (49pt plus the home
+    /// indicator's safe area, full width) and on the bottom primary button of every screen without
+    /// one, which is where it was seen overlapping the example app's own tab bar.
+    func testThePillStaysOutOfTheBandTheAppsOwnBottomControlsOccupy() {
+        let view = overlay()
+        view.findings = [finding("one")]
+
+        let bottomControls = CGRect(x: 0, y: view.bounds.maxY - 100, width: view.bounds.width, height: 100)
+        XCTAssertFalse(view.reportButton.frame.intersects(bottomControls),
+                       "the pill must not sit where a tab bar or a bottom primary button does")
+        XCTAssertTrue(view.bounds.contains(view.reportButton.frame),
+                      "and it must still be somewhere a finger can reach it")
+    }
+
+    /// A `UIView`'s default `contentMode` is `.scaleToFill`, so a bounds change with no request for
+    /// a fresh `draw(_:)` stretches the last render into the new shape. On a rotation that meant
+    /// every box smeared from the portrait aspect ratio into the landscape one, offset from the
+    /// element it described, for at least the re-audit's debounce — and permanently if that work
+    /// item was cancelled before it fired. ``GridOverlayView``, which this view says it mirrors,
+    /// has always redrawn here.
+    func testChangingTheOverlaysFrameAsksForAFreshDrawing() {
+        let view = RecordingOverlay(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        let before = view.redrawRequests
+
+        view.updateFrame()
+
+        XCTAssertGreaterThan(view.redrawRequests, before,
+                             "a resized overlay must redraw rather than stretch its last render")
+    }
+
+    /// A flash is the same box `draw(_:)` strokes, drawn through `Core Animation` instead of `Core
+    /// Graphics` — and it used to be the one drawing path that never asked whether Scyther was in
+    /// front of the app. Every production flash arrives in exactly that state, because the only way
+    /// to ask for one is to tap a row in the report, so the box landed on Scyther's own report every
+    /// single time.
+    func testAFlashIsNotDrawnOverScythersOwnScreen() {
+        let view = overlay()
+        let coverage = CoverageStub()
+        coverage.isCovering = true
+        view.isCoveredByScyther = { coverage.isCovering }
+        let target = finding("one")
+        view.findings = [target]
+
+        view.flash(target)
+
+        XCTAssertEqual(flashes(on: view), 0, "no box may be drawn while Scyther is covering the app")
+    }
+
+    /// Refusing outright would make tapping a report row do nothing, ever. The flash is held until
+    /// Scyther's screen goes away and then played over the app, which is the only surface where the
+    /// box describes anything.
+    func testAFlashAskedForWhileCoveredIsPlayedOnceScytherGoesAway() {
+        let view = overlay()
+        let coverage = CoverageStub()
+        coverage.isCovering = true
+        view.isCoveredByScyther = { coverage.isCovering }
+        let target = finding("one")
+        view.findings = [target]
+        view.flash(target)
+
+        coverage.isCovering = false
+        view.refreshForCoverageChange()
+
+        XCTAssertEqual(flashes(on: view), 1, "the flash the developer asked for should reach the app")
+    }
+
+    /// The report is frozen, so the finding a row hands back can be several passes old. Flashing its
+    /// remembered frame draws a box around a rectangle nothing occupies any more, which is worse
+    /// than drawing nothing.
+    func testAFlashIsDroppedWhenItsElementIsNoLongerOnScreen() {
+        let view = overlay()
+        view.findings = [finding("still here")]
+
+        view.flash(finding("gone"))
+
+        XCTAssertEqual(flashes(on: view), 0)
+    }
+
+    /// A flash for an element that *is* still there is drawn where the element is now, not where the
+    /// frozen report says it was.
+    func testAFlashFollowsTheElementToItsCurrentFrame() throws {
+        let view = overlay()
+        let moved = AccessibilityFinding(check: .missingLabel,
+                                         severity: .error,
+                                         frame: CGRect(x: 200, y: 400, width: 30, height: 30),
+                                         elementName: "one",
+                                         detail: "detail")
+        view.findings = [moved]
+
+        view.flash(finding("one"))
+
+        let shape = (view.layer.sublayers ?? []).compactMap { $0 as? CAShapeLayer }.first
+        let box = try XCTUnwrap(shape?.path?.boundingBox)
+        XCTAssertEqual(box.origin.x, 200, accuracy: 2)
+        XCTAssertEqual(box.origin.y, 400, accuracy: 2)
+    }
+
     /// Every box describes an element of the app *underneath*. While Scyther's own menu or its own
     /// report is in front, the overlay — which `InterfaceToolkit` keeps above everything in the key
     /// window — would stroke those boxes across Scyther's own close and Re-run buttons, pointing at
@@ -124,6 +236,22 @@ final class AccessibilityAuditOverlayViewTests: XCTestCase {
 
         XCTAssertTrue(drawsAnything(view), "The boxes should come back once Scyther's screen goes away.")
         XCTAssertFalse(view.reportButton.isHidden)
+    }
+}
+
+/// An overlay that counts how many times it was asked to redraw.
+///
+/// `setNeedsDisplay()` leaves no trace anywhere a test can read — the redraw happens on the next
+/// run-loop turn, in a view with no window to draw into — so the only honest way to assert that it
+/// was asked for is to be the view it was asked of.
+@MainActor
+private final class RecordingOverlay: AccessibilityAuditOverlayView {
+    /// How many times a redraw has been asked for.
+    var redrawRequests = 0
+
+    override func setNeedsDisplay() {
+        redrawRequests += 1
+        super.setNeedsDisplay()
     }
 }
 
