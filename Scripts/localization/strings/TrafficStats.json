@@ -72,21 +72,6 @@
     "zh-Hans": "%lld / %lld 个请求",
     "zh-Hant": "%lld / %lld 個請求"
   },
-  "%lld of %lld requests on a shared axis, oldest first. Bars that overlap were in flight at the same time.": {
-    "ar": "%lld من %lld طلب على محور مشترك، الأقدم أولاً. الأشرطة المتداخلة كانت قيد التنفيذ في الوقت نفسه.",
-    "comment": "Caption under the bars on the full-log waterfall page when a filter is active: the shown count against the unfiltered total. Not a plural entry: a String Catalog inflects on the first number, which here is the filtered count rather than the number the noun agrees with",
-    "de": "%lld von %lld Anfragen auf einer gemeinsamen Achse, älteste zuerst. Überlappende Balken waren gleichzeitig unterwegs.",
-    "es": "%lld de %lld solicitudes en un eje compartido, de la más antigua a la más reciente. Las barras que se solapan estaban en curso al mismo tiempo.",
-    "fr": "%lld requêtes sur %lld sur un axe partagé, de la plus ancienne à la plus récente. Les barres qui se chevauchent étaient en cours en même temps.",
-    "it": "%lld di %lld richieste su un asse condiviso, dalla più vecchia alla più recente. Le barre che si sovrappongono erano in corso nello stesso momento.",
-    "ja": "%lld 件中 %lld 件のリクエストを共有の軸上に、古い順に表示します。重なり合うバーは同時に実行中でした。",
-    "ko": "%lld개 중 %lld개 요청을 공유 축에 오래된 순으로 표시합니다. 겹치는 막대는 동시에 진행 중이었습니다.",
-    "nl": "%lld van %lld verzoeken op een gedeelde as, oudste eerst. Balken die elkaar overlappen liepen tegelijkertijd.",
-    "pt-BR": "%lld de %lld solicitações em um eixo compartilhado, da mais antiga para a mais recente. As barras que se sobrepõem estavam em andamento ao mesmo tempo.",
-    "ru": "%lld из %lld запросов на общей оси, от самых старых. Пересекающиеся полосы выполнялись одновременно.",
-    "zh-Hans": "%lld 个请求（共 %lld 个）在同一时间轴上，最早的在最上方。重叠的条形表示这些请求同时在进行。",
-    "zh-Hant": "%lld 個請求（共 %lld 個）在同一時間軸上，最早的在最上方。重疊的長條表示這些請求同時在進行。"
-  },
   "%lld requests": {
     "ar": {
       "few": "%lld طلبات",
@@ -145,20 +130,63 @@
       "other": "%lld 個請求"
     }
   },
-  "%lld requests over %@ across %lld hosts": {
-    "ar": "%lld طلبًا خلال %@ عبر %lld مضيفًا",
-    "comment": "Footer under the Traffic Stats section's overview strip: how many requests it covers, how long they span, and how many distinct hosts they touched. Not a plural entry: a String Catalog inflects on the first number, and this key has two numbers that agree with two different nouns",
-    "de": "%lld Anfragen über %@ auf %lld Hosts",
-    "es": "%lld solicitudes en %@ en %lld hosts",
-    "fr": "%lld requêtes sur %@ sur %lld hôtes",
-    "it": "%lld richieste in %@ su %lld host",
-    "ja": "%@ にわたる %lld 件のリクエスト、%lld 個のホスト",
-    "ko": "%@ 동안 %lld개 요청, 호스트 %lld개",
-    "nl": "%lld verzoeken over %@ op %lld hosts",
-    "pt-BR": "%lld solicitações em %@ em %lld hosts",
-    "ru": "%lld запросов за %@ на %lld хостах",
-    "zh-Hans": "%lld 个请求，历时 %@，跨 %lld 个主机",
-    "zh-Hant": "%lld 個請求，歷時 %@，跨 %lld 個主機"
+  "%lld requests over %@": {
+    "ar": {
+      "few": "%lld طلبات خلال %@",
+      "many": "%lld طلبًا خلال %@",
+      "one": "%lld طلب خلال %@",
+      "other": "%lld طلب خلال %@",
+      "two": "%lld طلبان خلال %@",
+      "zero": "%lld طلب خلال %@"
+    },
+    "comment": "First half of the Traffic Stats waterfall footer, under the overview strip: how many requests it covers and how long they span. Split from a single flat sentence (see the fix report) so the request count pluralises correctly; joined with the host-count half below.",
+    "de": {
+      "one": "%lld Anfrage über %@",
+      "other": "%lld Anfragen über %@"
+    },
+    "en": {
+      "one": "%lld request over %@",
+      "other": "%lld requests over %@"
+    },
+    "es": {
+      "one": "%lld solicitud en %@",
+      "other": "%lld solicitudes en %@"
+    },
+    "fr": {
+      "one": "%lld requête sur %@",
+      "other": "%lld requêtes sur %@"
+    },
+    "it": {
+      "one": "%lld richiesta in %@",
+      "other": "%lld richieste in %@"
+    },
+    "ja": {
+      "other": "%@ にわたる %lld 件のリクエスト"
+    },
+    "ko": {
+      "other": "%@ 동안 %lld개 요청"
+    },
+    "nl": {
+      "one": "%lld verzoek over %@",
+      "other": "%lld verzoeken over %@"
+    },
+    "plural": true,
+    "pt-BR": {
+      "one": "%lld solicitação em %@",
+      "other": "%lld solicitações em %@"
+    },
+    "ru": {
+      "few": "%lld запроса за %@",
+      "many": "%lld запросов за %@",
+      "one": "%lld запрос за %@",
+      "other": "%lld запросов за %@"
+    },
+    "zh-Hans": {
+      "other": "%lld 个请求，历时 %@"
+    },
+    "zh-Hant": {
+      "other": "%lld 個請求，歷時 %@"
+    }
   },
   "95th Percentile": {
     "ar": "المئين 95",
@@ -264,21 +292,6 @@
     "ru": "Конец",
     "zh-Hans": "结束",
     "zh-Hant": "結束"
-  },
-  "Every request in the log on a shared axis, oldest first. Bars that overlap were in flight at the same time.": {
-    "ar": "جميع الطلبات في السجل على محور مشترك، الأقدم أولاً. الأشرطة المتداخلة كانت قيد التنفيذ في الوقت نفسه.",
-    "comment": "Caption under the bars on the full-log waterfall page, explaining what the chart shows",
-    "de": "Alle Anfragen im Protokoll auf einer gemeinsamen Achse, älteste zuerst. Überlappende Balken waren gleichzeitig unterwegs.",
-    "es": "Todas las solicitudes del registro en un eje compartido, de la más antigua a la más reciente. Las barras que se solapan estaban en curso al mismo tiempo.",
-    "fr": "Toutes les requêtes du journal sur un axe partagé, de la plus ancienne à la plus récente. Les barres qui se chevauchent étaient en cours en même temps.",
-    "it": "Tutte le richieste del registro su un asse condiviso, dalla più vecchia alla più recente. Le barre che si sovrappongono erano in corso nello stesso momento.",
-    "ja": "ログ内のすべてのリクエストを共有の軸上に、古い順に表示します。重なり合うバーは同時に実行中でした。",
-    "ko": "로그의 모든 요청을 공유 축에 오래된 순으로 표시합니다. 겹치는 막대는 동시에 진행 중이었습니다.",
-    "nl": "Alle verzoeken in het logboek op een gedeelde as, oudste eerst. Balken die elkaar overlappen liepen tegelijkertijd.",
-    "pt-BR": "Todas as solicitações do registro em um eixo compartilhado, da mais antiga para a mais recente. As barras que se sobrepõem estavam em andamento ao mesmo tempo.",
-    "ru": "Все запросы из журнала на общей оси, от самых старых. Пересекающиеся полосы выполнялись одновременно.",
-    "zh-Hans": "日志中的所有请求都在同一时间轴上，最早的在最上方。重叠的条形表示这些请求同时在进行。",
-    "zh-Hant": "記錄中的所有請求都在同一時間軸上，最早的在最上方。重疊的長條表示這些請求同時在進行。"
   },
   "Failed": {
     "ar": "فشل",
@@ -624,5 +637,63 @@
     "ru": "Каскад",
     "zh-Hans": "瀑布图",
     "zh-Hant": "瀑布圖"
+  },
+  "across %lld hosts": {
+    "ar": {
+      "few": "عبر %lld مضيفين",
+      "many": "عبر %lld مضيفًا",
+      "one": "عبر %lld مضيف",
+      "other": "عبر %lld مضيف",
+      "two": "عبر %lld مضيفان",
+      "zero": "عبر %lld مضيف"
+    },
+    "comment": "Second half of the Traffic Stats waterfall footer, joined after the request-count half above: how many distinct hosts the strip covers. Split out so the host count pluralises independently of the request count.",
+    "de": {
+      "one": "auf %lld Host",
+      "other": "auf %lld Hosts"
+    },
+    "en": {
+      "one": "across %lld host",
+      "other": "across %lld hosts"
+    },
+    "es": {
+      "one": "en %lld host",
+      "other": "en %lld hosts"
+    },
+    "fr": {
+      "one": "sur %lld hôte",
+      "other": "sur %lld hôtes"
+    },
+    "it": {
+      "one": "su %lld host",
+      "other": "su %lld host"
+    },
+    "ja": {
+      "other": "%lld 個のホスト"
+    },
+    "ko": {
+      "other": "호스트 %lld개"
+    },
+    "nl": {
+      "one": "op %lld host",
+      "other": "op %lld hosts"
+    },
+    "plural": true,
+    "pt-BR": {
+      "one": "em %lld host",
+      "other": "em %lld hosts"
+    },
+    "ru": {
+      "few": "на %lld хостах",
+      "many": "на %lld хостах",
+      "one": "на %lld хосте",
+      "other": "на %lld хостах"
+    },
+    "zh-Hans": {
+      "other": "跨 %lld 个主机"
+    },
+    "zh-Hant": {
+      "other": "跨 %lld 個主機"
+    }
   }
 }

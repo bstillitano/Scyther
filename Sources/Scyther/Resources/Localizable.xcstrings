@@ -2933,83 +2933,6 @@
         }
       }
     },
-    "%lld of %lld requests on a shared axis, oldest first. Bars that overlap were in flight at the same time.": {
-      "comment": "Caption under the bars on the full-log waterfall page when a filter is active: the shown count against the unfiltered total. Not a plural entry: a String Catalog inflects on the first number, which here is the filtered count rather than the number the noun agrees with",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld من %lld طلب على محور مشترك، الأقدم أولاً. الأشرطة المتداخلة كانت قيد التنفيذ في الوقت نفسه."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld von %lld Anfragen auf einer gemeinsamen Achse, älteste zuerst. Überlappende Balken waren gleichzeitig unterwegs."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld de %lld solicitudes en un eje compartido, de la más antigua a la más reciente. Las barras que se solapan estaban en curso al mismo tiempo."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld requêtes sur %lld sur un axe partagé, de la plus ancienne à la plus récente. Les barres qui se chevauchent étaient en cours en même temps."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld di %lld richieste su un asse condiviso, dalla più vecchia alla più recente. Le barre che si sovrappongono erano in corso nello stesso momento."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld 件中 %lld 件のリクエストを共有の軸上に、古い順に表示します。重なり合うバーは同時に実行中でした。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld개 중 %lld개 요청을 공유 축에 오래된 순으로 표시합니다. 겹치는 막대는 동시에 진행 중이었습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld van %lld verzoeken op een gedeelde as, oudste eerst. Balken die elkaar overlappen liepen tegelijkertijd."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld de %lld solicitações em um eixo compartilhado, da mais antiga para a mais recente. As barras que se sobrepõem estavam em andamento ao mesmo tempo."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld из %lld запросов на общей оси, от самых старых. Пересекающиеся полосы выполнялись одновременно."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld 个请求（共 %lld 个）在同一时间轴上，最早的在最上方。重叠的条形表示这些请求同时在进行。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld 個請求（共 %lld 個）在同一時間軸上，最早的在最上方。重疊的長條表示這些請求同時在進行。"
-          }
-        }
-      }
-    },
     "%lld requests": {
       "comment": "Caption stating how many requests the figures cover, and the count in an endpoint or host subtitle",
       "localizations": {
@@ -3261,79 +3184,253 @@
         }
       }
     },
-    "%lld requests over %@ across %lld hosts": {
-      "comment": "Footer under the Traffic Stats section's overview strip: how many requests it covers, how long they span, and how many distinct hosts they touched. Not a plural entry: a String Catalog inflects on the first number, and this key has two numbers that agree with two different nouns",
+    "%lld requests over %@": {
+      "comment": "First half of the Traffic Stats waterfall footer, under the overview strip: how many requests it covers and how long they span. Split from a single flat sentence (see the fix report) so the request count pluralises correctly; joined with the host-count half below.",
       "localizations": {
         "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld طلبًا خلال %@ عبر %lld مضيفًا"
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld طلبات خلال %@"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld طلبًا خلال %@"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld طلب خلال %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld طلب خلال %@"
+                }
+              },
+              "two": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld طلبان خلال %@"
+                }
+              },
+              "zero": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld طلب خلال %@"
+                }
+              }
+            }
           }
         },
         "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld Anfragen über %@ auf %lld Hosts"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld Anfrage über %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld Anfragen über %@"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld request over %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld requests over %@"
+                }
+              }
+            }
           }
         },
         "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld solicitudes en %@ en %lld hosts"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld solicitud en %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld solicitudes en %@"
+                }
+              }
+            }
           }
         },
         "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld requêtes sur %@ sur %lld hôtes"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld requête sur %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld requêtes sur %@"
+                }
+              }
+            }
           }
         },
         "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld richieste in %@ su %lld host"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld richiesta in %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld richieste in %@"
+                }
+              }
+            }
           }
         },
         "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%@ にわたる %lld 件のリクエスト、%lld 個のホスト"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%@ にわたる %lld 件のリクエスト"
+                }
+              }
+            }
           }
         },
         "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%@ 동안 %lld개 요청, 호스트 %lld개"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%@ 동안 %lld개 요청"
+                }
+              }
+            }
           }
         },
         "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld verzoeken over %@ op %lld hosts"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld verzoek over %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld verzoeken over %@"
+                }
+              }
+            }
           }
         },
         "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld solicitações em %@ em %lld hosts"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld solicitação em %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld solicitações em %@"
+                }
+              }
+            }
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld запросов за %@ на %lld хостах"
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld запроса за %@"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld запросов за %@"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld запрос за %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld запросов за %@"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld 个请求，历时 %@，跨 %lld 个主机"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld 个请求，历时 %@"
+                }
+              }
+            }
           }
         },
         "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "%lld 個請求，歷時 %@，跨 %lld 個主機"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld 個請求，歷時 %@"
+                }
+              }
+            }
           }
         }
       }
@@ -23012,83 +23109,6 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "所有暫停的請求都已處理，應用程式不再等待。"
-          }
-        }
-      }
-    },
-    "Every request in the log on a shared axis, oldest first. Bars that overlap were in flight at the same time.": {
-      "comment": "Caption under the bars on the full-log waterfall page, explaining what the chart shows",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "جميع الطلبات في السجل على محور مشترك، الأقدم أولاً. الأشرطة المتداخلة كانت قيد التنفيذ في الوقت نفسه."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Alle Anfragen im Protokoll auf einer gemeinsamen Achse, älteste zuerst. Überlappende Balken waren gleichzeitig unterwegs."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Todas las solicitudes del registro en un eje compartido, de la más antigua a la más reciente. Las barras que se solapan estaban en curso al mismo tiempo."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Toutes les requêtes du journal sur un axe partagé, de la plus ancienne à la plus récente. Les barres qui se chevauchent étaient en cours en même temps."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Tutte le richieste del registro su un asse condiviso, dalla più vecchia alla più recente. Le barre che si sovrappongono erano in corso nello stesso momento."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "ログ内のすべてのリクエストを共有の軸上に、古い順に表示します。重なり合うバーは同時に実行中でした。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "로그의 모든 요청을 공유 축에 오래된 순으로 표시합니다. 겹치는 막대는 동시에 진행 중이었습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Alle verzoeken in het logboek op een gedeelde as, oudste eerst. Balken die elkaar overlappen liepen tegelijkertijd."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Todas as solicitações do registro em um eixo compartilhado, da mais antiga para a mais recente. As barras que se sobrepõem estavam em andamento ao mesmo tempo."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Все запросы из журнала на общей оси, от самых старых. Пересекающиеся полосы выполнялись одновременно."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "日志中的所有请求都在同一时间轴上，最早的在最上方。重叠的条形表示这些请求同时在进行。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "記錄中的所有請求都在同一時間軸上，最早的在最上方。重疊的長條表示這些請求同時在進行。"
           }
         }
       }
@@ -62727,6 +62747,257 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "[檔案過大，無法顯示：%@]"
+          }
+        }
+      }
+    },
+    "across %lld hosts": {
+      "comment": "Second half of the Traffic Stats waterfall footer, joined after the request-count half above: how many distinct hosts the strip covers. Split out so the host count pluralises independently of the request count.",
+      "localizations": {
+        "ar": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "عبر %lld مضيفين"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "عبر %lld مضيفًا"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "عبر %lld مضيف"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "عبر %lld مضيف"
+                }
+              },
+              "two": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "عبر %lld مضيفان"
+                }
+              },
+              "zero": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "عبر %lld مضيف"
+                }
+              }
+            }
+          }
+        },
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "auf %lld Host"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "auf %lld Hosts"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "across %lld host"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "across %lld hosts"
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "en %lld host"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "en %lld hosts"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "sur %lld hôte"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "sur %lld hôtes"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "su %lld host"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "su %lld host"
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "%lld 個のホスト"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "호스트 %lld개"
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "op %lld host"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "op %lld hosts"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "em %lld host"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "em %lld hosts"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "на %lld хостах"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "на %lld хостах"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "на %lld хосте"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "на %lld хостах"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "跨 %lld 个主机"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "needs_review",
+                  "value": "跨 %lld 個主機"
+                }
+              }
+            }
           }
         }
       }

@@ -219,8 +219,21 @@ final class TrafficStatsViewModel: ViewModel {
     /// so the caption states what a minimap states: how much is on it, how long it ran, and how
     /// much of it there is to lose track of. It used to say how many requests were hidden and
     /// point at **See all** to find them; nothing is hidden any more, so nothing here does either.
+    ///
+    /// Two localised sentences joined, not one. The single sentence this replaced —
+    /// `"\(count) requests over \(duration) across \(hosts) hosts"` — carries two numbers that
+    /// agree with two different nouns, and the String Catalog this package builds from only
+    /// inflects a key's *first* number: the request count would pluralise correctly while the
+    /// host count stayed flat, so a single-host log read "across 1 hosts" on the feature's own
+    /// first screen. Splitting each count into its own pluralised key and joining them the way
+    /// ``endpointSubtitle(for:)`` and ``hostSubtitle(for:)`` already join theirs — and the way this
+    /// very caption did before the whole-log strip replaced its most-recent-seven predecessor —
+    /// lets each half inflect on its own number.
     var waterfallCaption: String {
-        localized("\(waterfall.entries.count) requests over \(DurationText.milliseconds(waterfall.span * 1_000)) across \(hostCount) hosts")
+        [
+            localized("\(waterfall.entries.count) requests over \(DurationText.milliseconds(waterfall.span * 1_000))"),
+            localized("across \(hostCount) hosts"),
+        ].joined(separator: " ") // scyther:unlocalised space between localised sentences
     }
 
     // MARK: - Breakdowns

@@ -300,6 +300,24 @@ final class TrafficStatsViewModelTests: XCTestCase {
         )
     }
 
+    /// The defect: the single flat sentence this caption used to be could only pluralise on one
+    /// of its two numbers, and the request count always won — so the common case, a log that has
+    /// touched exactly one host, read "across 1 hosts" on the feature's own first screen. Splitting
+    /// the host count into its own pluralised key, joined after the request-count half, fixes
+    /// precisely this case rather than only the rarer ones a "contains a digit" assertion would
+    /// have missed.
+    func testTheWaterfallCaptionPluralisesASingleHostCorrectly() async {
+        let viewModel = TrafficStatsViewModel(
+            requests: [request(duration: 100, url: "https://a.example.com/v1/users")],
+            totalCount: 1
+        )
+        await viewModel.recompute()
+        XCTAssertEqual(viewModel.hostCount, 1, "precondition for the assertion below")
+        XCTAssertFalse(viewModel.waterfallCaption.contains("1 hosts"),
+                       "a single host must not read as plural: \(viewModel.waterfallCaption)")
+        XCTAssertTrue(viewModel.waterfallCaption.contains("1 host"))
+    }
+
     // MARK: Bar semantics
 
     func testABarValueLabelUsesMillisecondsUnderASecond() async throws {
