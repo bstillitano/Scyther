@@ -76,12 +76,36 @@ enum WaterfallChartStyle {
     /// The gap between the label column and the plot, in points.
     static let labelColumnSpacing: CGFloat = 8
 
+    /// How tall the page's legend is, in points.
+    ///
+    /// The legend is drawn by a chart of its own, at the card's full content width, rather than
+    /// beside the ruler. Sharing the ruler's chart put it inside the label column's offset, where
+    /// it had roughly a third less room than the Traffic Stats section gives it and wrapped
+    /// "Stubbed" onto a second line.
+    static let legendHeight: CGFloat = 24
+
     /// How tall the page's pinned ruler is, in points.
     ///
-    /// Enough for the legend, the collapsed plot, the tick labels and the axis title. Fixed
-    /// rather than measured because the header is pinned: a header that resized as the reader
-    /// scrolled would shift every bar under it.
-    static let rulerHeight: CGFloat = 84
+    /// Enough for the collapsed plot, the tick labels and the axis title. Fixed rather than
+    /// measured because the header is pinned: a header that resized as the reader scrolled would
+    /// shift every bar under it.
+    static let rulerHeight: CGFloat = 48
+
+    // MARK: - The grouped card
+
+    /// How far the card is inset from the edge of the page, in points.
+    ///
+    /// This and the two figures below are UIKit's inset-grouped metrics rather than invented
+    /// ones. The full-log page is a `ScrollView` rather than a `List`, so nothing draws the card
+    /// for it, and bars sitting on the plain page background read as a different component rather
+    /// than as the same chart with more room.
+    static let cardInset: CGFloat = 20
+
+    /// The padding between the card's edge and its content, in points.
+    static let cardContentPadding: CGFloat = 16
+
+    /// The radius the card's outer corners are rounded to, in points.
+    static let cardCornerRadius: CGFloat = 10
 
     // MARK: - Colour
 
