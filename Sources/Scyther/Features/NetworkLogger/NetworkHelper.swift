@@ -90,7 +90,16 @@ public final class NetworkHelper: Sendable {
     /// The current IP address of the device.
     ///
     /// This property asynchronously fetches the device's public IP address using the ipify API.
-    /// The result is cached after the first successful fetch.
+    /// The result is cached after the first successful fetch, and **every caller that arrives
+    /// while the first fetch is still in flight shares it**.
+    ///
+    /// Coalescing is not an optimisation. ``hasResolvedIPAddress`` used to be set only *after*
+    /// the `await` returned, so the flag was still `false` for the whole round trip and every
+    /// caller that arrived in that window started a request of its own. A menu that was re-created
+    /// once a second — which is what a modal presented over it does — therefore fired one lookup
+    /// per second for as long as the first one was outstanding. The in-flight ``Task`` closes that
+    /// window: it is recorded before the first suspension point, so a second caller finds it and
+    /// awaits the same result.
     ///
     /// ## Example
     /// ```swift
@@ -101,10 +110,22 @@ public final class NetworkHelper: Sendable {
     /// - Returns: The IP address as a string, or "0.0.0.0" if unavailable.
     public var ipAddress: String {
         get async {
-            guard !hasResolvedIPAddress else { return _ipAddress }
-            _ipAddress = await getIPAddress()
+            if hasResolvedIPAddress { return _ipAddress }
+
+            /// Everything up to the `await` runs without suspending on the main actor, so no
+            /// second caller can interleave between the check and the store. That is the whole
+            /// mechanism: whoever gets here first publishes the task, everyone else joins it.
+            let task = ipAddressTask ?? Task { await Self.fetchIPAddress() }
+            ipAddressTask = task
+
+            let resolved = await task.value
+
+            /// The winner and every joiner write the same value, so the assignment is idempotent
+            /// and no ordering between them matters.
+            _ipAddress = resolved
             hasResolvedIPAddress = true
-            return _ipAddress
+            ipAddressTask = nil
+            return resolved
         }
     }
 
@@ -113,6 +134,23 @@ public final class NetworkHelper: Sendable {
 
     /// Flag indicating whether the IP address has been resolved.
     private var hasResolvedIPAddress: Bool = false
+
+    /// The lookup every caller that arrives before the first one finishes joins, or `nil` when
+    /// none is outstanding.
+    ///
+    /// Main-actor isolated, like the rest of this type's mutable state, which is what makes the
+    /// check-then-store in ``ipAddress`` atomic without a lock.
+    private var ipAddressTask: Task<String, Never>?
+
+    /// Forgets the cached address and any lookup in flight.
+    ///
+    /// - Note: Internal so a test can start from a clean cache. Nothing in production calls it.
+    internal func resetIPAddressCacheForTesting() {
+        ipAddressTask?.cancel()
+        ipAddressTask = nil
+        hasResolvedIPAddress = false
+        _ipAddress = ""
+    }
 }
 
 // MARK: - Lifecycle
@@ -175,15 +213,24 @@ extension NetworkHelper {
     ///
     /// Makes a request to the ipify API to determine the device's public IP address.
     ///
+    /// The request is marked as Scyther's own — see ``ScytherOriginatedRequest`` — so it is
+    /// logged like any other request but can never be held at a breakpoint, answered by a mock,
+    /// rewritten or conditioned. It is the menu's own lookup: a developer who breakpoints
+    /// `api.ipify.org` would otherwise stall the screen they need in order to switch that
+    /// breakpoint off.
+    ///
+    /// Static because the in-flight ``Task`` in ``ipAddress`` calls it, and a static call keeps
+    /// the singleton out of the task's captures.
+    ///
     /// - Returns: The IP address as a string, or "0.0.0.0" if the request fails.
-    private func getIPAddress() async -> String {
+    private static func fetchIPAddress() async -> String {
         // Construct API URL
         guard let url = URL(string: "https://api.ipify.org/?format=json") else {
             return "0.0.0.0"
         }
 
-        // Setup network request
-        let urlRequest = URLRequest(url: url)
+        // Setup network request, marked so Scyther never intercepts its own lookup.
+        let urlRequest = ScytherOriginatedRequest.marked(URLRequest(url: url))
 
         // Attempt network request
         do {

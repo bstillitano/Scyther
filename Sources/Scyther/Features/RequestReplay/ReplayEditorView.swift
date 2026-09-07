@@ -13,10 +13,13 @@ import SwiftUI
 /// `NavigationStack` — the sheet that presents it supplies one — so the body row can push the
 /// existing text editor.
 ///
-/// Sending is not special-cased anywhere: the request goes out on an ordinary session and comes
-/// back through the interceptor like traffic the app made, which means an enabled override
-/// matches it too. The overview footer says so, because a developer comparing a replay against
-/// an original needs to know whether they are looking at the network or at their own mock.
+/// The request goes out on an ordinary session and comes back through the interceptor, so a
+/// replay is captured and logged beside the original. What it is *not* subject to is Scyther's
+/// own interception features: a replay is marked as the toolkit's own traffic — see
+/// ``ScytherOriginatedRequest`` — so no override, breakpoint or conditioning touches it. That is
+/// what makes the comparison against the original mean something, and it is what the overview
+/// footer tells the developer, because otherwise they could not know whether they were looking at
+/// the network or at their own mock.
 struct ReplayEditorView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -99,7 +102,8 @@ struct ReplayEditorView: View {
         }
     }
 
-    /// The warnings and the note about overrides, stacked under the overview section.
+    /// The warnings and the note about what a replay is exempt from, stacked under the overview
+    /// section.
     ///
     /// A `Section` takes one footer, so the lines that apply are gathered into a single stack
     /// rather than fighting over it. The warnings are the same list the confirmation alert
@@ -113,7 +117,7 @@ struct ReplayEditorView: View {
             ForEach(viewModel.warnings, id: \.self) { warning in
                 Text(warning)
             }
-            Text(localized("Replays are sent like app traffic, so any enabled override applies to them too."))
+            Text(localized("Replays appear in the log, but overrides, breakpoints and network conditioning never apply to them."))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

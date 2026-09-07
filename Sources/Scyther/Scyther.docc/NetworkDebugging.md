@@ -375,6 +375,27 @@ Overrides** does not reach it, and neither does turning every override off.
   traffic. It is credited as **Network Conditioning** in the details page's **Overrides** row,
   which names it without offering a link — it is a screen rather than an override.
 
+## Scythers own traffic
+
+Scyther sends a few requests of its own: the menu's IP address lookup, and everything sent from
+the replay editor. They are **logged like any other request** — seeing what the toolkit does is
+useful — but no interception feature touches them. A Scyther request is never held at a
+breakpoint, never answered by a mock or a mapped local file, never header-rewritten, and never
+slowed or failed by an override's condition or by Network Conditioning.
+
+The exemption exists because the toolkit was instrumenting itself. A breakpoint on `api.ipify.org`
+held the menu's own IP lookup; the held-request editor was presented over the menu, the
+presentation re-created the menu, the menu asked for the IP address again, and it was held again —
+one modal per second, stacking without limit, over the one screen that could have switched the
+breakpoint off.
+
+Requests are marked with a `URLProtocol` property carrying a token minted once per process, rather
+than with a header. The mark never reaches the wire, so nothing is added to a request the
+developer's server sees; it survives `mutableCopy()`, so it holds through the rewrite copy, the
+breakpoint rebuild and the redirect copy; and it cannot be forged by the host app, because
+knowing the property key is not enough — the value has to be this launch's token, which is never
+published.
+
 ## Request Replay
 
 The request details page carries a **Replay this request** button. It opens an editor pre-filled
@@ -397,13 +418,14 @@ from the capture and sends whatever is left there when the confirm button is tap
 
 ### What sending does
 
-Nothing about a replay is special-cased. It goes out on an ordinary `URLSession` and comes back
-through the same interceptor as traffic the app makes, which means:
+A replay goes out on an ordinary `URLSession` and comes back through the same interceptor as
+traffic the app makes, which means:
 
 - **it is logged as its own entry**, marked with a teal `REPLAY` badge, so a resent request can
   never be mistaken for one the app made; and
-- **enabled overrides apply to it**, so replaying a request a mock matches serves the mock, with
-  both badges on the row. The editor states this in a footer.
+- **no override, breakpoint or conditioning applies to it**, because a replay is a request
+  Scyther itself composes and sends — see <doc:NetworkDebugging#Scythers-own-traffic>. The editor
+  states this in a footer.
 
 A response an override synthesised offers no replay button — the override would only synthesise
 it again.
@@ -491,6 +513,7 @@ saw — the edited exchange, not the original.
 - Breakpoints report as off inside an XCTest process, so one left enabled can never hang CI, and
   are disabled on App Store builds with the rest of Scyther.
 - A stubbed request is never held: the override answers it, so nothing goes in flight.
+- Scyther's own requests are never held, at either stage — see <doc:NetworkDebugging#Scythers-own-traffic>.
 - A pause taken while the app is not active is skipped and logged, because a held request the
   developer cannot see looks exactly like a hang. Only the newly taken pause is skipped: an
   exchange already open in the editor is not discarded for a glance at Control Centre or the app

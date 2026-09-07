@@ -10,10 +10,12 @@ import Foundation
 /// Backs ``ReplayEditorView``: holds the editable draft, validates it, and sends it.
 ///
 /// Sending is deliberately unremarkable. The draft becomes an ordinary `URLRequest` on an
-/// ordinary session, so the interceptor captures it exactly as it captures traffic the app makes
-/// — including matching it against enabled overrides, which is why the editor says as much before
-/// anything is sent. The only thing that marks it out afterwards is the provenance property
-/// ``ReplayableRequest/makeURLRequest(replayOf:)`` stamps on it.
+/// ordinary session, so the interceptor captures and logs it exactly as it captures traffic the
+/// app makes. It is *not* matched against overrides, breakpoints or conditioning: a replay is
+/// Scyther's own request, and ``ReplayableRequest/makeURLRequest(replayOf:)`` marks it as such —
+/// see ``ScytherOriginatedRequest`` — alongside the provenance property that ties it back to the
+/// original. The editor's footer says so, because a developer comparing a replay against its
+/// original has to know which of the two they are looking at.
 ///
 /// ## Topics
 ///

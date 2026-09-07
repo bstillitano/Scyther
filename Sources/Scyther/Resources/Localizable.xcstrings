@@ -44847,79 +44847,79 @@
         }
       }
     },
-    "Replays are sent like app traffic, so any enabled override applies to them too.": {
-      "comment": "Footer in the replay editor explaining that request overrides match replays as well",
+    "Replays appear in the log, but overrides, breakpoints and network conditioning never apply to them.": {
+      "comment": "Footer in the replay editor explaining that Scyther's own interception features leave replays alone",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "تُرسل عمليات الإعادة مثل حركة مرور التطبيق، لذا تنطبق عليها أي تجاوزات مفعّلة."
+            "value": "تظهر عمليات الإعادة في السجل، لكن التجاوزات ونقاط التوقف وتهيئة الشبكة لا تنطبق عليها أبدًا."
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Wiederholungen werden wie App-Traffic gesendet, daher gilt jeder aktivierte Override auch für sie."
+            "value": "Wiederholungen erscheinen im Log, aber Overrides, Haltepunkte und Netzwerkbedingungen gelten nie für sie."
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Los reenvíos se envían como el tráfico de la app, así que cualquier anulación activada también se les aplica."
+            "value": "Los reenvíos aparecen en el registro, pero las anulaciones, los puntos de interrupción y las condiciones de red nunca se les aplican."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Les requêtes rejouées sont envoyées comme le trafic de l’app : tout remplacement activé s’y applique aussi."
+            "value": "Les requêtes rejouées apparaissent dans le journal, mais les remplacements, les points d'arrêt et le conditionnement réseau ne s’y appliquent jamais."
           }
         },
         "it": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "I rinvii vengono inviati come il traffico dell’app, quindi anche le sostituzioni attive si applicano a loro."
+            "value": "I rinvii compaiono nel registro, ma sostituzioni, punti di interruzione e condizionamento di rete non si applicano mai a loro."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "再送はアプリの通信と同じように送信されるため、有効な上書きも適用されます。"
+            "value": "再送はログに表示されますが、上書き、ブレークポイント、ネットワーク調整は適用されません。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "재전송은 앱 트래픽과 동일하게 전송되므로 활성화된 재정의도 적용됩니다."
+            "value": "재전송은 로그에 표시되지만 재정의, 중단점, 네트워크 조절은 적용되지 않습니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Herhalingen worden verstuurd als app-verkeer, dus elke ingeschakelde overschrijving geldt ook voor ze."
+            "value": "Herhalingen verschijnen in het log, maar overschrijvingen, onderbrekingspunten en netwerkcondities gelden nooit voor ze."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Os reenvios são enviados como o tráfego do app, então qualquer substituição ativada também se aplica a eles."
+            "value": "Os reenvios aparecem no log, mas substituições, pontos de interrupção e condicionamento de rede nunca se aplicam a eles."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Повторы отправляются как обычный трафик приложения, поэтому включённые переопределения применяются и к ним."
+            "value": "Повторы отображаются в журнале, но переопределения, точки останова и условия сети к ним не применяются."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "重发的请求与应用流量一样发出，因此已启用的覆盖同样适用。"
+            "value": "重发的请求会出现在日志中，但覆盖、断点和网络调节都不会应用于它们。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "重送的請求與 App 流量一樣送出，因此已啟用的覆寫同樣適用。"
+            "value": "重送的請求會出現在日誌中，但覆寫、中斷點與網路調節都不會套用於它們。"
           }
         }
       }

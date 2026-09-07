@@ -24,6 +24,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
   - [Network Logging](#network-logging)
   - [Traffic Stats](#traffic-stats)
   - [Request Overrides](#request-overrides)
+  - [Scyther's Own Traffic](#scythers-own-traffic)
   - [Request Replay](#request-replay)
   - [Breakpoints](#breakpoints)
   - [Network Conditioning](#network-conditioning)
@@ -867,6 +868,26 @@ have turned it off, set it explicitly as the snippet does rather than assuming.
 
 ---
 
+### Scyther's Own Traffic
+
+Scyther sends a few requests of its own: the menu's IP address lookup, and every request sent from
+the replay editor. Those requests are **logged like any other** — seeing what the toolkit does is
+useful — but no interception feature is allowed to touch them. They are never held at a
+breakpoint, never answered by a mock or a local file, never header-rewritten, and never slowed or
+failed by Request Overrides or by Network Conditioning, global or otherwise.
+
+That exemption is not a nicety. A breakpoint on `api.ipify.org` used to hold the menu's own IP
+lookup; the held-request editor was presented over the menu, which re-created the menu, which
+asked for the IP address again, which was held again — one modal per second, stacking without
+limit, over the one screen a developer could have used to switch the breakpoint off.
+
+A request is marked as Scyther's own with a `URLProtocol` property carrying a token minted once
+per process. The mark never reaches the wire, survives being copied and redirected, and cannot be
+forged by the host app's own traffic: knowing the key is not enough, and the token changes every
+launch.
+
+---
+
 ### Request Replay
 
 The request details page carries a **Replay this request** button. It opens an editor pre-filled
@@ -896,10 +917,11 @@ traffic the app makes is. That has two consequences worth stating plainly:
 
 - **A replay is its own entry in the log**, marked with a teal `REPLAY` badge — the same treatment
   the pink `MOCKED` badge gets, in the one other colour nothing in the log competes for.
-- **Enabled overrides apply to a replay**, because nothing about it is special-cased. Replay a
-  request that a mock matches and you get the mock, with both badges on the row. The editor says
-  so in a footer, so a developer comparing a replay against an original knows whether they are
-  looking at the network or at their own override.
+- **No override, breakpoint or conditioning applies to a replay.** A replay is a request Scyther
+  itself composes and sends, so it is exempt from Scyther's own interception features — see
+  [Scyther's own traffic](#scythers-own-traffic). What the developer asked for is this request, as
+  edited, against the server; a mock answering it would have made the comparison against the
+  original a comparison against a mock, silently. The editor says so in a footer.
 
 A request whose response an override synthesised has no **Replay this request** button: the
 override would simply synthesise the same response again.

@@ -36,6 +36,8 @@ internal let replayOfRequestKey = "Scyther_Replay_Of_Request"
 /// - HTTP redirect support
 /// - Request filtering based on URL patterns
 /// - Automatic prevention of infinite logging loops
+/// - Scyther's own requests logged but exempt from every interception feature, so the toolkit
+///   never instruments itself — see ``ScytherOriginatedRequest``
 ///
 /// - Note: This protocol is automatically registered by `NetworkHelper.start()`.
 open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
@@ -181,6 +183,18 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
     ///   reads it.
     internal var hasStartedTask: Bool {
         stateLock.withLock { didStartTask }
+    }
+
+    /// Whether this exchange is one Scyther itself started, and so is exempt from every
+    /// interception feature while still being logged.
+    ///
+    /// Computed rather than stored, because the answer lives on the immutable `request` this
+    /// instance was created with and is therefore the same on every thread that asks — no lock,
+    /// no initialisation order to get wrong, and no chance of a stored copy drifting from the
+    /// request it describes. See ``ScytherOriginatedRequest`` for what the mark is and why it is
+    /// not a header.
+    internal var isScytherOriginated: Bool {
+        ScytherOriginatedRequest.identifies(request)
     }
 
     /// Whether this response is paced to a bandwidth ceiling.
@@ -370,15 +384,22 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
 
         /// Resolve any rules that apply to this request. The snapshot is lock-guarded because
         /// this method runs on a thread owned by the URL loading system.
+        ///
+        /// Scyther's own traffic resolves to nothing at all — see ``isScytherOriginated`` — so it
+        /// is never stubbed and never rewritten, while still reaching ``model`` and therefore the
+        /// log.
         let snapshot = NetworkRuleSnapshot.current
-        let outcome = snapshot.isEnabled
+        let outcome = (snapshot.isEnabled && !isScytherOriginated)
             ? NetworkRuleEngine.outcome(for: request, rules: snapshot.rules)
             : .empty
 
         /// Global conditioning is a floor, not an addition: a matching override's own condition
         /// replaces it outright, so conditioning one endpoint still beats whatever the whole app
         /// is set to. Adding the two would make a targeted "fast path" impossible to express.
-        let condition = outcome.condition ?? snapshot.globalCondition
+        ///
+        /// The floor stops at Scyther's own requests. A developer who has switched the whole app
+        /// to a lossy 2G link has not asked for the menu's own IP lookup to fail with it.
+        let condition = isScytherOriginated ? nil : (outcome.condition ?? snapshot.globalCondition)
         self.condition = condition
 
         /// The global condition is credited on the request it shapes, exactly as an override's
@@ -509,6 +530,14 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
 
         URLProtocol.setProperty(true, forKey: internalNetworkRequestKey, in: mutableRequest)
 
+        /// `mutableCopy()` carries protocol properties across, so the marker is already here —
+        /// but re-stamping it costs a dictionary write and removes the whole question from the
+        /// list of things a future change to ``rewrittenRequest(applying:)`` could quietly break.
+        /// The cost of losing the marker is the toolkit instrumenting itself again.
+        if isScytherOriginated {
+            ScytherOriginatedRequest.mark(mutableRequest)
+        }
+
         let outgoing = mutableRequest as URLRequest
         let latency = min(condition?.latency ?? 0, Self.maximumDelay)
 
@@ -516,7 +545,12 @@ open class HTTPInterceptorURLProtocol: URLProtocol, @unchecked Sendable {
         /// configured because the developer edited a breakpoint in between. A stubbed request
         /// never reaches here: a stub answers the request itself, so there is nothing in flight
         /// for a breakpoint to hold.
-        let breakpointState = BreakpointSnapshot.current
+        ///
+        /// Scyther's own requests are never held, at either stage. Holding the menu's IP lookup
+        /// paused the very menu the developer would have used to switch the breakpoint off, and
+        /// presenting the editor over the menu re-ran the lookup, which was held in turn — one
+        /// modal per second, without limit.
+        let breakpointState = isScytherOriginated ? .empty : BreakpointSnapshot.current
         heldBreakpoint = breakpointState.breakpoint(matching: outgoing, stage: .response)
 
         if let held = breakpointState.breakpoint(matching: outgoing, stage: .request) {
@@ -1310,22 +1344,35 @@ extension HTTPInterceptorURLProtocol: URLSessionDataDelegate {
         stateLock.withLock { session }?.finishTasksAndInvalidate()
     }
 
-    /// Follows a redirect, stripping the two markers that must not travel with it.
+    /// Follows a redirect, stripping the two markers that must not travel with it and re-applying
+    /// the one that must.
     ///
     /// The internal marker comes off so the redirect is intercepted and logged like any other
     /// request rather than slipping past unlogged. The replay marker comes off for the mirror
     /// reason: the entry a redirect produces is a request in its own right, and leaving the
     /// provenance on it would list the same original's Replays section twice over for what was
     /// one resend.
+    ///
+    /// ``ScytherOriginatedRequest``'s marker goes the other way and is stamped **on**. The
+    /// redirect of a request Scyther made is still a request Scyther made, and the whole point of
+    /// stripping the internal marker is that the redirect is re-examined from scratch — so
+    /// without this a `301` on Scyther's own endpoint would land the follow-up in front of every
+    /// breakpoint and override the original was exempt from. It is set explicitly rather than
+    /// relied upon to survive, because the request handed to this delegate method is one the URL
+    /// loading system built, not one Scyther copied.
     public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
         let carriesInternalMarker = URLProtocol.property(forKey: internalNetworkRequestKey, in: request) != nil
         let carriesReplayMarker = URLProtocol.property(forKey: replayOfRequestKey, in: request) != nil
+        let isOriginatedByScyther = isScytherOriginated
 
         let updatedRequest: URLRequest
-        if carriesInternalMarker || carriesReplayMarker {
+        if carriesInternalMarker || carriesReplayMarker || isOriginatedByScyther {
             let mutableRequest = (request as NSURLRequest).mutableCopy() as! NSMutableURLRequest
             URLProtocol.removeProperty(forKey: internalNetworkRequestKey, in: mutableRequest)
             URLProtocol.removeProperty(forKey: replayOfRequestKey, in: mutableRequest)
+            if isOriginatedByScyther {
+                ScytherOriginatedRequest.mark(mutableRequest)
+            }
 
             updatedRequest = mutableRequest as URLRequest
         } else {

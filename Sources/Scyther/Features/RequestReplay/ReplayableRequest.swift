@@ -172,6 +172,13 @@ struct ReplayableRequest: Equatable, Sendable {
     /// Duplicated header names are added rather than set, so two `Accept` rows travel as the one
     /// comma-joined field HTTP defines rather than one of them silently winning.
     ///
+    /// The request is also marked as Scyther's own — see ``ScytherOriginatedRequest``. A replay is
+    /// composed and sent by the toolkit, not by the app, and what the developer asked for is *this
+    /// request, as edited, against the server*. A mock answering it would have made the editor's
+    /// comparison against the original a comparison against a stub, silently; a breakpoint holding
+    /// it would have stalled the editor that sent it; a rewrite would have put back a header the
+    /// developer had just deleted. It is still logged, so it still lands beside the original.
+    ///
     /// - Parameter originalID: The original's `getRandomHash()` value.
     /// - Returns: The request, or `nil` when `url` does not parse into an absolute HTTP URL.
     func makeURLRequest(replayOf originalID: String) -> URLRequest? {
@@ -185,6 +192,7 @@ struct ReplayableRequest: Equatable, Sendable {
         }
         mutable.httpBody = body
         URLProtocol.setProperty(originalID, forKey: replayOfRequestKey, in: mutable)
+        ScytherOriginatedRequest.mark(mutable)
         return mutable as URLRequest
     }
 
