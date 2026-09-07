@@ -6,6 +6,7 @@
 //
 
 import Combine
+import CoreGraphics
 import Foundation
 
 /// Drives ``WaterfallView``, the full-log waterfall.
@@ -55,13 +56,6 @@ final class WaterfallViewModel: ViewModel {
         /// The capture the bar was drawn from, which is what tapping the row opens.
         let request: HTTPRequest
 
-        /// Whether this row closes the card, and so rounds its bottom corners.
-        ///
-        /// Stamped here rather than worked out in the view by comparing against the last row's
-        /// id. Two rows can only share an id if the same capture is in the log twice, but when
-        /// that happens the comparison rounds a row in the middle of the card and the card
-        /// visibly breaks. A position is unambiguous where an identity is not.
-        let isLast: Bool
     }
 
     /// A laid-out log: the shared axis, the rows on it, and what the two describe.
@@ -83,8 +77,22 @@ final class WaterfallViewModel: ViewModel {
         /// How many requests the log held, unfiltered, when they were laid out.
         let total: Int
 
+        /// The median measured duration in the series, in seconds, or `nil` when nothing in it
+        /// finished.
+        ///
+        /// Cached with the rows rather than derived on demand. The page rebuilds its
+        /// ``WaterfallTimeScale`` whenever its geometry changes, and a `LazyVStack` asks for
+        /// geometry constantly; sorting a thousand durations on every one of those passes is the
+        /// cost this whole view model exists to avoid.
+        let medianDuration: Double?
+
+        /// The ``WaterfallTimeScale/tailPercentile`` measured duration, in seconds, or `nil` as
+        /// above. Cached for the same reason.
+        let tailDuration: Double?
+
         /// Nothing laid out.
-        static let empty = Layout(series: .empty, rows: [], count: 0, total: 0)
+        static let empty = Layout(series: .empty, rows: [], count: 0, total: 0,
+                                  medianDuration: nil, tailDuration: nil)
     }
 
     /// The laid-out log the page is drawing.
@@ -216,25 +224,32 @@ final class WaterfallViewModel: ViewModel {
         now: Date = Date()
     ) -> Layout {
         guard !requests.isEmpty else {
-            return Layout(series: .empty, rows: [], count: 0, total: totalCount)
+            return Layout(series: .empty, rows: [], count: 0, total: totalCount,
+                          medianDuration: nil, tailDuration: nil)
         }
         let series = WaterfallSeries.build(from: requests, limit: requests.count, now: now)
         var byHash = [String: HTTPRequest](minimumCapacity: requests.count)
         for request in requests {
             byHash[request.getRandomHash() as String] = request
         }
-        let lastIndex = series.entries.count - 1
         let rows = series.entries.enumerated().compactMap { index, entry -> Row? in
             guard let request = byHash[entry.id] else { return nil }
             return Row(
                 id: entry.id,
                 label: "\(index + 1). \(entry.label)",
                 entry: entry,
-                request: request,
-                isLast: index == lastIndex
+                request: request
             )
         }
-        return Layout(series: series, rows: rows, count: requests.count, total: totalCount)
+        let durations = WaterfallTimeScale.measuredDurations(of: series)
+        return Layout(
+            series: series,
+            rows: rows,
+            count: requests.count,
+            total: totalCount,
+            medianDuration: WaterfallTimeScale.percentile(0.5, of: durations),
+            tailDuration: WaterfallTimeScale.percentile(WaterfallTimeScale.tailPercentile, of: durations)
+        )
     }
 
     // MARK: - Presentation
@@ -254,8 +269,24 @@ final class WaterfallViewModel: ViewModel {
     /// The far end of the shared seconds axis.
     ///
     /// Computed by ``WaterfallChartStyle/upperBound(forSpan:)`` rather than by a rule of its own,
-    /// so the same request is the same length on this page and in the preview section.
+    /// so both surfaces stop their axis in the same place.
     var upperBound: Double { WaterfallChartStyle.upperBound(forSpan: layout.series.span) }
+
+    /// How many points a second is worth, for a page with the given room to draw in.
+    ///
+    /// The page asks for this on every geometry pass, so it has to be cheap: the two percentiles
+    /// the rule needs were computed once, with the rows, and this is arithmetic on them.
+    ///
+    /// - Parameter visibleWidth: How much of the timeline shows at once, in points.
+    /// - Returns: The scale the page draws at.
+    func scale(visibleWidth: CGFloat) -> WaterfallTimeScale {
+        WaterfallTimeScale.make(
+            medianDuration: layout.medianDuration,
+            tailDuration: layout.tailDuration,
+            span: layout.series.span,
+            visibleWidth: visibleWidth
+        )
+    }
 
     /// The sentence under the bars saying what the page is showing.
     ///

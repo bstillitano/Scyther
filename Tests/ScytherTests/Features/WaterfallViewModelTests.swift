@@ -185,32 +185,47 @@ final class WaterfallViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.caption.contains("Every request"))
     }
 
-    // MARK: - The card
+    // MARK: - The scale
 
-    /// Exactly one row closes the card, and it is the last one.
-    func testOnlyTheLastRowClosesTheCard() async {
+    /// The page rebuilds its scale on every geometry pass, so the two percentiles the rule needs
+    /// are computed once with the rows and cached. This pins them to the series they describe —
+    /// a cache that drifted would draw the log at a scale derived from a different log.
+    func testTheCachedPercentilesDescribeTheSeriesTheRowsWereLaidOutOn() async {
+        let durations: [Float] = [32, 90, 250, 700, 1_400]
         let viewModel = WaterfallViewModel(
-            requests: (0..<4).map { request(startedAt: origin.addingTimeInterval(Double($0))) },
-            totalCount: 4
+            requests: durations.enumerated().map { index, duration in
+                request(startedAt: origin.addingTimeInterval(Double(index)), duration: duration)
+            },
+            totalCount: durations.count
         )
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.rows.filter(\.isLast).count, 1)
-        XCTAssertTrue(viewModel.rows.last?.isLast == true)
+        let measured = WaterfallTimeScale.measuredDurations(of: viewModel.series)
+        XCTAssertEqual(viewModel.layout.medianDuration,
+                       WaterfallTimeScale.percentile(0.5, of: measured))
+        XCTAssertEqual(viewModel.layout.tailDuration,
+                       WaterfallTimeScale.percentile(WaterfallTimeScale.tailPercentile, of: measured))
     }
 
-    /// The card's bottom edge is decided by position, not by identity. Comparing against the last
-    /// row's id rounded a row in the middle of the card whenever one capture was in the log twice.
-    func testTheCardsBottomEdgeSurvivesOneCaptureAppearingTwice() async {
-        // The duplicate has to be the newest capture, which is where the id comparison broke:
-        // the second-to-last row then shares the last row's id and rounds its corners too.
-        let twice = request(startedAt: origin.addingTimeInterval(1))
+    /// Building the scale from the cache has to give the same chart as building it from the
+    /// series, or the page draws at a scale its own tests never see.
+    func testTheCachedScaleMatchesOneBuiltStraightFromTheSeries() async {
         let viewModel = WaterfallViewModel(
-            requests: [request(startedAt: origin), twice, twice],
-            totalCount: 3
+            requests: (0..<12).map {
+                request(startedAt: origin.addingTimeInterval(Double($0) * 10),
+                        duration: Float(30 + $0 * 120))
+            },
+            totalCount: 12
         )
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.rows.filter(\.isLast).count, 1,
-                       "a duplicated capture must not round a row in the middle of the card")
+        XCTAssertEqual(viewModel.scale(visibleWidth: 190),
+                       WaterfallTimeScale.make(for: viewModel.series, visibleWidth: 190))
+    }
+
+    /// An empty log still has a scale, because the page asks for one before it knows whether it
+    /// has anything to draw.
+    func testAnEmptyLogStillHasAScale() {
+        let viewModel = WaterfallViewModel(requests: [], totalCount: 0)
+        XCTAssertGreaterThan(viewModel.scale(visibleWidth: 190).pointsPerSecond, 0)
     }
 
     // MARK: - Snapshots

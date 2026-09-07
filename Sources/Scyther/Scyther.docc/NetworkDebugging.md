@@ -130,21 +130,41 @@ as long as it actually ran, in red, not as one still running.
 The section itself is a preview of the seven most recent requests, at a fixed row height, so it
 reads at a glance; its caption says as much and points at the page holding the rest.
 
-**See all**, in the waterfall's section header, opens the same chart over every request the log is
-showing. The rows are lazy, run oldest first so time reads downward, and each keeps the same fixed
-height — a hundred requests are a hundred readable rows to scroll, not a hundred hairlines divided
-across one screen, which is the whole reason the page exists. The seconds ruler and the legend are
-pinned to the top so the axis never scrolls out of reach, and tapping a bar opens that request's
+**See all**, in the waterfall's section header, opens the same session over every request the log
+is showing, and scrolls in both directions. The rows are lazy, run oldest first so time reads
+downward, and each keeps the same fixed height — a hundred requests are a hundred readable rows to
+scroll, not a hundred hairlines divided across one screen. Tapping a bar opens that request's
 details. One axis covers the whole log, so overlap means the same thing on both surfaces.
+
+The page's horizontal scale is the point of it. Fitting the whole session into one screen width is
+a statement about the phone rather than about the traffic: against a three hundred second log of
+requests between thirty-two milliseconds and one and a half seconds it gave every bar less than a
+point of ink, floored them all to the one point minimum, and drew the fastest and the slowest
+request identically. `WaterfallTimeScale` replaces that with a scale derived from the durations
+present — the median request drawn at twenty-four points, the fastest tenth kept at least three,
+whichever demands more, clamped so the timeline neither shrinks below the visible plot nor grows
+past fifty thousand points. The same log then draws at about ninety-six points per second, where a
+32 ms request is three points and a 1.4 s request is a hundred and thirty-four.
+
+While the timeline scrolls sideways the request names stay frozen at the leading edge and the
+seconds ruler stays pinned to the top, travelling horizontally in step with the bars. Both are
+structural rather than synced: the ruler is a pinned section header inside the same scroll view as
+the bars, and the frozen column counter-offsets itself inside its own layout pass, so neither can
+arrive a frame behind the thing it labels.
 
 Both surfaces are handed the log's *filtered* requests, and the page's caption names which it is
 — `Every request in the log…`, or `21 of 340 requests…` under a filter.
 
-A bar too narrow to see is drawn one point wide so that it can be found. That floor is a minimum
-rendered *width*, not a minimum duration: it adds at most one point of ink however long the session
-ran, and the bar's label still reports the real measurement. The preview draws every bar at its
-true length instead, because Charts sizes that chart's leading axis and the section therefore
-cannot say how many seconds a point is worth.
+The preview keeps its appearance. It is a seven-row summary that fits by design, and the scale and
+the scrolling belong to the page alone; the two still share their colours, outcome names, row
+height, bar thickness and duration labels through `WaterfallChartStyle`.
+
+A bar too narrow to see is still drawn one point wide so that it can be found. That floor is a
+minimum rendered *width*, not a minimum duration: it adds at most one point of ink however long the
+session ran, and the bar's label still reports the real measurement. It matters far less than it
+did — at a scale derived from the durations present, almost nothing reaches it. The preview draws
+every bar at its true length instead, because Charts sizes that chart's leading axis and the
+section therefore cannot say how many seconds a point is worth.
 
 **Slowest Endpoints** groups by `METHOD host/path`, dropping the query string and collapsing any
 numeric or UUID path segment to `:id`, so `/users/1` and `/users/2` aggregate. A GraphQL operation
