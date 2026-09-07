@@ -51,6 +51,7 @@ import SwiftUI
 ///
 /// ### Actions
 /// - ``turnEverythingOff()``
+/// - ``showingRelaunchAlert``
 class PseudoLocalizationViewModel: ViewModel {
     /// Whether letters are replaced with accented look-alikes.
     @Published var accented: Bool = false {
@@ -68,13 +69,26 @@ class PseudoLocalizationViewModel: ViewModel {
         }
     }
 
-    /// Whether the interface is forced into right-to-left layout.
+    /// Whether the app is forced into right-to-left layout on its next launch.
     @Published var rightToLeft: Bool = false {
         didSet {
             guard !isLoading else { return }
             PseudoLocalization.instance.rightToLeft = rightToLeft
+            showingRelaunchAlert = true
         }
     }
+
+    /// Whether the "Relaunch required" alert is presented.
+    ///
+    /// The same alert ``LanguageViewModel`` raises, for the same reason: a setting that iOS reads
+    /// once, while the process is starting, cannot show its effect in the session that changes it.
+    ///
+    /// Raised in **both** directions, unlike the language page's, which only raises it when a
+    /// language is chosen. Switching right-to-left off is just as invisible as switching it on —
+    /// the two keys are removed immediately and the running process goes on laying itself out the
+    /// way it launched — and a developer who switches it off and sees nothing happen has exactly
+    /// the confusion the alert exists to prevent.
+    @Published var showingRelaunchAlert: Bool = false
 
     /// Whether catalog keys are rendered in place of their translations.
     @Published var showsKeys: Bool = false {
@@ -161,8 +175,14 @@ class PseudoLocalizationViewModel: ViewModel {
     /// ``showsBoundaries`` goes back to `true` here, not `false`, because it mirrors what
     /// ``PseudoLocalization/reset()`` has just written: the button restores the shipped state, and
     /// the shipped state for the brackets is on.
+    ///
+    /// Raises the relaunch alert when right-to-left was on, since this is the other way to switch
+    /// it off — and the way most likely to be reached by someone trying to put things back. The
+    /// keys are already gone by then; what has not happened, and cannot until a relaunch, is the
+    /// app laying itself out left to right again.
     @MainActor
     func turnEverythingOff() {
+        let wasMirrored = rightToLeft
         PseudoLocalization.instance.reset()
         isLoading = true
         accented = false
@@ -171,5 +191,6 @@ class PseudoLocalizationViewModel: ViewModel {
         showsKeys = false
         showsBoundaries = true
         isLoading = false
+        if wasMirrored { showingRelaunchAlert = true }
     }
 }

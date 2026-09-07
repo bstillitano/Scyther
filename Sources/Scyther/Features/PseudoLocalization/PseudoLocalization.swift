@@ -17,8 +17,8 @@ import UIKit
 ///   plain ASCII was never localised.
 /// - ``lengthened`` pads strings to roughly 135%, the expansion German and Finnish bring, so
 ///   clipping and truncation appear before a translator's work does.
-/// - ``rightToLeft`` forces RTL layout in Scyther's own interface, which catches hard-coded
-///   leading/trailing assumptions in it.
+/// - ``rightToLeft`` forces RTL layout across the whole app from its next launch, which catches
+///   hard-coded leading/trailing assumptions.
 /// - ``showsKeys`` renders the catalog key instead of its translation.
 ///
 /// A fifth switch, ``showsBoundaries``, is a setting *about* those rather than a fifth peer of
@@ -43,10 +43,11 @@ import UIKit
 /// So on a UIKit or `NSLocalizedString`-based app the text modes apply broadly; on a SwiftUI app
 /// using `Text("…")` they apply to Scyther's own interface and nothing else.
 /// ``rightToLeft`` has a different shape rather than a different limit. It changes no text, so it
-/// does not care how the host loads its copy at all: Scyther's own interface mirrors immediately,
-/// in both directions, and the host app mirrors on its **next launch** — UIKit and SwiftUI alike,
-/// since the mechanism is the pair of defaults keys iOS resolves at launch rather than anything
-/// applied to a view. See ``PseudoLocalizationLayout``.
+/// does not care how the host loads its copy at all — and it is a **next-launch** setting on every
+/// surface, Scyther's own menu included, because the mechanism is a pair of defaults keys iOS
+/// resolves while the process starts rather than anything applied to a view. Nothing changes in the
+/// session where the switch moves, in either direction, which is why the toggle raises a relaunch
+/// alert. See ``PseudoLocalizationLayout``.
 ///
 /// ```swift
 /// PseudoLocalization.instance.accented = true
@@ -74,9 +75,6 @@ import UIKit
 /// - ``resolvedModes(stored:isAppStore:)``
 /// - ``canAffectHostApp(isTestCase:isAppStore:)``
 ///
-/// ### Notifications
-/// - ``ModesChangedNotification``
-///
 /// ### UserDefaults Keys
 /// - ``AccentedDefaultsKey``
 /// - ``LengthenedDefaultsKey``
@@ -86,21 +84,6 @@ import UIKit
 @MainActor
 internal final class PseudoLocalization: @unchecked Sendable {
     // MARK: - Static Data (nonisolated for cross-thread access)
-
-    /// Posted on the main actor whenever the switches change, so SwiftUI views that are already on
-    /// screen can re-render.
-    ///
-    /// Needed only by ``PseudoLocalizationMode/rightToLeft``, and only because SwiftUI takes its
-    /// layout direction from the environment: ``MenuView`` installs that value, and without a
-    /// signal it would go on installing the old one until something else happened to invalidate
-    /// it — which, for a menu the developer is looking at while flicking the switch, is never. The
-    /// text modes need nothing like this, because every string is re-resolved through
-    /// ``localized(_:comment:)`` on the next render anyway.
-    ///
-    /// A notification rather than `ObservableObject`, matching ``InterfaceToolkit``'s existing
-    /// change notifications, so this type stays a plain settings singleton readable from any
-    /// thread rather than acquiring a publisher and an isolation story to go with it.
-    nonisolated static let ModesChangedNotification = NSNotification.Name("Scyther.PseudoLocalization.ModesChanged")
 
     /// UserDefaults key for storing whether accented glyphs are substituted.
     nonisolated static let AccentedDefaultsKey: String = "Scyther_pseudo_localization_accented"
@@ -305,8 +288,8 @@ internal final class PseudoLocalization: @unchecked Sendable {
 
     // MARK: - Effects
 
-    /// Brings the host-app hook, the host app's launch-time layout direction, and the views
-    /// watching for a change, into line with the switches.
+    /// Brings the host-app hook and the host app's launch-time layout direction into line with the
+    /// switches.
     ///
     /// Called from every setter rather than from the settings screen so the effects can never
     /// drift from what is persisted — including on the path that matters most, ``reset()``, whose
@@ -322,7 +305,13 @@ internal final class PseudoLocalization: @unchecked Sendable {
     }
 
     /// Puts the host-app hook and the host app's forced layout direction into the state the
-    /// *current* settings call for, and tells the views on screen that the modes have moved.
+    /// *current* settings call for.
+    ///
+    /// Nothing is announced to views on screen any more, and nothing needs to be. This used to
+    /// post a notification so ``MenuView`` could re-install its layout direction the moment
+    /// right-to-left was switched — the last mid-session effect this feature had, and the source
+    /// of the corruption ``PseudoLocalizationLayout`` records. The text modes never needed it:
+    /// every string is re-resolved through ``localized(_:comment:)`` on the next render anyway.
     ///
     /// The mode set is read here, on the main actor, rather than snapshotted by ``synchronise()``
     /// before it hops. That is the whole point of the split. The hops are unstructured `Task`s and
@@ -353,7 +342,6 @@ internal final class PseudoLocalization: @unchecked Sendable {
             isTestCase: isTestCase,
             isAppStore: isAppStore
         )
-        NotificationCenter.default.post(name: Self.ModesChangedNotification, object: nil)
     }
 
     /// Re-applies the persisted state at launch, so a session picks up where the last one left off.

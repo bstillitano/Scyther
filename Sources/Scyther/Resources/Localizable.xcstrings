@@ -32507,79 +32507,79 @@
         }
       }
     },
-    "Mirrors Scyther's interface now, and your whole app — UIKit and SwiftUI — on its next launch. Switching it off restores your app on the launch after that.": {
+    "Mirrors the whole app on its next launch, to find hard-coded leading and trailing edges.": {
       "comment": "Subtitle for the Right to Left switch",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "يعكس واجهة Scyther فورًا، وتطبيقك بالكامل — UIKit وSwiftUI معًا — عند التشغيل التالي. وإيقافه يعيد تطبيقك إلى حالته عند التشغيل الذي يليه."
+            "value": "يعكس التطبيق بالكامل عند التشغيل التالي، لاكتشاف الحواف اليمنى واليسرى المكتوبة بشكل ثابت."
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Spiegelt Scythers Oberfläche sofort und deine gesamte App – UIKit wie SwiftUI – beim nächsten Start. Ausschalten stellt deine App beim übernächsten Start wieder her."
+            "value": "Spiegelt die gesamte App beim nächsten Start, um fest verdrahtete linke und rechte Kanten zu finden."
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Refleja la interfaz de Scyther al instante y toda tu app —UIKit y SwiftUI— en el próximo inicio. Desactivarlo la restaura en el inicio siguiente."
+            "value": "Refleja toda la app en el próximo inicio, para detectar bordes izquierdo y derecho fijados en el código."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Reflète l’interface de Scyther immédiatement, et toute votre app — UIKit comme SwiftUI — au prochain lancement. La désactiver rétablit votre app au lancement suivant."
+            "value": "Reflète toute l’app au prochain lancement, pour repérer les bords gauche et droit codés en dur."
           }
         },
         "it": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Riflette subito l’interfaccia di Scyther e tutta la tua app — UIKit e SwiftUI — al prossimo avvio. Disattivandolo, la tua app torna normale all’avvio successivo."
+            "value": "Riflette tutta l’app al prossimo avvio, per trovare bordi sinistro e destro scritti a mano."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Scyther のインターフェイスはすぐに、アプリ全体（UIKit と SwiftUI の両方）は次回起動時にミラーリングされます。オフにすると、その次の起動でアプリは元に戻ります。"
+            "value": "次回起動時にアプリ全体をミラーリングし、左右の端を直書きしている箇所を見つけます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Scyther의 인터페이스는 즉시, 앱 전체(UIKit과 SwiftUI 모두)는 다음 실행 때 미러링됩니다. 끄면 그다음 실행에서 앱이 원래대로 돌아갑니다."
+            "value": "다음 실행 때 앱 전체를 미러링해 하드코딩된 좌우 가장자리를 찾습니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Spiegelt Scythers interface meteen en je hele app — UIKit én SwiftUI — bij de volgende start. Uitzetten herstelt je app bij de start daarna."
+            "value": "Spiegelt de hele app bij de volgende start, om hardgecodeerde linker- en rechterranden te vinden."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Espelha a interface do Scyther na hora e todo o seu app — UIKit e SwiftUI — na próxima inicialização. Desativar restaura o app na inicialização seguinte."
+            "value": "Espelha o app inteiro na próxima inicialização, para achar bordas esquerda e direita fixas no código."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Зеркалит интерфейс Scyther сразу, а всё ваше приложение — и UIKit, и SwiftUI — при следующем запуске. Выключение возвращает приложение при следующем после этого запуске."
+            "value": "Зеркалит всё приложение при следующем запуске, чтобы найти жёстко заданные левый и правый края."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "立即镜像 Scyther 的界面，并在下次启动时镜像你的整个 App（UIKit 与 SwiftUI 均可）。关闭后，App 会在再下次启动时恢复。"
+            "value": "在下次启动时镜像整个 App，用于发现硬编码的左右边距。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "立即鏡像 Scyther 的介面，並在下次啟動時鏡像你的整個 App（UIKit 與 SwiftUI 皆可）。關閉後，App 會在再下次啟動時恢復。"
+            "value": "在下次啟動時鏡像整個 App，用於發現硬編碼的左右邊界。"
           }
         }
       }
@@ -48462,6 +48462,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "從右到左"
+          }
+        }
+      }
+    },
+    "Right to Left applies the next time the app launches — your app and Scyther's menu, UIKit and SwiftUI alike. Switching it off restores everything on the launch after that.": {
+      "comment": "Message in the Relaunch required alert raised by the Right to Left switch",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "يُطبَّق وضع «من اليمين إلى اليسار» عند التشغيل التالي للتطبيق — تطبيقك وقائمة Scyther معًا، في UIKit وSwiftUI. وإيقافه يعيد كل شيء عند التشغيل الذي يليه."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rechts-nach-links gilt ab dem nächsten Start der App – deine App wie auch Scythers Menü, UIKit wie SwiftUI. Ausschalten stellt beim übernächsten Start alles wieder her."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "De derecha a izquierda se aplica en el próximo inicio de la app: tu app y el menú de Scyther, tanto UIKit como SwiftUI. Desactivarlo lo restaura todo en el inicio siguiente."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Le mode Droite à gauche s’applique au prochain lancement de l’app — votre app comme le menu de Scyther, UIKit comme SwiftUI. Le désactiver rétablit tout au lancement suivant."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Da destra a sinistra si applica al prossimo avvio dell’app — la tua app e il menu di Scyther, sia UIKit sia SwiftUI. Disattivandolo, tutto torna normale all’avvio successivo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "右から左は次回のアプリ起動時に適用されます。あなたのアプリも Scyther のメニューも、UIKit と SwiftUI の両方が対象です。オフにすると、その次の起動ですべて元に戻ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "오른쪽에서 왼쪽 설정은 앱을 다음에 실행할 때 적용됩니다. 사용자의 앱과 Scyther 메뉴 모두, UIKit과 SwiftUI 모두에 적용됩니다. 끄면 그다음 실행에서 모두 원래대로 돌아갑니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rechts-naar-links geldt vanaf de volgende start van de app — je app én Scythers menu, UIKit én SwiftUI. Uitzetten herstelt alles bij de start daarna."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Da direita para a esquerda passa a valer na próxima inicialização do app — o seu app e o menu do Scyther, em UIKit e SwiftUI. Desativar restaura tudo na inicialização seguinte."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Режим «справа налево» применится при следующем запуске приложения — и к вашему приложению, и к меню Scyther, в UIKit и SwiftUI. Выключение вернёт всё при следующем после этого запуске."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "从右到左将在 App 下次启动时生效——你的 App 和 Scyther 菜单都包括在内，UIKit 与 SwiftUI 均可。关闭后，一切会在再下次启动时恢复。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "從右到左將在 App 下次啟動時生效——你的 App 與 Scyther 選單都包括在內，UIKit 與 SwiftUI 皆可。關閉後，一切會在再下次啟動時恢復。"
           }
         }
       }

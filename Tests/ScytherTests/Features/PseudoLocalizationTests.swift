@@ -168,47 +168,5 @@ final class PseudoLocalizationTests: XCTestCase {
         XCTAssertFalse(PseudoLocalization.canAffectHostApp(isTestCase: false, isAppStore: true))
         XCTAssertFalse(PseudoLocalization.canAffectHostApp(isTestCase: true, isAppStore: true))
     }
-
-    // MARK: - Layout
-
-    func testForcingRightToLeftMirrorsAnEnglishInterface() {
-        XCTAssertEqual(
-            PseudoLocalizationLayout.layoutDirection(forcingRightToLeft: true, languageIdentifier: "en"),
-            .rightToLeft
-        )
-    }
-
-    func testAnEnglishInterfaceStaysLeftToRightWithTheModeOff() {
-        XCTAssertEqual(
-            PseudoLocalizationLayout.layoutDirection(forcingRightToLeft: false, languageIdentifier: "en"),
-            .leftToRight
-        )
-    }
-
-    func testAnArabicInterfaceIsStillRightToLeftWithTheModeOff() {
-        XCTAssertEqual(
-            PseudoLocalizationLayout.layoutDirection(forcingRightToLeft: false, languageIdentifier: "ar"),
-            .rightToLeft
-        )
-    }
-
-    func testForcingRightToLeftDoesNotFightAnArabicInterface() {
-        XCTAssertEqual(
-            PseudoLocalizationLayout.layoutDirection(forcingRightToLeft: true, languageIdentifier: "ar"),
-            .rightToLeft
-        )
-    }
-
-    func testApplyingEffectsAnnouncesTheChangeSoViewsAlreadyOnScreenCanReRender() {
-        let announced = expectation(
-            forNotification: PseudoLocalization.ModesChangedNotification,
-            object: nil,
-            handler: nil
-        )
-        settings.rightToLeft = true
-        settings.applyEffects(isTestCase: true, isAppStore: true)
-
-        wait(for: [announced], timeout: 1)
-    }
 }
 #endif

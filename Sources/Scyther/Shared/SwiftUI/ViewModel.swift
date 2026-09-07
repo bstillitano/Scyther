@@ -192,4 +192,19 @@ class ViewModel: ObservableObject {
     func onSubsequentAppear() async {
 
     }
+
+    /// Terminates the process, so the host app comes back with a setting that only applies at
+    /// launch.
+    ///
+    /// The odd one out here — an action rather than a lifecycle hook — and it lives on the base
+    /// class because two pages need exactly the same one. ``LanguageViewModel`` needs it for
+    /// `AppLanguages`, and ``PseudoLocalizationViewModel`` for the two text-direction keys; both
+    /// raise a "Relaunch required" alert whose destructive button calls this. A second copy of
+    /// `exit(0)` would be a second thing to find, and the two features would drift.
+    ///
+    /// Only ever called from the destructive action of such an alert, after the developer has been
+    /// told what it does. Nothing calls it on their behalf.
+    func quitApp() {
+        exit(0)
+    }
 }

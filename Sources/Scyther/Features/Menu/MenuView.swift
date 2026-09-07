@@ -40,14 +40,6 @@ public struct MenuView: View {
     /// on the Language page rather than waiting for the next launch.
     @ObservedObject private var languageOverride = LanguageOverride.shared
 
-    /// Whether pseudo-localisation is currently forcing right-to-left layout.
-    ///
-    /// Held as state and refreshed from ``PseudoLocalization/ModesChangedNotification`` rather
-    /// than read inline, because the menu is on screen while the switch is flicked: SwiftUI has no
-    /// reason to re-evaluate this body unless something it observes changes, so an inline read
-    /// would go on returning the value from when the menu was opened.
-    @State private var forcesRightToLeft: Bool = PseudoLocalization.instance.rightToLeft
-
     public init() {}
 
     /// Whether the menu is showing search results instead of its sections.
@@ -85,12 +77,8 @@ public struct MenuView: View {
         .navigationTitle("Scyther") // scyther:unlocalised product name
         .interactiveDismissDisabled()
         .environment(\.locale, languageOverride.namingLocale)
-        .onReceive(NotificationCenter.default.publisher(for: PseudoLocalization.ModesChangedNotification)) { _ in
-            forcesRightToLeft = PseudoLocalization.instance.rightToLeft
-        }
-        .environment(\.layoutDirection, PseudoLocalizationLayout.layoutDirection(
-            forcingRightToLeft: forcesRightToLeft,
-            languageIdentifier: languageOverride.namingLocale.identifier
+        .environment(\.layoutDirection, LanguageOverride.layoutDirection(
+            forLanguage: languageOverride.namingLocale.identifier
         ))
     }
 

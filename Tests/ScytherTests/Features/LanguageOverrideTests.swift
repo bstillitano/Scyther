@@ -4,6 +4,7 @@
 //
 
 @testable import Scyther
+import SwiftUI
 import XCTest
 
 final class LanguageOverrideTests: XCTestCase {
@@ -158,5 +159,26 @@ final class LanguageOverrideTests: XCTestCase {
         XCTAssertEqual(override.nativeDisplayName(for: "fr"), "français")
         let simplified = override.displayName(for: "zh-Hans", in: Locale(identifier: "en"))
         XCTAssertTrue(simplified.contains("Chinese") && simplified.contains("Simplified"), simplified)
+    }
+
+    // MARK: - Layout direction
+
+    /// The menu's copy switches language immediately, so its layout has to follow in the same
+    /// session or the screen is half-translated in a different way.
+    func testAnArabicOverrideLaysScythersInterfaceOutRightToLeft() {
+        XCTAssertEqual(LanguageOverride.layoutDirection(forLanguage: "ar"), .rightToLeft)
+    }
+
+    func testAHebrewOverrideLaysScythersInterfaceOutRightToLeft() {
+        XCTAssertEqual(LanguageOverride.layoutDirection(forLanguage: "he"), .rightToLeft)
+    }
+
+    func testAnEnglishOverrideStaysLeftToRight() {
+        XCTAssertEqual(LanguageOverride.layoutDirection(forLanguage: "en"), .leftToRight)
+    }
+
+    func testARegionalIdentifierIsResolvedByItsLanguage() {
+        XCTAssertEqual(LanguageOverride.layoutDirection(forLanguage: "ar-EG"), .rightToLeft)
+        XCTAssertEqual(LanguageOverride.layoutDirection(forLanguage: "pt-BR"), .leftToRight)
     }
 }

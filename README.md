@@ -246,31 +246,30 @@ Scyther's own menu and nothing else. That is a demonstration of the idea against
 SwiftUI interface, not a test of your screens. On a UIKit or `NSLocalizedString`-based app it is a
 test of your screens.
 
-**Right to Left is a different mechanism with a different shape.** It changes no text, so it does
-not care how your copy is loaded — but layout direction cannot be forced onto views that already
-exist, so the two halves run on two timescales:
+**Right to Left is a different mechanism, and it is a next-launch setting.** It changes no text, so
+it does not care how your copy is loaded — and nothing at all happens in the session where you flick
+the switch:
 
-| Surface | When it mirrors | Checked on a simulator |
+| Surface | When it mirrors | Checked on a device |
 | --- | --- | --- |
-| The Pseudo-localisation page | Immediately, as you flick the switch | yes |
-| The rest of the Scyther menu, and every page reached from it | Immediately | yes |
-| Your app's UIKit views | On its next launch | not yet |
-| Your app's SwiftUI views | On its next launch | not yet |
+| Your app's UIKit views | On its next launch | yes |
+| Your app's SwiftUI views | On its next launch | yes |
+| The Scyther menu and every page in it | On its next launch | yes |
 
-Switching it **off** unwinds in the same shape: Scyther's own interface immediately, your app on
-its next launch.
+Switching it **off** unwinds the same way: everything comes back left-to-right on the launch after
+you switch it off. Both directions were checked on a device — relaunched with the keys present, and
+relaunched with them absent.
 
-The third column is there because this mode's reach has been claimed wrongly more than once. The
-rows marked "not yet" rest on the mechanism below being the same one Xcode's scheme option uses;
-they have not been observed here.
+Because nothing takes effect until then, the toggle raises the same **Relaunch required** alert the
+Language page raises, with **Later** and **Quit App**. This is exactly how Xcode's own **Right to
+Left Pseudolanguage** scheme option behaves.
 
-The asymmetry is stated on the toggle itself, not only here: *"Mirrors Scyther's interface now, and
-your whole app — UIKit and SwiftUI — on its next launch. Switching it off restores your app on the
-launch after that."*
+Earlier versions mirrored Scyther's own menu the moment the switch moved. That is deliberately gone:
+anything that changed mid-session disagreed with something that had not, and UIKit answers a
+disagreement by mirroring text that has already been laid out — which draws it backwards, `Fonts` as
+`stnoF`. Waiting for a relaunch is the price of never seeing that.
 
-**How each half works.** Scyther's own interface mirrors immediately because Scyther installs
-`\.layoutDirection` itself, in its own views, and can therefore change it whenever it likes. Your
-app mirrors at launch because Scyther writes `AppleTextDirection` and
+**How it works.** Scyther writes `AppleTextDirection` and
 `NSForceRightToLeftWritingDirection` into your standard `UserDefaults` — the two keys Xcode's own
 **Right to Left Pseudolanguage** scheme option passes on the command line, which iOS resolves
 before any view exists and which reach UIKit and SwiftUI alike. It is the same move the Language
@@ -319,11 +318,12 @@ defect the developer will spend an afternoon chasing in their own code.
 - The **text** of the Pseudo-localisation page and its menu row is never transformed, so the modes
   can always be switched off — there is a **Turn Everything Off** button, and a **Sample** row that
   shows what the modes do on the one page where they do not apply. Right to Left flips this page
-  along with the rest of Scyther's interface; the text stays legible, which is what the exemption
-  is for.
-- Right to Left mirrors Scyther's own interface immediately and your whole app on its next launch,
-  in both directions; see the table above. It writes two keys into your app's standard
-  `UserDefaults` to do it, and removes them when switched off.
+  along with the rest of the app after a relaunch; the text stays legible, which is what the
+  exemption is for.
+- Right to Left applies on the next launch and nothing changes before then, in either direction;
+  see the table above. It writes two keys into your app's standard `UserDefaults` to do it, and
+  removes them when switched off. The toggle raises a **Relaunch required** alert so this is never
+  a surprise.
 
 #### Adding or correcting a translation
 

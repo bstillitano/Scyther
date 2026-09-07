@@ -12,6 +12,11 @@ import SwiftUI
 /// Four stock `Toggle`s in one `Section`, a fifth in a section of its own, a live sample of the
 /// transformation, and a button that switches everything off.
 ///
+/// Right to Left raises the same **Relaunch required** alert ``LanguageView`` raises, reusing its
+/// title, its buttons and its ``ViewModel/quitApp()`` route so the two settings that only apply at
+/// launch behave identically. Only the message differs: the language page can say Scyther's menu
+/// has already switched, and this one cannot, because nothing changes here until a relaunch.
+///
 /// The fifth is separated deliberately. ``PseudoLocalizationMode/showsBoundaries`` is not a peer of
 /// the other four — it switches nothing on, it changes how one of them renders, and it is the only
 /// one that ships on — so listing it as a fifth equal would invite a developer to flick it looking
@@ -24,12 +29,10 @@ import SwiftUI
 /// exists so the page can still show what the modes do while remaining the one place they do not
 /// apply.
 ///
-/// The exemption covers *text* only. This page installs the forced layout direction on itself, the
-/// same way ``MenuView`` does, so it mirrors along with the rest of Scyther — deliberately, since
-/// plain English reads perfectly well mirrored and insulating this one screen would misrepresent
-/// what the mode does. Installing it here as well as on ``MenuView`` is not redundant: it is what
-/// makes the page the developer is looking at flip at the moment the switch moves, rather than
-/// whenever SwiftUI next happens to hand it a fresh environment.
+/// The exemption covers *text* only. Right to Left is a next-launch setting on every surface, so
+/// this page does not flip while the switch is being flicked — and after a relaunch with the mode
+/// on it is mirrored along with the rest of the app, deliberately, since plain English reads
+/// perfectly well mirrored and insulating one screen would misrepresent what the mode does.
 struct PseudoLocalizationView: View {
     /// The view model mirroring ``PseudoLocalization``'s switches.
     @StateObject private var viewModel = PseudoLocalizationViewModel()
@@ -52,7 +55,7 @@ struct PseudoLocalizationView: View {
                 Toggle(isOn: $viewModel.rightToLeft) {
                     label(
                         localizedChrome("Right to Left"),
-                        subtitle: localizedChrome("Mirrors Scyther's interface now, and your whole app — UIKit and SwiftUI — on its next launch. Switching it off restores your app on the launch after that.")
+                        subtitle: localizedChrome("Mirrors the whole app on its next launch, to find hard-coded leading and trailing edges.")
                     )
                 }
                 Toggle(isOn: $viewModel.showsKeys) {
@@ -103,10 +106,14 @@ struct PseudoLocalizationView: View {
             }
         }
         .navigationTitle(localizedChrome("Pseudo-localisation"))
-        .environment(\.layoutDirection, PseudoLocalizationLayout.layoutDirection(
-            forcingRightToLeft: viewModel.rightToLeft,
-            languageIdentifier: LanguageOverride.shared.namingLocale.identifier
-        ))
+        .alert(localizedChrome("Relaunch required"), isPresented: $viewModel.showingRelaunchAlert) {
+            Button(localizedChrome("Later"), role: .cancel) {}
+            Button(localizedChrome("Quit App"), role: .destructive) {
+                viewModel.quitApp()
+            }
+        } message: {
+            Text(localizedChrome("Right to Left applies the next time the app launches — your app and Scyther's menu, UIKit and SwiftUI alike. Switching it off restores everything on the launch after that."))
+        }
         .onFirstAppear {
             await viewModel.onFirstAppear()
         }
