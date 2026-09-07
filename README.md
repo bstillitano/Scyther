@@ -59,7 +59,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **cURL Export**: Generate cURL commands for any captured request
 - **Log Export**: Share the captured requests as a zip containing a HAR 1.2 file, raw bodies, and a cURL command per request, with best-effort redaction and a sensitivity warning
 - **Filter Chips**: Narrow the network log by method, status class, host, content type, API kind, GraphQL operation, duration, exact status code, or recency from glass chips pinned above the list, or edit every filter at once from the all-filters sheet
-- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall preview of the seven most recent requests on a shared axis, with a **See all** page covering the whole log through an overview strip and a zoomable, draggable window — pinch to zoom, drag the strip to move the window, an accessibility-adjustable action for VoiceOver and Switch Control — where each bar opens its request
+- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall overview strip compressing the whole log onto one shared axis — tap it to open **See all** centred on the moment touched, or use the header link to open it at the full span — where the same strip now carries a zoomable, draggable window over a detail list: pinch to zoom, drag the strip to move the window, an accessibility-adjustable action for VoiceOver and Switch Control — where each bar opens its request
 - **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests — combined on one override — from the menu or from code
 - **Save as Mock**: Turn any captured response into a disabled mock override in one tap, and import a HAR file as a whole set of them
 - **Request Replay**: Reopen any captured request in an editor, change its method, URL, headers or body, and send it again — the resent request is logged with a `REPLAY` badge and listed on the original with its status, duration and size deltas
@@ -701,49 +701,48 @@ instead.
 
 #### The waterfall
 
-One bar per request on a shared seconds axis: bars that overlap were in flight at the same time,
-and a staircase means the calls were serialised. Each bar is labelled with its duration and
-coloured by outcome — succeeded, failed, pending or stubbed. A request that has not come back yet
-runs to the end of the axis, which is the moment the chart was computed, because its real end is
-not known. A request that failed is drawn for as long as it actually ran, not as one still running.
+Every request is placed on a shared seconds axis, oldest first: entries that overlap were in
+flight at the same time, and a staircase means the calls were serialised. A request that has not
+come back yet runs to the end of the axis, which is the moment the series was built, because its
+real end is not known. A request that failed is drawn for as long as it actually ran, not as one
+still running.
 
-The section is a **preview**: it draws the seven most recent requests, at a fixed row height, so
-it reads at a glance. Its caption says so, and points at the rest.
+**The overview strip** is what both surfaces draw the whole log with: every request as a short
+line, positioned by when it happened and coloured by outcome — succeeded, failed, pending or
+stubbed — drawn with one `Canvas` pass rather than a view per request, so a thousand-request log
+costs the same as a ten-request one. A line too thin to see is still floored to one point wide so
+it can be found.
 
-**See all** opens the same session over the whole log — not scrolled, but seen through a **window**
-the reader zooms and drags. Fitting the whole session into one screen width, or scrolling a plot
-wide enough not to, are both a *scroll* answer to what is really a *zoom* problem: against a 300
-second log of requests between 32 ms and 1.4 s, either one either floors every bar to the same
-sliver or hands the reader a plot thousands of points wide to pan by hand.
+On the **Traffic Stats** section the strip *is* the waterfall now: it draws the whole log, not a
+handful of recent requests, and its caption states the count, the span and how many distinct hosts
+were touched. **Tapping the strip opens `See all` centred on the moment touched**; the header's
+`See all` link beside it opens at the full span instead.
 
-The page shows two things instead. An **overview strip** compresses the entire log into one short
-band and marks the current window on it; dragging the strip moves that window anywhere in the log
-in a single gesture — the strip only ever moves the window, it never opens a request. Underneath
-it, a **detail list** holds only the requests the window currently contains, each a tappable row
-at the same fixed height the preview uses, running oldest first so time reads downward. A
-**pinch** on the detail list narrows or widens the window, holding its centre still, down to the
-point at which the shortest measured request in the log would draw narrower than 24 points — past
-that there is nothing left to magnify, only more gap between bars, and both the pinch and the
-strip's adjustable action are disabled rather than left to silently do nothing.
-`.accessibilityAdjustableAction` on the strip puts the same zoom range behind VoiceOver's and
-Switch Control's adjustable gesture, and its accessibility value announces how many requests the
-window holds after every change, so reaching zoom never requires a pinch and never leaves a
-VoiceOver user guessing whether anything happened.
+**See all** shows the same strip, now also marking the current **window** — the reader zooms and
+drags this one. Fitting the whole session into one screen width, or scrolling a plot wide enough
+not to, are both a *scroll* answer to what is really a *zoom* problem: against a 300 second log of
+requests between 32 ms and 1.4 s, either one either floors every bar to the same sliver or hands
+the reader a plot thousands of points wide to pan by hand.
+
+Dragging the strip moves the window anywhere in the log in a single gesture — the strip only ever
+moves the window, it never opens a request. Underneath it, a **detail list** holds only the
+requests the window currently contains, each a tappable row labelled with its duration and
+coloured by outcome, running oldest first so time reads downward. A **pinch** on the detail list
+narrows or widens the window, holding its centre still, down to the point at which the shortest
+measured request in the log would draw narrower than 24 points — past that there is nothing left
+to magnify, only more gap between bars, and both the pinch and the strip's adjustable action are
+disabled rather than left to silently do nothing. `.accessibilityAdjustableAction` on the strip
+puts the same zoom range behind VoiceOver's and Switch Control's adjustable gesture, and its
+accessibility value announces how many requests the window holds after every change, so reaching
+zoom never requires a pinch and never leaves a VoiceOver user guessing whether anything happened.
 
 A request already running when the window opens, or one that outlives it, is drawn **clipped**
 flush to the window's edge rather than shrunk to fit — the clip reads as "continues", where a
-shrunk bar would read as a request shorter than it actually ran. Tapping a bar in the detail list
+shrunk bar would read as a request shorter than it actually ran. Tapping a row in the detail list
 opens that request's details.
 
 Both surfaces follow the log's search and filter chips, and the page's caption under the detail
 list names how many of the log's total requests the current window holds.
-
-A bar too narrow to see on the **preview** is still drawn one point wide so it can be found. That
-is a minimum *rendered width*, not a minimum duration, and the bar's label still reports the real
-measurement. The preview draws every bar at its true length otherwise — Charts sizes that chart's
-axis, so the section cannot know how many seconds a point is worth. The **preview keeps its
-appearance**: it is a seven-row summary that fits by design, and only the full page gets the window,
-the strip and the pinch.
 
 #### The breakdowns
 

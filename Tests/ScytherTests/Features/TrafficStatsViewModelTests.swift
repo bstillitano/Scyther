@@ -256,21 +256,48 @@ final class TrafficStatsViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.hostCount, 2, "two of the three requests share a host")
     }
 
-    /// The footer names the count, the span and the host count — not, any more, where the rest of
-    /// the log went, because none of it is hidden.
-    func testTheWaterfallCaptionNamesTheRequestCountAndHostCount() async {
-        let base = Date(timeIntervalSince1970: 3_000)
-        let requests = (0..<3).map { index -> HTTPRequest in
-            let host = index == 2 ? "api.example.org" : "api.example.com"
-            let model = request(duration: 100, url: "https://\(host)/v1/users")
+    /// Case must not multiply hosts: ``WaterfallSeries/shortHost(for:)`` already lowercases
+    /// before picking a label, and ``TrafficStatistics`` lowercases when it buckets hosts for
+    /// *By Host* — this count has to agree with both, or the footer would name a different
+    /// number of hosts than the section sitting right beneath it, for the very same log.
+    func testHostCountIsCaseInsensitive() async {
+        let base = Date(timeIntervalSince1970: 2_500)
+        let requests = [
+            request(duration: 100, url: "https://api.example.com/v1/users"),
+            request(duration: 100, url: "https://API.EXAMPLE.COM/v1/orders"),
+        ].enumerated().map { index, model -> HTTPRequest in
             model.requestDate = base.addingTimeInterval(Double(index))
             model.responseDate = base.addingTimeInterval(Double(index) + 0.1)
             return model
         }
-        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: 3)
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: requests.count)
         await viewModel.recompute()
-        XCTAssertTrue(viewModel.waterfallCaption.contains("3"), "names how many requests it covers")
-        XCTAssertTrue(viewModel.waterfallCaption.contains("2"), "and how many distinct hosts they touched")
+        XCTAssertEqual(viewModel.hostCount, 1, "the same host spelled two ways is still one host")
+    }
+
+    /// The footer names the count, the span and the host count — not, any more, where the rest of
+    /// the log went, because none of it is hidden. The fixture is sized so the three figures never
+    /// share a digit: five requests, spanning 500 ms, across three hosts — a caption built from
+    /// the wrong number of hosts (say, two, from a `hostCount` that failed to lowercase and split
+    /// a shared host into two) could not coincidentally still contain "3", the way it could have
+    /// against a fixture where the request count, the span and the host count overlapped.
+    func testTheWaterfallCaptionNamesTheRequestCountAndHostCount() async {
+        let base = Date(timeIntervalSince1970: 3_000)
+        let hosts = ["a.example.com", "a.example.com", "b.example.com", "b.example.com", "c.example.com"]
+        let requests = hosts.enumerated().map { index, host -> HTTPRequest in
+            let model = request(duration: 100, url: "https://\(host)/v1/users")
+            model.requestDate = base.addingTimeInterval(Double(index) * 0.1)
+            model.responseDate = base.addingTimeInterval(Double(index) * 0.1 + 0.1)
+            return model
+        }
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: requests.count)
+        await viewModel.recompute()
+        XCTAssertEqual(viewModel.hostCount, 3, "three distinct hosts, precondition for the assertion below")
+        XCTAssertTrue(viewModel.waterfallCaption.contains("5"), "names how many requests it covers")
+        XCTAssertTrue(
+            viewModel.waterfallCaption.contains("3"),
+            "and how many distinct hosts they touched — the request count (5) and the ~500 ms span share no digit with 3, so only the host count can put it in the caption"
+        )
     }
 
     // MARK: Bar semantics

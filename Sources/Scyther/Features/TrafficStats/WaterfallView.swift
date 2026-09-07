@@ -77,13 +77,18 @@ struct WaterfallView: View {
 
     /// Creates the page.
     ///
-    /// `openingTime` is applied to the freshly built view model before it is ever wrapped in
-    /// `@StateObject`, rather than as a side effect in `.onAppear`: the section that taps a moment
-    /// on its strip does not own this page's view model — see ``WaterfallViewModel`` — so the only
-    /// place left to hand that moment over is the one place this view already owns it, its own
-    /// initialiser. `WaterfallViewModel.init` lays the log out synchronously, so
-    /// ``WaterfallViewModel/open(centredOn:)`` already has a real span to centre a window in by
-    /// the time this runs.
+    /// `openingTime` is forwarded straight into
+    /// ``WaterfallViewModel/init(requests:totalCount:openingTime:)`` rather than applied here
+    /// afterwards, and that is not a stylistic choice: `_viewModel` is a `@StateObject`, whose
+    /// `wrappedValue` is an `@autoclosure` SwiftUI evaluates lazily, exactly once, only when the
+    /// view is actually inserted into the tree. Building the instance eagerly in this initialiser
+    /// and calling `open(centredOn:)` on it afterwards — which is what an earlier version of this
+    /// did — forces that autoclosure to run on *every* construction of a `WaterfallView` value,
+    /// which for the hidden link and the **See all** link together is twice per body evaluation of
+    /// the section that owns them, whether or not either page is ever pushed. The view model's own
+    /// initialiser already lays the whole log out synchronously — see ``WaterfallViewModel``'s own
+    /// documentation on why — so paying for that eagerly, twice, on a screen that merely offers the
+    /// page rather than shows it, is the cost `@StateObject` exists to defer.
     ///
     /// - Parameters:
     ///   - logs: The network log view model whose filtered requests are drawn.
@@ -93,14 +98,13 @@ struct WaterfallView: View {
     ///     all** link's default — leaves it at.
     init(logs: NetworkLogsViewModel, openingTime: TimeInterval? = nil) {
         self.logs = logs
-        let viewModel = WaterfallViewModel(
-            requests: logs.requests,
-            totalCount: logs.totalRequestCount
+        _viewModel = StateObject(
+            wrappedValue: WaterfallViewModel(
+                requests: logs.requests,
+                totalCount: logs.totalRequestCount,
+                openingTime: openingTime
+            )
         )
-        if let openingTime {
-            viewModel.open(centredOn: openingTime)
-        }
-        _viewModel = StateObject(wrappedValue: viewModel)
     }
 
     var body: some View {

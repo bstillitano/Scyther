@@ -205,7 +205,13 @@ final class TrafficStatsViewModel: ViewModel {
     /// twelve hosts is a paragraph. Empty hosts — an unparseable request URL, see
     /// ``WaterfallEntry/host`` — name nothing and are left out, or a log with a single real host
     /// and one malformed request would count as touching two.
-    var hostCount: Int { Set(waterfall.entries.map(\.host)).filter { !$0.isEmpty }.count }
+    ///
+    /// Lowercased before counting, matching ``WaterfallSeries/shortHost(for:)`` and
+    /// ``TrafficStatistics/HostBreakdown``'s own identity: without it, two requests to the same
+    /// host that merely differ in case — `API.example.com` and `api.example.com` — would count as
+    /// two distinct hosts here while *By Host* below groups them as one, and the footer would
+    /// disagree with the section it sits under.
+    var hostCount: Int { Set(waterfall.entries.map { $0.host.lowercased() }).filter { !$0.isEmpty }.count }
 
     /// The sentence under the strip explaining what it is showing.
     ///

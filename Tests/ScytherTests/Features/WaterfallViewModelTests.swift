@@ -116,6 +116,28 @@ final class WaterfallViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows.last?.entry.start ?? -1, 10, accuracy: 0.0001)
     }
 
+    /// The section on Traffic Stats and this page now feed the *same* `WaterfallOverviewStrip`
+    /// from series built by the same `WaterfallSeries.build` call over the same log — replacing
+    /// ``testTheAxisMatchesTheStatsChart``, which compared an axis neither surface still computes
+    /// now that the section's `Chart` is gone. That guarantee is stronger than the one it
+    /// replaces, not weaker, and it had nothing asserting it: a future change to either `build`
+    /// call site — the section's inside ``TrafficStatsViewModel/recompute()``, this page's inside
+    /// ``layout(of:totalCount:now:)`` — would silently draw the two screens' strips differently
+    /// with every other test still green. `WaterfallSeries` is `Equatable`, so the whole guarantee
+    /// is one assertion.
+    func testBothSurfacesBuildTheIdenticalSeriesFromTheSameLog() async {
+        let requests = [
+            request(startedAt: origin),
+            request(startedAt: origin.addingTimeInterval(2), path: "/v1/orders"),
+        ]
+        let page = WaterfallViewModel(requests: requests, totalCount: requests.count)
+        let stats = TrafficStatsViewModel(requests: requests, totalCount: requests.count)
+        await page.recompute()
+        await stats.recompute()
+        XCTAssertEqual(page.series, stats.waterfall,
+                       "the section's strip and the page's strip must draw the identical series")
+    }
+
     // MARK: - Following the log
 
     /// A request with no start date has nowhere to go on the axis, so it is dropped rather than
@@ -322,8 +344,8 @@ final class WaterfallViewModelTests: XCTestCase {
     /// `update(requests:totalCount:)`, but the type has no such initialiser — every call site,
     /// production included, builds it with `init(requests:totalCount:)`. That designated
     /// initialiser is used here instead; see the task report for the discrepancy.
-    private func makeModel(starts: [TimeInterval], duration: TimeInterval = 0.05)
-        -> WaterfallViewModel {
+    private func makeModel(starts: [TimeInterval], duration: TimeInterval = 0.05,
+                          openingTime: TimeInterval? = nil) -> WaterfallViewModel {
         let origin = Date(timeIntervalSince1970: 1_000)
         let requests: [HTTPRequest] = starts.map { offset in
             let request = HTTPRequest()
@@ -333,7 +355,7 @@ final class WaterfallViewModelTests: XCTestCase {
             request.responseDate = origin.addingTimeInterval(offset + duration)
             return request
         }
-        return WaterfallViewModel(requests: requests, totalCount: requests.count)
+        return WaterfallViewModel(requests: requests, totalCount: requests.count, openingTime: openingTime)
     }
 
     /// The page's first body render happens before `onFirstAppear`'s asynchronous first
@@ -359,6 +381,22 @@ final class WaterfallViewModelTests: XCTestCase {
         XCTAssertEqual(model.window.duration, model.series.span, accuracy: 0.0001,
                        "the page opens honest, and zoom is the escape")
         XCTAssertEqual(model.visibleRows.count, 4)
+    }
+
+    /// The tapped moment on the Traffic Stats strip is threaded through `init`'s own
+    /// `openingTime` parameter rather than applied by the view afterwards — see
+    /// ``WaterfallView/init(logs:openingTime:)`` — precisely so `@StateObject` can keep deferring
+    /// this initialiser's whole-log layout until the page is actually inserted into the tree.
+    /// Nothing was asserting that the parameter is actually applied; this does, before either
+    /// `recompute()` or `configureWindow(plotWidth:)` has run, the same synchronous guarantee
+    /// ``testTheWindowIsAlreadyConfiguredBeforeTheFirstRecompute`` pins for the ordinary
+    /// full-span open.
+    func testOpeningTimePassedToInitCentresTheWindowBeforeAnyRecompute() {
+        let model = makeModel(starts: [0, 10, 20, 30], openingTime: 20)
+
+        XCTAssertLessThan(model.window.duration, model.series.span,
+                          "an opening time narrows the window; the default open does not")
+        XCTAssertEqual(model.window.centre, 20, accuracy: 0.5)
     }
 
     /// Five requests, three of them clustered at the middle of the log (14s, 15s, 16s) and two

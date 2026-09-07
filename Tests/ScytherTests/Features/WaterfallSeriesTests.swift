@@ -313,6 +313,16 @@ final class WaterfallSeriesTests: XCTestCase {
         XCTAssertEqual(WaterfallSeries.shortHost(for: "cdn.assets.example.com"), "example")
     }
 
+    /// Every label generic, all the way down. Proves the loop's `labels.count > 2` condition,
+    /// not `genericHostLabels.contains`, is what stops it: it always leaves the last two labels
+    /// standing, so it terminates and never returns `""` even when nothing left is a real name.
+    /// A tempting simplification — "skip while the label is generic", with no floor on how many
+    /// remain — would strip every label here and either crash on `labels[0]` or have to grow a
+    /// second, redundant emptiness check to avoid it.
+    func testEveryLabelGenericStillTerminatesAndKeepsTheLastTwo() {
+        XCTAssertEqual(WaterfallSeries.shortHost(for: "api.cdn.static.assets"), "static")
+    }
+
     func testATwoLabelHostUsesItsFirstLabel() {
         XCTAssertEqual(WaterfallSeries.shortHost(for: "httpbin.org"), "httpbin")
     }

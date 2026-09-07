@@ -166,15 +166,31 @@ final class WaterfallViewModel: ViewModel {
     /// is the same flash the synchronous layout pass above exists to prevent, just one property
     /// later.
     ///
+    /// `openingTime` is applied here, after both, rather than by the view in an `.onAppear` — see
+    /// ``WaterfallView/init(logs:openingTime:)``. Taking it as an initialiser parameter rather
+    /// than a method the view calls afterwards matters beyond the ruling that asks for it: this
+    /// type is built inside `@StateObject`'s `wrappedValue` autoclosure, which SwiftUI evaluates
+    /// lazily, exactly once, only once the view is actually inserted into the tree. A caller that
+    /// built the instance eagerly and called `open(centredOn:)` on it afterwards — the way this
+    /// view model used to be constructed by the view that owns it — would have forced that
+    /// autoclosure to run early, paying for this initialiser's synchronous whole-log layout on
+    /// every body evaluation of a view that merely *might* push this page, not only the one that
+    /// does.
+    ///
     /// - Parameters:
     ///   - requests: The requests to draw, usually the log's filtered array.
     ///   - totalCount: How many requests the log holds unfiltered.
-    init(requests: [HTTPRequest], totalCount: Int) {
+    ///   - openingTime: Seconds from the log's earliest request to open the window centred on, or
+    ///     `nil` to open at the full span. See ``open(centredOn:)``.
+    init(requests: [HTTPRequest], totalCount: Int, openingTime: TimeInterval? = nil) {
         self.requests = requests
         self.totalCount = totalCount
         super.init()
         layout = Self.layout(of: requests, totalCount: totalCount)
         configureWindow(plotWidth: plotWidth)
+        if let openingTime {
+            open(centredOn: openingTime)
+        }
     }
 
     /// Cancels any layout pass in flight.
