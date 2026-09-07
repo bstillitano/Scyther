@@ -11,10 +11,11 @@ import Foundation
 
 /// Drives ``WaterfallView``, the full-log waterfall.
 ///
-/// The preview section on **Traffic Stats** shows the most recent ``WaterfallSeries/defaultLimit``
-/// requests because a preview has to read as one. This view model exists to lift that ceiling: it
-/// lays out *every* request the log is currently showing on one axis, and pairs each bar back with
-/// the request it was drawn from so tapping the bar can open it.
+/// The section on **Traffic Stats** now draws the same whole-log overview this view model does —
+/// see ``WaterfallOverviewStrip`` — but as one compressed strip with no per-request detail behind
+/// it. This view model is what turns that strip into something a developer can actually work in:
+/// it lays out *every* request the log is currently showing on one axis, and pairs each bar back
+/// with the request it was drawn from so tapping the bar can open it.
 ///
 /// It holds the result rather than deriving it. A `LazyVStack` asks its rows for content
 /// constantly while scrolling, so a computed `rows` would rebuild a thousand-entry series on

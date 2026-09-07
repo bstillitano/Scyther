@@ -6,7 +6,6 @@
 //
 
 import Combine
-import CoreGraphics
 import Foundation
 
 /// Drives ``TrafficStatsView``.
@@ -36,12 +35,6 @@ final class TrafficStatsViewModel: ViewModel {
     /// Matches the log's own search debounce. With a live app the request list changes constantly
     /// and every change would otherwise walk the whole array twice.
     static let recomputeDebounce: DispatchQueue.SchedulerTimeType.Stride = .milliseconds(500)
-
-    /// The vertical space the chart's axis and labels take, in points.
-    private static let chartChrome: CGFloat = 60
-
-    /// The shortest the chart is ever drawn, in points.
-    private static let minimumChartHeight: CGFloat = 140
 
     /// The figures for ``requests``. ``TrafficStatistics/empty`` until the first computation lands.
     @Published private(set) var statistics: TrafficStatistics = .empty
@@ -76,22 +69,6 @@ final class TrafficStatsViewModel: ViewModel {
 
     /// The task the current recomputation is running on.
     private var recomputeTask: Task<Void, Never>?
-
-    /// The chart's rows, in the order they are drawn.
-    @Published private(set) var chartRows: [ChartRow] = []
-
-    /// One row of the waterfall chart: a bar and the name the axis gives it.
-    ///
-    /// The name carries the row's position because a chart's categorical axis collapses two rows
-    /// that share a value, and two calls to the same endpoint have the same label. Numbering them
-    /// keeps each request its own bar, and matches the order they were sent in.
-    struct ChartRow: Identifiable, Equatable {
-        /// The axis label, which is also the row's identity on the chart's y scale.
-        let id: String
-
-        /// The bar this row draws.
-        let entry: WaterfallEntry
-    }
 
     /// Creates the view model.
     ///
@@ -157,16 +134,19 @@ final class TrafficStatsViewModel: ViewModel {
             _ = request.getRandomHash()
         }
         let computed = await Task.detached(priority: .userInitiated) {
-            (statistics: TrafficStatistics.compute(from: snapshot), waterfall: WaterfallSeries.build(from: snapshot))
+            (
+                statistics: TrafficStatistics.compute(from: snapshot),
+                // The whole log, not a preview of it: the section now draws the same overview
+                // strip the full-log page does, over everything, the way the page's own build
+                // call already does.
+                waterfall: WaterfallSeries.build(from: snapshot, limit: snapshot.count)
+            )
         }.value
         guard !Task.isCancelled else { return }
         statistics = computed.statistics
         waterfall = computed.waterfall
         captionCount = snapshot.count
         captionTotal = snapshotTotal
-        chartRows = computed.waterfall.entries.enumerated().map { index, entry in
-            ChartRow(id: "\(index + 1). \(entry.label)", entry: entry)
-        }
     }
 
     // MARK: - Caption
@@ -219,42 +199,22 @@ final class TrafficStatsViewModel: ViewModel {
 
     // MARK: - Waterfall
 
-    /// How tall the chart is drawn at the default text size, so every bar keeps its own row.
-    var chartHeight: CGFloat { chartHeight(rowHeight: WaterfallChartStyle.rowHeight) }
-
-    /// How tall the chart is drawn for a given row height.
+    /// How many distinct hosts the log touched, for the section's footer.
     ///
-    /// Taken as a parameter so the view can pass a row height scaled against the reader's text
-    /// size: the y-axis labels grow with Dynamic Type, and a chart sized from the unscaled figure
-    /// clips them.
-    ///
-    /// - Parameter rowHeight: The vertical space one bar takes, in points.
-    /// - Returns: The chart's height in points, never below the floor.
-    func chartHeight(rowHeight: CGFloat) -> CGFloat {
-        max(Self.minimumChartHeight, CGFloat(waterfall.entries.count) * rowHeight + Self.chartChrome)
-    }
+    /// The count rather than the names: the names are on the rows, and a section footer listing
+    /// twelve hosts is a paragraph. Empty hosts — an unparseable request URL, see
+    /// ``WaterfallEntry/host`` — name nothing and are left out, or a log with a single real host
+    /// and one malformed request would count as touching two.
+    var hostCount: Int { Set(waterfall.entries.map(\.host)).filter { !$0.isEmpty }.count }
 
-    /// The far end of the chart's seconds axis.
+    /// The sentence under the strip explaining what it is showing.
     ///
-    /// Wider than the longest bar so the value label past its end stays inside the plot, and
-    /// never zero, which would leave the axis with no extent to draw on.
-    var chartUpperBound: Double {
-        WaterfallChartStyle.upperBound(forSpan: waterfall.span)
-    }
-
-    /// The axis labels of the waterfall's bars, oldest first, which is the chart's y-axis domain.
-    var chartDomain: [String] { chartRows.map(\.id) }
-
-    /// The sentence under the chart explaining what it is showing.
-    ///
-    /// The chart is a preview: it draws the most recent ``WaterfallSeries/defaultLimit`` requests,
-    /// not the log. When the log holds more than that, the caption has to say where the rest are,
-    /// or the section quietly under-reports the session it claims to describe.
+    /// The strip draws the whole log now, not a preview of it — see ``WaterfallOverviewStrip`` —
+    /// so the caption states what a minimap states: how much is on it, how long it ran, and how
+    /// much of it there is to lose track of. It used to say how many requests were hidden and
+    /// point at **See all** to find them; nothing is hidden any more, so nothing here does either.
     var waterfallCaption: String {
-        let shown = localized("The most recent \(waterfall.entries.count) requests on a shared axis. Bars that overlap were in flight at the same time.")
-        guard captionCount > waterfall.entries.count else { return shown }
-        return [shown, localized("See all draws the whole log.")]
-            .joined(separator: " ") // scyther:unlocalised space between localised sentences
+        localized("\(waterfall.entries.count) requests over \(DurationText.milliseconds(waterfall.span * 1_000)) across \(hostCount) hosts")
     }
 
     // MARK: - Breakdowns

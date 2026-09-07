@@ -5,7 +5,6 @@
 //  Created by Brandon Stillitano on 5/9/2026.
 //
 
-import Charts
 import SwiftUI
 
 /// What the captured traffic adds up to: what is slow, what is failing, and what overlapped.
@@ -33,12 +32,21 @@ struct TrafficStatsView: View {
     /// The screen's own view model.
     @StateObject private var viewModel: TrafficStatsViewModel
 
-    /// The height of one bar's row, scaled against the reader's text size.
+    /// The moment the Waterfall section's overview strip was tapped, which the full-log page opens
+    /// centred on.
     ///
-    /// Held here rather than in the view model because `@ScaledMetric` needs a view's environment.
-    /// The chart's own axis labels grow with Dynamic Type, so a chart sized from the unscaled
-    /// figure clips them.
-    @ScaledMetric(relativeTo: .caption) private var waterfallRowHeight: CGFloat = WaterfallChartStyle.rowHeight
+    /// Not read back by anything here: it is only ever written just before
+    /// ``isWaterfallNavigationActive`` is set, and handed straight to ``WaterfallView``'s own
+    /// initialiser, which applies it to the page's own view model — see
+    /// ``WaterfallView/init(logs:openingTime:)``. This screen never reaches into that view model
+    /// itself, the way its own ``viewModel`` is never reached into by anything that presents it.
+    @State private var waterfallOpeningTime: TimeInterval?
+
+    /// Whether the hidden link to the full-log page, opened at ``waterfallOpeningTime``, is active.
+    ///
+    /// A tap on the strip has no destination view to carry a `NavigationLink`'s own label, unlike
+    /// the **See all** link beside it, so navigation is driven by activating this flag instead.
+    @State private var isWaterfallNavigationActive = false
 
     /// Creates the screen.
     ///
@@ -147,45 +155,56 @@ struct TrafficStatsView: View {
         }
     }
 
-    /// The timeline, one bar per request on a shared seconds axis.
+    /// The whole session compressed into one strip, exactly as ``WaterfallView`` draws it.
     ///
-    /// The bars, the colour scale and the outcome names come from ``WaterfallChartStyle`` rather
-    /// than from here, because the **See all** page draws the same chart over the whole log and
-    /// the two are meant to be indistinguishable. Only the layout is this section's own: it
-    /// stacks every bar into one chart, where the page gives each bar a row it can be tapped in.
+    /// The section used to stack its own most-recent-seven bars into a `Chart` of its own; that
+    /// chart is gone. ``WaterfallOverviewStrip`` is the *same* overview the full-log page marks
+    /// its current window on, drawn here with no window — the section names no span of the log as
+    /// "current", the page does — which is what ``WaterfallOverviewStrip/window`` being `nil`
+    /// buys.
+    ///
+    /// The gesture is `.tap`, not `.scrub`, and that is not a stylistic choice: this section sits
+    /// inside the screen's `List`, and `.scrub`'s zero-distance drag would win arbitration against
+    /// the list's own pan and steal every scroll that happened to start on the strip. `.tap` lets
+    /// a genuine scroll pass through untouched and only reports the moment touched when the touch
+    /// did not travel — see ``WaterfallOverviewStrip/Interaction``.
     private var waterfallSection: some View {
         Section {
-            Chart(viewModel.chartRows) { row in
-                WaterfallChartStyle.bar(
-                    id: row.id,
-                    entry: row.entry,
-                    upperBound: viewModel.chartUpperBound,
-                    // Zero: Charts sizes this chart's leading axis to its own labels, so the
-                    // section cannot state its plot width without measuring the chart it is about
-                    // to build. Bars are drawn at their true lengths, exactly as they shipped.
-                    plotWidth: 0
-                )
-            }
-            .chartForegroundStyleScale(WaterfallChartStyle.styleScale)
-            .chartXScale(domain: 0...viewModel.chartUpperBound)
-            .chartXAxisLabel(localized("Seconds"))
-            // The x axis is left entirely to Charts. It was hand-coloured to secondary grid
-            // lines, ticks and labels, which is what Charts already draws — restating it only
-            // meant the chart stopped following the theme the rest of the screen follows.
-            .chartYAxis {
-                AxisMarks(preset: .aligned, position: .leading) {
-                    AxisValueLabel()
-                        .font(.caption2)
+            WaterfallOverviewStrip(
+                series: viewModel.waterfall,
+                window: nil,
+                height: WaterfallOverviewStrip.sectionHeight,
+                interaction: .tap { time in
+                    waterfallOpeningTime = time
+                    isWaterfallNavigationActive = true
                 }
+            )
+            // A hidden link rather than one wrapping the strip: the strip's own gesture already
+            // decides whether a touch counts as a tap, and a `NavigationLink` wrapping it would
+            // fire on release regardless, pushing the page on the drag that was meant to keep
+            // scrolling. Driving navigation from `isActive` instead lets the strip's own gesture
+            // stay the only thing deciding whether this section was tapped or scrolled past.
+            //
+            // `.accessibilityHidden(true)`: the strip already carries the row's whole
+            // accessibility element — see ``WaterfallOverviewStrip`` — so without this VoiceOver
+            // would also land on an empty, unlabelled control sitting behind it.
+            .background {
+                NavigationLink(isActive: $isWaterfallNavigationActive) {
+                    WaterfallView(logs: logs, openingTime: waterfallOpeningTime)
+                } label: {
+                    EmptyView()
+                }
+                .opacity(0)
+                .accessibilityHidden(true)
             }
-            .frame(height: viewModel.chartHeight(rowHeight: waterfallRowHeight))
         } header: {
             HStack {
                 Text(localized("Waterfall"))
                 Spacer()
                 // A trailing header link, the way iOS opens the full version of a summarised
                 // list everywhere else. It pushes onto the stack this screen was pushed onto,
-                // so Back returns here rather than to the log.
+                // so Back returns here rather than to the log. No opening time: the link is the
+                // page's ordinary entrance and opens at the full span, same as it always has.
                 NavigationLink(localized("See all")) {
                     WaterfallView(logs: logs)
                 }

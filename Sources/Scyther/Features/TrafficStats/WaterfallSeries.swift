@@ -94,7 +94,7 @@ struct WaterfallEntry: Identifiable, Equatable, Sendable {
 ///
 /// ## Usage
 /// ```swift
-/// let series = WaterfallSeries.build(from: requests)
+/// let series = WaterfallSeries.build(from: requests, limit: requests.count)
 /// series.span                     // seconds covered by the whole chart
 /// series.entries.first?.start     // always 0, the origin
 /// ```
@@ -112,15 +112,6 @@ struct WaterfallSeries: Equatable, Sendable {
 
     /// The bars, oldest first.
     let entries: [WaterfallEntry]
-
-    /// How many requests a series covers unless a caller says otherwise.
-    ///
-    /// Seven, because the only caller that takes the default is the preview section on
-    /// **Traffic Stats**, and a preview has to read as one. It was forty, which at a readable row
-    /// height filled the card and then some: a log of twenty-two requests drew all twenty-two, so
-    /// the preview already showed everything and the **See all** page it links to was showing the
-    /// same picture. Seven is a glance; the page carries the rest.
-    static let defaultLimit = 7
 
     /// The status code at and above which a response counts as a failure.
     private static let failureStatusFloor = 400
@@ -141,12 +132,16 @@ struct WaterfallSeries: Equatable, Sendable {
     ///
     /// - Parameters:
     ///   - requests: The requests to lay out, in any order.
-    ///   - limit: How many of the most recent requests to keep. Defaults to ``defaultLimit``.
+    ///   - limit: How many of the most recent requests to keep. Required rather than defaulted:
+    ///     the two callers now disagree about how much of the log they want — the section on
+    ///     **Traffic Stats** and the full-log page both want everything, so both pass
+    ///     `requests.count` — and there is no longer a figure that suits a caller who passes
+    ///     nothing.
     ///   - now: The moment the series describes, which is where a still-running bar ends.
     ///     Defaults to the current time; a test passes its own so the arithmetic is deterministic.
     /// - Returns: The series, oldest entry first. Empty when there is nothing to place.
     static func build(from requests: [HTTPRequest],
-                      limit: Int = defaultLimit,
+                      limit: Int,
                       now: Date = Date()) -> WaterfallSeries {
         guard limit > 0 else { return WaterfallSeries(origin: now, span: 0, entries: []) }
 
@@ -241,7 +236,11 @@ struct WaterfallSeries: Equatable, Sendable {
     /// A row has room for roughly fifteen characters of host before the path it is there to show
     /// starts truncating, and `jsonplaceholder.typicode.com` is twenty-eight. The rule picks the
     /// label a developer would say out loud: the first, unless the first names infrastructure
-    /// (`api.`, `cdn.`) and there is a real name behind it.
+    /// (`api.`, `cdn.`) and there is a real name behind it — and unless *that* label also names
+    /// infrastructure, which a host like `static.cdn.example.com` puts back to back. Skipping
+    /// only once left that host reading `"cdn"`, precisely the meaningless label this function
+    /// exists to avoid, so the skip repeats for as long as a generic label is in front and a
+    /// non-generic one is still behind it.
     ///
     /// - Parameter host: A URL's host, or `""`.
     /// - Returns: The display label, lowercased. `""` for an empty host.
@@ -250,13 +249,18 @@ struct WaterfallSeries: Equatable, Sendable {
         if trimmed.hasPrefix("www.") { trimmed.removeFirst(4) }
         guard !trimmed.isEmpty else { return "" }
 
-        let labels = trimmed.split(separator: ".").map(String.init)
+        var labels = trimmed.split(separator: ".").map(String.init)
         guard labels.count > 1 else { return trimmed }
 
         // An IPv4 address has no label worth picking — "192" names nothing.
         if labels.allSatisfy({ $0.allSatisfy(\.isNumber) }) { return trimmed }
 
-        if labels.count >= 3, genericHostLabels.contains(labels[0]) { return labels[1] }
+        // "More than two remain": the last two labels are the registrable domain and its suffix
+        // (`example.com`), never a label worth skipping past, so the loop stops before touching
+        // them even when every label ahead of them reads as generic.
+        while labels.count > 2, genericHostLabels.contains(labels[0]) {
+            labels.removeFirst()
+        }
         return labels[0]
     }
 }

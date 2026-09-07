@@ -145,6 +145,21 @@
       "other": "%lld 個請求"
     }
   },
+  "%lld requests over %@ across %lld hosts": {
+    "ar": "%lld طلبًا خلال %@ عبر %lld مضيفًا",
+    "comment": "Footer under the Traffic Stats section's overview strip: how many requests it covers, how long they span, and how many distinct hosts they touched. Not a plural entry: a String Catalog inflects on the first number, and this key has two numbers that agree with two different nouns",
+    "de": "%lld Anfragen über %@ auf %lld Hosts",
+    "es": "%lld solicitudes en %@ en %lld hosts",
+    "fr": "%lld requêtes sur %@ sur %lld hôtes",
+    "it": "%lld richieste in %@ su %lld host",
+    "ja": "%@ にわたる %lld 件のリクエスト、%lld 個のホスト",
+    "ko": "%@ 동안 %lld개 요청, 호스트 %lld개",
+    "nl": "%lld verzoeken over %@ op %lld hosts",
+    "pt-BR": "%lld solicitações em %@ em %lld hosts",
+    "ru": "%lld запросов за %@ на %lld хостах",
+    "zh-Hans": "%lld 个请求，历时 %@，跨 %lld 个主机",
+    "zh-Hant": "%lld 個請求，歷時 %@，跨 %lld 個主機"
+  },
   "95th Percentile": {
     "ar": "المئين 95",
     "comment": "Summary row label for the 95th percentile request duration",
@@ -460,21 +475,6 @@
     "zh-Hans": "查看全部",
     "zh-Hant": "查看全部"
   },
-  "See all draws the whole log.": {
-    "ar": "يعرض «عرض الكل» السجل بالكامل.",
-    "comment": "Appended to the waterfall preview's caption when the log holds more requests than the preview shows",
-    "de": "„Alle anzeigen“ zeichnet das gesamte Protokoll.",
-    "es": "Ver todo dibuja el registro completo.",
-    "fr": "Tout afficher dessine l'intégralité du journal.",
-    "it": "Mostra tutto disegna l'intero registro.",
-    "ja": "「すべて表示」はログ全体を描画します。",
-    "ko": "'모두 보기'는 전체 로그를 그립니다.",
-    "nl": "Toon alles tekent het hele logboek.",
-    "pt-BR": "Ver tudo desenha o registro inteiro.",
-    "ru": "«Показать все» рисует весь журнал.",
-    "zh-Hans": "“查看全部”会绘制整个日志。",
-    "zh-Hant": "「查看全部」會繪製整個記錄。"
-  },
   "Slowest": {
     "ar": "الأبطأ",
     "comment": "Summary row label for the slowest request, shown instead of percentiles on a small sample",
@@ -579,64 +579,6 @@
     "ru": "Число рядом с каждым хостом — медианный цикл запроса для него.",
     "zh-Hans": "每个主机旁的数值是该主机往返时间的中位数。",
     "zh-Hant": "每個主機旁的數值是該主機往返時間的中位數。"
-  },
-  "The most recent %lld requests on a shared axis. Bars that overlap were in flight at the same time.": {
-    "ar": {
-      "few": "أحدث %lld طلبات على محور مشترك. الأشرطة المتداخلة كانت قيد التنفيذ في الوقت نفسه.",
-      "many": "أحدث %lld طلبًا على محور مشترك. الأشرطة المتداخلة كانت قيد التنفيذ في الوقت نفسه.",
-      "one": "أحدث %lld طلب على محور مشترك. الأشرطة المتداخلة كانت قيد التنفيذ في الوقت نفسه.",
-      "other": "أحدث %lld طلب على محور مشترك. الأشرطة المتداخلة كانت قيد التنفيذ في الوقت نفسه.",
-      "two": "أحدث %lld طلبين على محور مشترك. الأشرطة المتداخلة كانت قيد التنفيذ في الوقت نفسه.",
-      "zero": "أحدث %lld طلب على محور مشترك. الأشرطة المتداخلة كانت قيد التنفيذ في الوقت نفسه."
-    },
-    "comment": "Footer under the waterfall chart, counting the bars it draws",
-    "de": {
-      "one": "Die letzte Anfrage auf einer gemeinsamen Achse (%lld). Überlappende Balken liefen gleichzeitig.",
-      "other": "Die letzten %lld Anfragen auf einer gemeinsamen Achse. Überlappende Balken liefen gleichzeitig."
-    },
-    "en": {
-      "one": "The most recent %lld request on a shared axis. Bars that overlap were in flight at the same time.",
-      "other": "The most recent %lld requests on a shared axis. Bars that overlap were in flight at the same time."
-    },
-    "es": {
-      "one": "La solicitud más reciente en un eje compartido (%lld). Las barras que se solapan estaban en curso a la vez.",
-      "other": "Las %lld solicitudes más recientes en un eje compartido. Las barras que se solapan estaban en curso a la vez."
-    },
-    "fr": {
-      "one": "La requête la plus récente sur un axe partagé (%lld). Les barres qui se chevauchent étaient en cours en même temps.",
-      "other": "Les %lld requêtes les plus récentes sur un axe partagé. Les barres qui se chevauchent étaient en cours en même temps."
-    },
-    "it": {
-      "one": "La richiesta più recente su un asse condiviso (%lld). Le barre che si sovrappongono erano in corso nello stesso momento.",
-      "other": "Le %lld richieste più recenti su un asse condiviso. Le barre che si sovrappongono erano in corso nello stesso momento."
-    },
-    "ja": {
-      "other": "直近 %lld 件のリクエストを共通の軸に並べています。重なっているバーは同時に実行されていました。"
-    },
-    "ko": {
-      "other": "최근 요청 %lld개를 공통 축에 배치했습니다. 겹치는 막대는 동시에 진행 중이었습니다."
-    },
-    "nl": {
-      "one": "Het meest recente verzoek op een gedeelde as (%lld). Balken die elkaar overlappen liepen tegelijk.",
-      "other": "De %lld meest recente verzoeken op een gedeelde as. Balken die elkaar overlappen liepen tegelijk."
-    },
-    "plural": true,
-    "pt-BR": {
-      "one": "A solicitação mais recente em um eixo compartilhado (%lld). Barras que se sobrepõem estavam em andamento ao mesmo tempo.",
-      "other": "As %lld solicitações mais recentes em um eixo compartilhado. Barras que se sobrepõem estavam em andamento ao mesmo tempo."
-    },
-    "ru": {
-      "few": "%lld последних запроса на общей оси. Пересекающиеся полосы выполнялись одновременно.",
-      "many": "%lld последних запросов на общей оси. Пересекающиеся полосы выполнялись одновременно.",
-      "one": "%lld последний запрос на общей оси. Пересекающиеся полосы выполнялись одновременно.",
-      "other": "%lld последних запросов на общей оси. Пересекающиеся полосы выполнялись одновременно."
-    },
-    "zh-Hans": {
-      "other": "最近 %lld 个请求，绘制在同一时间轴上。相互重叠的条形表示同时在进行。"
-    },
-    "zh-Hant": {
-      "other": "最近 %lld 個請求，繪製在同一時間軸上。互相重疊的長條表示同時在進行。"
-    }
   },
   "Traffic Stats": {
     "ar": "إحصاءات حركة البيانات",

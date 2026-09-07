@@ -11,10 +11,12 @@ import SwiftUI
 /// Every logged request as a bar on one shared time axis, oldest at the top, seen through a
 /// window the reader zooms and drags rather than scrolls.
 ///
-/// Reached from the **See all** button in the Waterfall section of ``TrafficStatsView``. It shows
-/// the same session that section previews — the same colours, the same outcome names, the same
-/// legend, the same row height, all from ``WaterfallChartStyle`` — over the whole log rather than
-/// the most recent seven, and made tappable so a bar leads to the request behind it.
+/// Reached from the Waterfall section of ``TrafficStatsView`` two ways: the **See all** link opens
+/// at the full span, and a tap on the section's own overview strip opens centred on the moment
+/// touched — see ``init(logs:openingTime:)``. Either way it shows the same session that section's
+/// strip already compresses — the same colours, the same outcome names, the same legend, the same
+/// row height, all from ``WaterfallChartStyle`` — but with every request its own tappable row
+/// leading to the capture behind it.
 ///
 /// ## Why a window rather than a scroll
 ///
@@ -45,6 +47,9 @@ import SwiftUI
 /// NavigationLink(localized("See all")) {
 ///     WaterfallView(logs: logs)
 /// }
+/// NavigationLink(isActive: $isActive) {
+///     WaterfallView(logs: logs, openingTime: openingTime)
+/// } label: { EmptyView() }
 /// ```
 struct WaterfallView: View {
     /// The network log this page is drawing. Its filtered array is the input, so the page follows
@@ -72,15 +77,30 @@ struct WaterfallView: View {
 
     /// Creates the page.
     ///
-    /// - Parameter logs: The network log view model whose filtered requests are drawn.
-    init(logs: NetworkLogsViewModel) {
+    /// `openingTime` is applied to the freshly built view model before it is ever wrapped in
+    /// `@StateObject`, rather than as a side effect in `.onAppear`: the section that taps a moment
+    /// on its strip does not own this page's view model — see ``WaterfallViewModel`` — so the only
+    /// place left to hand that moment over is the one place this view already owns it, its own
+    /// initialiser. `WaterfallViewModel.init` lays the log out synchronously, so
+    /// ``WaterfallViewModel/open(centredOn:)`` already has a real span to centre a window in by
+    /// the time this runs.
+    ///
+    /// - Parameters:
+    ///   - logs: The network log view model whose filtered requests are drawn.
+    ///   - openingTime: Seconds from the log's earliest request, when the page is reached by
+    ///     tapping a moment on the Traffic Stats section's overview strip. The window opens
+    ///     already centred there instead of at the full span, which is what `nil` — the **See
+    ///     all** link's default — leaves it at.
+    init(logs: NetworkLogsViewModel, openingTime: TimeInterval? = nil) {
         self.logs = logs
-        _viewModel = StateObject(
-            wrappedValue: WaterfallViewModel(
-                requests: logs.requests,
-                totalCount: logs.totalRequestCount
-            )
+        let viewModel = WaterfallViewModel(
+            requests: logs.requests,
+            totalCount: logs.totalRequestCount
         )
+        if let openingTime {
+            viewModel.open(centredOn: openingTime)
+        }
+        _viewModel = StateObject(wrappedValue: viewModel)
     }
 
     var body: some View {

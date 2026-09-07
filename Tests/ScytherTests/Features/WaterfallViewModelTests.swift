@@ -49,15 +49,14 @@ final class WaterfallViewModelTests: XCTestCase {
 
     // MARK: - Every request, not the most recent few
 
-    /// The whole reason the page exists. The section on Traffic Stats stops at forty bars; a
-    /// developer chasing a burst needs the other nine hundred and sixty.
+    /// The whole reason the page exists next to a strip that already draws the whole log too: a
+    /// thousand-request burst is one compressed strip either way, but only this page gives each
+    /// of those thousand requests its own tappable row.
     func testEveryRequestInTheLogGetsARow() async {
         let requests = (0..<50).map { request(startedAt: origin.addingTimeInterval(Double($0))) }
         let viewModel = WaterfallViewModel(requests: requests, totalCount: requests.count)
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.rows.count, 50,
-                       "the page is not subject to WaterfallSeries.defaultLimit")
-        XCTAssertGreaterThan(50, WaterfallSeries.defaultLimit)
+        XCTAssertEqual(viewModel.rows.count, 50, "every request gets a row, not a sample of them")
     }
 
     /// Time reads downward, so the oldest request is the first row.
@@ -69,9 +68,9 @@ final class WaterfallViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.rows.map(\.entry.label), ["GET /old", "GET /new"])
     }
 
-    /// The row labels match the Traffic Stats chart's axis labels exactly, because the owner's
-    /// requirement is that the page looks like the section it was opened from.
-    func testRowsAreNumberedTheWayTheStatsChartNumbersThem() async {
+    /// Each row's label carries its own position in the log, numbered rather than left as the
+    /// bare `"METHOD /path"`, so two calls to the same endpoint still read as two distinct rows.
+    func testRowsAreNumberedByTheirPositionInTheLog() async {
         let viewModel = WaterfallViewModel(requests: [
             request(startedAt: origin),
             request(startedAt: origin.addingTimeInterval(1)),
@@ -115,17 +114,6 @@ final class WaterfallViewModelTests: XCTestCase {
         await viewModel.recompute()
         XCTAssertEqual(viewModel.rows.first?.entry.start ?? -1, 0, accuracy: 0.0001)
         XCTAssertEqual(viewModel.rows.last?.entry.start ?? -1, 10, accuracy: 0.0001)
-    }
-
-    /// The page's axis is computed by the same rule as the section's, or the same request would
-    /// be a different length on the two screens.
-    func testTheAxisMatchesTheStatsChart() async {
-        let requests = [request(startedAt: origin), request(startedAt: origin.addingTimeInterval(2))]
-        let page = WaterfallViewModel(requests: requests, totalCount: requests.count)
-        let stats = TrafficStatsViewModel(requests: requests, totalCount: requests.count)
-        await page.recompute()
-        await stats.recompute()
-        XCTAssertEqual(page.upperBound, stats.chartUpperBound, accuracy: 0.0001)
     }
 
     // MARK: - Following the log
