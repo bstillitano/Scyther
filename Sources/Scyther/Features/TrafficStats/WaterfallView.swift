@@ -181,19 +181,12 @@ struct WaterfallView: View {
         )
     }
 
-    /// - Note: This puts ``strip`` inside a scrolling `List`.
-    ///   ``WaterfallOverviewStrip/Interaction/scrub(_:)`` was changed alongside the fix that moved
-    ///   it there specifically to still be safe in that position — see that case's own
-    ///   documentation, and ``WaterfallOverviewStrip/scrubGesture(width:onScrub:)`` for the
-    ///   direction rule that makes it so. Nothing about that rule was confirmed against a real
-    ///   drag or a real scroll; only the geometry and the view model calls behind it are covered
-    ///   by tests. See the fix report for what was and was not verified.
     var body: some View {
         Group {
             if viewModel.isEmpty {
                 emptyState
             } else {
-                detail
+                content
             }
         }
         .navigationTitle(localized("Waterfall"))
@@ -210,27 +203,58 @@ struct WaterfallView: View {
         }
     }
 
-    /// The colour legend, unchanged in content from the page's original design: four marks in one
+    /// The page's body once the log holds something: ``minimapCard``, fixed above ``detail``'s
+    /// `List` rather than scrolling with it, over one continuous inset-grouped-looking
+    /// background.
+    ///
+    /// A `VStack` rather than a `List` at the top level — again, the reverse of where this went
+    /// one fix round ago. That round put the minimap in a `Section` at the top of the `List` on
+    /// the owner's own direction; asked to try it, the owner then asked whether it could stay
+    /// fixed while the rows scrolled underneath it instead, and a `List` cannot do that: it never
+    /// pins section content the way a table view can pin a header, and `.insetGrouped` does not
+    /// pin section headers either — only `.plain` does, and this list is `.insetGrouped` by an
+    /// explicit, separate instruction that still stands. A section genuinely cannot be sticky
+    /// here, so the minimap moved back to being a sibling — the shape it had before either of the
+    /// last two fix rounds — but now hand-styled to still read as the inset-grouped card it
+    /// briefly, literally was. See ``minimapCard`` for that styling and its own honest limits.
+    ///
+    /// Unconditional here on purpose, same as ``minimapCard`` and ``detail`` are individually:
+    /// this property is only ever reached through ``body``, which shows it only once
+    /// ``WaterfallViewModel/isEmpty`` is `false` — "no traffic at all" still shows nothing but
+    /// ``emptyState``, not a floating card above an empty list.
+    ///
+    /// `.background(WaterfallChartStyle.insetGroupedPageBackground)` on the whole `VStack`: the
+    /// `List` beneath already paints that colour on itself, so this is redundant there, but it is
+    /// what keeps the space around and above ``minimapCard`` — which paints nothing of its own —
+    /// from defaulting to whatever colour this view's own container happens to be, breaking the
+    /// seam between the card and the list beneath it.
+    private var content: some View {
+        VStack(spacing: 0) {
+            minimapCard
+            detail
+        }
+        .background(WaterfallChartStyle.insetGroupedPageBackground)
+    }
+
+    /// The colour legend, unchanged in content since the page's original design: four marks in one
     /// line, still drawn by a `Chart` of its own from ``WaterfallChartStyle/styleScale``, the one
     /// place the outcome colours are declared. The Traffic Stats section has no legend of its own
     /// for this one to match — it draws only the overview strip — so this exists to give the
     /// full-log page's own bars something naming what each colour means. See
     /// ``WaterfallLegendView``.
     ///
-    /// No manual horizontal padding any more, unlike before this fix: it used to carry
-    /// ``WaterfallChartStyle/cardContentPadding``, sized to match UIKit's inset-grouped content
-    /// margin by hand because the page was a plain `VStack`, not an actual inset-grouped `List`.
-    /// Now that ``minimapSection`` places this directly inside a `Section` of one, the `List`
-    /// itself supplies that same margin, and a second, manually-applied one would only double it.
+    /// No manual padding on this property itself: ``minimapCard`` applies padding to the `VStack`
+    /// holding this and ``strip`` together, once, rather than each of them carrying its own — see
+    /// that property's own documentation for what that padding is and why.
     private var legend: some View {
         WaterfallLegendView()
     }
 
     /// The overview strip, carrying the current window and announcing it to VoiceOver.
     ///
-    /// Still `.scrub` — hosted inside ``detail``'s `List`, which is what
-    /// ``WaterfallOverviewStrip/Interaction/scrub(_:)`` was changed to tolerate. See ``body``'s
-    /// own `- Note` and that case's own documentation.
+    /// Back to `.scrub`'s original, continuous zero-distance drag — see
+    /// ``WaterfallOverviewStrip/Interaction/scrub(_:)``'s own documentation for why that is safe
+    /// again now that ``minimapCard`` sits outside any scroll view.
     ///
     /// `.accessibilityValue` rather than baking the count into the label: the strip's label
     /// (``localized(_:)`` `"Traffic overview"`, set inside ``WaterfallOverviewStrip`` itself)
@@ -238,17 +262,11 @@ struct WaterfallView: View {
     /// drag or adjustable-action change — without it, a VoiceOver user swiping to zoom hears
     /// "Traffic overview" again on every step and has no way to tell anything happened.
     ///
-    /// Whether ``minimapSection`` also attaches `.accessibilityAdjustableAction` is decided by
+    /// Whether ``minimapCard`` also attaches `.accessibilityAdjustableAction` is decided by
     /// ``WaterfallViewModel/window``'s `canZoom`, not by this property: `canZoom`'s own
     /// documentation says the page disables the control rather than letting a pinch silently do
     /// nothing, and an adjustable action offered on an element that cannot act on it breaks that
     /// promise for VoiceOver the same way an un-disabled pinch would for a sighted reader.
-    ///
-    /// No manual padding, matching how `TrafficStatsView`'s own `waterfallSection` places the same
-    /// strip type inside a `Section` — neither adds anything beyond what the `List`'s own row
-    /// insets already give a section's content. Inventing a different inset here, now that this
-    /// strip sits in a section too, would be the one thing the owner's direction to "match how
-    /// they do it" was written to rule out.
     private var strip: some View {
         WaterfallOverviewStrip(series: viewModel.series,
                                window: viewModel.window,
@@ -257,18 +275,106 @@ struct WaterfallView: View {
             .accessibilityValue(viewModel.windowCaption)
     }
 
-    /// The whole list: the minimap section, then the detail section the window holds.
+    /// The minimap, styled to still read as an inset-grouped card even though it is no longer
+    /// one: the legend explaining the strip's colours, and the strip itself carrying the current
+    /// window, in one row-shaped `VStack` on a rounded, coloured background — fixed above
+    /// ``detail``'s `List` as a sibling in ``content``, rather than scrolling with it.
+    ///
+    /// ## Why this is not a `Section` any more
+    ///
+    /// The previous fix round put this in a `Section` at the top of ``detail``'s `List`, on the
+    /// owner's own direction. Having seen that build, the owner then asked whether it could stay
+    /// on screen while the rows scrolled underneath — and a `List` genuinely cannot do that for
+    /// section content: `List` never pins a section's own rows the way a table view can pin a
+    /// section *header*, and even header-pinning is a `.plain`-list behaviour that
+    /// `.insetGrouped` — this page's list style, on its own separate, still-standing instruction
+    /// — does not have at all. There is no modifier that makes a `Section` sticky here; the only
+    /// way to fix this to the top of the screen is to take it out of the scrolling container
+    /// entirely, which is what ``content`` now does.
+    ///
+    /// ## Matching `.insetGrouped` by hand
+    ///
+    /// Four things make an inset-grouped section look the way it does, and this reaches for the
+    /// most exact version of each it can:
+    ///
+    /// - **Background material** — `WaterfallChartStyle.insetGroupedCardBackground`, which is
+    ///   `UIColor.secondarySystemGroupedBackground`. Not a guess: it is the exact semantic colour
+    ///   an `.insetGrouped` `List` fills its own rows with, so the card's *colour* matches the
+    ///   list's own sections exactly, not approximately.
+    /// - **Corner radius** — `WaterfallChartStyle.insetGroupedCardCornerRadius`, `10`pt. The
+    ///   figure most consistently cited for an inset-grouped section's own rounding; not
+    ///   published as an API constant, so an estimate.
+    /// - **Horizontal insets** — `WaterfallChartStyle.insetGroupedCardMargin`, `20`pt from this
+    ///   page's own edges to the card's rounded background. The same figure, and the same
+    ///   estimate, `WaterfallChartStyle.detailRowInteriorChrome` already uses for the detail
+    ///   list's own section margin — reused rather than picked afresh, since both are estimating
+    ///   the same real quantity for two independently hand-built views that need to agree with
+    ///   each other, and with the real `List` beneath them, for the page to read as one screen.
+    /// - **Internal content padding** — plain `.padding()`, SwiftUI's own system-default spacing,
+    ///   rather than a bespoke figure invented to imitate a `List` row's own content insets. This
+    ///   is a deliberate simplification: it is one fewer guessed constant, and "the platform's own
+    ///   default padding" is a defensible stand-in for "whatever a system list row's padding is"
+    ///   in a way a hand-picked number pretending to know that figure exactly would not be.
+    ///
+    /// What is **not** attempted: the exact vertical gap between the top of the page and the
+    /// card, and between the card and the list's own first row. The `16`pt top padding below is a
+    /// plain estimate with no particular source, and the gap to the list beneath relies entirely
+    /// on whatever top inset `.insetGrouped` already gives a `List`'s first section — this view
+    /// adds no bottom padding of its own, on the reasoning that doing so would very likely double
+    /// a gap the list is already contributing on its own, but that reasoning was not checked
+    /// against a running app either.
+    ///
+    /// - Important: None of this was seen rendered. The colour is exact by construction; the
+    ///   corner radius, the horizontal margin, and both vertical gaps are estimates a device or
+    ///   simulator pass is needed to confirm or correct — see the fix report.
+    ///
+    /// ## What did not change
+    ///
+    /// Still one row, not two — the strip and the legend are one `VStack`, strip on top, legend
+    /// beneath, no divider between them, exactly as the previous fix round settled it. Only the
+    /// *container* around that `VStack` changed, from a `Section` back to a plain view with its
+    /// own drawn background.
+    private var minimapCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if viewModel.window.canZoom {
+                strip.accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: viewModel.zoom(by: 2)
+                    case .decrement: viewModel.zoom(by: 0.5)
+                    @unknown default: break
+                    }
+                }
+            } else {
+                strip
+            }
+            legend
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: WaterfallChartStyle.insetGroupedCardCornerRadius, style: .continuous)
+                .fill(WaterfallChartStyle.insetGroupedCardBackground)
+        )
+        .padding(.horizontal, WaterfallChartStyle.insetGroupedCardMargin)
+        .padding(.top, 16)
+    }
+
+    /// The detail rows, in their own `List`.
     ///
     /// A `List` rather than a `LazyVStack` in a `ScrollView`: rows are `NavigationLink`s and this
     /// is a menu screen, so it takes the menu's row treatment, separators and press states for
     /// free rather than hand-rolling them. `.insetGrouped` — not `.plain`, which is what this used
     /// to be styled and what ``NetworkLogsView`` still is — because the owner asked for it
-    /// explicitly, and because a `List` built from sections with headers and content, the shape
-    /// this page's `List` now has, is the same shape `TrafficStatsView`'s own `List` is, which gets
-    /// its inset-grouped card look by not overriding the style at all. That default is exactly
+    /// explicitly, and because a `List` built from a section with content, the shape this page's
+    /// `List` has, is the same shape `TrafficStatsView`'s own `List` is, which gets its
+    /// inset-grouped card look by not overriding the style at all. That default is exactly
     /// `.insetGrouped` on iOS, so setting it here explicitly produces the identical appearance
     /// without this page's own correctness depending on an unwritten default resolving the same
     /// way on every iOS version the package supports.
+    ///
+    /// Holds only ``detailSection(rowLayout:)`` now — the minimap left this `List` entirely, see
+    /// ``minimapCard``'s own documentation for why a `Section` could not do what the owner asked
+    /// for. `WaterfallChartStyle.detailRowInteriorChrome`'s own row-inset estimate was re-checked
+    /// against that move, not just assumed to still hold: see that constant's own `- Note`.
     @ViewBuilder
     private var detail: some View {
         GeometryReader { proxy in
@@ -278,7 +384,6 @@ struct WaterfallView: View {
             // resolve to the constant instead of the method, including the one computing it.
             let metrics = rowLayout(in: proxy.size.width)
             List {
-                minimapSection
                 detailSection(rowLayout: metrics)
             }
             .listStyle(.insetGrouped)
@@ -293,72 +398,14 @@ struct WaterfallView: View {
         // Attached to the `GeometryReader` — the container this property returns — rather than
         // chained onto the `List` inside it, and with `.simultaneousGesture` rather than
         // `.gesture`. Both changed together as the fix ``magnification``'s own documentation
-        // describes in full, and neither moved for *this* fix: the `List` this wraps now holds two
-        // sections instead of one, but it is still the same `List`, at the same `GeometryReader`
-        // boundary, so the gesture's attachment point is untouched — restructuring the sections
-        // inside a `List` does not touch what wraps the `List` itself. `.subviews` rather than
-        // `.all` when zoom is impossible: it disables the pinch this modifier adds while still
-        // letting the `List` recognise its own scroll and press gestures, so a request the window
-        // cannot narrow any further does not also lose its scroll. See `canZoom`'s own
-        // documentation on why the page disables the gesture rather than letting a pinch silently
-        // do nothing.
+        // describes in full, and neither moved for *this* fix: the minimap leaving this `List`
+        // changes what the `List` contains, not what wraps the `List` itself, so the gesture's
+        // attachment point is untouched. `.subviews` rather than `.all` when zoom is impossible:
+        // it disables the pinch this modifier adds while still letting the `List` recognise its
+        // own scroll and press gestures, so a request the window cannot narrow any further does
+        // not also lose its scroll. See `canZoom`'s own documentation on why the page disables
+        // the gesture rather than letting a pinch silently do nothing.
         .simultaneousGesture(magnification, including: viewModel.window.canZoom ? .all : .subviews)
-    }
-
-    /// The minimap section: the legend explaining the strip's colours, and the strip itself,
-    /// carrying the current window.
-    ///
-    /// A standalone `Section` at the top of ``detail``'s `List`, per the owner's own direction,
-    /// rather than a sibling sitting above the list the way it used to in a plain `VStack`.
-    /// Unconditional here on purpose: ``detail`` — and therefore this property — is only ever
-    /// reached through ``body``, which shows it only once ``WaterfallViewModel/isEmpty`` is
-    /// `false`. "Shown whenever the log has any traffic at all, and omitted only when there is
-    /// none" is already exactly the condition guarding every call site of this property, so a
-    /// second `if` in front of it here would just be checking the same thing ``body`` already
-    /// checked, one call frame later.
-    ///
-    /// ## Where the legend went
-    ///
-    /// ``WaterfallLegendView`` lives in the *same* section as the strip, not in the section's own
-    /// header or footer. A `Section`'s header and footer are the slot SwiftUI gives a short caption
-    /// in the list's secondary text style — every header and footer this page's neighbours use,
-    /// `TrafficStatsView`'s own sections included, holds plain `Text`. The legend is a `Chart`, not
-    /// a caption: it draws four coloured swatches with their own labels, and forcing that into a
-    /// slot styled for a line of grey text would mean either fighting that slot's styling or
-    /// abandoning it outright — neither of which is "match how the neighbours do it," the direction
-    /// this fix was given for the list style two properties up.
-    ///
-    /// ## One row, not two
-    ///
-    /// The strip and the legend are wrapped in one `VStack`, not declared as two sibling views
-    /// directly inside the `Section` the way an earlier version of this fix had them: a `Section`
-    /// gives each top-level child its own row, complete with the separator between rows a `List`
-    /// draws by default, and that read as a stray divider cutting a single card in two rather than
-    /// the one connected unit a legend and the chart it explains ought to be. Wrapping both in a
-    /// `VStack` first is what makes the pair a single child of the `Section`, and therefore a
-    /// single row with no separator inside it.
-    ///
-    /// The strip sits above the legend, not below it — reversed from this fix's own first attempt,
-    /// on the owner's explicit correction after driving the build. The chart the reader actually
-    /// looks at leads; the key naming what its colours mean follows underneath it, the same order
-    /// a caption follows the figure it captions rather than announcing it in advance.
-    private var minimapSection: some View {
-        Section {
-            VStack(alignment: .leading, spacing: 8) {
-                if viewModel.window.canZoom {
-                    strip.accessibilityAdjustableAction { direction in
-                        switch direction {
-                        case .increment: viewModel.zoom(by: 2)
-                        case .decrement: viewModel.zoom(by: 0.5)
-                        @unknown default: break
-                        }
-                    }
-                } else {
-                    strip
-                }
-                legend
-            }
-        }
     }
 
     /// The detail section: the rows the window holds, or ``windowEmptyState`` when it holds none —
@@ -502,8 +549,8 @@ struct WaterfallView: View {
     ///
     /// Distinct from ``windowEmptyState``, which answers ``WaterfallViewModel/isWindowEmpty``: this
     /// is the whole log holding nothing to draw a strip or a window over in the first place, so
-    /// ``body`` shows this instead of ``detail`` entirely — there is no minimap or detail list to
-    /// put a section around.
+    /// ``body`` shows this instead of ``content`` entirely — no ``minimapCard`` floating above an
+    /// empty list, no detail list either.
     @ViewBuilder
     private var emptyState: some View {
         if #available(iOS 17.0, *) {
@@ -535,11 +582,11 @@ struct WaterfallView: View {
     /// Distinct from ``emptyState``, which answers the whole log holding no traffic at all: this
     /// one answers ``WaterfallViewModel/isWindowEmpty`` — traffic exists elsewhere in the log, the
     /// current window just is not over any of it. Shown as ``detailSection(rowLayout:)``'s own
-    /// content rather than in place of the whole page, because the minimap section above it is
-    /// still showing something real and must stay on screen: a developer who dragged into a gap
-    /// still needs to see where the window sits to drag it back out of one, which swapping the
-    /// entire page for a placeholder — the way ``emptyState`` replaces ``detail`` outright — would
-    /// take away.
+    /// content rather than in place of the whole page, because ``minimapCard`` above it is still
+    /// showing something real and must stay on screen: a developer who dragged into a gap still
+    /// needs to see where the window sits to drag it back out of one, which swapping the entire
+    /// page for a placeholder — the way ``emptyState`` replaces ``content`` outright — would take
+    /// away.
     ///
     /// Replaces a bare `Text` row that used to sit here reading "No requests in this part of the
     /// log." — which looked like a stray list item rather than a state of the page, the defect

@@ -8,6 +8,7 @@
 import CoreGraphics
 import Foundation
 import SwiftUI
+import UIKit
 
 /// The one place the waterfall is drawn from.
 ///
@@ -161,6 +162,13 @@ enum WaterfallChartStyle {
     ///   text against exactly that possibility. Confirming the row's columns land flush against
     ///   `.insetGrouped`'s real margin on every width class this toolkit supports, and correcting
     ///   this constant if they do not, is on the owner.
+    ///
+    /// - Note: Re-checked, not just assumed, once the minimap moved back out of ``WaterfallView``'s
+    ///   `List` to become a sticky sibling above it — see ``insetGroupedCardMargin``. That move
+    ///   changes nothing here: this figure estimates the insets a `List` gives its *own* rows, and
+    ///   the detail list still holds exactly the rows it always did, styled `.insetGrouped` exactly
+    ///   as before. What else is or is not a sibling of the `List` has no bearing on the list's own
+    ///   internal row geometry.
     static let detailRowInteriorChrome: CGFloat = 56
 
     /// The width a plain `List` row reserves for a `NavigationLink`'s disclosure chevron, in
@@ -180,6 +188,52 @@ enum WaterfallChartStyle {
     /// with the same leading spacing regardless of the enclosing list's grouping style, so nothing
     /// about this estimate is specific to `.plain`.
     static let detailRowDisclosureReserve: CGFloat = 21
+
+    // MARK: - The sticky minimap card
+
+    /// The horizontal margin from ``WaterfallView``'s own edges to the sticky minimap card's
+    /// rounded background, in points.
+    ///
+    /// The same figure — and the same reasoning — as ``detailRowInteriorChrome``'s own inset
+    /// term: "the margin most commonly cited for an inset-grouped section's content on a
+    /// standard compact-width iPhone, closely matching what Apple's own Settings app visibly
+    /// uses." Reused here deliberately rather than picked afresh, because both constants are
+    /// estimating the *same* real-world quantity — how far an inset-grouped section's card sits
+    /// from the screen edge — for two different, independently hand-built views that both need
+    /// to agree with the detail list's own section cards for the page to read as one screen
+    /// rather than two. Neither is a measurement; see ``detailRowInteriorChrome``'s own
+    /// documentation for the full account of that uncertainty, which applies here unchanged.
+    static let insetGroupedCardMargin: CGFloat = 20
+
+    /// The corner radius the sticky minimap card is drawn with, in points.
+    ///
+    /// 10pt is the figure most consistently cited for an inset-grouped section's own rounded
+    /// background. Like ``insetGroupedCardMargin``, this is not published as a UIKit or SwiftUI
+    /// API constant anywhere this pipeline can read it from, so it carries the same
+    /// "estimate, not measurement" caveat.
+    static let insetGroupedCardCornerRadius: CGFloat = 10
+
+    /// The sticky minimap card's own background fill.
+    ///
+    /// `UIColor.secondarySystemGroupedBackground` is not a guess the way
+    /// ``insetGroupedCardMargin`` and ``insetGroupedCardCornerRadius`` are: it is the exact
+    /// semantic colour UIKit's own `UITableView.Style.insetGrouped` fills a section's rows
+    /// with, published and named for precisely this purpose, and it is what SwiftUI's
+    /// `.insetGrouped` `List` paints its own rows with in turn. Using it here is what makes the
+    /// card's *colour* an exact match rather than another estimate — only its margin, corner
+    /// radius, and the space around it are approximations.
+    static let insetGroupedCardBackground = Color(uiColor: .secondarySystemGroupedBackground)
+
+    /// The colour behind ``WaterfallView``'s own content, matching what an inset-grouped `List`
+    /// already paints its own background — `UIColor.systemGroupedBackground`, the same exact
+    /// semantic pairing ``insetGroupedCardBackground`` uses for the card that sits on top of it.
+    ///
+    /// Applied explicitly because the space around the sticky card — above it, and between it
+    /// and the list beneath — is not part of any `List` and paints nothing on its own; without
+    /// this it would be whatever colour the page's own container happens to default to, and the
+    /// seam between the card and the list would show as a visible colour mismatch rather than
+    /// reading as one continuous grouped background.
+    static let insetGroupedPageBackground = Color(uiColor: .systemGroupedBackground)
 
     // MARK: - Colour
 

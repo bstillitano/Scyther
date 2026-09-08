@@ -731,14 +731,17 @@ plot wide enough not to, are both a *scroll* answer to what is really a *zoom* p
 300 second log of requests between 32 ms and 1.4 s, either one either floors every bar to the same
 sliver or hands the reader a plot thousands of points wide to pan by hand.
 
-The page is one inset-grouped list: a standalone minimap section — one row holding the strip with
-the colour legend beneath it, no divider between them — sits above a detail section holding the
-rows, rather than the strip sitting outside the list as a separate control. Dragging the strip moves the window anywhere in the log in
-a single gesture, so long as the drag reads as clearly horizontal — a drag that reads as vertical
-scrolls the list instead, so a scroll that happens to start over the strip still reaches it — the
-strip only ever moves the window, it never opens a request. Underneath it,
-the **detail section** holds only the requests the window currently contains, each a tappable row
-labelled with its duration and coloured by outcome, running oldest first so time reads downward.
+The minimap — the strip with the colour legend beneath it, no divider between them — is fixed above
+the page rather than scrolling with it: it sits outside the detail list entirely, as a sibling
+above it, hand-styled to still read as one of the list's own inset-grouped sections (same
+background material, same corner radius, the same horizontal margin the list's own sections use)
+so the change is meant to be invisible apart from the stickiness. A `List` cannot pin a `Section`'s
+own content — only `.plain` pins section *headers*, and this list is `.insetGrouped` — which is
+why the minimap sits outside it rather than inside as a fixed section. Dragging the strip moves the
+window anywhere in the log in a single gesture — the strip only ever moves the window, it never
+opens a request. Underneath it, the **detail list** holds only the requests the
+window currently contains, each a tappable row labelled with its duration and coloured by outcome,
+running oldest first so time reads downward.
 Dragging or zooming into a stretch of the log with nothing in it shows an empty state naming the
 gap, with a button that returns the window to the most recent traffic — distinct from the page's
 other empty state, shown instead of the whole list, for a log with no traffic captured at all. A
