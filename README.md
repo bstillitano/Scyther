@@ -734,11 +734,11 @@ sliver or hands the reader a plot thousands of points wide to pan by hand.
 The minimap — the strip with the colour legend beneath it, no divider between them — is fixed above
 the page rather than scrolling with it: it sits outside the detail list entirely, as a sibling
 above it, hand-styled to still read as one of the list's own inset-grouped sections (same
-background material, same corner radius, the same horizontal margin the list's own sections use,
-and the same vertical gap `.insetGrouped` puts between two of its own sections) so the change is
-meant to be invisible apart from the stickiness. A `List` cannot pin a `Section`'s
-own content — only `.plain` pins section *headers*, and this list is `.insetGrouped` — which is
-why the minimap sits outside it rather than inside as a fixed section. Dragging the strip moves the
+background material, same corner radius, the same horizontal margin the list's own sections use)
+so the change is meant to be invisible apart from the stickiness, with a gap below it before the
+list begins tuned by eye rather than borrowed from any system metric. A `List` cannot pin a
+`Section`'s own content — only `.plain` pins section *headers*, and this list is `.insetGrouped` —
+which is why the minimap sits outside it rather than inside as a fixed section. Dragging the strip moves the
 window anywhere in the log in a single gesture, tracked from the very first touch — the strip no
 longer shares a scroll view with anything, so nothing needs to be told apart from a scroll any
 more — the strip only ever moves the window, it never opens a request. Underneath it, the
@@ -758,12 +758,14 @@ puts the same zoom range behind VoiceOver's and Switch Control's adjustable gest
 accessibility value announces how many requests the window holds after every change, so reaching
 zoom never requires a pinch and never leaves a VoiceOver user guessing whether anything happened.
 
-The detail section's own header carries a trailing **Reset zoom** button — styled the way Traffic
-Stats' Waterfall section puts "See all" on its trailing edge, nothing on the leading edge since
-this page has only the one section to name — the moment the window has been zoomed or scrubbed at
-all. It calls the same `resetWindow()` the gap empty state's own button already uses, and it stays
-visible once shown even if a further zoom happens to land back on the same numbers as the opening
-window; only pressing it clears it.
+The minimap's own hand-built header carries a trailing **Reset zoom** button — styled the way
+Traffic Stats' Waterfall section puts "See all" on its trailing edge, nothing on the leading edge
+since this page has only the one section to name — the moment the window has been zoomed or
+scrubbed at all. It sits above the minimap card, not above the detail rows: the button acts on the
+window, and the window is what the minimap draws, not the rows underneath it, which are only ever
+a consequence of it. It calls the same `resetWindow()` the gap empty state's own button already
+uses, and it stays visible once shown even if a further zoom happens to land back on the same
+numbers as the opening window; only pressing it clears it.
 
 A request already running when the window opens, or one that outlives it, is drawn **clipped**
 flush to the window's edge rather than shrunk to fit — the clip reads as "continues", where a

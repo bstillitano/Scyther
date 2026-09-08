@@ -235,27 +235,44 @@ enum WaterfallChartStyle {
     /// reading as one continuous grouped background.
     static let insetGroupedPageBackground = Color(uiColor: .systemGroupedBackground)
 
-    /// The vertical gap between the sticky minimap card and the detail list beneath it, in
-    /// points — meant to match the gap `.insetGrouped` puts between two of its own sections with
-    /// no header or footer text on either.
+    /// The vertical gap between the sticky minimap and the detail list beneath it, in points.
     ///
-    /// 35pt is the figure most consistently cited for that inter-section gap, carried over from
-    /// classic `UITableView`'s own grouped-style behaviour, where a section with no footer text
-    /// still reserves a footer-sized gap before the next section begins. Like
-    /// ``insetGroupedCardMargin`` and ``insetGroupedCardCornerRadius``, this is not published as
-    /// a UIKit or SwiftUI API constant anywhere this pipeline can read it from, so it is an
-    /// estimate, not a measurement, on exactly the same footing as those two.
+    /// - Note: Renamed from `insetGroupedSectionSpacing`, and reduced from `35` to this value,
+    ///   because that name and that figure both stopped being true the moment this stopped
+    ///   matching a system metric. `35` was chosen to match the gap `.insetGrouped` puts between
+    ///   two of its own sections with no header or footer text — a figure carried over from
+    ///   classic `UITableView`'s grouped-style behaviour, not measured in this pipeline. The owner
+    ///   ran that on device and asked for it "a tiny bit smaller." This is no longer an attempt at
+    ///   that system figure at all: it is whatever reads right between this page's own sticky
+    ///   minimap and its own list, tuned once by eye against the owner's own feedback, and it
+    ///   should be named and documented as exactly that rather than as an estimate of something
+    ///   else. A constant whose name and doc comment describe a system metric it no longer targets
+    ///   is worse than one with no comment at all — this file has shipped that mistake before.
     ///
-    /// - Note: This constant exists because a `.insetGrouped` `List`'s own built-in top inset —
-    ///   the space it normally leaves above its first section — turned out, once the owner ran
-    ///   this on device, not to be present at all when the `List` sits as a sibling beneath
-    ///   another view rather than as the page's only content directly under a navigation bar: the
-    ///   card and the first row butted together with no gap whatsoever. That top inset was the
-    ///   thing ``WaterfallView/minimapCard``'s own documentation originally planned to lean on
-    ///   instead of adding an explicit gap, on the reasoning that adding one too would double it;
-    ///   the device run showed there was nothing there to double. This constant is the whole gap
-    ///   now, not a supplement to one the list already supplies.
-    static let insetGroupedSectionSpacing: CGFloat = 35
+    /// `24`pt: roughly two-thirds of the previous `35`, landing at the low end of the range the
+    /// owner named ("something in the low-to-mid twenties") rather than the middle of it. Chosen
+    /// deliberately conservative rather than a bigger cut: this constant exists at all because a
+    /// gap of `0` read as no gap whatsoever — the exact defect it was introduced to fix — so a
+    /// smaller-but-still-generous figure was preferred over one that risked drifting back toward
+    /// that failure on a later "tiny bit smaller."
+    ///
+    /// This gap sits below ``WaterfallView/minimapCard`` — the bottom-most view in
+    /// ``WaterfallView/minimap`` — and above ``WaterfallView/detail``'s `List`, regardless of
+    /// whether ``WaterfallView/minimapHeader`` is showing above the card: the header adds height
+    /// *above* the card, inside `minimap`, and does not touch this gap, which is measured from the
+    /// card's own bottom edge either way. Not verified rendered in either state — see the fix
+    /// report.
+    static let minimapListSpacing: CGFloat = 24
+
+    /// The vertical gap between ``WaterfallView/minimapHeader`` and ``WaterfallView/minimapCard``
+    /// beneath it, in points, when the header is showing at all.
+    ///
+    /// `6`pt: a small, deliberately modest figure for a header sitting directly above the section
+    /// it labels, in the same spirit as — but not derived from — the small gap a real
+    /// `.insetGrouped` section header leaves before its own card begins. Not published as a UIKit
+    /// or SwiftUI API constant, and not measured against one either: chosen by eye, on the same
+    /// footing as ``minimapListSpacing``, and equally in need of the owner's own look to confirm.
+    static let minimapHeaderSpacing: CGFloat = 6
 
     // MARK: - Colour
 

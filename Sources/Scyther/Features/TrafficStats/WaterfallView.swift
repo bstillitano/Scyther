@@ -203,9 +203,8 @@ struct WaterfallView: View {
         }
     }
 
-    /// The page's body once the log holds something: ``minimapCard``, fixed above ``detail``'s
-    /// `List` rather than scrolling with it, over one continuous inset-grouped-looking
-    /// background.
+    /// The page's body once the log holds something: ``minimap``, fixed above ``detail``'s `List`
+    /// rather than scrolling with it, over one continuous inset-grouped-looking background.
     ///
     /// A `VStack` rather than a `List` at the top level — again, the reverse of where this went
     /// one fix round ago. That round put the minimap in a `Section` at the top of the `List` on
@@ -216,36 +215,36 @@ struct WaterfallView: View {
     /// explicit, separate instruction that still stands. A section genuinely cannot be sticky
     /// here, so the minimap moved back to being a sibling — the shape it had before either of the
     /// last two fix rounds — but now hand-styled to still read as the inset-grouped card it
-    /// briefly, literally was. See ``minimapCard`` for that styling and its own honest limits.
+    /// briefly, literally was. See ``minimap`` and ``minimapCard`` for that styling and its own
+    /// honest limits.
     ///
-    /// Unconditional here on purpose, same as ``minimapCard`` and ``detail`` are individually:
-    /// this property is only ever reached through ``body``, which shows it only once
+    /// Unconditional here on purpose, same as ``minimap`` and ``detail`` are individually: this
+    /// property is only ever reached through ``body``, which shows it only once
     /// ``WaterfallViewModel/isEmpty`` is `false` — "no traffic at all" still shows nothing but
     /// ``emptyState``, not a floating card above an empty list.
     ///
     /// `.background(WaterfallChartStyle.insetGroupedPageBackground)` on the whole `VStack`: the
     /// `List` beneath already paints that colour on itself, so this is redundant there, but it is
-    /// what keeps the space around and above ``minimapCard`` — which paints nothing of its own —
-    /// from defaulting to whatever colour this view's own container happens to be, breaking the
-    /// seam between the card and the list beneath it.
+    /// what keeps the space around and above ``minimap`` — which paints nothing of its own outside
+    /// ``minimapCard``'s own background — from defaulting to whatever colour this view's own
+    /// container happens to be, breaking the seam between the card and the list beneath it.
     ///
-    /// `VStack(spacing: WaterfallChartStyle.insetGroupedSectionSpacing)`, not `spacing: 0`: the
-    /// gap this puts between ``minimapCard`` and ``detail`` is what makes the card read as fixed
-    /// above a scrolling list rather than as one continuous block with the first row. It used to
-    /// be `0` on the reasoning that `.insetGrouped` already gives a `List` some top inset before
-    /// its first section, so an explicit gap here would only double it — reasoning that held up
-    /// only until the owner actually ran this on device and found no gap at all: the card and the
-    /// first row butted directly together. Whatever top inset `.insetGrouped` gives a `List` in
-    /// other contexts, it was not contributing anything here, so the gap is now supplied entirely
-    /// by this one `spacing` value rather than split, guessed at, or assumed. Living on the
-    /// `VStack` itself, not as extra bottom padding on ``minimapCard`` or extra top padding on
-    /// ``detail``: the gap belongs to neither view individually, it is the relationship between
-    /// them, and `VStack`'s own `spacing` parameter is the one place that is already true of by
-    /// construction — see ``WaterfallChartStyle/insetGroupedSectionSpacing`` for the figure
-    /// itself and how confident this pipeline can be in it.
+    /// `VStack(spacing: WaterfallChartStyle.minimapListSpacing)`, not `spacing: 0`: the gap this
+    /// puts between ``minimap`` and ``detail`` is what makes the card read as fixed above a
+    /// scrolling list rather than as one continuous block with the first row. It used to rely on
+    /// `.insetGrouped` giving a `List` some top inset before its first section instead of an
+    /// explicit gap here, on the reasoning that adding one too would double it — reasoning that
+    /// held up only until the owner actually ran this on device and found no gap at all: the card
+    /// and the first row butted directly together. This `spacing` value has supplied the whole gap
+    /// ever since, not a supplement to one the list already gives, and living on the `VStack`
+    /// itself rather than as padding on either sibling is deliberate: the gap belongs to neither
+    /// view individually, it is the relationship between them, and `VStack`'s own `spacing`
+    /// parameter is the one place that is already true of by construction — see
+    /// ``WaterfallChartStyle/minimapListSpacing`` for the figure itself, which the owner has since
+    /// asked to be tightened once already, and how confident this pipeline can be in it now.
     private var content: some View {
-        VStack(spacing: WaterfallChartStyle.insetGroupedSectionSpacing) {
-            minimapCard
+        VStack(spacing: WaterfallChartStyle.minimapListSpacing) {
+            minimap
             detail
         }
         .background(WaterfallChartStyle.insetGroupedPageBackground)
@@ -290,12 +289,102 @@ struct WaterfallView: View {
             .accessibilityValue(viewModel.windowCaption)
     }
 
-    /// The minimap, styled to still read as an inset-grouped card even though it is no longer
-    /// one: the legend explaining the strip's colours, and the strip itself carrying the current
-    /// window, in one row-shaped `VStack` on a rounded, coloured background — fixed above
-    /// ``detail``'s `List` as a sibling in ``content``, rather than scrolling with it, and now
-    /// also carrying ``magnification`` so a pinch reaches this whole page rather than only its
-    /// rows — see that property's own "Two attachment points" section.
+    /// ``minimapHeader``, shown only once the window has been touched, stacked directly above
+    /// ``minimapCard`` with a small gap of its own — together, the whole fixed unit ``content``
+    /// places above ``detail``'s `List`.
+    ///
+    /// A second, inner `VStack` rather than folding the header into ``minimapCard`` itself: the
+    /// header is a section header, styled and positioned to sit *above* the card the way a real
+    /// `.insetGrouped` section header sits above its own card, not inside it. `spacing: 0` here,
+    /// with the gap between the two supplied entirely by ``minimapHeader``'s own bottom padding
+    /// rather than by this `VStack`'s `spacing` parameter: a conditionally-absent child — the
+    /// header renders nothing at all while ``WaterfallViewModel/hasAdjustedWindow`` is `false` —
+    /// is not reliably guaranteed to contribute zero `spacing` on every SwiftUI version this
+    /// package supports, and this sidesteps the question entirely rather than depending on the
+    /// answer. `minimapHeader`'s own padding is `0` exactly when it is not there to carry any.
+    ///
+    /// `.padding(.top, 16)` lives here, on the whole unit, not on ``minimapCard`` alone: the gap
+    /// from the top of the page to whichever view is actually first — the header, once the window
+    /// has been adjusted, or the card, before that — has to move with which one that is, and
+    /// applying it once here is what keeps it from having to be duplicated onto both.
+    private var minimap: some View {
+        VStack(spacing: 0) {
+            if viewModel.hasAdjustedWindow {
+                minimapHeader
+            }
+            minimapCard
+        }
+        .padding(.top, 16)
+    }
+
+    /// The reset-zoom section header, relocated here from the detail list's own section header on
+    /// the owner's own correction: *"The reset zoom button should be on the minimap section not
+    /// the list rows."* The button acts on the window; the window is what the minimap draws; the
+    /// list of rows is a consequence of it, not the thing being reset.
+    ///
+    /// ## Matching `.insetGrouped`'s own section header by hand
+    ///
+    /// The minimap has not been a real `Section` since the previous fix round — see
+    /// ``minimapCard``'s own "Why this is not a `Section` any more" — so there is no header slot
+    /// to hang this on the way `TrafficStatsView`'s own sections do. This hand-builds one instead,
+    /// matching what a real header would give it:
+    ///
+    /// - **Horizontal insets** — `WaterfallChartStyle.insetGroupedCardMargin`, the identical figure
+    ///   ``minimapCard`` insets its own rounded background by. A real section header's text lines
+    ///   up with its card's own edges, not with the card's *interior* content padding, so this
+    ///   reads that literally: the same margin, not the card's `.padding()` on top of it.
+    /// - **Typography and secondary colouring** — the button is deliberately styled *away* from
+    ///   these, exactly as `TrafficStatsView.waterfallSection`'s own trailing "See all" link is:
+    ///   `.font(.subheadline)` and `.buttonStyle(.borderless)` read as a control rather than as
+    ///   small-caps chrome. What "same typography and secondary colouring" governs here is the
+    ///   header as a *concept* — a real section header's small, secondary, uppercased styling is
+    ///   what the button is deliberately breaking from, the same trade this page's other header
+    ///   button already made — not something applied to this row's own content, because this row
+    ///   has no leading text for it to apply to. One difference from that precedent, worth naming
+    ///   because it is easy to get wrong copying the reasoning forward: `TrafficStatsView`'s own
+    ///   button needs `.textCase(nil)` to cancel a `List` section header's automatic uppercase
+    ///   transform. This header is not inside a `List` at all, so there is no such transform for
+    ///   `.textCase` to cancel — including it here would be a modifier doing nothing, describing a
+    ///   mechanism that does not apply, which is exactly the kind of doc drift this file has
+    ///   shipped before. Left off, deliberately, not by oversight.
+    ///
+    /// **Nothing on the leading edge**, for the same reason ``detailSection(rowLayout:)``'s own
+    /// header had nothing there before this button moved out of it: this page has exactly one
+    /// section to name, already named by the navigation title above it, so a repeated `Text` would
+    /// be chrome that says nothing new.
+    ///
+    /// ## Sizing
+    ///
+    /// This view's own existence is already conditional — see ``minimap``, which only includes it
+    /// at all once ``WaterfallViewModel/hasAdjustedWindow`` is `true` — so nothing inside this
+    /// property needs its own visibility check. `.padding(.bottom, WaterfallChartStyle.minimapHeaderSpacing)`
+    /// is the gap to ``minimapCard`` beneath it; there is no top padding of its own, since
+    /// ``minimap``'s own `.padding(.top, 16)` already supplies the gap from the page's own top,
+    /// whichever view ends up first.
+    ///
+    /// - Important: Not seen rendered. The horizontal alignment against the card, and against how
+    ///   a real `.insetGrouped` section header sits above its own section, is a visual match only
+    ///   the owner running this can confirm — see the fix report.
+    private var minimapHeader: some View {
+        HStack {
+            Spacer()
+            Button(localized("Reset zoom")) {
+                viewModel.resetWindow()
+            }
+            .font(.subheadline)
+            .buttonStyle(.borderless)
+        }
+        .padding(.horizontal, WaterfallChartStyle.insetGroupedCardMargin)
+        .padding(.bottom, WaterfallChartStyle.minimapHeaderSpacing)
+    }
+
+    /// The minimap card itself, styled to still read as an inset-grouped card even though it is
+    /// no longer one: the legend explaining the strip's colours, and the strip itself carrying the
+    /// current window, in one row-shaped `VStack` on a rounded, coloured background — fixed above
+    /// ``detail``'s `List` as a sibling in ``content`` (by way of ``minimap``, which also carries
+    /// ``minimapHeader`` above this), rather than scrolling with it, and carrying
+    /// ``magnification`` so a pinch reaches this whole page rather than only its rows — see that
+    /// property's own "Two attachment points" section.
     ///
     /// ## Why this is not a `Section` any more
     ///
@@ -339,14 +428,11 @@ struct WaterfallView: View {
     ///   how *balanced* the result reads once ``WaterfallLegendView``'s own `Chart`-drawn legend
     ///   renders inside its measured height, which is Charts' own layout, not this view's.
     ///
-    /// What is still not attempted exactly: the `16`pt top padding below, the gap between the top
-    /// of the page and the card, remains a plain estimate with no particular source. The gap
-    /// *between* the card and the list's first row is no longer attempted by this view at all —
-    /// see ``WaterfallView/content`` and ``WaterfallChartStyle/insetGroupedSectionSpacing`` for
-    /// where that moved and why: it turned out, once the owner ran an earlier version of this on
-    /// device, that `.insetGrouped` was not contributing the top inset this view had been relying
-    /// on instead of an explicit gap, so there is no risk left of this view's own padding and that
-    /// reliance doubling up — there is no reliance left to double.
+    /// What is still not attempted exactly: the gap *between* the card and the list's first row —
+    /// see ``WaterfallChartStyle/minimapListSpacing`` — and the `16`pt gap from the top of the
+    /// page to whichever view is actually first, now on ``minimap`` rather than here since that
+    /// depends on whether ``minimapHeader`` is showing above this card. Both remain plain
+    /// estimates, tuned by eye rather than derived from anything published.
     ///
     /// - Important: None of this was seen rendered before the owner's own device pass confirmed
     ///   the card sits fixed above the list and reads as a section, which is more than this
@@ -381,7 +467,6 @@ struct WaterfallView: View {
                 .fill(WaterfallChartStyle.insetGroupedCardBackground)
         )
         .padding(.horizontal, WaterfallChartStyle.insetGroupedCardMargin)
-        .padding(.top, 16)
         // The pinch, reachable here too now — see ``magnification``'s own "Two attachment points"
         // section for why this reads the same declaration ``detail`` attaches rather than a second
         // copy of the gesture, and why coexisting with the strip's own drag, nested inside this
@@ -443,8 +528,7 @@ struct WaterfallView: View {
     }
 
     /// The detail section: the rows the window holds, or ``windowEmptyState`` when it holds none —
-    /// captioned, when it holds rows, with how many of the log's requests they are, and headed,
-    /// once the window has been zoomed or scrubbed at all, with a button that puts it back.
+    /// captioned, when it holds rows, with how many of the log's requests they are.
     ///
     /// The caption used to sit below the whole `List` as a `Text` of its own, outside every
     /// section. It is this section's own footer instead, on the owner's own direction after
@@ -458,31 +542,19 @@ struct WaterfallView: View {
     /// the two content branches above, so the footer reads the same condition rather than a second
     /// one that could drift from it.
     ///
-    /// ## The reset-zoom header button
+    /// ## No header — moved, not merely removed
     ///
-    /// Styled the way `TrafficStatsView`'s own Waterfall section puts "See all" on its trailing
-    /// edge — read directly from that section's header, not invented afresh: `.textCase(nil)`,
-    /// `.font(.subheadline)`, `.buttonStyle(.borderless)`, undoing the small-caps chrome styling a
-    /// section header gives its content by default so the button reads as a control rather than as
-    /// a label. Calls ``WaterfallViewModel/resetWindow()`` directly — the same action the gap empty
-    /// state's own button already uses, on purpose: one definition of "back to normal" for this
-    /// page, not two independently maintained ones that could drift apart on what "normal" means.
-    ///
-    /// **Nothing on the leading edge**, unlike `TrafficStatsView`'s own sections, which each open
-    /// with a `Text` naming the section — "Waterfall", "Slowest Endpoints", and so on. Those names
-    /// exist to tell several sibling sections apart on one screen; this page has exactly one
-    /// section, already named by the navigation title above it, so repeating that name here would
-    /// be chrome that says nothing new. `TrafficStatsView.summarySection`'s own header already
-    /// sets the precedent for leaving one empty rather than filling it with something that adds no
-    /// information: it shows nothing at all unless the log is filtered, for the same reason.
-    ///
-    /// The header itself is conditional on ``WaterfallViewModel/hasAdjustedWindow``, not merely
-    /// the button inside it: an `HStack` with nothing but a `Spacer` would still reserve a section
-    /// header's own row height, drawing an empty strip of chrome above the rows whenever the
-    /// window has never been touched — the common case, true from the moment the page opens until
-    /// a reader's first zoom or drag. Wrapping the whole header in the same `if` as
-    /// `TrafficStatsView.summarySection`'s own conditional header, rather than only the button
-    /// inside an unconditional one, is what keeps that common case free of it entirely.
+    /// This section briefly had a header of its own holding the reset-zoom button, for exactly one
+    /// fix round. The owner: *"The reset zoom button should be on the minimap section not the list
+    /// rows"* — the button acts on the window, the window is what the minimap draws, and these
+    /// rows are only ever a consequence of it. See ``WaterfallView/minimapHeader`` for where it
+    /// lives now. Nothing else was ever asked of this section's header, so none of it earned a
+    /// reason to stay behind: this now calls the two-closure `Section(content:footer:)`, with no
+    /// `header:` argument at all, rather than a three-closure form whose header closure always
+    /// produced nothing — a `Section` told outright that it has no header, rather than one merely
+    /// never showing the one it has, is what rules out that header closure contributing any space
+    /// of its own to the list's own layout above its first row, which an always-empty closure
+    /// would leave this pipeline no way to check.
     ///
     /// - Parameter rowLayout: How wide this frame's rows should draw their columns, from
     ///   ``WaterfallView/rowLayout(in:)``.
@@ -501,18 +573,6 @@ struct WaterfallView: View {
                                            labelWidth: rowLayout.labelWidth,
                                            durationWidth: rowLayout.durationWidth)
                     }
-                }
-            }
-        } header: {
-            if viewModel.hasAdjustedWindow {
-                HStack {
-                    Spacer()
-                    Button(localized("Reset zoom")) {
-                        viewModel.resetWindow()
-                    }
-                    .textCase(nil)
-                    .font(.subheadline)
-                    .buttonStyle(.borderless)
                 }
             }
         } footer: {
@@ -661,7 +721,7 @@ struct WaterfallView: View {
     ///
     /// Distinct from ``windowEmptyState``, which answers ``WaterfallViewModel/isWindowEmpty``: this
     /// is the whole log holding nothing to draw a strip or a window over in the first place, so
-    /// ``body`` shows this instead of ``content`` entirely — no ``minimapCard`` floating above an
+    /// ``body`` shows this instead of ``content`` entirely — no ``minimap`` floating above an
     /// empty list, no detail list either.
     @ViewBuilder
     private var emptyState: some View {
@@ -694,7 +754,7 @@ struct WaterfallView: View {
     /// Distinct from ``emptyState``, which answers the whole log holding no traffic at all: this
     /// one answers ``WaterfallViewModel/isWindowEmpty`` — traffic exists elsewhere in the log, the
     /// current window just is not over any of it. Shown as ``detailSection(rowLayout:)``'s own
-    /// content rather than in place of the whole page, because ``minimapCard`` above it is still
+    /// content rather than in place of the whole page, because ``minimap`` above it is still
     /// showing something real and must stay on screen: a developer who dragged into a gap still
     /// needs to see where the window sits to drag it back out of one, which swapping the entire
     /// page for a placeholder — the way ``emptyState`` replaces ``content`` outright — would take
