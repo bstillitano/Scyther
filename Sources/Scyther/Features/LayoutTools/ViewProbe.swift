@@ -32,6 +32,16 @@ enum ViewProbe {
     /// over Scyther's own close button. Reading it here rather than writing a second test is what
     /// keeps the two from drifting apart.
     ///
+    /// **Known limitation, matching UIKit's own `hitTest(_:with:)`.** Descending into a subview is
+    /// gated on the point falling inside *that subview's own* `bounds`, even when the subview does
+    /// not clip. A grandchild that visually overflows its immediate, non-clipping parent — a badge
+    /// pinned at a negative inset, say — is unreachable once the point lands outside the parent's
+    /// bounds, even though the badge is genuinely on screen there. This is platform-consistent
+    /// rather than a bug to fix here, but it means the ruler can decline to measure something a
+    /// developer can plainly see; there is no cheap general fix, since finding an overflowing
+    /// descendant would mean testing every subview's actual painted frame rather than pruning by
+    /// containment.
+    ///
     /// - Parameters:
     ///   - point: The point, in `root`'s coordinate space.
     ///   - root: The view to search. The ruler passes its window.
