@@ -297,7 +297,7 @@ enum MenuItem: Hashable, Identifiable {
         case .fonts: return "textformat"
         case .interfaceComponents: return "apps.iphone"
         case .gridOverlay: return "rectangle.split.3x3"
-        case .layoutGuides: return "rectangle.dashed"
+        case .layoutGuides: return "rectangle.inset.filled"
         case .layoutRuler: return "arrow.left.and.right"
         case .fpsCounter: return "speedometer"
         case .touchVisualiser: return "hand.point.up"
