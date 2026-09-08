@@ -730,9 +730,9 @@ plot wide enough not to, are both a *scroll* answer to what is really a *zoom* p
 300 second log of requests between 32 ms and 1.4 s, either one either floors every bar to the same
 sliver or hands the reader a plot thousands of points wide to pan by hand.
 
-The page is one inset-grouped list: a standalone minimap section — the colour legend and the
-strip, together — sits above a detail section holding the rows, rather than the strip sitting
-outside the list as a separate control. Dragging the strip moves the window anywhere in the log in
+The page is one inset-grouped list: a standalone minimap section — one row holding the strip with
+the colour legend beneath it, no divider between them — sits above a detail section holding the
+rows, rather than the strip sitting outside the list as a separate control. Dragging the strip moves the window anywhere in the log in
 a single gesture, so long as the drag reads as clearly horizontal — a drag that reads as vertical
 scrolls the list instead, so a scroll that happens to start over the strip still reaches it — the
 strip only ever moves the window, it never opens a request. Underneath it,
@@ -755,8 +755,9 @@ flush to the window's edge rather than shrunk to fit — the clip reads as "cont
 shrunk bar would read as a request shorter than it actually ran. Tapping a row in the detail list
 opens that request's details.
 
-Both surfaces follow the log's search and filter chips, and the page's caption under the detail
-list names how many of the log's total requests the current window holds.
+Both surfaces follow the log's search and filter chips, and the detail section's own footer names
+how many of the log's total requests the current window holds — hidden, not just blank, whenever
+the window is over a gap and showing its own empty state instead of rows.
 
 #### The breakdowns
 

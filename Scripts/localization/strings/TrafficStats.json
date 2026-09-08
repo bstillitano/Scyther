@@ -383,21 +383,6 @@
     "zh-Hans": "中位数 %@",
     "zh-Hant": "中位數 %@"
   },
-  "No Requests in This Window": {
-    "ar": "لا توجد طلبات في هذه النافذة",
-    "comment": "Title of the empty state shown when the current time window is over a stretch of the log with no traffic, distinct from the log itself being empty",
-    "de": "Keine Anfragen in diesem Fenster",
-    "es": "No hay solicitudes en esta ventana",
-    "fr": "Aucune requête dans cette fenêtre",
-    "it": "Nessuna richiesta in questa finestra",
-    "ja": "このウィンドウにはリクエストがありません",
-    "ko": "이 창에는 요청이 없습니다",
-    "nl": "Geen verzoeken in dit venster",
-    "pt-BR": "Nenhuma solicitação nesta janela",
-    "ru": "В этом окне нет запросов",
-    "zh-Hans": "此窗口中没有请求",
-    "zh-Hant": "此視窗中沒有請求"
-  },
   "No Traffic Captured": {
     "ar": "لم يتم التقاط أي حركة بيانات",
     "comment": "Title of the placeholder shown when no requests have been logged",
@@ -457,6 +442,21 @@
     "ru": "Процентили имеют смысл минимум при пяти завершённых запросах, поэтому вместо них показаны исходные длительности.",
     "zh-Hans": "百分位数至少需要五个已完成的请求才有意义，因此这里改为显示原始时长。",
     "zh-Hant": "百分位數至少需要五個已完成的請求才有意義，因此這裡改為顯示原始時長。"
+  },
+  "Quiet Stretch": {
+    "ar": "فترة هادئة",
+    "comment": "Title of the empty state shown when the current time window is over a stretch of the log with no traffic, distinct from the log itself being empty. Short deliberately: the description beneath it carries the explanation, this only needs to name the state without truncating on a standard iPhone width",
+    "de": "Ruhige Phase",
+    "es": "Tramo tranquilo",
+    "fr": "Accalmie",
+    "it": "Tratto silenzioso",
+    "ja": "静かな区間",
+    "ko": "조용한 구간",
+    "nl": "Rustig deel",
+    "pt-BR": "Trecho silencioso",
+    "ru": "Тихий участок",
+    "zh-Hans": "安静区段",
+    "zh-Hant": "安靜區段"
   },
   "Seconds": {
     "ar": "ثوانٍ",

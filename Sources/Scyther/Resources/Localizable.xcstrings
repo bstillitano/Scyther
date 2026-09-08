@@ -35068,83 +35068,6 @@
         }
       }
     },
-    "No Requests in This Window": {
-      "comment": "Title of the empty state shown when the current time window is over a stretch of the log with no traffic, distinct from the log itself being empty",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "لا توجد طلبات في هذه النافذة"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Keine Anfragen in diesem Fenster"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "No hay solicitudes en esta ventana"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Aucune requête dans cette fenêtre"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Nessuna richiesta in questa finestra"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "このウィンドウにはリクエストがありません"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "이 창에는 요청이 없습니다"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Geen verzoeken in dit venster"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Nenhuma solicitação nesta janela"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "В этом окне нет запросов"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "此窗口中没有请求"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "此視窗中沒有請求"
-          }
-        }
-      }
-    },
     "No Results": {
       "comment": "Empty state title when a search or query returns nothing",
       "localizations": {
@@ -43785,6 +43708,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "快速查看"
+          }
+        }
+      }
+    },
+    "Quiet Stretch": {
+      "comment": "Title of the empty state shown when the current time window is over a stretch of the log with no traffic, distinct from the log itself being empty. Short deliberately: the description beneath it carries the explanation, this only needs to name the state without truncating on a standard iPhone width",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "فترة هادئة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ruhige Phase"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Tramo tranquilo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Accalmie"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Tratto silenzioso"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "静かな区間"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "조용한 구간"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rustig deel"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Trecho silencioso"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Тихий участок"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "安静区段"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "安靜區段"
           }
         }
       }

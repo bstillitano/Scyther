@@ -181,12 +181,19 @@ struct WaterfallView: View {
         )
     }
 
+    /// - Note: This puts ``strip`` inside a scrolling `List`.
+    ///   ``WaterfallOverviewStrip/Interaction/scrub(_:)`` was changed alongside the fix that moved
+    ///   it there specifically to still be safe in that position — see that case's own
+    ///   documentation, and ``WaterfallOverviewStrip/scrubGesture(width:onScrub:)`` for the
+    ///   direction rule that makes it so. Nothing about that rule was confirmed against a real
+    ///   drag or a real scroll; only the geometry and the view model calls behind it are covered
+    ///   by tests. See the fix report for what was and was not verified.
     var body: some View {
         Group {
             if viewModel.isEmpty {
                 emptyState
             } else {
-                content
+                detail
             }
         }
         .navigationTitle(localized("Waterfall"))
@@ -200,36 +207,6 @@ struct WaterfallView: View {
         // whole subject is when things started and finished.
         .onReceive(logs.$requests) { requests in
             viewModel.update(requests: requests, totalCount: logs.totalRequestCount)
-        }
-    }
-
-    /// The page's body once the log holds something: ``detail``'s one `List` — the minimap
-    /// section carrying the legend and the current window, then the detail section the window
-    /// holds — and the caption underneath it.
-    ///
-    /// The minimap and the rows now share that single `List`, rather than the strip sitting in
-    /// this `VStack` above a separate, row-only `List` the way it used to: the owner's own
-    /// direction was for the minimap to become "a standalone section at the top" of the list
-    /// rather than a sibling above it, which only means something once both live in one `List`.
-    /// See ``minimapSection`` and ``detailSection(rowLayout:)`` for the two sections themselves,
-    /// and ``detail`` for why this `VStack` still exists at all — the caption sits outside the
-    /// `List`, unaffected by any of this.
-    ///
-    /// - Note: This move puts ``strip`` inside a scrolling `List` for the first time.
-    ///   ``WaterfallOverviewStrip/Interaction/scrub(_:)`` was changed alongside this fix
-    ///   specifically to still be safe there — see that case's own documentation, and
-    ///   ``WaterfallOverviewStrip/scrubGesture(width:onScrub:)`` for the direction rule that makes
-    ///   it so. Nothing about that rule was confirmed against a real drag or a real scroll; only
-    ///   the geometry and the view model calls behind it are covered by tests. See the fix report
-    ///   for what was and was not verified.
-    private var content: some View {
-        VStack(spacing: 0) {
-            detail
-            Text(viewModel.windowCaption)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
         }
     }
 
@@ -251,9 +228,9 @@ struct WaterfallView: View {
 
     /// The overview strip, carrying the current window and announcing it to VoiceOver.
     ///
-    /// Still `.scrub` — now hosted inside ``detail``'s `List`, which is what
-    /// ``WaterfallOverviewStrip/Interaction/scrub(_:)`` was changed to tolerate as part of this
-    /// same fix. See ``content``'s own `- Note` and that case's own documentation.
+    /// Still `.scrub` — hosted inside ``detail``'s `List`, which is what
+    /// ``WaterfallOverviewStrip/Interaction/scrub(_:)`` was changed to tolerate. See ``body``'s
+    /// own `- Note` and that case's own documentation.
     ///
     /// `.accessibilityValue` rather than baking the count into the label: the strip's label
     /// (``localized(_:)`` `"Traffic overview"`, set inside ``WaterfallOverviewStrip`` itself)
@@ -334,11 +311,11 @@ struct WaterfallView: View {
     /// A standalone `Section` at the top of ``detail``'s `List`, per the owner's own direction,
     /// rather than a sibling sitting above the list the way it used to in a plain `VStack`.
     /// Unconditional here on purpose: ``detail`` — and therefore this property — is only ever
-    /// reached through ``content``, which ``body`` shows only once
-    /// ``WaterfallViewModel/isEmpty`` is `false`. "Shown whenever the log has any traffic at all,
-    /// and omitted only when there is none" is already exactly the condition guarding every call
-    /// site of this property, so a second `if` in front of it here would just be checking the same
-    /// thing ``body`` already checked, one call frame later.
+    /// reached through ``body``, which shows it only once ``WaterfallViewModel/isEmpty`` is
+    /// `false`. "Shown whenever the log has any traffic at all, and omitted only when there is
+    /// none" is already exactly the condition guarding every call site of this property, so a
+    /// second `if` in front of it here would just be checking the same thing ``body`` already
+    /// checked, one call frame later.
     ///
     /// ## Where the legend went
     ///
@@ -349,28 +326,55 @@ struct WaterfallView: View {
     /// a caption: it draws four coloured swatches with their own labels, and forcing that into a
     /// slot styled for a line of grey text would mean either fighting that slot's styling or
     /// abandoning it outright — neither of which is "match how the neighbours do it," the direction
-    /// this fix was given for the list style two properties up. Keeping the legend as ordinary
-    /// section content directly above the strip preserves the pairing the page already had — a key
-    /// explaining exactly the chart drawn beneath it — while still gaining the section's own
-    /// inset-grouped card around both.
+    /// this fix was given for the list style two properties up.
+    ///
+    /// ## One row, not two
+    ///
+    /// The strip and the legend are wrapped in one `VStack`, not declared as two sibling views
+    /// directly inside the `Section` the way an earlier version of this fix had them: a `Section`
+    /// gives each top-level child its own row, complete with the separator between rows a `List`
+    /// draws by default, and that read as a stray divider cutting a single card in two rather than
+    /// the one connected unit a legend and the chart it explains ought to be. Wrapping both in a
+    /// `VStack` first is what makes the pair a single child of the `Section`, and therefore a
+    /// single row with no separator inside it.
+    ///
+    /// The strip sits above the legend, not below it — reversed from this fix's own first attempt,
+    /// on the owner's explicit correction after driving the build. The chart the reader actually
+    /// looks at leads; the key naming what its colours mean follows underneath it, the same order
+    /// a caption follows the figure it captions rather than announcing it in advance.
     private var minimapSection: some View {
         Section {
-            legend
-            if viewModel.window.canZoom {
-                strip.accessibilityAdjustableAction { direction in
-                    switch direction {
-                    case .increment: viewModel.zoom(by: 2)
-                    case .decrement: viewModel.zoom(by: 0.5)
-                    @unknown default: break
+            VStack(alignment: .leading, spacing: 8) {
+                if viewModel.window.canZoom {
+                    strip.accessibilityAdjustableAction { direction in
+                        switch direction {
+                        case .increment: viewModel.zoom(by: 2)
+                        case .decrement: viewModel.zoom(by: 0.5)
+                        @unknown default: break
+                        }
                     }
+                } else {
+                    strip
                 }
-            } else {
-                strip
+                legend
             }
         }
     }
 
-    /// The detail section: the rows the window holds, or ``windowEmptyState`` when it holds none.
+    /// The detail section: the rows the window holds, or ``windowEmptyState`` when it holds none —
+    /// captioned, when it holds rows, with how many of the log's requests they are.
+    ///
+    /// The caption used to sit below the whole `List` as a `Text` of its own, outside every
+    /// section. It is this section's own footer instead, on the owner's own direction after
+    /// driving the build: a footer is exactly SwiftUI's slot for a line explaining what a
+    /// section's rows are, and this caption has always been exactly that — see
+    /// ``WaterfallViewModel/windowCaption``.
+    ///
+    /// The footer is shown only alongside the rows, not alongside ``windowEmptyState``: a footer
+    /// naming how many requests are showing is noise underneath an empty state that already says,
+    /// in its own words, that none are. `viewModel.isWindowEmpty` is what already chooses between
+    /// the two content branches above, so the footer reads the same condition rather than a second
+    /// one that could drift from it.
     ///
     /// - Parameter rowLayout: How wide this frame's rows should draw their columns, from
     ///   ``WaterfallView/rowLayout(in:)``.
@@ -390,6 +394,10 @@ struct WaterfallView: View {
                                            durationWidth: rowLayout.durationWidth)
                     }
                 }
+            }
+        } footer: {
+            if !viewModel.isWindowEmpty {
+                Text(viewModel.windowCaption)
             }
         }
     }
@@ -494,9 +502,8 @@ struct WaterfallView: View {
     ///
     /// Distinct from ``windowEmptyState``, which answers ``WaterfallViewModel/isWindowEmpty``: this
     /// is the whole log holding nothing to draw a strip or a window over in the first place, so
-    /// ``body`` shows this instead of ``content`` entirely — there is no minimap or detail list to
-    /// put a section around. Left unchanged by this fix beyond this doc comment: the owner's brief
-    /// was explicit that this behaviour stays as it was.
+    /// ``body`` shows this instead of ``detail`` entirely — there is no minimap or detail list to
+    /// put a section around.
     @ViewBuilder
     private var emptyState: some View {
         if #available(iOS 17.0, *) {
@@ -531,7 +538,7 @@ struct WaterfallView: View {
     /// content rather than in place of the whole page, because the minimap section above it is
     /// still showing something real and must stay on screen: a developer who dragged into a gap
     /// still needs to see where the window sits to drag it back out of one, which swapping the
-    /// entire page for a placeholder — the way ``emptyState`` replaces ``content`` outright — would
+    /// entire page for a placeholder — the way ``emptyState`` replaces ``detail`` outright — would
     /// take away.
     ///
     /// Replaces a bare `Text` row that used to sit here reading "No requests in this part of the
@@ -549,27 +556,46 @@ struct WaterfallView: View {
     /// supplies that action slot on iOS 17 — the stock SwiftUI shape for exactly this, an
     /// unavailable-content view with something to do about it, rather than a hand-rolled button
     /// bolted onto the two-slot convenience initialiser ``emptyState`` uses. The iOS 16 fallback
-    /// hand-builds the same four elements with a stock `Button`, `.buttonStyle(.borderedProminent)`
-    /// matching this package's own convention for a screen's one primary action.
+    /// hand-builds the same four elements with a stock `Button`.
+    ///
+    /// - Note: The button carries no `.buttonStyle` on either branch, on the owner's own
+    ///   direction after driving the build: `ContentUnavailableView`'s `actions:` slot already
+    ///   styles whatever it is given as the plain tinted text link Apple's own empty states use,
+    ///   and `.buttonStyle(.borderedProminent)` — this page's usual convention for a screen's one
+    ///   primary action elsewhere — fought that here, rendering as a filled capsule that read as
+    ///   a call to action heavier than "go back to where you were." The iOS 16 fallback's `Button`
+    ///   matches it deliberately, styleless, rather than diverging between the two branches.
+    ///
+    /// The title is `"Quiet Stretch"`, not the fuller `"No Requests in This Window"` this first
+    /// read: that title truncated on a standard iPhone width — `ContentUnavailableView`'s title
+    /// is a single line — and the description immediately beneath it already carries the
+    /// explanation in full, so the title only ever needed to name the state, not describe it.
+    ///
+    /// The icon is `"tray"`, not `"timelapse"` this first drew: a dashed, circular glyph read as
+    /// an in-progress spinner to the owner driving the build, telling the reader something was
+    /// still arriving when nothing was — the opposite of what an empty state should say. `"tray"`
+    /// is Apple's own canonical choice for "nothing here" (it is the icon `ContentUnavailableView`
+    /// is demonstrated with in Apple's own documentation), has no animated or loading connotation,
+    /// and reads the same whether the log is a request short of arriving or has been quiet for an
+    /// hour.
     @ViewBuilder
     private var windowEmptyState: some View {
         if #available(iOS 17.0, *) {
             ContentUnavailableView {
-                Label(localized("No Requests in This Window"), systemImage: "timelapse")
+                Label(localized("Quiet Stretch"), systemImage: "tray")
             } description: {
                 Text(localized("The window is over a quiet stretch of the log. Move it back to see the most recent traffic."))
             } actions: {
                 Button(localized("Show Recent Traffic")) {
                     viewModel.resetWindow()
                 }
-                .buttonStyle(.borderedProminent)
             }
         } else {
             VStack(spacing: 16) {
-                Image(systemName: "timelapse")
+                Image(systemName: "tray")
                     .font(.system(size: 48))
                     .foregroundStyle(.secondary)
-                Text(localized("No Requests in This Window"))
+                Text(localized("Quiet Stretch"))
                     .font(.headline)
                 Text(localized("The window is over a quiet stretch of the log. Move it back to see the most recent traffic."))
                     .font(.subheadline)
@@ -578,7 +604,6 @@ struct WaterfallView: View {
                 Button(localized("Show Recent Traffic")) {
                     viewModel.resetWindow()
                 }
-                .buttonStyle(.borderedProminent)
             }
             .padding()
         }
