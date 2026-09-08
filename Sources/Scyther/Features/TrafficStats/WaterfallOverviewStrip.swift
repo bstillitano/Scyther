@@ -104,50 +104,47 @@ enum WaterfallStripGeometry {
     }
 }
 
-/// Whether a drag over the overview strip counts as horizontal, for
-/// ``WaterfallOverviewStrip/Interaction/scrub(_:)``.
-///
-/// Separated from the view for the same reason ``WaterfallStripGeometry`` is: the comparison
-/// this makes lives inside a `DragGesture`'s `onChanged` closure in production, which a test
-/// cannot invoke — SwiftUI gives no way to synthesise a `DragGesture.Value` and drive a gesture
-/// as if a finger produced it. Pulling the actual decision boundary out here is what lets a test
-/// pin the boundary itself — the exact ratio at which a drag stops being "horizontal enough" —
-/// rather than only the generated documentation's word for where it sits. This is the one part of
-/// ``WaterfallOverviewStrip/scrubGesture(width:onScrub:)`` a test can reach at all; the gesture's
-/// timing (``WaterfallOverviewStrip``'s own `scrubMinimumDistance`), and whether it actually wins
-/// or loses arbitration against a real `List`'s pan on a real touch screen, cannot be exercised
-/// this way and were not verified by anything in this file.
-enum WaterfallScrubGeometry {
-
-    /// How many times wider than it is tall a drag's translation must be before it counts as
-    /// horizontal.
-    ///
-    /// `2`: the horizontal component must be at least double the vertical one, which admits only
-    /// a drag within roughly 27° of dead horizontal (`atan(1/2) ≈ 26.57°`) — not the `1` a naive
-    /// "more horizontal than vertical" reading would use. Biased deliberately toward the `List`
-    /// this strip's page now sits inside, not toward the strip itself: this rule exists because a
-    /// scrub gesture previously captured scrolls it had no business capturing, so anything near
-    /// the ambiguous middle around 45°, including a drag that is only barely more horizontal than
-    /// vertical, is left for the list to scroll rather than guessed at as a scrub. The cost is a
-    /// scrub that occasionally does not start on a drag a reader meant horizontally but began at
-    /// a shallow diagonal — recoverable by simply dragging again — set against the alternative
-    /// this whole rule was written to remove: a scroll silently eaten by the strip.
-    static let horizontalDominance: CGFloat = 2
-
-    /// Whether a drag's cumulative translation reads as horizontal rather than vertical.
-    ///
-    /// - Parameters:
-    ///   - width: The drag's cumulative horizontal translation, in points
-    ///     (`DragGesture.Value.translation.width`). Sign does not matter — compared by magnitude,
-    ///     since a leftward drag is exactly as horizontal as a rightward one.
-    ///   - height: The drag's cumulative vertical translation, in points
-    ///     (`DragGesture.Value.translation.height`). Sign does not matter, for the same reason.
-    /// - Returns: `true` once `width`'s magnitude is at least ``horizontalDominance`` times
-    ///   `height`'s.
-    static func isHorizontal(width: CGFloat, height: CGFloat) -> Bool {
-        abs(width) > abs(height) * horizontalDominance
-    }
-}
+// `WaterfallScrubGeometry` used to live here — `isHorizontal(width:height:)` and its
+// `horizontalDominance` constant, deciding whether a drag's cumulative translation read as
+// horizontal rather than vertical. It existed for exactly one reason: `Interaction.scrub(_:)`
+// briefly had to live inside `WaterfallView`'s scrolling `List`, where a zero-distance drag would
+// have captured every scroll that happened to start on the strip, and the axis check was what let
+// a vertical drag pass through to the list instead. That reason stopped applying once the minimap
+// — strip and legend together — moved back out of the `List` to become a fixed sibling above it
+// instead of a `Section` inside it; see `WaterfallView.minimapCard`'s own documentation for why.
+// Outside a scroll view there is nothing for a vertical drag to be mistaken for and nothing to
+// pass through to, so `scrubGesture(width:onScrub:)` reverted to the original zero-distance
+// `DragGesture` it had before any of this, and this type had no remaining caller.
+//
+// Removed with its seven tests, `WaterfallScrubGeometryTests.swift`, deleted rather than left as
+// untested, uncalled code. What each of those seven asserted, so the claim is not lost along with
+// the file: `testAPureHorizontalDragIsHorizontal` and `testAPureVerticalDragIsNotHorizontal` pinned
+// the two trivial ends of the rule — no vertical component at all always counted as horizontal, no
+// horizontal component at all never did. `testTheDominanceRatioIsTheExactBoundary` pinned the `2×`
+// threshold itself, on both sides of the tie: exactly double did not count, a hair past double did.
+// `testADiagonalDragAtFortyFiveDegreesIsNotHorizontal` and
+// `testAMostlyHorizontalDragUnderTheMarginIsNotHorizontal` pinned that the ambiguous middle around
+// 45°, and a drag only barely past a naive 1:1 tie-break, both stayed on the "leave it to the list"
+// side of the `2×` margin rather than the naive one. `testTheSignOfEitherComponentIsIgnored` pinned
+// that a leftward drag was exactly as horizontal as a rightward one, and a drag that had looped
+// back upward exactly as vertical as one that only ever moved down. `testNoMovementAtAllIsNotHorizontal`
+// pinned that zero translation in both axes — the very first sample a real gesture could report
+// before its own minimum distance was satisfied — did not read as horizontal by some accident of
+// the comparison. None of those seven claims has anything left to own them: the function they
+// describe is gone, and the zero-distance `DragGesture` that replaced it makes no distinction
+// between axes at all — it fires on the first pixel of any drag, in any direction, exactly as it
+// did before any of this.
+//
+// `Interaction.tap(_:)`, the other gesture in this file, was considered for the same axis check
+// and did not get it: `.tap` already guards itself with `tapTolerance`, a symmetric
+// "did the touch travel at all" radius rather than a "which axis dominates" comparison, checked
+// once at `.onEnded` rather than continuously. `.tap` never reports anything to `onScrub`
+// continuously the way `.scrub` does, so there is no equivalent of a drag "becoming" a scrub
+// partway through for an axis check to arbitrate — either the touch stayed within `tapTolerance`
+// of where it started, in which case it was never going to be mistaken for a scroll in the first
+// place, or it did not, in which case `.tap` already does nothing. Adding a second, differently-
+// shaped check to a gesture that already answers the only question it needs to would be
+// complexity with no defect behind it.
 
 /// The whole log compressed into one strip: every request as a short horizontal line, placed by
 /// when it happened and coloured by how it went.
@@ -164,27 +161,28 @@ struct WaterfallOverviewStrip: View {
 
     /// How the strip responds to touch, which differs by host.
     ///
-    /// Both hosts now put the strip inside a `List` — see ``WaterfallView/minimapSection`` and
-    /// ``TrafficStatsView/waterfallSection`` — so both interactions that actually do anything have
-    /// to let the list's own pan recognise a scroll rather than capture it, and the difference
-    /// between them is what kind of gesture each host actually needs: the full page wants a
-    /// continuous drag to sweep its window across the log, Traffic Stats wants a single point
-    /// touched. A single gesture cannot serve both needs honestly, so the strip is told which one
-    /// it wants rather than guessing from its own state.
+    /// The full page keeps the strip outside its scrolling `List` — a fixed sibling above it, see
+    /// `WaterfallView.minimapCard` — so it can afford a continuous drag. Traffic Stats puts it
+    /// inside a `List`, where a zero-distance drag would win arbitration against the list's own
+    /// pan and steal every scroll that happened to start on the strip. A single gesture cannot
+    /// serve both hosts honestly, so the strip is told which one it is in rather than guessing
+    /// from its own state.
+    ///
+    /// - Note: `.scrub` briefly needed to tolerate living inside a `List` too, when the full
+    ///   page's minimap spent one fix round as a `Section` at the top of its own `List` instead of
+    ///   a sibling above it. That gave `.scrub` a direction-aware, non-zero-distance drag — see the
+    ///   removal comment just above this type, at the top of this file — reverted once the minimap
+    ///   moved back to being a sibling and the reason for it stopped applying.
     enum Interaction {
         /// Draws only. No gesture is attached.
         case none
 
-        /// Reports continuously while a drag reads as horizontal, and does nothing at all while
-        /// it reads as vertical — see ``scrubGesture(width:onScrub:)`` for the exact rule and,
-        /// most importantly, for why a *zero-distance* drag cannot be used here even though this
-        /// is a continuous gesture. Used by the full page, which sits inside a scrolling `List`
-        /// and needs a drag that starts anywhere over the strip to still be able to scroll it.
+        /// Reports continuously while dragged, from the first touch. For a strip that is not
+        /// inside a scroll view, where nothing else is competing for the drag.
         case scrub((TimeInterval) -> Void)
 
-        /// Reports once, on a touch that did not travel. Used by Traffic Stats, where the gesture
-        /// has to let a scroll pass through untouched rather than capture it, and a single touched
-        /// moment is all the section needs — it has no window of its own to drag.
+        /// Reports once, on a touch that did not travel. For a strip inside a scroll view, where
+        /// the gesture has to let a scroll pass through untouched rather than capture it.
         case tap((TimeInterval) -> Void)
     }
 
@@ -201,19 +199,6 @@ struct WaterfallOverviewStrip: View {
     /// Not zero: a finger is never perfectly still, and a strict zero would read most genuine
     /// taps as the beginning of a scroll and silently drop them.
     private static let tapTolerance: CGFloat = 10
-
-    /// How far a touch must travel before ``scrubGesture(width:onScrub:)`` reports anything at
-    /// all, in points, for ``Interaction/scrub(_:)``.
-    ///
-    /// The same magnitude as ``tapTolerance``, and the same underlying reason: a finger is never
-    /// perfectly still, so the very first few points of any drag — horizontal, vertical or
-    /// diagonal — are noise, not signal. Below this distance ``scrubGesture(width:onScrub:)``
-    /// has not yet been asked to decide anything; above it, the drag has moved far enough that
-    /// its direction actually means something, which is what
-    /// ``WaterfallScrubGeometry/isHorizontal(width:height:)`` is then applied to decide. This
-    /// alone is not what makes the gesture safe inside a `List` — see
-    /// ``scrubGesture(width:onScrub:)``'s own documentation for the rest of that story.
-    private static let scrubMinimumDistance: CGFloat = 10
 
     /// The log to draw.
     let series: WaterfallSeries
@@ -294,21 +279,20 @@ struct WaterfallOverviewStrip: View {
     /// The strip's drawing and its gesture, built together because the gesture the view attaches
     /// depends on ``interaction`` and the width both need comes from the same `GeometryReader`.
     ///
-    /// A `switch` in a `@ViewBuilder` rather than a single call with a `nil` case, because each
-    /// branch has a different concrete `some View` type — `drawing` bare for `.none`, and two
-    /// differently-built `DragGesture` pipelines wrapped in `.simultaneousGesture(_:)` for
-    /// `.scrub` and `.tap` — and a `@ViewBuilder` is what lets the branches differ without
-    /// erasing the view.
+    /// A `switch` in a `@ViewBuilder` rather than a single `.gesture` call with a `nil` case,
+    /// because `.tap` has to attach as `.simultaneousGesture` rather than `.gesture` — the two
+    /// modifiers are different types, and this is the only way to choose between them per
+    /// instance without erasing the view.
     ///
-    /// Both `.scrub` and `.tap` attach with `.simultaneousGesture(_:)`, not `.gesture(_:)`: a
-    /// gesture attached with plain `.gesture(_:)` only recognises once every other gesture in the
-    /// responder chain has failed to, and a `List`'s own pan recogniser routinely wins that race
-    /// outright rather than failing cleanly — the same failure mode ``WaterfallView/magnification``
-    /// documents in full for the pinch. `.simultaneousGesture(_:)` lets this strip's own gesture
-    /// and the enclosing `List`'s pan both recognise the same touch independently, which is what
-    /// leaves a genuine scroll free to reach the list at all. See
-    /// ``scrubGesture(width:onScrub:)`` and ``tapGesture(width:onTap:)`` for how each one then
-    /// decides, on its own, whether that same touch is *also* meant for the strip.
+    /// `.scrub` attaches with plain `.gesture(_:)`, the ordinary case, because the full page keeps
+    /// the strip outside its own scrolling `List` — see ``Interaction``'s own documentation — so
+    /// there is no competing recogniser for `.simultaneousGesture(_:)` to avoid blocking. `.tap`
+    /// is the one that has to reach for `.simultaneousGesture(_:)`: Traffic Stats' `List` owns a
+    /// pan recogniser of its own, and a gesture attached with plain `.gesture(_:)` only recognises
+    /// once every other gesture in the responder chain has failed to — the same failure mode
+    /// ``WaterfallView/magnification`` documents in full for the pinch — so `.tap` has to be
+    /// allowed to recognise independently, and decide for itself whether the touch was short
+    /// enough to count, rather than wait on the list's own recogniser to fail first.
     ///
     /// - Parameter size: The strip's size in points, from the enclosing `GeometryReader`.
     @ViewBuilder
@@ -342,7 +326,7 @@ struct WaterfallOverviewStrip: View {
         case .none:
             drawing
         case .scrub(let onScrub):
-            drawing.simultaneousGesture(scrubGesture(width: size.width, onScrub: onScrub))
+            drawing.gesture(scrubGesture(width: size.width, onScrub: onScrub))
         case .tap(let onTap):
             drawing.simultaneousGesture(tapGesture(width: size.width, onTap: onTap))
         }
@@ -391,60 +375,29 @@ struct WaterfallOverviewStrip: View {
         return Double(fraction) * series.span
     }
 
-    /// The full page's gesture: reports on every change that reads as a horizontal drag, so
-    /// dragging left or right tracks the finger continuously, and does nothing at all on a change
-    /// that reads as vertical — attached with `.simultaneousGesture(_:)` from ``content(size:)``
-    /// so the enclosing `List`'s own pan is never blocked from recognising the same touch.
+    /// The full page's gesture: reports on every change, so dragging tracks the finger
+    /// continuously. Safe because the page keeps the strip out of any scroll view.
     ///
-    /// ## Why not a zero-distance drag
-    ///
-    /// This shipped as `DragGesture(minimumDistance: 0)`, safe only for a strip that sits
-    /// *outside* any scroll view, which was true of every page that used it until the full page's
-    /// minimap moved into its own `List` section. A zero-distance drag satisfies its own
-    /// recognition criterion — no movement at all — at the very first touch event, before a
-    /// `List`'s own pan recogniser has seen enough movement to decide whether the touch is a
-    /// scroll; having recognised first, it claims the touch sequence outright, and no later
-    /// direction check inside `onChanged` can hand a touch back once another recogniser has
-    /// already lost the race for it. Attaching that same zero-distance gesture with
-    /// `.simultaneousGesture(_:)` instead of `.gesture(_:)` does not fix this either: simultaneous
-    /// recognition stops the strip from *blocking* the list's pan, but a zero-distance drag still
-    /// fires `onScrub` on the very first pixel of *every* touch, scroll included, so the window
-    /// would visibly jump the instant a genuine scroll began even though the list itself kept
-    /// scrolling underneath it. **Do not restore `minimumDistance: 0` here, and do not drop the
-    /// direction check below, to "simplify" this gesture** — both exist to fix exactly the defect
-    /// reported against this page once its strip moved inside a `List`, and removing either one
-    /// reintroduces it.
-    ///
-    /// ## The rule
-    ///
-    /// `DragGesture(minimumDistance: scrubMinimumDistance)` withholds every `onChanged` callback
-    /// until the touch has travelled ``scrubMinimumDistance`` points in *any* direction — far
-    /// enough that its direction actually means something. From there, every `onChanged` call
-    /// asks ``WaterfallScrubGeometry/isHorizontal(width:height:)`` whether the drag's cumulative
-    /// `translation`, measured from the drag's own start rather than frame to frame, reads as
-    /// horizontal; only then is `onScrub` called at all. A drag that never reads as horizontal —
-    /// a vertical scroll, or anything in the ambiguous middle around 45°, see that function's own
-    /// documentation for the exact boundary — calls `onScrub` not once for its entire lifetime;
-    /// because this is `.simultaneousGesture(_:)`, doing nothing here never blocks anything
-    /// either, so the enclosing `List` is free to recognise and act on the same touch as an
-    /// ordinary scroll throughout.
-    ///
-    /// No attempt is made to "lock" the decision the moment a drag first reads as horizontal:
-    /// because `translation` is measured from the drag's own start rather than the previous
-    /// frame, a genuinely horizontal drag's ratio only grows more lopsided as it continues, so a
-    /// drag whose classification wanders back and forth across the boundary does so because the
-    /// touch itself is genuinely near-diagonal — there is no more "correct" fixed answer to lock
-    /// onto than what the ratio already says at each instant.
+    /// A zero-distance `DragGesture`, back to what this was before a fix round briefly gave it a
+    /// non-zero `minimumDistance` and a direction check, gated on
+    /// `WaterfallScrubGeometry.isHorizontal(width:height:)`, so a vertical drag could pass through
+    /// to a `List` the strip was, for that one fix round, hosted inside of. Both existed for
+    /// exactly as long as that hosting did — see this file's own removal comment, just above
+    /// ``Interaction``, for why they were needed there and why they are not needed here, and
+    /// `WaterfallView.minimapCard`'s documentation for where the strip lives now. Outside a scroll
+    /// view there is nothing for a vertical drag to be mistaken for and nothing to pass through
+    /// to, so the extra latency and the direction gate were pure cost with no defect left to earn
+    /// their place, and reverting them is what makes this gesture responsive again: `onScrub` now
+    /// fires from a drag's very first pixel, in any direction, rather than waiting for 10 points
+    /// of travel that then had to read as more horizontal than vertical.
     ///
     /// - Parameters:
     ///   - width: The strip's width in points.
-    ///   - onScrub: Called with the touched time on every change that reads as horizontal.
+    ///   - onScrub: Called with the touched time on every change.
     private func scrubGesture(width: CGFloat, onScrub: @escaping (TimeInterval) -> Void) -> some Gesture {
-        DragGesture(minimumDistance: Self.scrubMinimumDistance)
+        DragGesture(minimumDistance: 0)
             .onChanged { value in
-                guard WaterfallScrubGeometry.isHorizontal(width: value.translation.width,
-                                                           height: value.translation.height),
-                      let time = time(at: value.location.x, width: width) else { return }
+                guard let time = time(at: value.location.x, width: width) else { return }
                 onScrub(time)
             }
     }

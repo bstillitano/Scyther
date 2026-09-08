@@ -738,8 +738,10 @@ background material, same corner radius, the same horizontal margin the list's o
 so the change is meant to be invisible apart from the stickiness. A `List` cannot pin a `Section`'s
 own content — only `.plain` pins section *headers*, and this list is `.insetGrouped` — which is
 why the minimap sits outside it rather than inside as a fixed section. Dragging the strip moves the
-window anywhere in the log in a single gesture — the strip only ever moves the window, it never
-opens a request. Underneath it, the **detail list** holds only the requests the
+window anywhere in the log in a single gesture, tracked from the very first touch — the strip no
+longer shares a scroll view with anything, so nothing needs to be told apart from a scroll any
+more — the strip only ever moves the window, it never opens a request. Underneath it, the
+**detail list** holds only the requests the
 window currently contains, each a tappable row labelled with its duration and coloured by outcome,
 running oldest first so time reads downward.
 Dragging or zooming into a stretch of the log with nothing in it shows an empty state naming the
