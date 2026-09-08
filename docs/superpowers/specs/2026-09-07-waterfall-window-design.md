@@ -36,7 +36,8 @@ the rest.
 4. **The Traffic Stats section becomes the same strip**, showing all traffic instead of the last
    seven bars, and tapping it opens the page at that point. This releases the constraint set when
    the page was first built — that the page must look like the summary section — by changing both
-   to the same thing.
+   to the same thing. *Reversed after the owner judged it unusable at real request counts — see
+   Amendments, "The Traffic Stats strip, zoomed instead of whole".*
 5. **Zoom is a pinch on the detail list.** Chosen over a segmented picker and over draggable
    window edges, with the costs below accepted deliberately.
 
@@ -250,6 +251,11 @@ this toolkit gets to ship a month after adding an accessibility audit.
 
 ## Traffic Stats
 
+*Amended after the whole-log strip described below shipped and was judged unusable at real
+request counts — see [Amendments](#amendments), "The Traffic Stats strip, zoomed instead of
+whole". The section it describes is what shipped first, not what is on the branch now; read that
+amendment for the current design.*
+
 The Waterfall section keeps its header and its **See all** link and replaces its bars with the
 strip, built from the whole log rather than `WaterfallSeries.defaultLimit`. Its footer states the
 span, the request count and the host count.
@@ -313,6 +319,15 @@ embedding one is a single key with an interpolation.
 - `WaterfallViewModel` — the rows a window yields, the caption (including against a window that
   opens as a genuine subset, not only the whole span), the empty-window state, and that opening
   from a tapped time centres the window there.
+- `WaterfallViewModel.layout(of:limit:totalCount:now:)` — the static function both the full page
+  and `TrafficStatsViewModel` build a `Layout` from, now that `limit` genuinely truncates rather
+  than always equalling the input's own count: `Layout.count` reflects the rows actually produced,
+  not the size of the array handed in. See [Amendments](#amendments) for why `limit` stopped being
+  something every caller passed as `requests.count`.
+- `TrafficStatsViewModel.recentLayout` and `.recentWaterfallCount` — that the section's own
+  `waterfall` (whole log, feeding the caption) and `recentLayout` (capped) diverge correctly, that
+  a log shorter than the cap shows everything it has rather than padding or hiding rows, and that
+  the capped rows are the most recent ones, not an arbitrary five.
 
 **Not unit-tested, and said plainly:** the pinch gesture itself, and its interaction with the
 list's scrolling. Both are verified by hand on the simulator. This is the accepted cost of
@@ -334,7 +349,13 @@ Before the work is called done, on the simulator, with the example app's traffic
    except over a genuine gap.
 4. Confirm the zoom stops at both limits rather than continuing to scale.
 5. Tap a row and confirm it opens that request's log detail.
-6. Open the page from the Traffic Stats strip and confirm it arrives centred on the tapped point.
+6. On the Traffic Stats screen, confirm the Waterfall section's strip shows only the most recent
+   `TrafficStatsViewModel.recentWaterfallCount` requests with legibly distinct bars — not the
+   whole log compressed — and that the rows listed beneath it are those same requests, each
+   opening its own log detail on tap. Confirm **See all** still opens the full page unchanged.
+   This replaces the original item 6, "open the page from the Traffic Stats strip centred on the
+   tapped point" — the strip lost its tap interaction entirely; see
+   [Amendments](#amendments), "The Traffic Stats strip, zoomed instead of whole".
 7. With VoiceOver on, confirm the strip's adjustable action zooms.
 
 ## Amendments
@@ -438,3 +459,66 @@ the spec instead of being misled by it.
   through `WaterfallViewModel.configureWindow(plotWidth:)` end to end. Not verified visually —
   that the page now reads as opening on "about half" the traffic to someone looking at it is for
   the owner to confirm.
+- **The Traffic Stats strip, zoomed instead of whole.** [Decision 4](#decisions-taken) and
+  [Traffic Stats](#traffic-stats) above describe what shipped first: the section's strip built
+  from the entire log, the same way the full page's minimap does, with a tap opening the page
+  centred where the strip was touched. It was tried, shipped, and the owner judged it unusable at
+  a real request count — twenty-five requests over twenty-four seconds rendered as a scatter of
+  3pt specks, conveying rough shape and nothing about what had just happened, which is precisely
+  what a Traffic Stats reader wants from this section. The owner's own words: *"maybe we show the
+  waterfall here, zoomed to the last say...5 requests....and then show the last 5 below it."*
+  The section now draws a small version of the full page instead of a compressed copy of it: the
+  strip's drawn *range* is the most recent `TrafficStatsViewModel.recentWaterfallCount` requests,
+  not the whole log with a subset merely marked on it — a marked-window reading was considered and
+  rejected, because it would still compress the entire log onto the strip's width first, which is
+  the exact defect being fixed, and would only additionally highlight a sliver of it — and those
+  same requests are listed beneath it as rows, tappable through to each one's log detail.
+  `recentWaterfallCount` is `5`: enough for every bar to read as its own request rather than a
+  hairline, short enough to sit above the fold alongside the rest of the section, and small enough
+  that "most recent" reads as obviously true of what is on screen rather than a rounding of a
+  much larger recent-ish window; `10` was tried in reasoning and set aside as starting to crowd
+  back toward the specks this change exists to remove.
+  No second windowing concept was needed to zoom the strip: `WaterfallSeries.build(from:limit:now:)`
+  already computes a series' origin and span from only the requests it is given, so passing it a
+  five-request slice rather than the whole log is sufficient by itself. What changed was
+  `WaterfallViewModel.layout(of:limit:totalCount:now:)`, the function already shared by every
+  caller that builds rows, gaining a required `limit` parameter — no default, matching
+  `WaterfallSeries.build`'s own established convention, because the full page and Traffic Stats
+  deliberately disagree on how much of the log they want and no fixed figure or default could
+  stand in for either. The same call now serves both: the full page passes `requests.count`,
+  `TrafficStatsViewModel` passes `recentWaterfallCount`. Extending it this way, rather than giving
+  `TrafficStatsViewModel` a second, parallel implementation, is what "do not duplicate the
+  windowing logic" meant in practice. Fixing this also surfaced a latent bug: `Layout.count` had
+  read `requests.count`, the size of the *input* array, rather than `rows.count`, how many rows
+  the pass actually produced — harmless while every caller always passed `limit: requests.count`,
+  silently wrong the moment one did not, and corrected alongside the rest of this change.
+  The section's own detail rows reuse `WaterfallDetailRow` rather than a second row built to match
+  it by eye: its shape needed no change to be reused this way, because it already took its
+  `window` as a plain value rather than reaching into a specific view model, so a second caller
+  supplying its own `WaterfallWindow(span: recentLayout.series.span, narrowest: 0)` — the widest
+  window the row's bar-clipping arithmetic needs, not a zoom/pinch/scrub window in its own right —
+  was already exactly what its existing parameters allow. The strip's tap interaction is gone
+  rather than kept: `WaterfallView.init(logs:openingTime:)`'s mapping from a tapped moment to a
+  centred window assumed the tapped strip's own series origin agreed with the full page's, true
+  while the strip drew the whole log and false the moment it drew only the most recent five, whose
+  origin is the earliest of just those five rather than the log's true earliest request. Reusing
+  that mapping unchanged would have silently opened the full page centred on the wrong moment by
+  however far the two origins had drifted apart; fixing the mapping itself would have meant
+  changing `WaterfallView`'s own already-shipped, owner-approved contract for a caller that no
+  longer needed the problem it solved. The five rows beneath the strip already give more precise
+  navigation than "centred near where you tapped" ever did, so the strip now draws with
+  `interaction: .none`, and `Interaction.tap(_:)` itself — `tapGesture(width:onTap:)` and
+  `tapTolerance` with it — was deleted once that left it with no caller anywhere in the module; see
+  the removal comment at the top of `WaterfallOverviewStrip.swift` for the account kept alongside
+  the code, in the same style already used there for `WaterfallScrubGeometry`. The section's
+  existing caption, `"N requests over X across Y hosts"`, is unchanged and still describes the
+  whole log rather than the five requests drawn above it — kept deliberately rather than reworded:
+  it never claimed to describe the strip specifically, every reword tried either repeated "N
+  requests" awkwardly next to itself or left it ambiguous which count a trailing clause modified,
+  and the section's own visual hierarchy — legible bars, tappable rows, **See all**, a footer with
+  larger numbers than the five on screen — already communicates "this is a preview" without more
+  words doing it again. This is a wording judgement, not a settled fact, and the owner may read it
+  differently once it is on a device. Not verified on device: everything here is a visual and
+  interaction judgement — whether five rows and a zoomed strip genuinely read better than the
+  whole-log version they replace — and nothing in this pipeline can simulate the touches that would
+  confirm it.

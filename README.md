@@ -59,7 +59,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **cURL Export**: Generate cURL commands for any captured request
 - **Log Export**: Share the captured requests as a zip containing a HAR 1.2 file, raw bodies, and a cURL command per request, with best-effort redaction and a sensitivity warning
 - **Filter Chips**: Narrow the network log by method, status class, host, content type, API kind, GraphQL operation, duration, exact status code, or recency from glass chips pinned above the list, or edit every filter at once from the all-filters sheet
-- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall overview strip compressing the whole log onto one shared axis — tap it to open **See all** centred on the moment touched, or use the header link to open it anchored on the newest traffic at half the log's span (the whole span instead, on a log short enough that the two are the same thing) — where the same strip now carries a zoomable, draggable window over a detail list: pinch to zoom, drag the strip to move the window, an accessibility-adjustable action for VoiceOver and Switch Control, and a tappable row per request that opens its details — tapping the strip itself never does, there it only moves the window
+- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall preview zoomed to the most recent handful of requests with a tappable row per one of them beneath it — use the header's **See all** link to open the full page, anchored on the newest traffic at half the log's span (the whole span instead, on a log short enough that the two are the same thing), where the same strip now carries a zoomable, draggable window over a detail list: pinch to zoom, drag the strip to move the window, an accessibility-adjustable action for VoiceOver and Switch Control, and a tappable row per request that opens its details — tapping the strip itself never does, there it only moves the window
 - **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests — combined on one override — from the menu or from code
 - **Save as Mock**: Turn any captured response into a disabled mock override in one tap, and import a HAR file as a whole set of them
 - **Request Replay**: Reopen any captured request in an editor, change its method, URL, headers or body, and send it again — the resent request is logged with a `REPLAY` badge and listed on the original with its status, duration and size deltas
@@ -708,21 +708,33 @@ come back yet runs to the end of the axis, which is the moment the series was bu
 real end is not known. A request that failed is drawn for as long as it actually ran, not as one
 still running.
 
-**The overview strip** is what both surfaces draw the whole log with: every request as a short
-line, positioned by when it happened and coloured by outcome — succeeded, failed, pending or
-stubbed — drawn with one `Canvas` pass rather than a view per request, so a thousand-request log
-costs the same as a ten-request one. A line too thin to see is still floored to one point wide so
-it can be found.
+**The overview strip** draws whichever slice of the log it is given, every request in it as a short
+line positioned by when it happened and coloured by outcome — succeeded, failed, pending or
+stubbed — with one `Canvas` pass rather than a view per request, so a thousand-request log costs
+the same as a ten-request one. A line too thin to see is still floored to one point wide so it can
+be found.
 
-On the **Traffic Stats** section the strip *is* the waterfall now: it draws the whole log, not a
-handful of recent requests, and its caption states the count, the span and how many distinct hosts
-were touched. **Tapping the strip opens `See all` centred on the moment touched**; the header's
-`See all` link beside it opens **anchored on the newest traffic instead**, at half the log's span
-— the whole span only when the zoom floor already sits above that half, which is also the case a
-log too short to zoom at all always produces, before an hour-long capture with two short bursts of
-traffic showed every bar flooring to the same three points regardless of whether the request took
-43ms or 1.06s, and — later — an ordinary log opening on a single legible request showed the first
-fix for that had swung too far the other way.
+On the **Traffic Stats** section the strip is zoomed to the most recent
+`TrafficStatsViewModel.recentWaterfallCount` requests (five, chosen so every bar reads as its own
+request rather than a hairline, short enough to sit above the fold, and small enough that "most
+recent" reads as obviously true of what's on screen) rather than the whole log compressed onto one
+axis — the drawn *range* is those few, not the whole log with a subset merely marked on it — with
+those same requests listed as tappable rows beneath it, each opening its own log detail. This
+replaced an earlier version that drew the whole log the same way the full page's minimap does: at
+real request counts it read as an unreadable scatter of specks, telling a reader rough shape and
+nothing about what had just happened, which is exactly what this section exists to answer. The
+strip carries no tap of its own here any more — the rows beneath it already give more precise
+navigation than "centred near where you tapped" ever did, and reusing that mapping unchanged would
+have silently centred the full page on the wrong moment once the strip stopped drawing the same
+span the page does. The section's existing caption — the count, the span and how many distinct
+hosts were touched — is unchanged and still describes the *whole* log, kept as context beneath a
+preview of only its most recent few. The header's `See all` link still opens the full page,
+unchanged, **anchored on the newest traffic**, at half the log's span — the whole span only when
+the zoom floor already sits above that half, which is also the case a log too short to zoom at all
+always produces, before an hour-long capture with two short bursts of traffic showed every bar
+flooring to the same three points regardless of whether the request took 43ms or 1.06s, and —
+later — an ordinary log opening on a single legible request showed the first fix for that had
+swung too far the other way.
 
 **See all** shows the same strip, now also marking the current **window** — the reader zooms and
 drags this one, and it is already drawn narrower than the whole strip the moment the page opens on
