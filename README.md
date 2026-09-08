@@ -91,6 +91,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 
 ### UI/UX Tools
 - **Grid Overlay**: Display alignment grid over your UI
+- **Layout Guides**: Draw the key window's safe-area insets and layout margins over your UI
 - **FPS Counter**: Real-time frame rate overlay with color-coded performance indicators
 - **Touch Visualizer**: Show touch points for demos and recordings
 - **Accessibility Audit**: Walk the live accessibility tree for missing VoiceOver labels, undersized touch targets, and low-contrast text, with a live on-screen overlay for the two checks that cost nothing
@@ -1664,6 +1665,16 @@ Scyther.interface.gridOverlayEnabled = true
 GridOverlay.instance.size = 8        // Grid size in points
 GridOverlay.instance.opacity = 0.5   // Grid opacity (0.0 - 1.0)
 GridOverlay.instance.colorScheme = .blue
+```
+
+#### Layout Guides
+
+Draw the key window's safe-area insets and layout margins over your UI, each labelled with
+its measurement in points. Zero insets are not drawn:
+
+```swift
+// Enable layout guides
+Scyther.interface.layoutGuidesEnabled = true
 ```
 
 #### FPS Counter

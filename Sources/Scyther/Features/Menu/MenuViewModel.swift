@@ -86,6 +86,7 @@ import SwiftUI
 /// ### UI Debugging Controls
 ///
 /// - ``slowAnimationsEnabled``
+/// - ``layoutGuidesEnabled``
 /// - ``showViewFrames``
 /// - ``showViewSizes``
 ///
@@ -402,6 +403,26 @@ class MenuViewModel: ViewModel {
     @Published var slowAnimationsEnabled: Bool = InterfaceToolkit.slowAnimationsEnabled {
         didSet {
             InterfaceToolkit.slowAnimationsEnabled = slowAnimationsEnabled
+        }
+    }
+
+    /// Whether the layout guides overlay is visible.
+    ///
+    /// This property is two-way synchronized with ``Scyther/interface``'s
+    /// ``Interface/layoutGuidesEnabled`` facade — the same pattern ``Interface/gridOverlayEnabled``
+    /// uses, rather than ``showViewFrames``'s direct binding to a static on ``InterfaceToolkit``,
+    /// because ``LayoutGuides`` is a settings singleton like ``GridOverlay``, not a bare
+    /// `UserDefaults`-backed static.
+    ///
+    /// The explicit call to ``InterfaceToolkit/showLayoutGuides()`` is not strictly needed —
+    /// ``LayoutGuides/enabled``'s own setter already pushes the change there — but it is kept
+    /// here anyway so this binding does not rely on a side effect buried two layers down: if a
+    /// future change to ``LayoutGuides`` ever dropped that push, the menu's own toggle would
+    /// still work.
+    @Published var layoutGuidesEnabled: Bool = Scyther.interface.layoutGuidesEnabled {
+        didSet {
+            Scyther.interface.layoutGuidesEnabled = layoutGuidesEnabled
+            InterfaceToolkit.instance.showLayoutGuides()
         }
     }
 

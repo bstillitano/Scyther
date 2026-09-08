@@ -68,6 +68,7 @@ public final class InterfaceToolkit: NSObject, Sendable {
     // MARK: - UI Elements
     public var touchVisualiser: TouchVisualiser = TouchVisualiser.instance
     internal var gridOverlayView: GridOverlayView = GridOverlayView()
+    internal var layoutGuidesView: LayoutGuidesView = LayoutGuidesView()
     internal var fpsCounterView: FPSCounterView = FPSCounterView()
     internal var accessibilityAuditView: AccessibilityAuditOverlayView = AccessibilityAuditOverlayView()
     internal var topLevelViewsWrapper: TopLevelViewsWrapper = TopLevelViewsWrapper()
@@ -262,6 +263,7 @@ public final class InterfaceToolkit: NSObject, Sendable {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             self?.setupTopLevelViewsWrapper()
             self?.setupGridOverlay()
+            self?.setupLayoutGuides()
             self?.setupFPSCounter()
             self?.setupAccessibilityAudit()
             self?.setWindowSpeed()
@@ -390,6 +392,21 @@ extension InterfaceToolkit {
     @MainActor internal func showGridOverlay() {
         gridOverlayView.opacity = GridOverlay.instance.enabled ? CGFloat(GridOverlay.instance.opacity) : 0.0
         gridOverlayView.isHidden = !GridOverlay.instance.enabled
+    }
+}
+
+// MARK: - Layout Guides
+extension InterfaceToolkit {
+    /// Installs the guides overlay, hidden, and brings it to its current setting.
+    @MainActor internal func setupLayoutGuides() {
+        layoutGuidesView.isHidden = true
+        topLevelViewsWrapper.addTopLevelView(topLevelView: layoutGuidesView)
+        showLayoutGuides()
+    }
+
+    /// Applies ``LayoutGuides/enabled`` to the overlay.
+    @MainActor internal func showLayoutGuides() {
+        layoutGuidesView.isHidden = !LayoutGuides.instance.enabled
     }
 }
 

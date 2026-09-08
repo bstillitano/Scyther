@@ -1,0 +1,32 @@
+{
+  "Layout Guides": {
+    "comment": "Menu row toggling the safe-area/layout-margin overlay",
+    "fr": "Repères de mise en page",
+    "de": "Layout-Hilfslinien",
+    "es": "Guías de diseño",
+    "it": "Guide di layout",
+    "pt-BR": "Guias de layout",
+    "nl": "Lay-outhulplijnen",
+    "ja": "レイアウトガイド",
+    "zh-Hans": "布局参考线",
+    "zh-Hant": "版面參考線",
+    "ko": "레이아웃 가이드",
+    "ru": "Направляющие макета",
+    "ar": "أدلة التخطيط"
+  },
+  "%lld pt": {
+    "comment": "Label on a layout guide line, showing its safe-area inset or layout margin in points",
+    "fr": "%lld pt",
+    "de": "%lld pt",
+    "es": "%lld pt",
+    "it": "%lld pt",
+    "pt-BR": "%lld pt",
+    "nl": "%lld pt",
+    "ja": "%lld pt",
+    "zh-Hans": "%lld pt",
+    "zh-Hant": "%lld pt",
+    "ko": "%lld pt",
+    "ru": "%lld pt",
+    "ar": "%lld pt"
+  }
+}

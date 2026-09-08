@@ -124,6 +124,7 @@ enum MenuSearchIndex {
         .fonts: ["typography", "typefaces", "text styles"],
         .interfaceComponents: ["previews", "components", "design system"],
         .gridOverlay: ["alignment", "layout grid"],
+        .layoutGuides: ["safe area", "layout margins", "insets"],
         .fpsCounter: ["frame rate", "performance", "hitches"],
         .touchVisualiser: ["touches", "taps", "gestures"],
         .accessibilityAudit: ["a11y", "voiceover", "contrast", "labels", "touch targets"],

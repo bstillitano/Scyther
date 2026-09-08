@@ -20,7 +20,7 @@ import SwiftUI
 /// - **Security**: Keychain browser
 /// - **System Tools**: Location spoofer, console logs
 /// - **Notifications**: Notification logger and tester
-/// - **UI/UX**: Fonts, components, grid overlay, touch visualizer
+/// - **UI/UX**: Fonts, components, grid overlay, layout guides, touch visualizer
 ///
 /// The menu displays device information in a header and provides navigation
 /// to all sub-features.
@@ -558,6 +558,8 @@ public struct MenuView: View {
             navigationRow(for: item)
         case .gridOverlay:
             navigationRow(for: item)
+        case .layoutGuides:
+            toggleRow(item.title, icon: item.icon, tint: item.tint, isOn: $viewModel.layoutGuidesEnabled)
         case .fpsCounter:
             navigationRow(for: item)
         case .touchVisualiser:

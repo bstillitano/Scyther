@@ -730,12 +730,19 @@ public final class Console: Sendable {
 /// Provides UI debugging overlay tools.
 ///
 /// The `Interface` subsystem offers visual debugging aids including a grid overlay
-/// for checking alignment and a touch visualiser for recording interactions.
+/// for checking alignment, layout guides for safe areas and margins, and a touch
+/// visualiser for recording interactions.
 ///
 /// ## Enabling Grid Overlay
 ///
 /// ```swift
 /// Scyther.interface.gridOverlayEnabled = true
+/// ```
+///
+/// ## Enabling Layout Guides
+///
+/// ```swift
+/// Scyther.interface.layoutGuidesEnabled = true
 /// ```
 ///
 /// ## Enabling Touch Visualiser
@@ -760,6 +767,15 @@ public final class Interface: Sendable {
     public var gridOverlayEnabled: Bool {
         get { GridOverlay.instance.enabled }
         set { GridOverlay.instance.enabled = newValue }
+    }
+
+    /// Whether the layout guides overlay is visible.
+    ///
+    /// When enabled, draws the key window's safe-area insets and layout margins over the
+    /// app's UI, so a developer can see exactly where content sits without measuring by eye.
+    public var layoutGuidesEnabled: Bool {
+        get { LayoutGuides.instance.enabled }
+        set { LayoutGuides.instance.enabled = newValue }
     }
 
     /// Whether touch visualisation is enabled.
