@@ -54,7 +54,7 @@ jobs:
         run: |
           xcodebuild test \
             -scheme Scyther \
-            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            -destination 'platform=iOS Simulator,OS=latest,name=iPhone 17 Pro' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
 
