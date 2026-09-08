@@ -50,8 +50,15 @@ protocol AuditNode {
     /// The object this node stands for, so the walk can hand it to the node's children as a
     /// boundary for their own ownership climb. `nil` for a node that is not backed by one.
     ///
+    /// An identity token rather than the object itself, and deliberately so. The boundary is
+    /// only ever compared for identity — `isAncestryScytherOwned` does one `==` against it and
+    /// nothing else — so carrying the object bought nothing and cost Sendability: a non-`Sendable`
+    /// `AnyObject?` threaded through a recursive walk is a value crossing isolation, which Swift
+    /// 6.2 diagnoses as a data race. `ObjectIdentifier` is `Sendable` and is exactly the question
+    /// being asked.
+    ///
     /// - SeeAlso: ``isScytherOwned(below:)``.
-    var ownershipIdentity: AnyObject? { get }
+    var ownershipIdentity: ObjectIdentifier? { get }
 
     /// Whether this node, or anything above it, belongs to Scyther — given that `boundary` and
     /// everything above `boundary` is already known not to.
@@ -69,7 +76,7 @@ protocol AuditNode {
     ///
     /// - Parameter boundary: A node already known to be clean, or `nil` to climb the whole chain.
     /// - Returns: `true` when this node or an ancestor below `boundary` is Scyther's.
-    func isScytherOwned(below boundary: AnyObject?) -> Bool
+    func isScytherOwned(below boundary: ObjectIdentifier?) -> Bool
 }
 
 extension AuditNode {
@@ -82,14 +89,14 @@ extension AuditNode {
     }
 
     /// Nothing to hand a child, which is the right answer for a node with no object behind it.
-    var ownershipIdentity: AnyObject? { nil }
+    var ownershipIdentity: ObjectIdentifier? { nil }
 
     /// Ignores the boundary and answers the whole question, which is what a node that cannot
     /// climb an ancestor chain has to do anyway.
     ///
     /// - Parameter boundary: Ignored.
     /// - Returns: ``isScytherOwned``.
-    func isScytherOwned(below boundary: AnyObject?) -> Bool { isScytherOwned }
+    func isScytherOwned(below boundary: ObjectIdentifier?) -> Bool { isScytherOwned }
 }
 
 // MARK: - Scyther ownership
@@ -230,11 +237,11 @@ private func ownershipAncestor(of object: NSObject) -> NSObject? {
 ///   - boundary: A node already known not to be Scyther's, or `nil` to climb the whole chain.
 /// - Returns: `true` when `start` or any node above it and below `boundary` is Scyther's.
 @MainActor
-private func isAncestryScytherOwned(startingAt start: NSObject, stoppingAt boundary: AnyObject? = nil) -> Bool {
+private func isAncestryScytherOwned(startingAt start: NSObject, stoppingAt boundary: ObjectIdentifier? = nil) -> Bool {
     var current: NSObject? = start
     var steps = 0
     while let node = current, steps < maximumAncestryDepth {
-        if let boundary, node === boundary { return false }
+        if let boundary, ObjectIdentifier(node) == boundary { return false }
         if isScytherOwnedType(node) { return true }
         current = ownershipAncestor(of: node)
         steps += 1
@@ -931,12 +938,12 @@ extension UIView: AuditNode {
     ///
     /// - Parameter boundary: A node already known not to be Scyther's.
     /// - Returns: `true` when this view or something above it and below `boundary` is Scyther's.
-    func isScytherOwned(below boundary: AnyObject?) -> Bool {
+    func isScytherOwned(below boundary: ObjectIdentifier?) -> Bool {
         isAncestryScytherOwned(startingAt: self, stoppingAt: boundary)
     }
 
     /// The view itself, which is what its children's responder chains climb through.
-    var ownershipIdentity: AnyObject? { self }
+    var ownershipIdentity: ObjectIdentifier? { ObjectIdentifier(self) }
 
     /// The view's frame, or `nil` when nothing of it can be seen.
     ///
@@ -1096,12 +1103,12 @@ struct AccessibilityElementNode: AuditNode {
     ///
     /// - Parameter boundary: A node already known not to be Scyther's.
     /// - Returns: `true` when this element or something above it and below `boundary` is Scyther's.
-    func isScytherOwned(below boundary: AnyObject?) -> Bool {
+    func isScytherOwned(below boundary: ObjectIdentifier?) -> Bool {
         isAncestryScytherOwned(startingAt: element, stoppingAt: boundary)
     }
 
     /// The wrapped element, which is what its own children's container chains climb through.
-    var ownershipIdentity: AnyObject? { element }
+    var ownershipIdentity: ObjectIdentifier? { ObjectIdentifier(element) }
 
     /// The element's frame, or `nil` when nothing of it can be seen.
     ///

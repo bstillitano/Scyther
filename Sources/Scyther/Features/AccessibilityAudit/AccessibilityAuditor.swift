@@ -327,14 +327,7 @@ struct AccessibilityAuditor {
         /// stopped at a limit and never reached the rest of the screen, and that what is missing is
         /// unchecked rather than clean. All three limits raise the same flag because that one
         /// sentence is true of all three; the report does not need to learn which fired.
-        /// Explicitly `@MainActor` rather than inheriting it. A recursive local function is
-        /// treated as a closure, and Swift 6.2's compiler reads `clearedAncestor` — a
-        /// non-`Sendable` `AnyObject?` — as task-isolated while the recursive call at the bottom
-        /// is main-actor-isolated, which is a sending violation. The whole type is already
-        /// `@MainActor` and this walk only ever runs there, so saying so costs nothing and is the
-        /// honest description. Xcode 26.2 does not diagnose this; 26.5 does.
-        @MainActor
-        func walk(_ node: AuditNode, depth: Int, clearedAncestor: AnyObject?) {
+        func walk(_ node: AuditNode, depth: Int, clearedAncestor: ObjectIdentifier?) {
             guard !didHitLimit else { return }
             guard now() < deadline else {
                 didHitLimit = true
