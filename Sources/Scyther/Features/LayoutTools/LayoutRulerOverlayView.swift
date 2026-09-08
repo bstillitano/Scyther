@@ -38,6 +38,8 @@ import UIKit
 /// ### The Measurement
 /// - ``measurement``
 /// - ``readout(for:locale:)``
+/// - ``Readout``
+/// - ``readoutWidth(distance:names:availableWidth:)``
 ///
 /// ### Coverage
 /// - ``isCoveredByScyther``
@@ -54,20 +56,39 @@ internal class LayoutRulerOverlayView: TopLevelView {
     /// is indistinguishable from one that landed where the finger was.
     static let EndpointRadius: CGFloat = 4.0
 
-    /// The measurement's colour.
+    /// The colour of the line, its endpoint dots, and the readout's border.
     ///
-    /// A third hue, distinct from ``GuideLine/Kind/colour``'s blue and purple, so that a
-    /// measurement taken while Layout Guides are switched on is never mistaken for a guide.
-    static let LineColour: UIColor = .systemOrange
+    /// **Chosen to be unlike every other overlay Scyther draws, and the next one added should keep
+    /// that going.** Taken so far: `GridOverlayView` draws red, ``GuideLine/Kind/colour`` draws
+    /// blue for a safe-area inset and magenta for a layout margin, and
+    /// ``AccessibilityAuditOverlayView`` draws orange issue boxes. The ruler was orange too, and
+    /// with the audit's live mode on, its boxes and the ruler's line read as one feature — the
+    /// reason this is green now. These overlays are deliberately usable at the same time, so hue is
+    /// the only thing telling a developer which tool is speaking.
+    static let MeasurementColour: UIColor = .systemGreen
 
-    /// Font size for the readout.
-    static let ReadoutFontSize: CGFloat = 13.0
+    /// Font size for the distance — the answer, and the largest thing in the readout.
+    static let DistanceFontSize: CGFloat = 14.0
+
+    /// Font size for the names line, deliberately smaller than ``DistanceFontSize``: it is context
+    /// for the number, not a competitor to it.
+    static let NamesFontSize: CGFloat = 11.0
+
+    /// Vertical gap between the distance and the names.
+    static let ReadoutLineSpacing: CGFloat = 1.0
 
     /// Padding inside the readout, on every side of its text.
     static let ReadoutPadding: CGFloat = 6.0
 
+    /// The margin the readout keeps from each edge of the overlay, and so half of what it gives up
+    /// from the overlay's width — see ``readoutWidth(distance:names:availableWidth:)``.
+    static let ReadoutMargin: CGFloat = 16.0
+
     /// Corner radius of the readout's background.
     static let ReadoutCornerRadius: CGFloat = 6.0
+
+    /// Width of the readout's coloured border.
+    static let ReadoutBorderWidth: CGFloat = 1.0
 
     /// Gap between the control and the bottom of the safe area.
     static let ControlBottomPadding: CGFloat = 16.0
@@ -112,14 +133,38 @@ internal class LayoutRulerOverlayView: TopLevelView {
     /// is stuck inside a debugging tool.
     private let doneButton = UIButton(type: .system)
 
-    /// The measurement's readout: what it attached to, and how far apart the two ends are.
+    /// The measurement's readout: how far apart the two ends are, and what they attached to.
     ///
-    /// A `UILabel` rather than text drawn in ``draw(_:)``, matching ``LayoutGuidesView``: text
-    /// drawn into a graphics context has no line breaking, no font scaling and no VoiceOver.
+    /// Two labels in a stack rather than one label with a newline in it, because the two lines have
+    /// different rules and a single label can only have one. The distance must always be fully
+    /// legible; the names may be truncated to whatever room is left. That is not a style choice —
+    /// it is the whole point of the tool. A snap onto a SwiftUI list row produces a name like
+    /// `_UICollectionViewListLayoutSectionBackgroundColorDecorationView.bottom`, twice, and the
+    /// first version of this readout rendered both in full: a block wider and taller than the
+    /// screen, clipped at both ends, with `60 pt` buried in the middle of it. Every SwiftUI screen
+    /// backs onto UIKit views with names like that, so it is the normal case rather than a corner
+    /// one, and the spec's tidy `Title.bottom → Subtitle.top` is what a hand-built UIKit screen
+    /// gives you.
+    ///
+    /// Labels rather than text drawn in ``draw(_:)``, matching ``LayoutGuidesView``: text drawn
+    /// into a graphics context has no line breaking, no truncation, no font scaling and no
+    /// VoiceOver.
     ///
     /// - Note: Readable rather than private so a test can check where it was placed — see
     ///   ``clearOfTheControl(_:)``. It is still owned entirely by this view.
-    internal private(set) var readoutLabel = UILabel()
+    internal private(set) var readoutContainer = UIView()
+
+    /// The distance, on its own line. Never truncated and never clipped: the width the readout is
+    /// given always fits it — see ``readoutWidth(distance:names:availableWidth:)``.
+    private let distanceLabel = UILabel()
+
+    /// What each end attached to, on one line, truncated in the middle when there is not room.
+    ///
+    /// Middle rather than tail truncation because both ends of these names carry information and
+    /// the middle does not: `_UICollectionViewListLayout…DecorationView.bottom` still says what
+    /// kind of thing it is and which edge was measured, where a tail truncation would leave
+    /// `_UICollectionViewListLayoutSectionBac…` twice over and answer neither question.
+    private let namesLabel = UILabel()
 
     // MARK: - Data
 
@@ -225,18 +270,52 @@ internal class LayoutRulerOverlayView: TopLevelView {
         updateFrame()
     }
 
-    /// Configures the readout label, which is positioned by ``refreshReadout()`` rather than by
+    /// Configures the readout, which is positioned by ``refreshReadout()`` rather than by
     /// constraints: it follows the measurement, and the measurement is a pair of arbitrary points.
+    ///
+    /// The container is framed by hand and its two labels are stacked inside it with constraints,
+    /// which is the same division ``setupControl()`` uses: what a view is *inside* is arithmetic,
+    /// what a view contains is a fixed relationship.
+    ///
+    /// `.byClipping` on the distance rather than a truncation mode, because a clipped number would
+    /// be a bug rather than a compromise and should look like one — ``readoutWidth(distance:names:availableWidth:)``
+    /// guarantees the width always fits it. The border is the readout's only colour: white on near
+    /// black is the legible pairing, and the tie to the line it describes is better made by an
+    /// outline than by tinting the number the developer came to read.
     private func setupReadout() {
-        readoutLabel.font = .monospacedDigitSystemFont(ofSize: Self.ReadoutFontSize, weight: .semibold)
-        readoutLabel.textColor = .white
-        readoutLabel.backgroundColor = UIColor.black.withAlphaComponent(0.85)
-        readoutLabel.textAlignment = .center
-        readoutLabel.numberOfLines = 0
-        readoutLabel.layer.cornerRadius = Self.ReadoutCornerRadius
-        readoutLabel.clipsToBounds = true
-        readoutLabel.isHidden = true
-        addSubview(readoutLabel)
+        distanceLabel.font = .monospacedDigitSystemFont(ofSize: Self.DistanceFontSize, weight: .bold)
+        distanceLabel.textColor = .white
+        distanceLabel.textAlignment = .center
+        distanceLabel.numberOfLines = 1
+        distanceLabel.lineBreakMode = .byClipping
+
+        namesLabel.font = .systemFont(ofSize: Self.NamesFontSize, weight: .regular)
+        namesLabel.textColor = UIColor.white.withAlphaComponent(0.75)
+        namesLabel.textAlignment = .center
+        namesLabel.numberOfLines = 1
+        namesLabel.lineBreakMode = .byTruncatingMiddle
+
+        let stack = UIStackView(arrangedSubviews: [distanceLabel, namesLabel])
+        stack.axis = .vertical
+        stack.alignment = .fill
+        stack.spacing = Self.ReadoutLineSpacing
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        readoutContainer.backgroundColor = UIColor.black.withAlphaComponent(0.85)
+        readoutContainer.layer.cornerRadius = Self.ReadoutCornerRadius
+        readoutContainer.layer.borderWidth = Self.ReadoutBorderWidth
+        readoutContainer.layer.borderColor = Self.MeasurementColour.cgColor
+        readoutContainer.clipsToBounds = true
+        readoutContainer.isHidden = true
+        readoutContainer.addSubview(stack)
+        addSubview(readoutContainer)
+
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: readoutContainer.topAnchor, constant: Self.ReadoutPadding),
+            stack.bottomAnchor.constraint(equalTo: readoutContainer.bottomAnchor, constant: -Self.ReadoutPadding),
+            stack.leadingAnchor.constraint(equalTo: readoutContainer.leadingAnchor, constant: Self.ReadoutPadding),
+            stack.trailingAnchor.constraint(equalTo: readoutContainer.trailingAnchor, constant: -Self.ReadoutPadding)
+        ])
     }
 
     /// Lays the control out against the safe area, so it clears the home indicator on a device
@@ -470,9 +549,9 @@ internal class LayoutRulerOverlayView: TopLevelView {
     ///   - measurement: The measurement to describe.
     ///   - locale: The locale the number is formatted in. Defaults to the effective language's,
     ///     so the decimal separator matches the words around it.
-    /// - Returns: One line for a free measurement, two for one that attached to anything.
+    /// - Returns: The distance, and the names when there are any.
     internal static func readout(for measurement: LayoutRuler.Measurement,
-                                 locale: Locale = LanguageOverride.shared.namingLocale) -> String {
+                                 locale: Locale = LanguageOverride.shared.namingLocale) -> Readout {
         let formatter = NumberFormatter()
         formatter.locale = locale
         formatter.numberStyle = .decimal
@@ -484,12 +563,59 @@ internal class LayoutRulerOverlayView: TopLevelView {
         let distance = localized("\(number) pt")
 
         guard measurement.startDescription != nil || measurement.endDescription != nil else {
-            return distance
+            return Readout(distance: distance, names: nil)
         }
 
-        let start = measurement.startDescription ?? freeEndpointName
-        let end = measurement.endDescription ?? freeEndpointName
-        return localized("\(start) → \(end)") + "\n" + distance
+        let start = displayName(measurement.startDescription)
+        let end = displayName(measurement.endDescription)
+        return Readout(distance: distance, names: localized("\(start) → \(end)"))
+    }
+
+    /// How wide the readout may be.
+    ///
+    /// Pure and static because this is the decision that went wrong: the first version handed
+    /// ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:)`` whatever size the text wanted,
+    /// and that function clamps an origin rather than a size, so a readout wider than the screen
+    /// was placed at `x = 0` and ran off both edges. The cap belongs before the placement, and
+    /// somewhere a test can reach it.
+    ///
+    /// Answers the width of the readout's *content*, and the cap it applies already gives up
+    /// ``ReadoutPadding`` on each side as well as ``ReadoutMargin``, so the box drawn around that
+    /// content still fits inside the overlay less its margins. Getting that wrong is how a
+    /// twelve-point overhang gets shipped.
+    ///
+    /// The readout is as wide as its widest line, and never wider than that cap. When the cap
+    /// bites it is the names that give way, because
+    /// they are the only line that may be truncated; the distance is always narrower than the cap
+    /// in practice — it is a number and a unit — and if it somehow were not, the cap would still
+    /// win, since a readout running off the screen answers nothing at all.
+    ///
+    /// - Parameters:
+    ///   - distance: The natural width of the distance line.
+    ///   - names: The natural width of the names line, or `0` when there are no names.
+    ///   - availableWidth: The overlay's width.
+    /// - Returns: The width to give the readout's content, never negative.
+    internal static func readoutWidth(distance: CGFloat,
+                                      names: CGFloat,
+                                      availableWidth: CGFloat) -> CGFloat {
+        let cap = max(0, availableWidth - (ReadoutMargin + ReadoutPadding) * 2)
+        return min(max(distance, names), cap)
+    }
+
+    /// One end's name as the readout shows it.
+    ///
+    /// Drops a leading underscore, because every name that needs it is a private UIKit class —
+    /// `_UITouchPassthroughView`, `_UICollectionViewListLayout…` — and the underscore is the one
+    /// character in them that carries nothing for a developer measuring a gap. Dropped here rather
+    /// than in ``LayoutRuler/measurement(from:to:in:snapping:)`` so the measurement keeps the class's
+    /// real name and only the display is tidied.
+    ///
+    /// - Parameter description: The endpoint's description, or `nil` when it attached to nothing.
+    /// - Returns: The name to show, or ``freeEndpointName`` for an endpoint that attached to
+    ///   nothing.
+    private static func displayName(_ description: String?) -> String {
+        guard let description else { return freeEndpointName }
+        return description.hasPrefix("_") ? String(description.dropFirst()) : description
     }
 
     /// What an endpoint that attached to nothing is called in the readout.
@@ -501,7 +627,7 @@ internal class LayoutRulerOverlayView: TopLevelView {
 
     /// Rebuilds the readout for the current ``measurement`` and puts it where it can be read.
     ///
-    /// The single owner of ``readoutLabel``'s visibility: there is one rule — a readout is shown
+    /// The single owner of ``readoutContainer``'s visibility: there is one rule — a readout is shown
     /// when there is a measurement and Scyther is not in front of the app — and it is stated here
     /// only. ``applyCoverage()`` changes what the answer is and then calls this rather than
     /// computing a second copy of it.
@@ -511,24 +637,62 @@ internal class LayoutRulerOverlayView: TopLevelView {
     /// screen does not place its own answer off it.
     private func refreshReadout() {
         guard let measurement, !isCoveredByScyther() else {
-            readoutLabel.isHidden = true
+            readoutContainer.isHidden = true
             return
         }
 
-        readoutLabel.isHidden = false
-        readoutLabel.text = Self.readout(for: measurement)
+        readoutContainer.isHidden = false
+
+        let readout = Self.readout(for: measurement)
+        distanceLabel.text = readout.distance
+        namesLabel.text = readout.names
+        namesLabel.isHidden = readout.names == nil
 
         let start = pointInOverlay(measurement.start)
         let end = pointInOverlay(measurement.end)
         let midpoint = CGPoint(x: (start.x + end.x) / 2, y: (start.y + end.y) / 2)
 
-        let available = CGSize(width: max(bounds.width - Self.ReadoutPadding * 4, 1),
-                               height: .greatestFiniteMagnitude)
-        let text = readoutLabel.sizeThatFits(available)
-        let size = CGSize(width: text.width + Self.ReadoutPadding * 2,
-                          height: text.height + Self.ReadoutPadding * 2)
+        // The labels' *natural* sizes, unconstrained: `sizeThatFits` on a single-line label reports
+        // the width the text wants rather than the width it will get, which is exactly what the cap
+        // below needs to compare against. The truncation then happens because the frame is narrower
+        // than that, which is UILabel's own job and not something to compute here.
+        let unbounded = CGSize(width: CGFloat.greatestFiniteMagnitude,
+                               height: CGFloat.greatestFiniteMagnitude)
+        let distanceSize = distanceLabel.sizeThatFits(unbounded)
+        let namesSize = namesLabel.isHidden ? CGSize.zero : namesLabel.sizeThatFits(unbounded)
+
+        let contentWidth = Self.readoutWidth(distance: distanceSize.width,
+                                             names: namesSize.width,
+                                             availableWidth: bounds.width)
+        let contentHeight = distanceSize.height
+            + (namesLabel.isHidden ? 0 : namesSize.height + Self.ReadoutLineSpacing)
+
+        let size = CGSize(width: contentWidth + Self.ReadoutPadding * 2,
+                          height: contentHeight + Self.ReadoutPadding * 2)
         let origin = LayoutRulerGeometry.labelOrigin(midpoint: midpoint, labelSize: size, in: bounds.size)
-        readoutLabel.frame = clearOfTheControl(CGRect(origin: origin, size: size))
+        readoutContainer.frame = clearOfTheControl(withinMargins(CGRect(origin: origin, size: size)))
+        readoutContainer.layoutIfNeeded()
+    }
+
+    /// Keeps the readout inside the same margin its width was capped against.
+    ///
+    /// ``readoutWidth(distance:names:availableWidth:)`` gives up ``ReadoutMargin`` on each side so
+    /// the readout can never be wider than the space between the margins, but
+    /// ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:)`` clamps to the overlay's *bounds*
+    /// — it knows nothing about a margin — so a measurement near an edge still ended up with the
+    /// readout flush against it, touching the screen. Reserving the room and then not using it is
+    /// the sort of half-applied rule that reads as a bug.
+    ///
+    /// Horizontal only. The vertical position has ``clearOfTheControl(_:)`` to answer to, and a
+    /// second clamp on the same axis would be two rules fighting over one number.
+    ///
+    /// - Parameter frame: The readout's frame as the geometry placed it.
+    /// - Returns: The same frame, moved inside the margins.
+    private func withinMargins(_ frame: CGRect) -> CGRect {
+        let rightmost = max(Self.ReadoutMargin, bounds.width - Self.ReadoutMargin - frame.width)
+        var inset = frame
+        inset.origin.x = min(max(Self.ReadoutMargin, frame.origin.x), rightmost)
+        return inset
     }
 
     /// Lifts a readout that would land underneath the floating control.
@@ -604,8 +768,8 @@ internal class LayoutRulerOverlayView: TopLevelView {
         let start = pointInOverlay(measurement.start)
         let end = pointInOverlay(measurement.end)
 
-        context.setStrokeColor(Self.LineColour.cgColor)
-        context.setFillColor(Self.LineColour.cgColor)
+        context.setStrokeColor(Self.MeasurementColour.cgColor)
+        context.setFillColor(Self.MeasurementColour.cgColor)
         context.setLineWidth(Self.LineWidth)
         context.move(to: start)
         context.addLine(to: end)
@@ -658,6 +822,26 @@ internal class LayoutRulerOverlayView: TopLevelView {
     private func pointInOverlay(_ point: CGPoint) -> CGPoint {
         guard let window else { return point }
         return convert(point, from: window)
+    }
+}
+
+// MARK: - Readout
+
+extension LayoutRulerOverlayView {
+    /// What the readout says, split into the two lines that have different rules.
+    ///
+    /// A value type rather than one string with a newline in it, because the split *is* the
+    /// behaviour: the distance is the answer and is always shown in full, and the names are context
+    /// that may be truncated to whatever room is left. Returning them separately is what lets a
+    /// test state that rule, and what stops it being re-decided inside a `draw(_:)` or a label's
+    /// configuration where nothing can check it.
+    struct Readout: Equatable, Sendable {
+        /// The distance and its unit, formatted in the effective locale. Always shown in full.
+        let distance: String
+
+        /// What each end attached to, or `nil` for a free measurement, which attached to nothing
+        /// and has nothing to name.
+        let names: String?
     }
 }
 

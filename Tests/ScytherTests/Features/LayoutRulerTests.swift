@@ -276,17 +276,36 @@ final class LayoutRulerTests: XCTestCase {
                                                   distance: 40,
                                                   startDescription: nil,
                                                   endDescription: nil)
-        XCTAssertEqual(LayoutRulerOverlayView.readout(for: measurement), "40 pt")
+        let readout = LayoutRulerOverlayView.readout(for: measurement)
+        XCTAssertEqual(readout.distance, "40 pt")
+        XCTAssertNil(readout.names, "a free measurement attached to nothing and has nothing to name")
     }
 
+    /// The distance and the names are separate lines because they have separate rules: the
+    /// distance is always shown in full, the names may be truncated.
     func testASnappedMeasurementReadsAsBothViewsAndTheDistance() {
         let measurement = LayoutRuler.Measurement(start: .zero,
                                                   end: CGPoint(x: 0, y: 40),
                                                   distance: 40,
                                                   startDescription: "UILabel.bottom",
                                                   endDescription: "UIImageView.top")
-        XCTAssertEqual(LayoutRulerOverlayView.readout(for: measurement),
-                       "UILabel.bottom → UIImageView.top\n40 pt")
+        let readout = LayoutRulerOverlayView.readout(for: measurement)
+        XCTAssertEqual(readout.distance, "40 pt")
+        XCTAssertEqual(readout.names, "UILabel.bottom → UIImageView.top")
+    }
+
+    /// Every name long enough to need truncating is a private UIKit class, and the underscore is
+    /// the one character in it that tells a developer nothing.
+    func testALeadingUnderscoreIsStrippedFromAName() {
+        let measurement = LayoutRuler.Measurement(
+            start: .zero,
+            end: CGPoint(x: 0, y: 40),
+            distance: 40,
+            startDescription: "_UICollectionViewListLayoutSectionBackgroundColorDecorationView.bottom",
+            endDescription: "_UITouchPassthroughView.top"
+        )
+        XCTAssertEqual(LayoutRulerOverlayView.readout(for: measurement).names,
+                       "UICollectionViewListLayoutSectionBackgroundColorDecorationView.bottom → UITouchPassthroughView.top")
     }
 
     /// The one string this feature invented: an endpoint that snapped and one that did not.
@@ -296,16 +315,16 @@ final class LayoutRulerTests: XCTestCase {
                                                    distance: 40,
                                                    startDescription: "UILabel.bottom",
                                                    endDescription: nil)
-        XCTAssertEqual(LayoutRulerOverlayView.readout(for: startSnapped),
-                       "UILabel.bottom → free point\n40 pt")
+        XCTAssertEqual(LayoutRulerOverlayView.readout(for: startSnapped).names,
+                       "UILabel.bottom → free point")
 
         let endSnapped = LayoutRuler.Measurement(start: .zero,
                                                  end: CGPoint(x: 0, y: 40),
                                                  distance: 40,
                                                  startDescription: nil,
                                                  endDescription: "UILabel.top")
-        XCTAssertEqual(LayoutRulerOverlayView.readout(for: endSnapped),
-                       "free point → UILabel.top\n40 pt")
+        XCTAssertEqual(LayoutRulerOverlayView.readout(for: endSnapped).names,
+                       "free point → UILabel.top")
     }
 
     /// A fractional gap is the interesting one: a ruler that rounded `16.5` to `16` would hide
@@ -316,7 +335,86 @@ final class LayoutRulerTests: XCTestCase {
                                                   distance: 16.5,
                                                   startDescription: nil,
                                                   endDescription: nil)
-        XCTAssertEqual(LayoutRulerOverlayView.readout(for: measurement), "16.5 pt")
+        XCTAssertEqual(LayoutRulerOverlayView.readout(for: measurement).distance, "16.5 pt")
+    }
+
+    // MARK: - The Readout's Width
+
+    /// The defect this cap exists for: a snap onto a SwiftUI list row names a class over sixty
+    /// characters long, twice, and the readout ran off both edges of the screen with the distance
+    /// buried in the middle of it.
+    func testALongNamesLineIsCappedToTheOverlayLessItsMargins() {
+        let width = LayoutRulerOverlayView.readoutWidth(distance: 40,
+                                                        names: 4000,
+                                                        availableWidth: 402)
+        // The cap gives up the margin on each side *and* the padding the box draws around the
+        // content, so the box itself still fits inside the overlay less its margins.
+        let expected = 402 - (LayoutRulerOverlayView.ReadoutMargin + LayoutRulerOverlayView.ReadoutPadding) * 2
+        XCTAssertEqual(width, expected)
+    }
+
+    /// A readout that fits keeps its natural width — the cap is a limit, not a size.
+    func testAReadoutThatFitsIsNotWidened() {
+        let width = LayoutRulerOverlayView.readoutWidth(distance: 40,
+                                                        names: 120,
+                                                        availableWidth: 402)
+        XCTAssertEqual(width, 120)
+    }
+
+    /// A free measurement has no names line, so the distance alone decides the width.
+    func testTheDistanceAloneDecidesTheWidthOfAFreeMeasurement() {
+        let width = LayoutRulerOverlayView.readoutWidth(distance: 40,
+                                                        names: 0,
+                                                        availableWidth: 402)
+        XCTAssertEqual(width, 40)
+    }
+
+    /// The cap wins even against the distance. It cannot bite in practice — a number and a unit
+    /// are never that wide — but a readout wider than the screen answers nothing at all.
+    func testTheCapAppliesToAnAbsurdlyNarrowOverlay() {
+        let width = LayoutRulerOverlayView.readoutWidth(distance: 400,
+                                                        names: 0,
+                                                        availableWidth: 20)
+        XCTAssertEqual(width, 0, "never negative, and never wider than there is room for")
+    }
+
+    /// The end-to-end statement of the same rule, through the view: whatever the names say, the
+    /// readout stays on screen.
+    func testAReadoutWithEnormousNamesStaysWithinTheOverlay() {
+        let (_, overlay) = makeHostedOverlay(size: CGSize(width: 402, height: 874))
+        overlay.setActive(true)
+        overlay.layoutIfNeeded()
+
+        let long = String(repeating: "_UICollectionViewListLayoutSectionBackgroundColorDecorationView", count: 3)
+        overlay.measurement = LayoutRuler.Measurement(start: CGPoint(x: 200, y: 300),
+                                                      end: CGPoint(x: 200, y: 360),
+                                                      distance: 60,
+                                                      startDescription: "\(long).bottom",
+                                                      endDescription: "\(long).top")
+
+        let margin = LayoutRulerOverlayView.ReadoutMargin
+        let frame = overlay.readoutContainer.frame
+        XCTAssertTrue(overlay.bounds.contains(frame),
+                      "the readout ran off the screen: \(frame) in \(overlay.bounds)")
+        XCTAssertLessThanOrEqual(frame.width, overlay.bounds.width - margin * 2)
+        XCTAssertGreaterThanOrEqual(frame.minX, margin, "the margin it reserved is the margin it keeps")
+        XCTAssertLessThanOrEqual(frame.maxX, overlay.bounds.width - margin)
+    }
+
+    /// A measurement taken hard against an edge must not push its readout flush against it.
+    func testAReadoutNearAnEdgeStaysInsideTheMargins() {
+        let (_, overlay) = makeHostedOverlay(size: CGSize(width: 402, height: 874))
+        overlay.setActive(true)
+        overlay.layoutIfNeeded()
+
+        overlay.measurement = LayoutRuler.Measurement(start: CGPoint(x: 400, y: 300),
+                                                      end: CGPoint(x: 400, y: 360),
+                                                      distance: 60,
+                                                      startDescription: "UIView.right",
+                                                      endDescription: "UIView.right")
+
+        let margin = LayoutRulerOverlayView.ReadoutMargin
+        XCTAssertLessThanOrEqual(overlay.readoutContainer.frame.maxX, overlay.bounds.width - margin)
     }
 
     // MARK: - Placement
@@ -338,7 +436,7 @@ final class LayoutRulerTests: XCTestCase {
                                                       startDescription: nil,
                                                       endDescription: nil)
 
-        XCTAssertFalse(overlay.readoutLabel.frame.intersects(overlay.controlContainer.frame),
+        XCTAssertFalse(overlay.readoutContainer.frame.intersects(overlay.controlContainer.frame),
                        "the readout would be behind an opaque blur")
     }
 
