@@ -59,7 +59,9 @@ A menu row that dismisses the menu and activates an overlay which takes touches.
 
 Drag anywhere on screen. The overlay draws a line between the drag's start and current point, with the distance in points at its midpoint.
 
-**In snap mode** each endpoint attaches to the nearest edge of the view under that point, so a drag roughly between two labels reports the real gap between them. The readout names what it measured — `Title.bottom → Subtitle.top`, then the distance.
+**In snap mode** each endpoint attaches to the nearest edge of the view under that point, so a drag roughly between two labels reports the real gap between them. The readout names what it measured — `Title.bottom → Subtitle.top` — and the distance.
+
+**Amended in build:** the readout leads with the distance, on its own line, with the names truncated beneath it. On SwiftUI content the names are UIKit private class names, often sixty characters or more at each end, and putting them first buried the measurement in the middle of a strip of implementation detail. The names are context for the number; the number is the answer.
 
 **In free mode** the endpoints stay exactly where the fingers were, and the readout carries the distance alone.
 
@@ -109,6 +111,8 @@ An overlay's drawing cannot be inspected by a test, and a gesture cannot be driv
 
 It walks the key window's hierarchy front-to-back, skipping any view that is hidden, fully transparent, outside the window's bounds, or owned by Scyther. It returns the deepest match, because a developer pointing at a label means the label, not the stack that contains it.
 
+**Amended in build:** the deepest match that *paints something*. The walk runs twice — a first pass that additionally requires a view to paint something of its own — a non-clear background colour, rendered layer contents, a border, or a shadow, all cheap stored properties and none of them a rasterisation — and a second, unrestricted pass as the fallback. Without the first pass a plain SwiftUI `TabView` on iOS 26 defeats the tool entirely: it installs a full-screen, unpainted container in front of the app, and the deepest-match rule returns that container for every point on screen, so every measurement reads as the same view's edges. Preferring paint returns the label a developer is actually pointing at; the fallback keeps an unpainted-but-real view measurable when there is nothing painted under the point.
+
 **The accessibility audit's cost lesson applies and must not be relearned.** That feature hung the app by asking every view for its accessibility children, because doing so forces UIAccessibility to compute a subtree recursively. `ViewProbe` walks `subviews` and reads `frame`, `isHidden` and `alpha` — all cheap stored properties — and must never touch the accessibility tree. A probe runs per touch-move, so it is on a far hotter path than the audit ever was.
 
 ## Edge cases
@@ -135,7 +139,7 @@ Every user-facing string goes through `localized(_:)`, with keys added to a new 
 
 ## Safety
 
-Both tools are off inside an XCTest process and on App Store builds, through the same `AppEnvironment` checks the rest of the toolkit uses. Neither mutates the app: no frames are changed, no constraints touched, nothing is set on a host view. The ruler consumes touches only while it is active, and Layout Guides never do.
+Both tools are off on App Store builds, through the same `AppEnvironment.isAppStore` gate in `Scyther.start()` that the rest of the toolkit inherits — and neither is ever installed inside an XCTest process, because that gate's caller is never reached from one. Neither carries a local `isTestCase` check of its own, unlike the accessibility audit, which needs one because it can be asked to run against a test's fabricated window; an overlay that is never installed cannot be. Neither mutates the app: no frames are changed, no constraints touched, nothing is set on a host view. The ruler consumes touches only while it is active, and Layout Guides never do.
 
 ## Testing
 

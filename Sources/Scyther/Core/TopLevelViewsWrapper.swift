@@ -40,10 +40,14 @@ class TopLevelViewsWrapper: UIView {
     // MARK: - Data
     var topLevelViews: [TopLevelView] = []
 
-    /// `bounds` as of the last time this wrapper propagated a resize to ``topLevelViews``, so
-    /// ``layoutSubviews()`` can tell a layout pass that changed nothing about this wrapper's own
-    /// size from one that did.
-    private var lastPropagatedBounds: CGRect = .zero
+    /// `bounds` as of the last time this wrapper reacted to its own size changing — here, by
+    /// propagating the resize to ``topLevelViews`` — so ``layoutSubviews()`` can tell a layout pass
+    /// that changed nothing about this wrapper's own size from one that did.
+    ///
+    /// Named as ``LayoutGuidesView`` and ``LayoutRulerOverlayView`` name theirs: the three are the
+    /// same guard, and a reader tracing a rotation through all three should not have to work out
+    /// three times that they are.
+    private var lastHandledBounds: CGRect = .zero
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -121,8 +125,8 @@ extension TopLevelViewsWrapper {
     /// notification about the device.
     override func layoutSubviews() {
         super.layoutSubviews()
-        guard bounds != lastPropagatedBounds else { return }
-        lastPropagatedBounds = bounds
+        guard bounds != lastHandledBounds else { return }
+        lastHandledBounds = bounds
         for view: TopLevelView in topLevelViews {
             view.updateFrame()
         }

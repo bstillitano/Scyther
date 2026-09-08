@@ -23,6 +23,14 @@ import Foundation
 /// `FPSCounter` are protected. A second, local check here would be a second answer that can
 /// drift from the first; one gate, inherited, is the whole toolkit's convention.
 ///
+/// That inherited gate is `isAppStore` only, and there is deliberately no `isTestCase` check
+/// anywhere on this path, where ``AccessibilityAudit/canAuditKeyWindow(isTestCase:isAppStore:)``
+/// carries one. The audit needs it because it *runs* — walking a window and rasterising it —
+/// whenever something asks it to, including from a test that constructs a fabricated `UIWindow`.
+/// This overlay runs nothing: it is a view installed by `Scyther.start()`, which a test process
+/// never calls, so in a test there is no overlay, no wrapper and no window to draw over, and a
+/// local gate would guard a path that cannot be reached rather than one that can.
+///
 /// ## Topics
 /// ### Getting the Shared Instance
 /// - ``instance``

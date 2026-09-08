@@ -20,7 +20,8 @@ import UIKit
 /// does not: safety is inherited from ``InterfaceToolkit/start()``, which is only reached from
 /// `Scyther.start()` — gated on `AppEnvironment.isAppStore`/`allowProductionBuilds`. One gate,
 /// inherited, is the whole toolkit's convention, and a second local one is a second answer that
-/// can drift from the first.
+/// can drift from the first. There is no `isTestCase` check on this path either, where the
+/// accessibility audit has one — see ``LayoutGuides`` for why the difference is the right one.
 ///
 /// ## Topics
 ///

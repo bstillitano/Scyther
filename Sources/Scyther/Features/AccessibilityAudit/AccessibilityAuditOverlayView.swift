@@ -282,24 +282,17 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
         onFrameChanged?()
     }
 
-    /// The part of this view the app under audit actually occupies.
-    ///
-    /// This view is sized to its superview, ``TopLevelViewsWrapper``, which sizes itself to
-    /// `UIScreen.main.bounds` — the whole display. In iPad Split View or Slide Over the app's
-    /// window is a fraction of that, so laying the pill out against `bounds` puts it beside the app
-    /// or off it entirely. Everything else this view draws is a finding's own window-coordinate
-    /// frame and lands correctly regardless; the pill is the one thing positioned relative to an
-    /// edge, and the edge that matters is the window's.
-    private var appArea: CGRect {
-        guard let window else { return bounds }
-        let area = convert(window.bounds, from: window).intersection(bounds)
-        return area.isNull || area.isEmpty ? bounds : area
-    }
-
     /// Puts ``reportButton`` against the trailing edge, halfway down the app's own window.
     ///
     /// See ``pillTrailingPadding`` for why not the bottom centre, where it used to be and where it
     /// overlapped the example app's tab bar.
+    ///
+    /// Laid out against `bounds` directly. It used to be laid out against `bounds` intersected with
+    /// the window's, because this view's superview — ``TopLevelViewsWrapper`` — sized itself to
+    /// `UIScreen.main.bounds`, the whole display, so on an iPad in Split View or Slide Over the
+    /// pill landed beside the app or off it. The wrapper now sizes itself to `window.bounds`, so
+    /// `bounds` *is* the app's own area and the intersection was computing itself; everything else
+    /// this view draws is a finding's own window-coordinate frame and landed correctly either way.
     ///
     /// Deliberately not `sizeToFit()`, which is what used to draw the pill's title across two
     /// lines. `sizeToFit()` asks the button to fit its *current* bounds, and those bounds are
@@ -315,7 +308,7 @@ internal class AccessibilityAuditOverlayView: TopLevelView {
         reportButton.setNeedsLayout()
         reportButton.layoutIfNeeded()
 
-        let area = appArea
+        let area = bounds
         let available = CGSize(width: max(area.width, 1), height: .greatestFiniteMagnitude)
         let size = reportButton.sizeThatFits(available)
         let trailingInset = window?.safeAreaInsets.right ?? 0

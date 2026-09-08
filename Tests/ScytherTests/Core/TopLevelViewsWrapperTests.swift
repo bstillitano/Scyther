@@ -83,4 +83,41 @@ final class TopLevelViewsWrapperTests: XCTestCase {
 
         XCTAssertEqual(child.updateFrameCallCount, calls)
     }
+
+    // MARK: - The orientation notification
+
+    /// `deviceDidChangeOrientation` is kept alongside `layoutSubviews()`'s structural propagation
+    /// specifically for the children that have no `autoresizingMask` of their own — `GridOverlayView`
+    /// and `FPSCounterView` size themselves from `UIScreen.main.bounds` and this notification is the
+    /// only signal they were ever given. That claim is the reason the observer survived the move to
+    /// `autoresizingMask`, so it is asserted rather than assumed: the notification alone, with no
+    /// resize and no layout pass, still reaches every child.
+    func testTheOrientationNotificationStillReachesEveryChild() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 500, height: 300))
+        let wrapper = TopLevelViewsWrapper(frame: .zero)
+        window.addSubview(wrapper)
+
+        let child = SpyTopLevelView()
+        wrapper.addTopLevelView(topLevelView: child)
+        wrapper.layoutIfNeeded()
+        let calls = child.updateFrameCallCount
+
+        NotificationCenter.default.post(name: UIDevice.orientationDidChangeNotification, object: nil)
+
+        XCTAssertGreaterThan(child.updateFrameCallCount, calls)
+    }
+
+    /// The handler's own guard: a wrapper that is not installed directly in a `UIWindow` is not the
+    /// one this notification is about, and propagating from it would resize children against a
+    /// window the wrapper does not belong to.
+    func testTheOrientationNotificationIsIgnoredOutsideAWindow() {
+        let wrapper = TopLevelViewsWrapper(frame: .zero)
+        let child = SpyTopLevelView()
+        wrapper.addTopLevelView(topLevelView: child)
+        let calls = child.updateFrameCallCount
+
+        NotificationCenter.default.post(name: UIDevice.orientationDidChangeNotification, object: nil)
+
+        XCTAssertEqual(child.updateFrameCallCount, calls)
+    }
 }
