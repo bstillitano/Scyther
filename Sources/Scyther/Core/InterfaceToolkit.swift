@@ -69,6 +69,7 @@ public final class InterfaceToolkit: NSObject, Sendable {
     public var touchVisualiser: TouchVisualiser = TouchVisualiser.instance
     internal var gridOverlayView: GridOverlayView = GridOverlayView()
     internal var layoutGuidesView: LayoutGuidesView = LayoutGuidesView()
+    internal var layoutRulerView: LayoutRulerOverlayView = LayoutRulerOverlayView()
     internal var fpsCounterView: FPSCounterView = FPSCounterView()
     internal var accessibilityAuditView: AccessibilityAuditOverlayView = AccessibilityAuditOverlayView()
     internal var topLevelViewsWrapper: TopLevelViewsWrapper = TopLevelViewsWrapper()
@@ -266,6 +267,7 @@ public final class InterfaceToolkit: NSObject, Sendable {
             self?.setupLayoutGuides()
             self?.setupFPSCounter()
             self?.setupAccessibilityAudit()
+            self?.setupLayoutRuler()
             self?.setWindowSpeed()
             // Always swizzle so views can respond to debug toggle changes
             self?.swizzleLayout()
@@ -373,6 +375,7 @@ public final class InterfaceToolkit: NSObject, Sendable {
     @objc
     internal func scytherCoverageDidChangeNotification(notification: NSNotification) {
         accessibilityAuditView.refreshForCoverageChange()
+        layoutRulerView.refreshForCoverageChange()
         guard !isScytherCoveringScreen() else { return }
         scheduleAccessibilityReaudit()
     }
@@ -407,6 +410,41 @@ extension InterfaceToolkit {
     /// Applies ``LayoutGuides/enabled`` to the overlay.
     @MainActor internal func showLayoutGuides() {
         layoutGuidesView.isHidden = !LayoutGuides.instance.enabled
+    }
+}
+
+// MARK: - Layout Ruler
+extension InterfaceToolkit {
+    /// Installs the ruler's overlay, inactive, and wires the two things it reports back.
+    ///
+    /// Added after ``setupAccessibilityAudit()`` inside ``start()``, so it is the frontmost of the
+    /// wrapper's children: while the ruler is active it is the one overlay that takes touches, and
+    /// a sibling added later would sit over it and take them instead.
+    ///
+    /// ``LayoutRulerOverlayView/onDone`` and ``LayoutRulerOverlayView/onSnapModeChanged`` are wired
+    /// here rather than the overlay reaching for ``LayoutRuler`` itself, matching
+    /// ``AccessibilityAuditOverlayView/onOpenReport``: the overlay knows only that its button was
+    /// tapped, and this is the one place that knows what that means.
+    @MainActor internal func setupLayoutRuler() {
+        layoutRulerView.isHidden = true
+        layoutRulerView.onDone = {
+            LayoutRuler.instance.isActive = false
+        }
+        layoutRulerView.onSnapModeChanged = { snaps in
+            LayoutRuler.instance.snaps = snaps
+        }
+        topLevelViewsWrapper.addTopLevelView(topLevelView: layoutRulerView)
+        showLayoutRuler()
+    }
+
+    /// Applies ``LayoutRuler/isActive`` and ``LayoutRuler/snaps`` to the overlay, mirroring
+    /// ``showLayoutGuides()``.
+    ///
+    /// Both in one call because activation is the moment the mode matters: the picker has to show
+    /// the mode the next drag will actually use, and the two are only ever read together.
+    @MainActor internal func showLayoutRuler() {
+        layoutRulerView.snapsToEdges = LayoutRuler.instance.snaps
+        layoutRulerView.setActive(LayoutRuler.instance.isActive)
     }
 }
 

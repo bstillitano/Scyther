@@ -111,6 +111,41 @@ inset from the safe area by default. An inset that is zero — the bottom safe a
 with no home indicator, say — is not drawn at all: a line labelled `0 pt` flush against the
 screen edge would be noise, not information.
 
+## Layout Ruler
+
+Measure between two points on the running app by dragging, with each end snapping to the nearest
+edge of the view beneath it.
+
+### Using the Ruler
+
+Open the Scyther menu and choose **Layout Ruler** under **UI/UX**. The menu dismisses and an
+overlay takes over the screen: drag anywhere to measure. The measurement stays on screen after
+your finger lifts so it can be read, is replaced by the next drag, and is cleared by a tap.
+
+The overlay consumes every touch while it is up, which is why **Done** is always visible. (The
+shake gesture still reaches the menu, because shake is a motion event rather than a touch.)
+
+### Snap and Free
+
+**Snap**, the default, attaches each end of the measurement to the nearest edge of the view under
+it, so a drag roughly between two labels reports the real gap between them rather than how steady
+your thumb was. The readout names both ends — `UILabel.bottom → UIImageView.top` — using each
+view's class and edge, which is the only name a view reliably has.
+
+**Free** leaves both ends exactly where you put them, for measuring into whitespace or to a point
+inside an image. Its readout carries the distance alone, since it attached to nothing.
+
+An end with nothing under it falls back to the point itself and is named `free point`, rather than
+reporting a snap that did not happen. Scyther's own interface is never measured: the probe skips it
+and measures the app underneath, so the ruler's own control does not get in the way of what is
+behind it.
+
+Neither activation nor the mode survives a relaunch. A ruler that came back after a restart would
+be a debugging tool that has to be remembered and switched off, and it eats every touch on the
+screen while it is on.
+
+A rotation clears the measurement. Its endpoints described a layout that no longer exists.
+
 ## View Frame Debugging
 
 Highlight view boundaries to understand your view hierarchy.

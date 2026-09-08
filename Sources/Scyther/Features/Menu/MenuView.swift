@@ -165,6 +165,17 @@ public struct MenuView: View {
                 Toggle(isOn: $viewModel.showViewSizes) { searchResultLabel(for: entry) }
             case .layoutGuides:
                 Toggle(isOn: $viewModel.layoutGuidesEnabled) { searchResultLabel(for: entry) }
+            case .layoutRuler:
+                // An action, not a destination: without a case of its own this would fall
+                // through to `navigationResult(for:)`, whose `destination(for:)` has nothing to
+                // push for a row that is not a page — a search hit that opened a blank screen with
+                // only a back button, which is exactly the defect Layout Guides shipped with.
+                Button {
+                    viewModel.activateLayoutRuler()
+                } label: {
+                    searchResultLabel(for: entry)
+                }
+                .buttonStyle(.plain)
             case .ipAddress:
                 HStack {
                     searchResultLabel(for: entry)
@@ -562,6 +573,8 @@ public struct MenuView: View {
             navigationRow(for: item)
         case .layoutGuides:
             toggleRow(item.title, icon: item.icon, tint: item.tint, isOn: $viewModel.layoutGuidesEnabled)
+        case .layoutRuler:
+            actionRow(for: item) { viewModel.activateLayoutRuler() }
         case .fpsCounter:
             navigationRow(for: item)
         case .touchVisualiser:
@@ -581,6 +594,26 @@ public struct MenuView: View {
         case .showViewSizes:
             toggleRow(item.title, icon: item.icon, tint: item.tint, isOn: $viewModel.showViewSizes)
         }
+    }
+
+    /// A row that performs something immediately rather than navigating or toggling.
+    ///
+    /// The layout ruler is the menu's only one: it has no page to push and no setting to show,
+    /// because activating it means dismissing the menu and handing the screen to an overlay. The
+    /// row still wears the shared anatomy — icon tile, title — so it reads as part of the list
+    /// rather than as a stray control, and `.buttonStyle(.plain)` is what keeps it doing so: a
+    /// `Button` in a `List` otherwise tints its entire label, icon tile included, with the accent
+    /// colour.
+    ///
+    /// - Parameters:
+    ///   - item: The row, supplying its title, icon and section tint.
+    ///   - action: What tapping it does.
+    /// - Returns: The row.
+    func actionRow(for item: MenuItem, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            row(withLabel: item.title, icon: item.icon, tint: item.tint)
+        }
+        .buttonStyle(.plain)
     }
 
     func row(withLabel label: String, description: String? = nil, icon: String? = nil, tint: Color = .accentColor, andLoadingState loading: Bool = false) -> some View {

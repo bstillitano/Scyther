@@ -138,6 +138,55 @@ final class ViewProbeTests: XCTestCase {
         XCTAssertTrue(hit === root, "the walk cannot descend into container once the point misses its bounds, so the visible badge is never reached")
     }
 
+    // MARK: - Painting
+
+    /// The defect that made the ruler useless on iOS 26 before this rule existed: a plain SwiftUI
+    /// `TabView` puts a full-screen, unpainted `FloatingBarHostingView` in front of the whole app,
+    /// and the deepest-match rule returned it for every point on the screen.
+    func testAnUnpaintedViewInFrontDoesNotBeatAPaintedViewBehindIt() {
+        let root = UIView(frame: CGRect(x: 0, y: 0, width: 400, height: 800))
+        let painted = UIView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        painted.backgroundColor = .red
+        let passthrough = UIView(frame: root.bounds)
+        root.addSubview(painted)
+        root.addSubview(passthrough)
+
+        XCTAssertTrue(ViewProbe.view(at: CGPoint(x: 50, y: 50), in: root) === painted,
+                      "the container hosting a floating tab bar is not what the developer is pointing at")
+    }
+
+    /// A `.clear` background is a background colour that paints nothing, and it is what the
+    /// containers this rule passes over most often have.
+    func testAClearBackgroundDoesNotCountAsPainting() {
+        let root = UIView(frame: CGRect(x: 0, y: 0, width: 400, height: 800))
+        let painted = UIView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        painted.backgroundColor = .red
+        let passthrough = UIView(frame: root.bounds)
+        passthrough.backgroundColor = .clear
+        root.addSubview(painted)
+        root.addSubview(passthrough)
+
+        XCTAssertTrue(ViewProbe.view(at: CGPoint(x: 50, y: 50), in: root) === painted)
+    }
+
+    /// The preference is a preference, not a filter: a screen of bare containers still answers.
+    func testAHierarchyThatPaintsNothingStillReturnsTheDeepestView() {
+        let (root, child) = makeTree(childFrame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        XCTAssertTrue(ViewProbe.view(at: CGPoint(x: 50, y: 50), in: root) === child)
+    }
+
+    /// A painted view deeper inside an unpainted one is still the deepest match — descending is
+    /// never gated on the parent painting anything, since an unpainted container is exactly what a
+    /// painted view usually sits in.
+    func testThePaintPreferenceStillDescendsThroughUnpaintedContainers() {
+        let (root, child) = makeTree(childFrame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        let grandchild = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+        grandchild.backgroundColor = .blue
+        child.addSubview(grandchild)
+
+        XCTAssertTrue(ViewProbe.view(at: CGPoint(x: 50, y: 50), in: root) === grandchild)
+    }
+
     /// The rule the accessibility audit's hang taught, kept honest by a spy rather than by intent.
     func testTheProbeNeverAsksAViewForItsAccessibilityChildren() {
         let root = UIView(frame: CGRect(x: 0, y: 0, width: 400, height: 800))

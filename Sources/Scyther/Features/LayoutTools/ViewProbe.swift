@@ -42,20 +42,77 @@ enum ViewProbe {
     /// descendant would mean testing every subview's actual painted frame rather than pruning by
     /// containment.
     ///
+    /// **A view that paints nothing at the point is passed over in favour of one that does.** This
+    /// is not a refinement; without it the ruler does not work on iOS 26 at all. A plain SwiftUI
+    /// `TabView` installs `FloatingBarHostingView<FloatingBarContainer>` — a full-screen, fully
+    /// opaque-by-`alpha`, entirely unpainted container hosting the floating tab bar — in front of
+    /// the app's whole content. It is not hidden, not transparent by `alpha`, and not Scyther's, so
+    /// every one of the skip rules above passes it, and the deepest-match rule then returns *it*
+    /// for every point on the screen: measured by hand on the example app, a drag between two rows
+    /// reported `FloatingBarHostingView<FloatingBarContainer>.left → FloatingBarHostingView<FloatingBarContainer>.left`
+    /// and snapped both ends to the screen's left edge. Every iOS 26 app with a tab bar has one.
+    ///
+    /// So the walk runs twice. The first pass accepts only a view that paints — a background
+    /// colour with any opacity, rendered layer contents, a border, or a shadow — which is the
+    /// cheap, stored-property approximation of "the developer can see this here". The second pass
+    /// runs only when the first found nothing anywhere under the point, and reproduces the
+    /// original rule exactly, so a hierarchy of bare, unpainted views still answers rather than
+    /// declining. Two passes rather than one comparison because the preference is not local: the
+    /// painting view can be *behind* the unpainted one, several siblings back, and there is no way
+    /// to know that without looking.
+    ///
     /// - Parameters:
     ///   - point: The point, in `root`'s coordinate space.
     ///   - root: The view to search. The ruler passes its window.
     /// - Returns: The deepest match, or `nil` when `point` is outside `root` or `root` is itself
     ///   skipped.
     static func view(at point: CGPoint, in root: UIView) -> UIView? {
+        view(at: point, in: root, requiringPaint: true) ?? view(at: point, in: root, requiringPaint: false)
+    }
+
+    /// One pass of the walk.
+    ///
+    /// - Parameters:
+    ///   - point: The point, in `root`'s coordinate space.
+    ///   - root: The view to search.
+    ///   - requiringPaint: Whether a view may only be returned as the match when it paints
+    ///     something itself. Descending is never gated on it: an unpainted container is exactly
+    ///     what the painted view is usually inside.
+    /// - Returns: The deepest acceptable match, or `nil` when there is none.
+    private static func view(at point: CGPoint, in root: UIView, requiringPaint: Bool) -> UIView? {
         guard root.bounds.contains(point), isEligible(root) else { return nil }
 
         for subview in root.subviews.reversed() {
             let converted = root.convert(point, to: subview)
-            if let deeper = view(at: converted, in: subview) { return deeper }
+            if let deeper = view(at: converted, in: subview, requiringPaint: requiringPaint) { return deeper }
         }
 
-        return root
+        return requiringPaint && !paints(root) ? nil : root
+    }
+
+    /// Whether a view puts anything of its own on screen.
+    ///
+    /// Four stored properties, in the order they are cheapest and most often decisive. None of
+    /// them is a measurement of pixels, and none can be: reading back what a view actually
+    /// rendered means rasterising it, which is the sort of cost the accessibility audit's history
+    /// says has no place on a per-touch-move path. This is an approximation, and where it is wrong
+    /// it is wrong in the safe direction — a view it fails to recognise as painting is not skipped,
+    /// only deprioritised, and if nothing under the point is recognised the second pass returns the
+    /// deepest view regardless.
+    ///
+    /// `backgroundColor` is read through its `cgColor`'s alpha rather than tested for `nil`,
+    /// because `.clear` is a background colour that paints nothing and is extremely common on
+    /// exactly the container views this rule exists to pass over.
+    ///
+    /// - Parameter view: The view to test.
+    /// - Returns: `true` when the view has a visible background, rendered contents, a border, or a
+    ///   shadow of its own.
+    private static func paints(_ view: UIView) -> Bool {
+        if let background = view.backgroundColor, background.cgColor.alpha > 0 { return true }
+        if view.layer.contents != nil { return true }
+        if view.layer.borderWidth > 0, (view.layer.borderColor?.alpha ?? 0) > 0 { return true }
+        if view.layer.shadowOpacity > 0 { return true }
+        return false
     }
 
     /// Whether a view can be measured against at all.

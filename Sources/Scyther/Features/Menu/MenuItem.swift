@@ -86,7 +86,7 @@ enum MenuItem: Hashable, Identifiable {
     case notificationLogger, notificationTester, apnsToken, fcmToken
 
     // UI/UX
-    case fonts, interfaceComponents, gridOverlay, layoutGuides, fpsCounter
+    case fonts, interfaceComponents, gridOverlay, layoutGuides, layoutRuler, fpsCounter
     case touchVisualiser, accessibilityAudit, appearance, language, pseudoLocalization
     case slowAnimations, showViewFrames, showViewSizes
 
@@ -107,7 +107,7 @@ enum MenuItem: Hashable, Identifiable {
         .keychainBrowser,
         .locationSpoofer, .consoleLogs, .deepLinkTester, .crashLogs,
         .notificationLogger, .notificationTester, .apnsToken, .fcmToken,
-        .fonts, .interfaceComponents, .gridOverlay, .layoutGuides, .fpsCounter,
+        .fonts, .interfaceComponents, .gridOverlay, .layoutGuides, .layoutRuler, .fpsCounter,
         .touchVisualiser, .accessibilityAudit, .appearance, .language, .pseudoLocalization,
         .slowAnimations, .showViewFrames, .showViewSizes
     ]
@@ -153,6 +153,7 @@ enum MenuItem: Hashable, Identifiable {
         case .interfaceComponents: return "interfaceComponents"
         case .gridOverlay: return "gridOverlay"
         case .layoutGuides: return "layoutGuides"
+        case .layoutRuler: return "layoutRuler"
         case .fpsCounter: return "fpsCounter"
         case .touchVisualiser: return "touchVisualiser"
         case .accessibilityAudit: return "accessibilityAudit"
@@ -237,6 +238,7 @@ enum MenuItem: Hashable, Identifiable {
         case .interfaceComponents: return localized("Interface Components")
         case .gridOverlay: return localized("Grid Overlay")
         case .layoutGuides: return localized("Layout Guides")
+        case .layoutRuler: return localized("Layout Ruler")
         case .fpsCounter: return localized("FPS Counter")
         case .touchVisualiser: return localized("Touch Visualiser")
         case .accessibilityAudit: return localized("Accessibility Audit")
@@ -296,6 +298,7 @@ enum MenuItem: Hashable, Identifiable {
         case .interfaceComponents: return "apps.iphone"
         case .gridOverlay: return "rectangle.split.3x3"
         case .layoutGuides: return "rectangle.dashed"
+        case .layoutRuler: return "ruler.fill"
         case .fpsCounter: return "speedometer"
         case .touchVisualiser: return "hand.point.up"
         case .accessibilityAudit: return "figure.stand"

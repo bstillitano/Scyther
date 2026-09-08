@@ -92,6 +92,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 ### UI/UX Tools
 - **Grid Overlay**: Display alignment grid over your UI
 - **Layout Guides**: Draw the key window's safe-area insets and layout margins over your UI
+- **Layout Ruler**: Drag to measure between two points, snapping each end to the nearest view edge
 - **FPS Counter**: Real-time frame rate overlay with color-coded performance indicators
 - **Touch Visualizer**: Show touch points for demos and recordings
 - **Accessibility Audit**: Walk the live accessibility tree for missing VoiceOver labels, undersized touch targets, and low-contrast text, with a live on-screen overlay for the two checks that cost nothing
@@ -1676,6 +1677,25 @@ its measurement in points. Zero insets are not drawn:
 // Enable layout guides
 Scyther.interface.layoutGuidesEnabled = true
 ```
+
+#### Layout Ruler
+
+Drag anywhere on the running app to measure between two points. Open the Scyther menu and choose
+**Layout Ruler** under **UI/UX**; the menu dismisses and an overlay takes the screen.
+
+In **Snap** mode — the default — each end attaches to the nearest edge of the view beneath it, so
+a drag roughly between two labels reports the real gap rather than how steady your thumb was, and
+the readout names both ends (`UILabel.bottom → UIImageView.top`). In **Free** mode the ends stay
+exactly where you put them and the readout carries the distance alone. An end with nothing under it
+is named `free point` instead of reporting a snap that did not happen.
+
+The measurement stays on screen so it can be read, is replaced by the next drag, cleared by a tap,
+and cleared by a rotation — its endpoints described a layout that no longer exists. The overlay
+consumes every touch while it is up, so **Done** is always visible; the shake gesture still reaches
+the menu regardless, being a motion event rather than a touch. Neither activation nor the mode is
+persisted.
+
+Scyther's own interface is never measured: the probe skips it and finds the app underneath.
 
 #### FPS Counter
 

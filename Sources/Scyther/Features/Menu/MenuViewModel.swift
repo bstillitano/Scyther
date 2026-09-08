@@ -87,6 +87,7 @@ import SwiftUI
 ///
 /// - ``slowAnimationsEnabled``
 /// - ``layoutGuidesEnabled``
+/// - ``activateLayoutRuler()``
 /// - ``showViewFrames``
 /// - ``showViewSizes``
 ///
@@ -423,6 +424,26 @@ class MenuViewModel: ViewModel {
         didSet {
             Scyther.interface.layoutGuidesEnabled = layoutGuidesEnabled
             InterfaceToolkit.instance.showLayoutGuides()
+        }
+    }
+
+    /// Dismisses the menu and puts the layout ruler on screen.
+    ///
+    /// Not a toggle, which is why it is a method rather than a `@Published` property: the ruler
+    /// consumes every touch on the screen while it is active, so leaving it switched on behind an
+    /// open menu would mean the developer dismissed the menu into an app that no longer responds
+    /// to anything. Activation and dismissal are one gesture.
+    ///
+    /// Activated in `hideMenu`'s completion rather than before it, so the overlay starts taking
+    /// touches only once the menu has actually gone — an overlay is brought to the front of the
+    /// key window, and one activated mid-animation would sit over the dismissal it is interrupting.
+    /// The hop through `Task { @MainActor in }` is because that completion is a plain,
+    /// non-isolated closure, while ``LayoutRuler`` is main-actor state.
+    func activateLayoutRuler() {
+        Scyther.hideMenu {
+            Task { @MainActor in
+                LayoutRuler.instance.isActive = true
+            }
         }
     }
 
