@@ -111,6 +111,14 @@ inset from the safe area by default. An inset that is zero — the bottom safe a
 with no home indicator, say — is not drawn at all: a line labelled `0 pt` flush against the
 screen edge would be noise, not information.
 
+### Why a separate toggle
+
+Layout Guides has its own toggle rather than living inside the Layout Ruler, even though both draw
+over the same window. The guides are what you want on while *using* the app — scrolling,
+navigating, watching a layout misbehave — and the ruler's overlay consumes every touch while it is
+active. Tying the guides to the ruler would show them only while the app cannot be driven, which is
+exactly the moment they are least useful.
+
 ## Layout Ruler
 
 Measure between two points on the running app by dragging, with each end snapping to the nearest
@@ -122,8 +130,10 @@ Open the Scyther menu and choose **Layout Ruler** under **UI/UX**. The menu dism
 overlay takes over the screen: drag anywhere to measure. The measurement stays on screen after
 your finger lifts so it can be read, is replaced by the next drag, and is cleared by a tap.
 
-The overlay consumes every touch while it is up, which is why **Done** is always visible. (The
-shake gesture still reaches the menu, because shake is a motion event rather than a touch.)
+The overlay consumes every touch while it is up, so the app underneath cannot be tapped, scrolled
+or navigated until you leave it. Tap **Done** to exit the overlay and hand touches back to the
+app — it is always visible for exactly that reason. (The shake gesture still reaches the menu
+regardless, because shake is a motion event rather than a touch.)
 
 ### Snap and Free
 
@@ -139,6 +149,34 @@ An end with nothing under it falls back to the point itself and is named `free p
 reporting a snap that did not happen. Scyther's own interface is never measured: the probe skips it
 and measures the app underneath, so the ruler's own control does not get in the way of what is
 behind it.
+
+### Reading the Measurement
+
+The line, its endpoint dots, and the readout's border are all drawn in green — a colour none of
+Scyther's other overlays use, so several can be on screen at once without one being mistaken for
+another: the grid is red, Layout Guides are blue and purple, and the accessibility audit's overlay
+is orange.
+
+The readout itself always shows the distance in full, on its own line. The names of what it
+snapped to sit on the line beneath, truncated in the middle when there isn't room for them — the
+start and end of a name like `UILabel.bottom` carry more information than its middle, so that's
+the part given up first.
+
+### Why not a hit test
+
+The ruler does not ask UIKit which view would receive a touch at a point, because that is a
+different question from which view is there to measure. `hitTest(_:with:)` is steered by
+`isUserInteractionEnabled` and by any view that overrides it, so it skips exactly the labels and
+image views a developer is most likely to want to measure, and it has no notion of Scyther's own
+interface being off-limits.
+
+Instead the ruler walks the hierarchy itself, skipping anything hidden, fully transparent, or
+Scyther's own, and preferring the deepest view that visibly paints something at the point — a
+background colour, rendered layer content, a border, or a shadow — over the deepest view full
+stop. That preference is not a refinement: without it the ruler cannot measure anything on iOS 26
+at all, because a plain SwiftUI `TabView` installs a full-screen, unpainted container in front of
+the whole app to host its floating tab bar, and a plain hit test — or a walk with no preference for
+paint — returns that container for every point on the screen.
 
 Neither activation nor the mode survives a relaunch. A ruler that came back after a restart would
 be a debugging tool that has to be remembered and switched off, and it eats every touch on the
