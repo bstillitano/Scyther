@@ -59,7 +59,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **cURL Export**: Generate cURL commands for any captured request
 - **Log Export**: Share the captured requests as a zip containing a HAR 1.2 file, raw bodies, and a cURL command per request, with best-effort redaction and a sensitivity warning
 - **Filter Chips**: Narrow the network log by method, status class, host, content type, API kind, GraphQL operation, duration, exact status code, or recency from glass chips pinned above the list, or edit every filter at once from the all-filters sheet
-- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall overview strip compressing the whole log onto one shared axis — tap it to open **See all** centred on the moment touched, or use the header link to open it anchored on the newest traffic at a width that keeps a typical request legible (the whole span instead, on a log short enough that the two are the same thing) — where the same strip now carries a zoomable, draggable window over a detail list: pinch to zoom, drag the strip to move the window, an accessibility-adjustable action for VoiceOver and Switch Control, and a tappable row per request that opens its details — tapping the strip itself never does, there it only moves the window
+- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall overview strip compressing the whole log onto one shared axis — tap it to open **See all** centred on the moment touched, or use the header link to open it anchored on the newest traffic at half the log's span (the whole span instead, on a log short enough that the two are the same thing) — where the same strip now carries a zoomable, draggable window over a detail list: pinch to zoom, drag the strip to move the window, an accessibility-adjustable action for VoiceOver and Switch Control, and a tappable row per request that opens its details — tapping the strip itself never does, there it only moves the window
 - **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests — combined on one override — from the menu or from code
 - **Save as Mock**: Turn any captured response into a disabled mock override in one tap, and import a HAR file as a whole set of them
 - **Request Replay**: Reopen any captured request in an editor, change its method, URL, headers or body, and send it again — the resent request is logged with a `REPLAY` badge and listed on the original with its status, duration and size deltas
@@ -717,11 +717,12 @@ it can be found.
 On the **Traffic Stats** section the strip *is* the waterfall now: it draws the whole log, not a
 handful of recent requests, and its caption states the count, the span and how many distinct hosts
 were touched. **Tapping the strip opens `See all` centred on the moment touched**; the header's
-`See all` link beside it opens **anchored on the newest traffic instead**, at a width sized so the
-log's median request is legible — the whole span only when the log is short enough that the
-demanded width already reaches it, which is also the case the page's default opening used to cover
-unconditionally, before an hour-long capture with two short bursts of traffic showed every bar
-flooring to the same three points regardless of whether the request took 43ms or 1.06s.
+`See all` link beside it opens **anchored on the newest traffic instead**, at half the log's span
+— the whole span only when the zoom floor already sits above that half, which is also the case a
+log too short to zoom at all always produces, before an hour-long capture with two short bursts of
+traffic showed every bar flooring to the same three points regardless of whether the request took
+43ms or 1.06s, and — later — an ordinary log opening on a single legible request showed the first
+fix for that had swung too far the other way.
 
 **See all** shows the same strip, now also marking the current **window** — the reader zooms and
 drags this one, and it is already drawn narrower than the whole strip the moment the page opens on

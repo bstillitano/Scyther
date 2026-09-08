@@ -107,12 +107,14 @@ excluded from the scale today. A pending request has no measured length to be le
 
 ### Default
 
-**Reversed after device verification — see [Amendments](#amendments).** What shipped first, and
-what this section originally argued for, was the whole span; what ships now is the window anchored
-on the most recent traffic and sized so a typical request is legible. Both are recorded below
-because the first one was not a wrong guess corrected in review — it was deliberately decided,
-built, and then rejected only once it was driven against a real capture, and that failure is worth
-keeping precisely because the reasoning that led to it still reads as sound in isolation.
+**Revised twice after device verification — see [Amendments](#amendments).** What shipped first,
+and what this section originally argued for, was the whole span. What shipped second was the
+window anchored on the most recent traffic and sized so a typical request was legible. What ships
+now is the same anchoring with a flat half the span. All three are recorded below, in the order
+they happened, because neither of the first two was a wrong guess corrected in review — each was
+deliberately decided, built, and only reversed once it was driven against real use, and that
+history is worth keeping precisely because the reasoning behind each one still reads as sound in
+isolation.
 
 **What was decided and shipped first: the page opens with the window at its widest — the whole
 span.** This was called out and accepted: the first frame therefore looks like a plain list of
@@ -135,16 +137,31 @@ check 1, and its own type documentation on `WaterfallWindow` — so there was al
 strip to suggest that narrowing the window was even an available move, on the one screen state
 where a reader most needed that hint.
 
-**The rule now.** The window's right edge is anchored at the end of the series — the newest
-request — rather than starting at zero, and its width is chosen so the *median* measured request
-renders at `WaterfallWindow.targetShortestBarWidth` (the same "24pt is legible" figure the zoom
+**What shipped second: anchored on the newest traffic, sized so the *median* measured request
+rendered at `WaterfallWindow.targetShortestBarWidth`** (the same "24pt is legible" figure the zoom
 floor already uses for the *shortest* request), clamped into the window's own narrowest-and-widest
-limits. When the demanded width already reaches or exceeds the whole span — every short log, and
-the only case the original default was ever actually tested against by hand — the clamp pins the
-window to the whole span and nothing changes: this is a strict narrowing of the old rule, not a
-replacement of it in the one case that made it safe to begin with. The function is
-`WaterfallWindow.opening(span:narrowest:medianMeasured:plotWidth:)`, and it carries the full
-account of the arithmetic in its own documentation.
+limits. When the demanded width already reached or exceeded the whole span — every short log, and
+the only case the original default was ever actually tested against by hand — the clamp pinned the
+window to the whole span and nothing changed: a strict narrowing of the whole-span rule, not a
+replacement of it in the one case that made it safe to begin with.
+
+**Why it, in turn, opened too tight.** The median rule fixed the hour-long capture — the strip's
+overlay was visible from the first frame on any log that needed it — but sizing the window to make
+exactly one median-legible request visible also meant the window could be very narrow on an
+ordinary log with nothing wrong with it: a 19-request session opened showing `1 of 19`. Legible and
+*comfortable to open on* turned out to be two different targets. The owner asked directly for the
+second one: a page that opens on roughly half its traffic, not on however few requests happen to be
+legible.
+
+**The rule now: a flat half the series' span**, still anchored at the end of the series, still
+clamped into the window's own narrowest-and-widest limits exactly as both earlier rules were. No
+single request's duration enters the arithmetic at all any more — the median that the second rule
+needed for its own "typical request" figure has no remaining caller and was removed alongside this
+change. A log whose narrowest limit already sits above half its span opens at that limit instead of
+at the plain half; a log too short to zoom at all — where the narrowest limit already equals the
+whole span — still opens at the whole span, the same degenerate case both earlier rules also
+produced there, for the same underlying reason. The function is `WaterfallWindow.opening(span:narrowest:)`,
+and it carries the full account of all three rules, in order, in its own documentation.
 
 Two consequences of anchoring rather than staying at the whole span: the window is now usually a
 subset of the log the instant the page opens, so the strip's overlay draws immediately on any log
@@ -284,11 +301,12 @@ embedding one is a single key with an interpolation.
 - `WaterfallWindow` — clamping at both limits, that zooming holds the centre, that zooming out at
   the end pulls the window back rather than past the span, that a degenerate series disables
   zoom, and `contains(_:)` for an entry starting before and ending inside the window.
-- `WaterfallWindow.opening(span:narrowest:medianMeasured:plotWidth:)` — a short log opens at the
-  whole span, a long log opens anchored on the newest traffic at a width sized for the median
-  request, the demand never undercuts the zoom floor, a single measurement and a series with
-  nothing measured both fall back to the whole span, and an empty series produces the same
-  degenerate, non-dividing window every other empty-series case on the type does.
+- `WaterfallWindow.opening(span:narrowest:)` — a log whose narrowest limit sits above half its
+  span opens at that limit rather than at the plain half, an ordinary log opens at half its span
+  anchored on the newest traffic, a log too short to zoom at all (where the narrowest limit
+  already equals the span, whether from a single measurement or nothing measured) falls back to
+  the whole span, and an empty series produces the same degenerate, non-dividing window every
+  other empty-series case on the type does.
 - `shortHost` — the seven examples above plus an IP address and a single-label host.
 - Strip geometry as a pure function of span, count and size: bar rects, the height floor, and the
   minimum width.
@@ -353,8 +371,10 @@ the spec instead of being misled by it.
   nearest-rank `percentile(_:of:)` function that computed them, were removed in the final fix wave
   this document's own review produced — see `WaterfallDurations`' type documentation for the full
   account. The median came back afterwards, on its own, once the default-open rule below started
-  needing it again — see the next amendment and `WaterfallDurations.median(of:)`'s own
-  documentation. The tail did not come back; nothing has needed it since.
+  needing it again — see the next amendment — and left a second time once that rule was itself
+  replaced; see the final amendment in this list, and `WaterfallDurations`' own type documentation,
+  "The median came back, then left again," for that full account too. The tail did not come back;
+  nothing has needed it since.
 - **The default window, reversed after device verification.** [Default](#default) above now
   describes this directly rather than only here, because it is not a small implementation drift —
   it is the one decision in "Decisions taken" this document treats as settled that the owner later
@@ -400,3 +420,21 @@ the spec instead of being misled by it.
   reasoning above, and confirmation that `WaterfallViewModel.zoom(by:)` is reachable and correct in
   isolation, is what backs this change; that the gesture actually recognises on device is for the
   owner to confirm.
+- **The default window, revised a second time.** [Default](#default) above now describes this
+  directly, in order, alongside both earlier rules — a second amendment to the same decision the
+  previous "reversed after device verification" entry already amended once. What shipped after
+  that first reversal opened the page anchored on the newest traffic, sized so the *median*
+  measured request was legible. Driven against ordinary traffic rather than the hour-long capture
+  that motivated it, that rule opened *too tight*: a 19-request session opened on `1 of 19`, a
+  single median-legible request with nothing forcing the window any wider. The owner's instruction
+  was direct — "size it to half the window" — and the rule now opens the page on half the series'
+  span, anchored the same way, clamped into the same narrowest-and-widest limits, with no
+  per-request duration entering the arithmetic at all. `WaterfallDurations.median(of:)`, which the
+  second rule read for its "typical request" figure, has no remaining caller and was removed along
+  with its four tests — see that type's own documentation, "The median came back, then left
+  again," and `WaterfallWindow.opening(span:narrowest:)`'s own "Two rules before this one" for the
+  full account of all three rules in order. Verified the same way the arithmetic always has been
+  in this file: by test, against `WaterfallWindow.opening(span:narrowest:)` in isolation and
+  through `WaterfallViewModel.configureWindow(plotWidth:)` end to end. Not verified visually —
+  that the page now reads as opening on "about half" the traffic to someone looking at it is for
+  the owner to confirm.

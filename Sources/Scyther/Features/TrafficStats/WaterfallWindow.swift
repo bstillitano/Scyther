@@ -27,7 +27,7 @@ import Foundation
 /// - ``init(span:narrowest:)``
 /// - ``init(start:duration:span:narrowest:)``
 /// - ``narrowestDuration(shortestMeasured:span:plotWidth:)``
-/// - ``opening(span:narrowest:medianMeasured:plotWidth:)``
+/// - ``opening(span:narrowest:)``
 ///
 /// ### Moving and Zooming
 /// - ``zoomed(by:)``
@@ -121,9 +121,9 @@ struct WaterfallWindow: Equatable, Sendable {
     /// a subset of it: a green box, not a minimap. An overlay that marks *everything* marks
     /// nothing, and is worse than no overlay at all, since it hides the bars underneath it. A log
     /// long enough to need the overlay is also, by construction, long enough that
-    /// ``opening(span:narrowest:medianMeasured:plotWidth:)`` does not open it at the whole span —
-    /// see that function's own documentation — so the overlay this guards is visible from the
-    /// first frame on exactly the logs it exists for.
+    /// ``opening(span:narrowest:)`` does not open it at the whole span — see that function's own
+    /// documentation — so the overlay this guards is visible from the first frame on exactly the
+    /// logs it exists for.
     ///
     /// `false` at the full span, `true` the instant a drag or a zoom narrows the window at all —
     /// and `false`, not `true`, for the degenerate `span == duration == 0` window an empty series
@@ -162,54 +162,61 @@ struct WaterfallWindow: Equatable, Sendable {
     /// The window the page opens with, before any zoom or drag.
     ///
     /// Anchored on the most recent traffic — `end == span` — rather than at the origin, and sized
-    /// so the *median* measured request renders at ``targetShortestBarWidth``, the same "24pt is
-    /// legible" idea ``narrowestDuration(shortestMeasured:span:plotWidth:)`` already applies to the
-    /// shortest reading. This replaced opening at the whole span unconditionally, which the design
-    /// spec's own "Default" section argued for at length and the owner had signed off on — until it
-    /// was driven against a real, hour-long capture with two bursts of traffic an hour apart. At
-    /// that span every bar, a 43ms request and a 1.06s one alike, floored to the same three points,
-    /// and the strip read as two hairlines either side of an hour of nothing: honest, in the sense
-    /// the old rule intended, and useless. See `docs/superpowers/specs/2026-09-07-waterfall-window-design.md`'s
-    /// own "Default" section, and its "Amendments", for the full account of why the original rule
-    /// was tried, shipped, and then reversed.
+    /// at half the series' span, clamped into `narrowest...span` exactly as every other window on
+    /// this type is: never forced tighter than the zoom floor, and never wider than the log
+    /// actually is. A log whose narrowest limit already sits above half its span opens at that
+    /// limit instead of at half; a log whose narrowest limit is below half its span, and whose
+    /// span is not itself narrower than that limit, opens at the plain half. The whole-span case
+    /// still exists, but only where it always has — a log too short to zoom at all, where
+    /// `narrowest == span` and every window this type can produce collapses to the one value.
     ///
-    /// The median, not the shortest, is what the *width* is sized against: the shortest reading is
-    /// already spoken for as the zoom *floor* (`narrowest`), and reusing it here too would size the
-    /// window's opening width for the fastest call in the log rather than for the request a reader
-    /// opening the page is actually likely to be looking at. Reusing
-    /// ``narrowestDuration(shortestMeasured:span:plotWidth:)``'s own formula against the median
-    /// instead is deliberate, not a coincidence of a similar name: "solve `d / w * p = target` for
-    /// `w`" is the same arithmetic regardless of which single duration `d` a caller wants legible,
-    /// and reusing it here is what keeps the two readings from drifting into two slightly different
-    /// rules for what is conceptually the same question.
+    /// ## Two rules before this one
     ///
-    /// The result is clamped into `narrowest...span` — never forced tighter than the zoom floor,
-    /// and never wider than the log actually is. The upper clamp is what keeps a short log working
-    /// exactly as it always did: once the demanded width already reaches or exceeds `span`, this
-    /// opens at the whole span, `start == 0`, identical to what the old, unconditional rule
-    /// produced for every log short enough that the old rule was ever a reasonable default for in
-    /// the first place. This is a strict narrowing of that rule, not a replacement of it in the one
-    /// case that made it safe to begin with.
+    /// This is the *third* rule this function has computed, and both earlier ones are kept here
+    /// rather than deleted, because each was a deliberate, reviewed decision the next one
+    /// overturned only once it was driven against real traffic — see
+    /// `docs/superpowers/specs/2026-09-07-waterfall-window-design.md`'s own "Default" section and
+    /// its "Amendments" for the fuller account of both reversals.
+    ///
+    /// **First: the whole span, unconditionally.** "Opens honest, zoom is the escape" — the
+    /// original design's own phrase for it. Driven against a real, hour-long capture with two
+    /// short bursts of traffic an hour apart, every bar in the log floored to the same three
+    /// points regardless of whether the request took 43ms or 1.06s, and the strip showed no
+    /// window overlay at all, because a window that wide is never `marksASubset`. The owner
+    /// reported this as the pinch appearing to do nothing and no window ever appearing — three
+    /// symptoms of the one cause.
+    ///
+    /// **Second: anchored on the newest traffic, sized so the *median* measured request rendered
+    /// at ``targetShortestBarWidth`` — the same "24pt is legible" idea
+    /// ``narrowestDuration(shortestMeasured:span:plotWidth:)`` already applies to the shortest
+    /// reading, reused against the median because the shortest reading was already spoken for as
+    /// the zoom floor.** This fixed the hour-long capture — the strip's overlay was visible from
+    /// the first frame on any log that needed it — but it also opened *too tight* on an ordinary
+    /// log: a 19-request session opened showing `1 of 19`, because a single median-legible request
+    /// is a narrow window indeed once nothing else forces it wider. Median-legible and
+    /// *comfortable to open on* turned out to be two different targets, and the owner asked for
+    /// the second one directly instead: a page that opens on roughly half its traffic, not on
+    /// however few requests one happens to be legible.
+    ///
+    /// **Third, and current: a flat half the span.** No measurement of any single request's
+    /// duration enters this rule at all any more — `WaterfallDurations.median(of:)`, the function
+    /// the second rule read for its own "typical request" figure, has no remaining caller and was
+    /// removed alongside this change; see that type's own documentation. Simpler, and it happens
+    /// to keep the one thing
+    /// the second rule got right: half of an hour-long span is still comfortably narrower than the
+    /// whole thing, so the hour-long capture's own defect — every bar flooring to the same three
+    /// points — does not return, without depending on where the log's median duration happens to
+    /// fall to say so.
     ///
     /// - Parameters:
     ///   - span: The series' span.
-    ///   - narrowest: The zoom floor, from ``narrowestDuration(shortestMeasured:span:plotWidth:)``
-    ///     against the *shortest* measured duration. The window this returns can never be forced
-    ///     narrower than that, regardless of what the median alone would demand.
-    ///   - medianMeasured: The median finished, non-zero duration in the series, or `nil` when
-    ///     nothing finished — the same shape
-    ///     ``narrowestDuration(shortestMeasured:span:plotWidth:)`` takes for the shortest reading,
-    ///     excluded from the sample for the same reason: a pending or zero-length request has no
-    ///     measured length to be legible at. `nil` opens at the whole span, the same fallback
-    ///     `narrowestDuration` itself uses when there is nothing to size against.
-    ///   - plotWidth: The width the detail list gives a bar, in points.
+    ///   - narrowest: The zoom floor, from ``narrowestDuration(shortestMeasured:span:plotWidth:)``.
+    ///     The window this returns can never be forced narrower than that, regardless of what half
+    ///     the span alone would demand.
     /// - Returns: A window anchored at `span`, whose left edge sits at `span - duration`, clamped
     ///   into the series exactly as every other window on this type is.
-    static func opening(span: TimeInterval,
-                        narrowest: TimeInterval,
-                        medianMeasured: TimeInterval?,
-                        plotWidth: CGFloat) -> WaterfallWindow {
-        let demanded = narrowestDuration(shortestMeasured: medianMeasured, span: span, plotWidth: plotWidth)
+    static func opening(span: TimeInterval, narrowest: TimeInterval) -> WaterfallWindow {
+        let demanded = span / 2
         let duration = min(max(demanded, narrowest), max(0, span))
         return WaterfallWindow(start: span - duration, duration: duration, span: span, narrowest: narrowest)
     }

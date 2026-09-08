@@ -25,17 +25,29 @@ import Foundation
 /// fields, and the nearest-rank `percentile(_:of:)` function they were the only production
 /// callers of, were dead weight from the rename onward and were removed.
 ///
-/// The median came back once something needed it again. The page used to open at the whole span
-/// unconditionally; on a real, hour-long log with traffic clustered into two short bursts, that
-/// read as two hairlines either side of an hour of nothing, with every bar floored to the same
-/// three points whether the request took 43ms or 1.06s. ``WaterfallWindow/opening(span:narrowest:medianMeasured:plotWidth:)``
-/// is the fix the owner asked for: the page now opens anchored on the newest traffic, sized so a
-/// *typical* request renders legibly. "Typical" is the median, not the shortest — the shortest
-/// reading already drives the zoom *floor*, and reusing it for the opening width too would size
-/// the window for the fastest call in the log rather than the one a reader is actually likely to
-/// be looking at. ``median(of:)`` supplies that second reading. What survives from before either
-/// figure existed is still the one sample both are taken from: the sorted, finished durations in
-/// a series.
+/// ## The median came back, then left again
+///
+/// The page used to open at the whole span unconditionally; on a real, hour-long log with traffic
+/// clustered into two short bursts, that read as two hairlines either side of an hour of nothing,
+/// with every bar floored to the same three points whether the request took 43ms or 1.06s. A
+/// `median(of:)` function briefly lived here to fix that: `WaterfallWindow.opening(span:narrowest:medianMeasured:plotWidth:)`
+/// opened the page anchored on the newest traffic, sized so a *typical* request rendered legibly,
+/// where "typical" meant the median rather than the shortest reading — the shortest was already
+/// spoken for as the zoom floor, and reusing it for the opening width too would have sized the
+/// window for the fastest call in the log rather than the one a reader was actually likely to be
+/// looking at.
+///
+/// That fixed the hour-long capture, but it also opened *too tight* on an ordinary log — a
+/// 19-request session opened on `1 of 19`, because a window sized to make one median request
+/// legible is a narrow window by construction, whatever else happens to fall inside it. The owner
+/// asked for a page that opens on roughly half its traffic instead, and
+/// ``WaterfallWindow/opening(span:narrowest:)`` now computes exactly that: half the span, with no
+/// single request's duration entering the arithmetic at all. `median(of:)` has no remaining
+/// caller under that rule and was removed a second time — see that function's own prior
+/// documentation, and `WaterfallWindow.opening(span:narrowest:)`'s own "Two rules before this one"
+/// for the fuller account of both the rule this replaced and the one before that. What survives
+/// from every version of this file is still the one sample every rule has been taken from: the
+/// sorted, finished durations in a series.
 ///
 /// A case-less enum rather than the struct this used to be: with no scale left to hold, there is
 /// nothing to construct an instance of. Every member here is a pure function of the series or the
@@ -46,9 +58,9 @@ enum WaterfallDurations {
     ///
     /// Pending bars are excluded and that exclusion is load-bearing: a request still in flight is
     /// drawn to the end of the series, so its "duration" measures how long the session has been
-    /// running rather than how long a round trip took. Letting one into the sample would drag the
-    /// median toward the span. Zero-length bars go too — they are not measurements, and a caller
-    /// that divided by one would divide by zero.
+    /// running rather than how long a round trip took. Letting one into the sample would drag any
+    /// statistic taken from it toward the span. Zero-length bars go too — they are not
+    /// measurements, and a caller that divided by one would divide by zero.
     ///
     /// - Parameter series: The laid-out log.
     /// - Returns: The measured durations in seconds, ascending.
@@ -60,27 +72,11 @@ enum WaterfallDurations {
             .sorted()
     }
 
-    /// The nearest-rank median of an ascending sample, or `nil` when it is empty.
-    ///
-    /// `WaterfallWindow.opening(span:narrowest:medianMeasured:plotWidth:)` reads this to size the
-    /// window the page opens with. `TrafficStatistics` computes a nearest-rank median too,
-    /// independently, for its own session-summary figures — that duplication was accepted rather
-    /// than resolved by sharing one function: `TrafficStatistics`'s `percentile(_:of:)` is
-    /// `private` to a type answering a different question (aggregate statistics for a whole
-    /// session, not one window's geometry), and extracting a third, shared type for this single
-    /// caller was not worth the coupling. What this function must not do is drift from the rule
-    /// itself while the two stay separate: both pick the sample at
-    /// `⌈0.5 × count⌉` of an ascending sample — the same nudge-before-rounding-up shape
-    /// `TrafficStatistics.percentile(_:of:)` uses and documents, for the same reason: `0.5 * 19`
-    /// can land a fraction below or above `9.5` in binary depending on `count`, and a naive round
-    /// could silently pick the wrong one of the two middle values.
-    ///
-    /// - Parameter durations: An ascending sample, such as ``measuredDurations(of:)``'s result.
-    /// - Returns: The nearest-rank median, or `nil` for an empty sample.
-    static func median(of durations: [Double]) -> Double? {
-        guard !durations.isEmpty else { return nil }
-        let position = (0.5 * Double(durations.count) * 1e9).rounded() / 1e9
-        let rank = min(durations.count, max(1, Int(position.rounded(.up))))
-        return durations[rank - 1]
-    }
+    // `median(of:)` used to live here, computing the nearest-rank median of an ascending sample
+    // for `WaterfallWindow.opening(span:narrowest:medianMeasured:plotWidth:)` to size the page's
+    // opening window against. That rule was replaced by a flat half-span default with no
+    // per-request duration in it at all, which left this function with no caller — see this
+    // type's own documentation, "The median came back, then left again," and
+    // `WaterfallWindow.opening(span:narrowest:)`'s own history for the full account. Removed with
+    // its four tests in `WaterfallDurationsTests` rather than left as untested, uncalled code.
 }

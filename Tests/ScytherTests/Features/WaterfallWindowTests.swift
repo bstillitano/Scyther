@@ -110,64 +110,85 @@ final class WaterfallWindowTests: XCTestCase {
     }
 
     // MARK: - The opening window
+    //
+    // Third rule pinned here, not the first two. `opening(span:narrowest:medianMeasured:plotWidth:)`
+    // used to size the window so the *median* measured request rendered legibly, which is why
+    // this section's tests used to pass a `medianMeasured` figure and check the arithmetic that
+    // derived from it. That rule opened too tight in ordinary use — a 19-request log opened on
+    // `1 of 19` — and was replaced with a flat half-span default that takes no per-request
+    // duration as input at all; see `WaterfallWindow.opening(span:narrowest:)`'s own "Two rules
+    // before this one" for the full account of both this rule and the one before it. The tests
+    // below are the same tests, updated for the new signature and rule rather than deleted:
+    // `testOpeningOnAShortLogIsTheWholeSpan` and `testOpeningWithOneMeasurementIsTheWholeSpan`
+    // still pin the same whole-span degenerate case, now reached because the narrowest limit
+    // itself equals the span rather than because a median-demanded width happened to exceed it.
+    // `testOpeningWithNothingMeasuredIsTheWholeSpan` collapsed into
+    // `testOpeningWithOneMeasurementIsTheWholeSpan` once both reduced to the identical
+    // `narrowest == span` call this rule no longer distinguishes by "what was measured" — this
+    // function does not see measurements at all any more, only the `narrowest` its caller already
+    // derived from them.
 
-    /// A log short enough that the median's demanded width already reaches the whole span opens
-    /// at the whole span — the old, unconditional default, still correct for exactly the logs it
-    /// was always safe for.
-    func testOpeningOnAShortLogIsTheWholeSpan() {
-        // A 40ms median drawn at 24pt across a 240pt plot demands a 0.4s window — wider than
-        // this 0.3s span — so the demand is clamped down to the span instead.
-        let window = WaterfallWindow.opening(span: 0.3, narrowest: 0.05,
-                                             medianMeasured: 0.04, plotWidth: 240)
-        XCTAssertEqual(window.start, 0, accuracy: 0.0001)
-        XCTAssertEqual(window.duration, 0.3, accuracy: 0.0001)
+    /// A log whose narrowest limit already sits above half its span opens at that limit, not at
+    /// the plain half — the case the owner's own wording named directly: "a log short enough that
+    /// half its span is below the narrowest limit simply gets the narrowest."
+    func testOpeningBelowTheNarrowestLimitOpensAtTheNarrowestLimit() {
+        // Half of a 10s span is 5s, short of the 8s floor, so the floor wins.
+        let window = WaterfallWindow.opening(span: 10, narrowest: 8)
+        XCTAssertEqual(window.duration, 8, accuracy: 0.0001)
+        XCTAssertEqual(window.start, 2, accuracy: 0.0001)
+        XCTAssertEqual(window.end, 10, accuracy: 0.0001, "anchored on the newest traffic")
     }
 
-    /// The case the owner reported: a long log opens anchored on the newest traffic, sized so
-    /// the median request is legible, rather than at the whole span with every bar floored to
-    /// the same three points.
-    func testOpeningOnALongLogAnchorsOnTheNewestTrafficSizedForTheMedian() {
-        // A 0.2s median drawn at 24pt across a 240pt plot demands a 2s window — comfortably
-        // inside the 3,522s span an hour-long capture actually measured.
-        let window = WaterfallWindow.opening(span: 3_522, narrowest: 0.5,
-                                             medianMeasured: 0.2, plotWidth: 240)
-        XCTAssertEqual(window.duration, 2, accuracy: 0.0001)
+    /// The ordinary case: half the span, anchored on the newest traffic, with room either side of
+    /// both limits so neither clamp applies.
+    func testOpeningIsHalfTheSpan() {
+        let window = WaterfallWindow.opening(span: 60, narrowest: 1)
+        XCTAssertEqual(window.duration, 30, accuracy: 0.0001)
+        XCTAssertEqual(window.start, 30, accuracy: 0.0001)
+        XCTAssertEqual(window.end, 60, accuracy: 0.0001, "anchored on the newest traffic")
+    }
+
+    /// The case the owner originally reported, re-pinned against the current rule: a long log —
+    /// modelled on the hour-long capture with two bursts of traffic an hour apart — opens anchored
+    /// on the newest traffic and as a genuine subset, rather than at the whole span with every bar
+    /// floored to the same three points.
+    func testOpeningOnALongLogAnchorsOnTheNewestTrafficAtHalfTheSpan() {
+        let window = WaterfallWindow.opening(span: 3_522, narrowest: 0.5)
+        XCTAssertEqual(window.duration, 1_761, accuracy: 0.0001, "half of 3,522")
         XCTAssertEqual(window.end, 3_522, accuracy: 0.0001, "anchored on the newest traffic")
-        XCTAssertEqual(window.start, 3_520, accuracy: 0.0001)
+        XCTAssertEqual(window.start, 1_761, accuracy: 0.0001)
         XCTAssertTrue(window.marksASubset, "so the strip's overlay draws the moment the page opens")
     }
 
-    /// The demanded width is never allowed to undercut the zoom floor, even on a log where the
-    /// median happens to be smaller than what the floor alone would already demand.
-    func testOpeningNeverGoesNarrowerThanTheZoomFloor() {
-        let window = WaterfallWindow.opening(span: 60, narrowest: 5, medianMeasured: 0.01, plotWidth: 240)
-        XCTAssertEqual(window.duration, 5, accuracy: 0.0001)
+    /// A log short enough that half its own span still sits inside the narrowest limit opens at
+    /// the whole span — the same degenerate case a log too short to zoom at all always produces,
+    /// whatever rule computes the demanded width.
+    func testOpeningOnAShortLogIsTheWholeSpan() {
+        // Half of 0.3s is 0.15s, short of the 0.2s floor, so the floor wins and happens to equal
+        // the whole span exactly.
+        let window = WaterfallWindow.opening(span: 0.2, narrowest: 0.2)
+        XCTAssertEqual(window.start, 0, accuracy: 0.0001)
+        XCTAssertEqual(window.duration, 0.2, accuracy: 0.0001)
     }
 
-    /// A single measurement is both the shortest and the median reading, so the demanded width
-    /// and the span it is clamped against are the same number: the window opens at the whole
-    /// span, and `canZoom` is already `false` for the same underlying reason.
+    /// A single measurement makes the narrowest limit equal to the span outright — see
+    /// `narrowestDuration(shortestMeasured:span:plotWidth:)`'s own tests for why — so the window
+    /// opens at the whole span and `canZoom` is already `false` for the same underlying reason.
+    /// This is also what a log with nothing measured at all produces, since
+    /// `narrowestDuration(shortestMeasured:span:plotWidth:)` falls back to the same `narrowest ==
+    /// span` for both: this function no longer distinguishes the two, because it no longer reads
+    /// measurements of any kind, only whatever `narrowest` its caller already derived from them.
     func testOpeningWithOneMeasurementIsTheWholeSpan() {
-        let window = WaterfallWindow.opening(span: 0.12, narrowest: 0.12,
-                                             medianMeasured: 0.12, plotWidth: 240)
+        let window = WaterfallWindow.opening(span: 0.12, narrowest: 0.12)
         XCTAssertEqual(window.start, 0, accuracy: 0.0001)
         XCTAssertEqual(window.duration, 0.12, accuracy: 0.0001)
         XCTAssertFalse(window.canZoom)
     }
 
-    /// Nothing has finished — every request is still pending — so there is no median to size the
-    /// window against, and it opens at the whole span, matching `narrowestDuration`'s own
-    /// nothing-measured fallback.
-    func testOpeningWithNothingMeasuredIsTheWholeSpan() {
-        let window = WaterfallWindow.opening(span: 45, narrowest: 45, medianMeasured: nil, plotWidth: 240)
-        XCTAssertEqual(window.start, 0, accuracy: 0.0001)
-        XCTAssertEqual(window.duration, 45, accuracy: 0.0001)
-    }
-
     /// An empty series opens at the same degenerate, non-dividing-by-zero window every other
     /// empty-series case on this type produces.
     func testOpeningAnEmptySeriesIsTheEmptyWindow() {
-        let window = WaterfallWindow.opening(span: 0, narrowest: 0, medianMeasured: nil, plotWidth: 240)
+        let window = WaterfallWindow.opening(span: 0, narrowest: 0)
         XCTAssertEqual(window.start, 0)
         XCTAssertEqual(window.duration, 0)
         XCTAssertFalse(window.canZoom)

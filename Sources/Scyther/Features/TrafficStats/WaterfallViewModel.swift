@@ -91,15 +91,6 @@ final class WaterfallViewModel: ViewModel {
         /// constantly.
         let shortestMeasured: Double?
 
-        /// The median finished, non-zero duration in the series, or `nil` when nothing finished.
-        ///
-        /// Cached alongside ``shortestMeasured`` for the same reason and read by the same caller:
-        /// ``WaterfallWindow/opening(span:narrowest:medianMeasured:plotWidth:)`` sizes the window
-        /// the page opens with against this, not against ``shortestMeasured`` — see that
-        /// function's own documentation for why the shortest reading, already spoken for as the
-        /// zoom floor, is the wrong duration to size an *opening* width against.
-        let medianMeasured: Double?
-
         /// Whether the rows hold more than one distinct, non-empty host.
         ///
         /// Cached with the rows for the same reason ``shortestMeasured`` is: the detail list reads
@@ -113,7 +104,7 @@ final class WaterfallViewModel: ViewModel {
 
         /// Nothing laid out.
         static let empty = Layout(series: .empty, rows: [], count: 0, total: 0,
-                                  shortestMeasured: nil, medianMeasured: nil, showsHost: false)
+                                  shortestMeasured: nil, showsHost: false)
     }
 
     /// The laid-out log the page is drawing.
@@ -293,7 +284,7 @@ final class WaterfallViewModel: ViewModel {
     ) -> Layout {
         guard !requests.isEmpty else {
             return Layout(series: .empty, rows: [], count: 0, total: totalCount,
-                          shortestMeasured: nil, medianMeasured: nil, showsHost: false)
+                          shortestMeasured: nil, showsHost: false)
         }
         let series = WaterfallSeries.build(from: requests, limit: requests.count, now: now)
         var byHash = [String: HTTPRequest](minimumCapacity: requests.count)
@@ -306,7 +297,6 @@ final class WaterfallViewModel: ViewModel {
         }
         let durations = WaterfallDurations.measuredDurations(of: series)
         let shortestMeasured = durations.filter { $0 > 0 }.min()
-        let medianMeasured = WaterfallDurations.median(of: durations)
         let distinctHosts = Set(series.entries.map(\.shortHost).filter { !$0.isEmpty })
         return Layout(
             series: series,
@@ -314,7 +304,6 @@ final class WaterfallViewModel: ViewModel {
             count: requests.count,
             total: totalCount,
             shortestMeasured: shortestMeasured,
-            medianMeasured: medianMeasured,
             showsHost: distinctHosts.count > 1
         )
     }
@@ -371,7 +360,7 @@ final class WaterfallViewModel: ViewModel {
     /// one earns a row saying so, because a blank list after a drag reads as a bug.
     var isWindowEmpty: Bool { !layout.rows.isEmpty && visibleRows.isEmpty }
 
-    /// Whether ``window`` is still following ``WaterfallWindow/opening(span:narrowest:medianMeasured:plotWidth:)``
+    /// Whether ``window`` is still following ``WaterfallWindow/opening(span:narrowest:)``
     /// rather than a position or size the developer — or a tap on the Traffic Stats strip — chose.
     ///
     /// `true` from construction until the first call to ``zoom(by:)``, ``scrub(to:)`` or
@@ -401,8 +390,8 @@ final class WaterfallViewModel: ViewModel {
     /// whether the window is still following the default:
     ///
     /// - **Still following it** (``windowFollowsDefault`` is `true`): the window is rebuilt from
-    ///   scratch via ``WaterfallWindow/opening(span:narrowest:medianMeasured:plotWidth:)`` against
-    ///   the current layout and geometry. This is what lets the placeholder-width window `init`
+    ///   scratch via ``WaterfallWindow/opening(span:narrowest:)`` against the current layout and
+    ///   geometry. This is what lets the placeholder-width window `init`
     ///   opens with self-correct once the real plot width arrives, and what lets an untouched page
     ///   keep tracking new traffic as it streams in.
     /// - **Already held** (`false`): the centre is kept wherever the new limits leave room to,
@@ -427,10 +416,7 @@ final class WaterfallViewModel: ViewModel {
             plotWidth: self.plotWidth
         )
         guard !windowFollowsDefault else {
-            window = WaterfallWindow.opening(span: span,
-                                             narrowest: narrowest,
-                                             medianMeasured: layout.medianMeasured,
-                                             plotWidth: self.plotWidth)
+            window = WaterfallWindow.opening(span: span, narrowest: narrowest)
             return
         }
         let candidate = WaterfallWindow(start: 0, duration: window.duration, span: span,
@@ -457,9 +443,8 @@ final class WaterfallViewModel: ViewModel {
     }
 
     /// Returns the window to the page's own default: anchored on the most recent traffic, at
-    /// ``WaterfallWindow/opening(span:narrowest:medianMeasured:plotWidth:)`` — the same window the
-    /// page opens with, and the same window an untouched page keeps tracking as new traffic
-    /// streams in.
+    /// ``WaterfallWindow/opening(span:narrowest:)`` — the same window the page opens with, and
+    /// the same window an untouched page keeps tracking as new traffic streams in.
     ///
     /// This is the way out ``WaterfallView``'s gap empty state offers. Zooming or scrubbing into a
     /// stretch of the log with nothing in it leaves the developer looking at a blank list with no

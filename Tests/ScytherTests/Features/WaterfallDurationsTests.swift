@@ -8,13 +8,14 @@ import Foundation
 import XCTest
 
 /// Covers the statistics ``WaterfallDurations`` still owns once the points-per-second scale it
-/// used to compute was retired: which durations in a series are legitimate measurements, and the
-/// nearest-rank arithmetic that reads a percentile out of them.
+/// used to compute was retired: which durations in a series are legitimate measurements.
 ///
 /// This file used to be `WaterfallTimeScaleTests` and pinned the whole points-per-second rule —
 /// the median-at-24pt target, the tenth-percentile tail floor, the 50,000pt ceiling and the ruler's
 /// tick spacing. None of that exists to pin any more: ``WaterfallWindow`` computes its own scale
-/// for whatever slice of the log is visible, and ``WaterfallWindowTests`` covers it.
+/// for whatever slice of the log is visible, and ``WaterfallWindowTests`` covers it. A nearest-rank
+/// median lived here too for a while, `median(of:)`, and is gone the same way — see the removal
+/// comment in this file's own "The median" section for why.
 final class WaterfallDurationsTests: XCTestCase {
 
     /// Builds a bar with the given shape.
@@ -67,32 +68,20 @@ final class WaterfallDurationsTests: XCTestCase {
     // selection (the lower of the two middles at an even count; the first of ten at the tenth
     // percentile) that `WaterfallDurations.percentile(_:of:)` computed, and
     // `testPercentileOfAnEmptySampleIsNil` alongside it. Both drove a function this file's own
-    // type doc now explains was dead from the rename onward, and removed. `median(of:)` below is
-    // its replacement — narrower on purpose, since nothing in this file needs an arbitrary
-    // percentile any more, only the one reading `WaterfallWindow.opening(...)` reads.
+    // type doc now explains was dead from the rename onward, and removed. `median(of:)` was its
+    // replacement — narrower on purpose, since nothing in this file needed an arbitrary
+    // percentile any more, only the one reading `WaterfallWindow.opening(...)` read.
 
     // MARK: - The median
-
-    /// The nearest-rank rule at an odd count: the middle value, unambiguously.
-    func testMedianOfAnOddCountIsTheMiddleValue() {
-        XCTAssertEqual(WaterfallDurations.median(of: [0.1, 0.2, 0.5]), 0.2)
-    }
-
-    /// The nearest-rank rule at an even count picks the *lower* of the two middle values, the
-    /// same choice `TrafficStatistics.percentile(_:of:)` makes at the 50th percentile of an even
-    /// sample — this is not interpolation, so the answer is always a duration a request actually
-    /// took.
-    func testMedianOfAnEvenCountIsTheLowerOfTheTwoMiddleValues() {
-        XCTAssertEqual(WaterfallDurations.median(of: [0.1, 0.2, 0.5, 0.9]), 0.2)
-    }
-
-    /// One measurement is its own median.
-    func testMedianOfOneValueIsThatValue() {
-        XCTAssertEqual(WaterfallDurations.median(of: [0.4]), 0.4)
-    }
-
-    /// An empty sample names no median, the same way it names no shortest reading.
-    func testMedianOfAnEmptySampleIsNil() {
-        XCTAssertNil(WaterfallDurations.median(of: []))
-    }
+    //
+    // `median(of:)` and its four tests — `testMedianOfAnOddCountIsTheMiddleValue`,
+    // `testMedianOfAnEvenCountIsTheLowerOfTheTwoMiddleValues`, `testMedianOfOneValueIsThatValue`,
+    // `testMedianOfAnEmptySampleIsNil` — used to live here, pinning the nearest-rank rule
+    // `WaterfallWindow.opening(span:narrowest:medianMeasured:plotWidth:)` read to size the page's
+    // opening window against a "typical" request. That rule was replaced by a flat half-span
+    // default with no per-request duration in it at all — see `WaterfallWindow.opening(span:narrowest:)`'s
+    // own "Two rules before this one" — which left `median(of:)` with no caller anywhere in
+    // production. Removed alongside it rather than kept as tested, uncalled code; see
+    // `WaterfallDurations`' own type documentation, "The median came back, then left again," for
+    // the full account.
 }

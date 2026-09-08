@@ -329,14 +329,14 @@ final class WaterfallViewModelTests: XCTestCase {
         XCTAssertFalse(model.isWindowEmpty)
     }
 
-    /// A log short enough that the opening rule's demanded width already reaches the span opens
-    /// at the whole span — see `WaterfallWindow.opening(...)`'s own tests for the rule in
-    /// isolation; this pins the same behaviour end to end through `configureWindow(plotWidth:)`.
-    /// All four requests here share the same 50ms duration and are clustered within a tenth of a
-    /// second of each other, so the demanded width (0.5s at 24pt/240pt, sized for the shared
-    /// median) exceeds the 0.11s span outright and the demand is clamped back down to it — the
-    /// whole-span branch, not the anchored one; see `testALongLogOpensAnchoredOnTheNewestTraffic`
-    /// for that one.
+    /// A log short enough that the zoom floor already equals the whole span opens at the whole
+    /// span — see `WaterfallWindow.opening(...)`'s own tests for the rule in isolation; this pins
+    /// the same behaviour end to end through `configureWindow(plotWidth:)`. All four requests here
+    /// share the same 50ms duration and are clustered within a tenth of a second of each other, so
+    /// the zoom floor (0.5s, at 24pt/240pt against that shared duration) exceeds the 0.11s span
+    /// outright, `narrowestDuration` clamps it down to the span, and half of *that* span still
+    /// clamps back up to it — the whole-span branch, not the anchored one; see
+    /// `testALongLogOpensAnchoredOnTheNewestTraffic` for that one.
     func testAShortLogOpensShowingTheWholeSpan() async {
         let model = makeModel(starts: [0, 0.02, 0.04, 0.06])
         await model.recompute()
@@ -373,9 +373,10 @@ final class WaterfallViewModelTests: XCTestCase {
         }
     }
 
-    /// One request: the median and the shortest reading are the same single measurement, so the
-    /// window opens at the whole span and cannot zoom, matching `testASingleRequestCannotZoom`
-    /// below.
+    /// One request: its own duration is the only measurement there is, so the zoom floor
+    /// `narrowestDuration` computes from it already equals the whole span, and half of that span
+    /// clamps straight back up to it — the window opens at the whole span and cannot zoom,
+    /// matching `testASingleRequestCannotZoom` below.
     func testASingleRequestOpensShowingTheWholeSpan() async {
         let model = makeModel(starts: [0])
         await model.recompute()
@@ -601,10 +602,11 @@ final class WaterfallViewModelTests: XCTestCase {
     /// log" with the cache-invalidation property this test exists to isolate.
     ///
     /// The second request lands 0.2s after the first rather than a full second: both share the
-    /// same 100ms duration, so the demanded width for either the shortest or the median reading
-    /// is 1s at this plot width — comfortably wider than the resulting 0.3s span either way — and
-    /// the held window is forced open to that whole span with margin either side of both entries,
-    /// rather than depending on an exact floating-point edge for the second one to fall inside it.
+    /// same 100ms duration, so the zoom floor `narrowestDuration` computes from the shortest
+    /// reading demands 1s at this plot width — comfortably wider than the resulting 0.3s span —
+    /// and the held window is forced open to that whole span with margin either side of both
+    /// entries, rather than depending on an exact floating-point edge for the second one to fall
+    /// inside it.
     func testVisibleRowsCacheInvalidatesWhenNewTrafficArrives() async {
         let viewModel = WaterfallViewModel(requests: [request(startedAt: origin)], totalCount: 1)
         await viewModel.recompute()
