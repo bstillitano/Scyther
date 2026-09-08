@@ -138,23 +138,30 @@ enum WaterfallChartStyle {
     /// around its three columns, in points, other than the label and duration columns themselves.
     ///
     /// Two 8pt gaps `WaterfallDetailRow`'s `HStack(spacing: 8)` puts between its three columns,
-    /// plus the 16pt leading and trailing insets a plain `List` gives every row: `2 * 8 + 16 + 16`.
-    /// Named so `WaterfallDetailRowMetrics` and ``WaterfallView`` add it up the same way rather
-    /// than each carrying their own copy of the arithmetic.
+    /// plus the 20pt leading and trailing margin an inset-grouped `List` reserves around a
+    /// section's content on a standard compact-width iPhone: `2 * 8 + 20 + 20`. Named so
+    /// `WaterfallDetailRowMetrics` and ``WaterfallView`` add it up the same way rather than each
+    /// carrying their own copy of the arithmetic.
     ///
-    /// - Note: Derived while ``WaterfallView``'s detail list was styled `.plain`, measured against
-    ///   a `GeometryReader` wrapping the whole list rather than one row. The list is now
-    ///   `.insetGrouped` — see that type's own `content`/`detail` documentation — and UIKit's
-    ///   inset-grouped style typically reserves a little more horizontal margin around a section's
-    ///   content than a plain list's row inset alone, on top of what this constant already
-    ///   subtracts. This was not re-measured against `.insetGrouped`'s actual margin, which nobody
-    ///   in this pipeline can do without a device to read the rendered row's own frame on: the risk
-    ///   is that the plot and duration columns are computed a few points wider than the row's true
-    ///   available width, not that the row breaks outright — `WaterfallDetailRow` already clips its
-    ///   bar with `.clipped()` and truncates its duration text, both guards this predates.
-    ///   Confirming the row's columns still land flush against `.insetGrouped`'s real margin, and
-    ///   correcting this constant if they do not, is on the owner.
-    static let detailRowInteriorChrome: CGFloat = 48
+    /// - Note: This was 48 (`2 * 8 + 16 + 16`) while ``WaterfallView``'s detail list was styled
+    ///   `.plain` — 16pt being a plain list's own row inset, measured against a `GeometryReader`
+    ///   wrapping the whole list rather than one row. The list is now `.insetGrouped`, and 20pt is
+    ///   the margin most commonly cited for an inset-grouped section's content on a standard
+    ///   compact-width iPhone, closely matching what Apple's own Settings app visibly uses — the
+    ///   best documented-adjacent figure available to substitute for the plain list's 16pt. It is
+    ///   still not a measurement: nobody in this
+    ///   pipeline has a device to read a rendered row's own frame on, that 20pt figure is not
+    ///   published as an API constant anywhere UIKit or SwiftUI expose, and it does not hold at
+    ///   every width class — an iPad or a wide Slide Over pane adapts inset-grouped's margin via
+    ///   the readable content guide instead of a fixed 20pt, which this constant does not account
+    ///   for at all. Chosen deliberately on the side that reserves *more* space than 16pt did
+    ///   rather than less: if 20pt undershoots the real margin, the plot and duration columns are
+    ///   computed a few points wider than the row's true available width, not narrower, and
+    ///   `WaterfallDetailRow` already clips its bar with `.clipped()` and truncates its duration
+    ///   text against exactly that possibility. Confirming the row's columns land flush against
+    ///   `.insetGrouped`'s real margin on every width class this toolkit supports, and correcting
+    ///   this constant if they do not, is on the owner.
+    static let detailRowInteriorChrome: CGFloat = 56
 
     /// The width a plain `List` row reserves for a `NavigationLink`'s disclosure chevron, in
     /// points, beyond ``detailRowInteriorChrome``'s trailing inset.

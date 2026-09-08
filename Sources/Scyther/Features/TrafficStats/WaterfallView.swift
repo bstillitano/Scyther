@@ -215,20 +215,13 @@ struct WaterfallView: View {
     /// and ``detail`` for why this `VStack` still exists at all — the caption sits outside the
     /// `List`, unaffected by any of this.
     ///
-    /// - Warning: This move puts ``strip`` inside a scrolling `List` for the first time, and
-    ///   ``strip`` still uses `.scrub`. ``WaterfallOverviewStrip/Interaction`` says outright that
-    ///   `.scrub`'s zero-distance drag is safe only when "the page keeps the strip outside its
-    ///   scrolling list" — precisely the condition this restructuring removes — and that inside a
-    ///   `List`, such a drag "would win arbitration against the list's own pan and steal every
-    ///   scroll that happened to start on the strip," which is exactly why the *other* `List`-hosted
-    ///   strip, `TrafficStatsView`'s, uses `.tap` instead. Switching this strip to `.tap` too would
-    ///   remove the continuous drag the whole page is built around — a change to the interaction
-    ///   itself, not to presentation, and well outside what this fix was scoped to touch — so
-    ///   `.scrub` was left as it was rather than downgraded unilaterally. The likely result is a
-    ///   scroll that starts anywhere over the strip, now flush against the top of the list, being
-    ///   captured as a scrub instead of reaching the `List`. See the fix report for the full
-    ///   account; this was reasoned from ``WaterfallOverviewStrip``'s own documentation, not
-    ///   confirmed on device.
+    /// - Note: This move puts ``strip`` inside a scrolling `List` for the first time.
+    ///   ``WaterfallOverviewStrip/Interaction/scrub(_:)`` was changed alongside this fix
+    ///   specifically to still be safe there — see that case's own documentation, and
+    ///   ``WaterfallOverviewStrip/scrubGesture(width:onScrub:)`` for the direction rule that makes
+    ///   it so. Nothing about that rule was confirmed against a real drag or a real scroll; only
+    ///   the geometry and the view model calls behind it are covered by tests. See the fix report
+    ///   for what was and was not verified.
     private var content: some View {
         VStack(spacing: 0) {
             detail
@@ -258,9 +251,9 @@ struct WaterfallView: View {
 
     /// The overview strip, carrying the current window and announcing it to VoiceOver.
     ///
-    /// - Warning: Still `.scrub`, now hosted inside ``detail``'s `List` for the first time — see
-    ///   ``content``'s own `- Warning` for why that is a live regression risk this fix did not
-    ///   resolve.
+    /// Still `.scrub` — now hosted inside ``detail``'s `List`, which is what
+    /// ``WaterfallOverviewStrip/Interaction/scrub(_:)`` was changed to tolerate as part of this
+    /// same fix. See ``content``'s own `- Note` and that case's own documentation.
     ///
     /// `.accessibilityValue` rather than baking the count into the label: the strip's label
     /// (``localized(_:)`` `"Traffic overview"`, set inside ``WaterfallOverviewStrip`` itself)

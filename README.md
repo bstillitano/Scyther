@@ -733,7 +733,9 @@ sliver or hands the reader a plot thousands of points wide to pan by hand.
 The page is one inset-grouped list: a standalone minimap section — the colour legend and the
 strip, together — sits above a detail section holding the rows, rather than the strip sitting
 outside the list as a separate control. Dragging the strip moves the window anywhere in the log in
-a single gesture — the strip only ever moves the window, it never opens a request. Underneath it,
+a single gesture, so long as the drag reads as clearly horizontal — a drag that reads as vertical
+scrolls the list instead, so a scroll that happens to start over the strip still reaches it — the
+strip only ever moves the window, it never opens a request. Underneath it,
 the **detail section** holds only the requests the window currently contains, each a tappable row
 labelled with its duration and coloured by outcome, running oldest first so time reads downward.
 Dragging or zooming into a stretch of the log with nothing in it shows an empty state naming the
