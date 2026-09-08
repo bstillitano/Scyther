@@ -5,7 +5,6 @@
 //  Created by Brandon Stillitano on 5/9/2026.
 //
 
-import Charts
 import SwiftUI
 
 /// What the captured traffic adds up to: what is slow, what is failing, and what overlapped.
@@ -33,12 +32,21 @@ struct TrafficStatsView: View {
     /// The screen's own view model.
     @StateObject private var viewModel: TrafficStatsViewModel
 
-    /// The height of one bar's row, scaled against the reader's text size.
+    /// The Waterfall section's own row label column, scaled against the reader's text size,
+    /// before ``WaterfallDetailRowMetrics`` decides whether the row still has room to draw it at
+    /// that width.
     ///
-    /// Held here rather than in the view model because `@ScaledMetric` needs a view's environment.
-    /// The chart's own axis labels grow with Dynamic Type, so a chart sized from the unscaled
-    /// figure clips them.
-    @ScaledMetric(relativeTo: .caption) private var waterfallRowHeight: CGFloat = WaterfallChartStyle.rowHeight
+    /// The same `@ScaledMetric` ``WaterfallView`` declares for its own, much longer, detail list —
+    /// see that type's own documentation for why the value is hoisted to the parent rather than
+    /// left inside ``WaterfallDetailRow`` itself, and why that reasoning applies here identically:
+    /// ``rowLayout(in:)`` needs the exact width ``WaterfallDetailRow`` draws its column at, and a
+    /// `@ScaledMetric` resolves from the environment, so declaring it again here reads the same
+    /// value ``WaterfallView``'s own property would, not a second, independently-drifting one.
+    @ScaledMetric(relativeTo: .caption) private var scaledLabelWidth: CGFloat = WaterfallChartStyle.detailLabelWidth
+
+    /// The Waterfall section's own row duration column, scaled the same way and for the same
+    /// reason ``scaledLabelWidth`` is. See ``WaterfallChartStyle/detailDurationWidth``.
+    @ScaledMetric(relativeTo: .caption) private var scaledDurationWidth: CGFloat = WaterfallChartStyle.detailDurationWidth
 
     /// Creates the screen.
     ///
@@ -75,17 +83,25 @@ struct TrafficStatsView: View {
     private var logRevision: [Int] { [logs.requests.count, logs.totalRequestCount] }
 
     /// The figures, once there is traffic to describe.
+    ///
+    /// Wrapped in a `GeometryReader` now, unlike every other section on this screen, purely so
+    /// ``waterfallSection(rowLayout:)`` can hand ``WaterfallDetailRow`` the same pre-computed
+    /// column widths ``WaterfallView`` does — see ``rowLayout(in:)``. No pinch, no scrub, nothing
+    /// else on this screen needs the measured width, so nothing else changes shape for it.
     private var statistics: some View {
-        List {
-            summarySection
-            if !viewModel.waterfall.entries.isEmpty {
-                waterfallSection
-            }
-            if !viewModel.statistics.endpoints.isEmpty {
-                endpointSection
-            }
-            if !viewModel.statistics.hosts.isEmpty {
-                hostSection
+        GeometryReader { proxy in
+            let rowLayout = rowLayout(in: proxy.size.width)
+            List {
+                summarySection
+                if !viewModel.recentLayout.rows.isEmpty {
+                    waterfallSection(rowLayout: rowLayout)
+                }
+                if !viewModel.statistics.endpoints.isEmpty {
+                    endpointSection
+                }
+                if !viewModel.statistics.hosts.isEmpty {
+                    hostSection
+                }
             }
         }
     }
@@ -137,7 +153,18 @@ struct TrafficStatsView: View {
                     .monospacedDigit()
             }
         } header: {
-            Text(viewModel.caption)
+            // Shown only when a filter is narrowing what the figures cover. Unfiltered, the
+            // caption would read "N requests" directly above the first row of this very section,
+            // `LabeledContent(localized("Requests"), value: ...)`, which already says the same
+            // number — a header restating its own section's first row rather than naming
+            // anything the rows do not. Filtered, "N of M requests" earns its place: it says
+            // something the rows genuinely cannot, that a filter is active and how much of the
+            // log it is excluding. A header that appears only sometimes reads as a bug unless the
+            // reason is written down, so it is written down here — this also buys back a line at
+            // accessibility text sizes, where a header's own vertical cost is not free.
+            if viewModel.isFiltered {
+                Text(viewModel.caption)
+            }
         } footer: {
             if summary.stubbedCount > 0 {
                 Text(localized("A stubbed response never left the device, so it is counted here but left out of every duration, failure and byte total."))
@@ -147,45 +174,89 @@ struct TrafficStatsView: View {
         }
     }
 
-    /// The timeline, one bar per request on a shared seconds axis.
+    /// The most recent ``TrafficStatsViewModel/recentWaterfallCount`` requests: a strip zoomed to
+    /// just them, then the same requests again as real, tappable rows.
     ///
-    /// The bars, the colour scale and the outcome names come from ``WaterfallChartStyle`` rather
-    /// than from here, because the **See all** page draws the same chart over the whole log and
-    /// the two are meant to be indistinguishable. Only the layout is this section's own: it
-    /// stacks every bar into one chart, where the page gives each bar a row it can be tapped in.
-    private var waterfallSection: some View {
-        Section {
-            Chart(viewModel.chartRows) { row in
-                WaterfallChartStyle.bar(
-                    id: row.id,
-                    entry: row.entry,
-                    upperBound: viewModel.chartUpperBound,
-                    // Zero: Charts sizes this chart's leading axis to its own labels, so the
-                    // section cannot state its plot width without measuring the chart it is about
-                    // to build. Bars are drawn at their true lengths, exactly as they shipped.
-                    plotWidth: 0
-                )
-            }
-            .chartForegroundStyleScale(WaterfallChartStyle.styleScale)
-            .chartXScale(domain: 0...viewModel.chartUpperBound)
-            .chartXAxisLabel(localized("Seconds"))
-            // The x axis is left entirely to Charts. It was hand-coloured to secondary grid
-            // lines, ticks and labels, which is what Charts already draws — restating it only
-            // meant the chart stopped following the theme the rest of the screen follows.
-            .chartYAxis {
-                AxisMarks(preset: .aligned, position: .leading) {
-                    AxisValueLabel()
-                        .font(.caption2)
+    /// ## What this used to be
+    ///
+    /// The section first stacked its own most-recent-seven bars into a `Chart` of its own; that
+    /// chart went, replaced by ``WaterfallOverviewStrip`` drawing the *whole* log — the same
+    /// overview the full-log page marks its current window on, drawn here with no window at all.
+    /// That read fine at the traffic volumes it shipped against and unusable at ordinary ones: 25
+    /// requests over 24 seconds compresses to 25 marks a few points wide apiece, which conveys
+    /// rough shape and nothing else — precisely the failure this section exists to avoid, back
+    /// under a different cause. The owner judged it unusable and asked for a small version of the
+    /// full page instead. See the design spec's own "Traffic Stats" section and its Amendments for
+    /// the fuller account of both reversals.
+    ///
+    /// ## What it is now
+    ///
+    /// `WaterfallOverviewStrip(series: viewModel.recentLayout.series, window: nil, …)` — the same
+    /// view, still with no window, but now built from ``TrafficStatsViewModel/recentLayout``,
+    /// whose own series is limited to the most recent few requests rather than every one of them.
+    /// Read literally: the drawn *range* is those few, not the whole log with a subset merely
+    /// marked on it. A marked-window reading was considered and rejected — it would still compress
+    /// the entire log onto the strip's width first, which is the exact defect being fixed, and
+    /// would only additionally highlight a sliver of it.
+    ///
+    /// Beneath the strip, ``ForEach(viewModel.recentLayout.rows)`` draws the same requests again as
+    /// ``WaterfallDetailRow``, reused directly rather than rebuilt — see that type's own
+    /// documentation for why its existing shape already fit this second caller with no changes of
+    /// its own required. Each wraps a `NavigationLink` to `LogDetailsView`, exactly as the full
+    /// page's own rows do — tappable through to the log entry, per the owner's own instruction.
+    ///
+    /// `window` for those rows is `WaterfallWindow(span: viewModel.recentLayout.series.span,
+    /// narrowest: 0)` — the widest window that series can have, i.e. no zoom applied at all — built
+    /// fresh here rather than reused from anywhere, because there is no `WaterfallViewModel` behind
+    /// this screen to own one. `WaterfallDetailRow` only ever reads a `WaterfallWindow` to place and
+    /// clip its bar against a span; it has no opinion about whether that value came from a
+    /// zoomable page or, as here, a plain span with nothing to zoom.
+    ///
+    /// ## The strip's own gesture: judged, not kept
+    ///
+    /// `.none`, not `.tap`. Tapping the old, whole-log strip opened the full page centred on the
+    /// moment touched, mapping a time relative to *this* section's own strip onto the full page's
+    /// own, separately built series — see `WaterfallView.init(logs:openingTime:)`'s own
+    /// documentation on that mapping, which explicitly assumed the two series shared the same
+    /// origin. They no longer do: this strip's series now starts at the earliest of only the most
+    /// recent few requests, not the log's true earliest one, so reusing that mapping unchanged
+    /// would centre the full page on the *wrong* moment, silently, by however much time separates
+    /// the two origins. Fixing the mapping itself — carrying an absolute `Date` end to end instead
+    /// of a relative offset — would mean changing `WaterfallView`'s own, already-shipped and
+    /// owner-approved contract for a page this fix has no other reason to touch. Simpler, and
+    /// arguably more honest about what changed here: the five rows directly beneath the strip
+    /// already give exact, correct navigation to precisely the request tapped, which is strictly
+    /// *more* precise than "centred near where you tapped" ever was. A tap on the strip itself
+    /// would now be redundant with the row right underneath it, not a second way to reach
+    /// something the rows cannot. **See all**, unchanged, is still how this screen reaches the
+    /// full, unzoomed page.
+    private func waterfallSection(rowLayout: WaterfallDetailRowMetrics.Layout) -> some View {
+        let window = WaterfallWindow(span: viewModel.recentLayout.series.span, narrowest: 0)
+        return Section {
+            WaterfallOverviewStrip(
+                series: viewModel.recentLayout.series,
+                window: nil,
+                height: WaterfallOverviewStrip.sectionHeight,
+                interaction: .none
+            )
+            ForEach(viewModel.recentLayout.rows) { row in
+                NavigationLink {
+                    LogDetailsView(httpRequest: row.request)
+                } label: {
+                    WaterfallDetailRow(row: row, window: window,
+                                       showsHost: viewModel.recentLayout.showsHost,
+                                       labelWidth: rowLayout.labelWidth,
+                                       durationWidth: rowLayout.durationWidth)
                 }
             }
-            .frame(height: viewModel.chartHeight(rowHeight: waterfallRowHeight))
         } header: {
             HStack {
                 Text(localized("Waterfall"))
                 Spacer()
                 // A trailing header link, the way iOS opens the full version of a summarised
                 // list everywhere else. It pushes onto the stack this screen was pushed onto,
-                // so Back returns here rather than to the log.
+                // so Back returns here rather than to the log. No opening time: the link is the
+                // page's ordinary entrance and opens at the full span, same as it always has.
                 NavigationLink(localized("See all")) {
                     WaterfallView(logs: logs)
                 }
@@ -198,6 +269,23 @@ struct TrafficStatsView: View {
         } footer: {
             Text(viewModel.waterfallCaption)
         }
+    }
+
+    /// How one of this section's own rows divides its width between the label column, the plot,
+    /// and the duration column — a thin wrapper around
+    /// `WaterfallDetailRowMetrics.layout(rowWidth:scaledLabelWidth:scaledDurationWidth:)` for the
+    /// same reason ``WaterfallView/rowLayout(in:)`` is: supplying it with the two values only a
+    /// view can produce, ``scaledLabelWidth`` and ``scaledDurationWidth``, so this screen's own
+    /// rows read their column widths from the same two properties ``WaterfallDetailRow`` is
+    /// actually handed, rather than each recomputing its own `@ScaledMetric`.
+    ///
+    /// - Parameter rowWidth: The full width one row is given, from ``statistics``'s own
+    ///   `GeometryReader`.
+    /// - Returns: The label, plot and duration widths the row should draw at.
+    private func rowLayout(in rowWidth: CGFloat) -> WaterfallDetailRowMetrics.Layout {
+        WaterfallDetailRowMetrics.layout(rowWidth: rowWidth,
+                                         scaledLabelWidth: scaledLabelWidth,
+                                         scaledDurationWidth: scaledDurationWidth)
     }
 
     /// The endpoint breakdown, slowest first.

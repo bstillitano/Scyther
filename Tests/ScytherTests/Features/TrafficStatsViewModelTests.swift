@@ -81,6 +81,13 @@ final class TrafficStatsViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.caption.contains("340"), "the caption names the unfiltered total")
     }
 
+    /// Used to also assert `viewModel.caption == "3 requests"` here — `caption` had a distinct
+    /// unfiltered form until `TrafficStatsView.summarySection` stopped showing the header at all
+    /// when nothing is filtered (it would otherwise restate the section's own first row). That
+    /// branch of `caption` is gone; the property now always produces the "N of M requests" form,
+    /// even when, as here, `N == M`, because ``TrafficStatsView`` never calls it in that case any
+    /// more. The rewritten assertion below pins that: `caption` no longer special-cases this
+    /// scenario, it is simply never read for it in production.
     func testAnUnfilteredListIsNotReportedAsFiltered() async {
         let viewModel = TrafficStatsViewModel(
             requests: (0..<3).map { _ in request(duration: 100) },
@@ -88,8 +95,9 @@ final class TrafficStatsViewModelTests: XCTestCase {
         )
         await viewModel.recompute()
         XCTAssertFalse(viewModel.isFiltered)
-        XCTAssertEqual(viewModel.caption, "3 requests",
-                       "with nothing filtered out the caption names one number, not two")
+        XCTAssertEqual(viewModel.caption, "3 of 3 requests",
+                       "caption's only remaining form is 'N of M requests' - the view is what decides "
+                       + "whether to show it at all, not this property")
     }
 
     /// The defect W27 named: the caption read the live array while the figures beneath it lagged
@@ -217,120 +225,165 @@ final class TrafficStatsViewModelTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(viewModel.elapsedText).contains("2.1"))
     }
 
-    // MARK: Chart geometry
+    // MARK: Waterfall overview
 
-    func testTheChartUpperBoundLeavesRoomForTheValueLabels() async {
-        let first = request(duration: 2_000)
-        first.requestDate = Date(timeIntervalSince1970: 1_000_000)
-        let viewModel = TrafficStatsViewModel(requests: [first], totalCount: 1)
-        await viewModel.recompute()
-        XCTAssertEqual(viewModel.chartUpperBound, 2.7, accuracy: 0.0001)
+    /// Builds `count` requests one second apart, oldest first.
+    ///
+    /// - Parameters:
+    ///   - count: How many to build.
+    ///   - origin: The first request's own date; each later one lands a second after the last.
+    /// - Returns: The requests, oldest first.
+    private func datedRequests(count: Int, origin: Date) -> [HTTPRequest] {
+        (0..<count).map { index in
+            let request = HTTPRequest()
+            request.requestURL = "https://httpbin.org/json/\(index)"
+            request.requestMethod = "GET"
+            request.requestDate = origin.addingTimeInterval(Double(index))
+            request.responseDate = origin.addingTimeInterval(Double(index) + 0.1)
+            return request
+        }
     }
 
-    func testTheChartUpperBoundIsNeverZero() async {
-        let viewModel = TrafficStatsViewModel(requests: [], totalCount: 0)
-        await viewModel.recompute()
-        XCTAssertGreaterThan(viewModel.chartUpperBound, 0, "a zero-wide axis has nothing to draw on")
+    /// The section used to draw the whole log as its own strip, an overview of everything rather
+    /// than a sample of it — precisely the policy the owner later reversed once it read as an
+    /// unreadable scatter at real request counts. Rewritten to pin the *current* policy rather
+    /// than deleted quietly, matching this feature's own established practice for a reversed
+    /// design decision: `waterfall` still lays out everything, because `waterfallCaption` still
+    /// describes the whole session as context; `recentLayout` — what the strip and its row preview
+    /// actually draw now — is capped at `TrafficStatsViewModel.recentWaterfallCount` instead.
+    func testWaterfallIsTheWholeLogButRecentLayoutIsCappedAtRecentWaterfallCount() async {
+        let requests = datedRequests(count: 40, origin: Date(timeIntervalSince1970: 1_000))
+
+        let model = TrafficStatsViewModel(requests: [], totalCount: 0)
+        model.update(requests: requests, totalCount: requests.count)
+        await model.recompute()
+
+        XCTAssertEqual(model.waterfall.entries.count, 40,
+                       "the caption's own whole-log context is unaffected by the preview's cap")
+        XCTAssertEqual(model.recentLayout.rows.count, TrafficStatsViewModel.recentWaterfallCount,
+                       "the strip and its rows are capped, not a sample of it")
     }
 
-    func testTheChartGrowsWithTheNumberOfBars() async {
-        let requests = (0..<4).map { index -> HTTPRequest in
-            let model = request(duration: 100)
-            model.requestDate = Date(timeIntervalSince1970: 1_000_000 + Double(index))
+    /// "Fewer than the log holds is the point" — the owner's own words for
+    /// `TrafficStatsViewModel.recentWaterfallCount`. A log shorter than the cap must show exactly
+    /// what it has, not be padded or hidden to reach it.
+    func testRecentLayoutShowsEverythingWhenTheLogHoldsFewerThanTheCap() async {
+        let requests = datedRequests(count: 3, origin: Date(timeIntervalSince1970: 1_500))
+
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: requests.count)
+        await viewModel.recompute()
+
+        XCTAssertLessThan(requests.count, TrafficStatsViewModel.recentWaterfallCount,
+                          "precondition: the log is shorter than the cap")
+        XCTAssertEqual(viewModel.recentLayout.rows.count, 3)
+    }
+
+    /// The preview has to be the *most recent* few, not an arbitrary slice: a reader opening this
+    /// section wants to know what just happened, and the oldest handful would answer a different
+    /// question entirely.
+    func testRecentLayoutHoldsTheMostRecentRequestsNotTheOldest() async {
+        let requests = datedRequests(count: 8, origin: Date(timeIntervalSince1970: 2_000))
+
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: requests.count)
+        await viewModel.recompute()
+
+        // `datedRequests(count:origin:)` names each request `.../json/<index>`, oldest first, so
+        // the most recent five are indices 3 through 7.
+        let labels = viewModel.recentLayout.rows.map(\.entry.label)
+        for index in 3...7 {
+            XCTAssertTrue(labels.contains("GET /json/\(index)"), "missing the recent request at index \(index)")
+        }
+        for index in 0...2 {
+            XCTAssertFalse(labels.contains("GET /json/\(index)"), "the oldest requests must not appear")
+        }
+    }
+
+    /// The count behind the footer's "N hosts": distinct, non-empty hosts only.
+    func testHostCountCountsDistinctNonEmptyHosts() async {
+        let base = Date(timeIntervalSince1970: 2_000)
+        let requests = [
+            request(duration: 100, url: "https://api.example.com/v1/users"),
+            request(duration: 100, url: "https://api.example.com/v1/orders"),
+            request(duration: 100, url: "https://api.example.org/v1/users"),
+        ].enumerated().map { index, model -> HTTPRequest in
+            model.requestDate = base.addingTimeInterval(Double(index))
+            model.responseDate = base.addingTimeInterval(Double(index) + 0.1)
             return model
         }
-        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: 4)
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: requests.count)
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.chartHeight, 4 * WaterfallChartStyle.rowHeight + 60)
+        XCTAssertEqual(viewModel.hostCount, 2, "two of the three requests share a host")
     }
 
-    /// Dynamic Type grows the chart's own axis labels, so the height it is drawn at has to grow
-    /// with them or they clip.
-    func testTheChartGrowsWithTheReadersTextSize() async {
-        let requests = (0..<4).map { index -> HTTPRequest in
-            let model = request(duration: 100)
-            model.requestDate = Date(timeIntervalSince1970: 1_000_000 + Double(index))
+    /// Case must not multiply hosts: ``WaterfallSeries/shortHost(for:)`` already lowercases
+    /// before picking a label, and ``TrafficStatistics`` lowercases when it buckets hosts for
+    /// *By Host* — this count has to agree with both, or the footer would name a different
+    /// number of hosts than the section sitting right beneath it, for the very same log.
+    func testHostCountIsCaseInsensitive() async {
+        let base = Date(timeIntervalSince1970: 2_500)
+        let requests = [
+            request(duration: 100, url: "https://api.example.com/v1/users"),
+            request(duration: 100, url: "https://API.EXAMPLE.COM/v1/orders"),
+        ].enumerated().map { index, model -> HTTPRequest in
+            model.requestDate = base.addingTimeInterval(Double(index))
+            model.responseDate = base.addingTimeInterval(Double(index) + 0.1)
             return model
         }
-        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: 4)
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: requests.count)
         await viewModel.recompute()
-        XCTAssertGreaterThan(
-            viewModel.chartHeight(rowHeight: WaterfallChartStyle.rowHeight * 2),
-            viewModel.chartHeight
+        XCTAssertEqual(viewModel.hostCount, 1, "the same host spelled two ways is still one host")
+    }
+
+    /// The footer names the count, the span and the host count — not, any more, where the rest of
+    /// the log went, because none of it is hidden. The fixture is sized so the three figures never
+    /// share a digit: five requests, spanning 500 ms, across three hosts — a caption built from
+    /// the wrong number of hosts (say, two, from a `hostCount` that failed to lowercase and split
+    /// a shared host into two) could not coincidentally still contain "3", the way it could have
+    /// against a fixture where the request count, the span and the host count overlapped.
+    func testTheWaterfallCaptionNamesTheRequestCountAndHostCount() async {
+        let base = Date(timeIntervalSince1970: 3_000)
+        let hosts = ["a.example.com", "a.example.com", "b.example.com", "b.example.com", "c.example.com"]
+        let requests = hosts.enumerated().map { index, host -> HTTPRequest in
+            let model = request(duration: 100, url: "https://\(host)/v1/users")
+            model.requestDate = base.addingTimeInterval(Double(index) * 0.1)
+            model.responseDate = base.addingTimeInterval(Double(index) * 0.1 + 0.1)
+            return model
+        }
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: requests.count)
+        await viewModel.recompute()
+        XCTAssertEqual(viewModel.hostCount, 3, "three distinct hosts, precondition for the assertion below")
+        XCTAssertTrue(viewModel.waterfallCaption.contains("5"), "names how many requests it covers")
+        XCTAssertTrue(
+            viewModel.waterfallCaption.contains("3"),
+            "and how many distinct hosts they touched — the request count (5) and the ~500 ms span share no digit with 3, so only the host count can put it in the caption"
         )
     }
 
-    /// The section is a preview, and a preview that draws everything is not one. With
-    /// twenty-two requests it filled the card and left the page it links to showing the same
-    /// picture, which is what made that page look pointless.
-    func testTheWaterfallSectionShowsAGlanceRatherThanTheWholeLog() async {
-        let requests = (0..<22).map { index -> HTTPRequest in
-            let model = request(duration: 100)
-            model.requestDate = Date(timeIntervalSince1970: 1_000_000 + Double(index))
-            return model
-        }
-        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: 22)
-        await viewModel.recompute()
-        XCTAssertEqual(viewModel.chartRows.count, WaterfallSeries.defaultLimit)
-        XCTAssertLessThan(WaterfallSeries.defaultLimit, 22)
-    }
-
-    /// A preview that hides most of the log has to say so, or the section under-reports the
-    /// session it claims to describe.
-    func testTheWaterfallCaptionSaysWhereTheHiddenRequestsAre() async {
-        let requests = (0..<22).map { index -> HTTPRequest in
-            let model = request(duration: 100)
-            model.requestDate = Date(timeIntervalSince1970: 1_000_000 + Double(index))
-            return model
-        }
-        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: 22)
-        await viewModel.recompute()
-        XCTAssertTrue(viewModel.waterfallCaption.contains("See all"),
-                      "the caption must point at the page holding the other fifteen")
-    }
-
-    /// And must not say it when there is nothing hidden.
-    func testTheWaterfallCaptionSaysNothingAboutSeeAllWhenEverythingIsShown() async {
-        let requests = (0..<3).map { index -> HTTPRequest in
-            let model = request(duration: 100)
-            model.requestDate = Date(timeIntervalSince1970: 1_000_000 + Double(index))
-            return model
-        }
-        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: 3)
-        await viewModel.recompute()
-        XCTAssertFalse(viewModel.waterfallCaption.contains("See all"))
-    }
-
-    func testTheChartHasAFloorHeight() async {
-        let viewModel = TrafficStatsViewModel(requests: [request(duration: 100)], totalCount: 1)
-        await viewModel.recompute()
-        XCTAssertEqual(viewModel.chartHeight, 140)
-    }
-
-    // MARK: Row text
-
-    func testAChartRowIsNumberedSoTwoCallsToOneEndpointKeepTheirOwnBars() async {
+    /// The defect: the single flat sentence this caption used to be could only pluralise on one
+    /// of its two numbers, and the request count always won — so the common case, a log that has
+    /// touched exactly one host, read "across 1 hosts" on the feature's own first screen. Splitting
+    /// the host count into its own pluralised key, joined after the request-count half, fixes
+    /// precisely this case rather than only the rarer ones a "contains a digit" assertion would
+    /// have missed.
+    func testTheWaterfallCaptionPluralisesASingleHostCorrectly() async {
         let viewModel = TrafficStatsViewModel(
-            requests: [request(duration: 100), request(duration: 200)],
-            totalCount: 2
+            requests: [request(duration: 100, url: "https://a.example.com/v1/users")],
+            totalCount: 1
         )
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.chartRows.map(\.id), ["1. GET /v1/users", "2. GET /v1/users"])
-        XCTAssertEqual(viewModel.chartDomain.count, 2, "a shared axis value would collapse the two bars into one")
+        XCTAssertEqual(viewModel.hostCount, 1, "precondition for the assertion below")
+        XCTAssertFalse(viewModel.waterfallCaption.contains("1 hosts"),
+                       "a single host must not read as plural: \(viewModel.waterfallCaption)")
+        XCTAssertTrue(viewModel.waterfallCaption.contains("1 host"))
     }
 
-    func testTheChartRowsAreEmptyWithoutTraffic() async {
-        let viewModel = TrafficStatsViewModel(requests: [], totalCount: 0)
-        await viewModel.recompute()
-        XCTAssertTrue(viewModel.chartRows.isEmpty)
-        XCTAssertTrue(viewModel.chartDomain.isEmpty)
-    }
+    // MARK: Bar semantics
 
     func testABarValueLabelUsesMillisecondsUnderASecond() async throws {
         let viewModel = TrafficStatsViewModel(requests: [request(duration: 2)], totalCount: 1)
         await viewModel.recompute()
-        let row = try XCTUnwrap(viewModel.chartRows.first)
-        let label = WaterfallChartStyle.valueLabel(for: row.entry)
+        let entry = try XCTUnwrap(viewModel.waterfall.entries.first)
+        let label = WaterfallChartStyle.valueLabel(for: entry)
         XCTAssertTrue(label.contains("2"), "a two millisecond bar reads as two milliseconds")
         XCTAssertFalse(label.contains("0.002"), "and must not round away to zero seconds")
     }
@@ -338,8 +391,8 @@ final class TrafficStatsViewModelTests: XCTestCase {
     func testABarValueLabelUsesSecondsBeyondOne() async throws {
         let viewModel = TrafficStatsViewModel(requests: [request(duration: 2_500)], totalCount: 1)
         await viewModel.recompute()
-        let row = try XCTUnwrap(viewModel.chartRows.first)
-        XCTAssertTrue(WaterfallChartStyle.valueLabel(for: row.entry).contains("2.5"))
+        let entry = try XCTUnwrap(viewModel.waterfall.entries.first)
+        XCTAssertTrue(WaterfallChartStyle.valueLabel(for: entry).contains("2.5"))
     }
 
     /// The defect W19 named, at the surface it reaches the developer through: a failed request
@@ -350,9 +403,9 @@ final class TrafficStatsViewModelTests: XCTestCase {
         failed.responseCode = nil
         let viewModel = TrafficStatsViewModel(requests: [failed], totalCount: 1)
         await viewModel.recompute()
-        let row = try XCTUnwrap(viewModel.chartRows.first)
-        XCTAssertEqual(WaterfallChartStyle.outcomeTitle(for: row.entry), "Failed")
-        XCTAssertFalse(row.entry.isPending)
+        let entry = try XCTUnwrap(viewModel.waterfall.entries.first)
+        XCTAssertEqual(WaterfallChartStyle.outcomeTitle(for: entry), "Failed")
+        XCTAssertFalse(entry.isPending)
     }
 
     func testAStubbedBarIsNamedStubbedWhateverItsStatusSays() async throws {
@@ -361,8 +414,8 @@ final class TrafficStatsViewModelTests: XCTestCase {
             totalCount: 1
         )
         await viewModel.recompute()
-        let row = try XCTUnwrap(viewModel.chartRows.first)
-        XCTAssertEqual(WaterfallChartStyle.outcomeTitle(for: row.entry), "Stubbed",
+        let entry = try XCTUnwrap(viewModel.waterfall.entries.first)
+        XCTAssertEqual(WaterfallChartStyle.outcomeTitle(for: entry), "Stubbed",
                        "an authored 500 says nothing about the server")
     }
 

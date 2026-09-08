@@ -59,7 +59,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **cURL Export**: Generate cURL commands for any captured request
 - **Log Export**: Share the captured requests as a zip containing a HAR 1.2 file, raw bodies, and a cURL command per request, with best-effort redaction and a sensitivity warning
 - **Filter Chips**: Narrow the network log by method, status class, host, content type, API kind, GraphQL operation, duration, exact status code, or recency from glass chips pinned above the list, or edit every filter at once from the all-filters sheet
-- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall preview of the seven most recent requests on a shared axis, with a **See all** page covering the whole log — scrolling in both directions at a time scale derived from the durations logged, with frozen request names and a pinned ruler — where each bar opens its request
+- **Traffic Stats**: A chart button on Network Logs opens the figures for whatever the list is showing — failure rate, median and 95th percentile duration, bytes received, the slowest endpoints, a per-host breakdown, and a waterfall preview zoomed to the most recent handful of requests with a tappable row per one of them beneath it — use the header's **See all** link to open the full page, anchored on the newest traffic at half the log's span (the whole span instead, on a log short enough that the two are the same thing), where the same strip now carries a zoomable, draggable window over a detail list: pinch to zoom, drag the strip to move the window, an accessibility-adjustable action for VoiceOver and Switch Control, and a tappable row per request that opens its details — tapping the strip itself never does, there it only moves the window
 - **Request Overrides**: Mock responses, serve local files, rewrite headers, and add latency, throttling or random failures to matching requests — combined on one override — from the menu or from code
 - **Save as Mock**: Turn any captured response into a disabled mock override in one tap, and import a HAR file as a whole set of them
 - **Request Replay**: Reopen any captured request in an editor, change its method, URL, headers or body, and send it again — the resent request is logged with a `REPLAY` badge and listed on the original with its status, duration and size deltas
@@ -664,8 +664,9 @@ already in memory, so it adds no capture, no storage and no cost to the request 
 
 The screen describes **the list you were looking at**. The log's search field and filter chips
 narrow the requests before the figures are computed, so filtering to one host turns the summary
-into that host's summary. The caption under the title says which it is — `8 requests`, or
-`21 of 340 requests` when a filter is on.
+into that host's summary. A caption naming which it is — `21 of 340 requests` — appears above the
+figures only when a filter is on; unfiltered, it would only restate the first row below it
+(`Requests  8`), so the section shows no caption at all rather than one saying nothing new.
 
 #### What the figures mean
 
@@ -701,45 +702,102 @@ instead.
 
 #### The waterfall
 
-One bar per request on a shared seconds axis: bars that overlap were in flight at the same time,
-and a staircase means the calls were serialised. Each bar is labelled with its duration and
-coloured by outcome — succeeded, failed, pending or stubbed. A request that has not come back yet
-runs to the end of the axis, which is the moment the chart was computed, because its real end is
-not known. A request that failed is drawn for as long as it actually ran, not as one still running.
+Every request is placed on a shared seconds axis, oldest first: entries that overlap were in
+flight at the same time, and a staircase means the calls were serialised. A request that has not
+come back yet runs to the end of the axis, which is the moment the series was built, because its
+real end is not known. A request that failed is drawn for as long as it actually ran, not as one
+still running.
 
-The section is a **preview**: it draws the seven most recent requests, at a fixed row height, so
-it reads at a glance. Its caption says so, and points at the rest.
+**The overview strip** draws whichever slice of the log it is given, every request in it as a short
+line positioned by when it happened and coloured by outcome — succeeded, failed, pending or
+stubbed — with one `Canvas` pass rather than a view per request, so a thousand-request log costs
+the same as a ten-request one. A line too thin to see is still floored to one point wide so it can
+be found.
 
-**See all** opens the same session over the whole log, and it scrolls in **both** directions.
-Rows run oldest first so time reads downward, each keeps a fixed height — a hundred requests are a
-hundred readable rows rather than a hundred hairlines squeezed onto one screen — and the timeline
-runs sideways at a real scale rather than being squashed to fit the phone. Tapping a bar opens that
-request's details.
+On the **Traffic Stats** section the strip is zoomed to the most recent
+`TrafficStatsViewModel.recentWaterfallCount` requests (five, chosen so every bar reads as its own
+request rather than a hairline, short enough to sit above the fold, and small enough that "most
+recent" reads as obviously true of what's on screen) rather than the whole log compressed onto one
+axis — the drawn *range* is those few, not the whole log with a subset merely marked on it — with
+those same requests listed as tappable rows beneath it, each opening its own log detail. This
+replaced an earlier version that drew the whole log the same way the full page's minimap does: at
+real request counts it read as an unreadable scatter of specks, telling a reader rough shape and
+nothing about what had just happened, which is exactly what this section exists to answer. The
+strip carries no tap of its own here any more — the rows beneath it already give more precise
+navigation than "centred near where you tapped" ever did, and reusing that mapping unchanged would
+have silently centred the full page on the wrong moment once the strip stopped drawing the same
+span the page does. The section's existing caption — the count, the span and how many distinct
+hosts were touched — is unchanged and still describes the *whole* log, kept as context beneath a
+preview of only its most recent few. The header's `See all` link still opens the full page,
+unchanged, **anchored on the newest traffic**, at half the log's span — the whole span only when
+the zoom floor already sits above that half, which is also the case a log too short to zoom at all
+always produces, before an hour-long capture with two short bursts of traffic showed every bar
+flooring to the same three points regardless of whether the request took 43ms or 1.06s, and —
+later — an ordinary log opening on a single legible request showed the first fix for that had
+swung too far the other way.
 
-The **time scale** is derived from the durations in the log, not from the width of the screen. The
-median request is drawn at 24 points, the fastest tenth are kept at least 3 points wide, and
-whichever of those two demands more wins; the result is clamped so the timeline is never narrower
-than the visible plot and never wider than 50,000 points. So a log of 20 ms calls zooms in until
-they are legible, a log of five second calls stays compact, and a 300 second session of requests
-between 32 ms and 1.4 s draws at about 96 points per second — a timeline roughly 39,000 points
-long on which the 32 ms request is about 3 points and the 1.4 s request about 134. Fitting that
-same session to one screen width, which is what the page used to do, gave both of them a single
-point and made them indistinguishable.
+**See all** shows the same strip, now also marking the current **window** — the reader zooms and
+drags this one, and it is already drawn narrower than the whole strip the moment the page opens on
+any log long enough to need it. Fitting the whole session into one screen width, or scrolling a
+plot wide enough not to, are both a *scroll* answer to what is really a *zoom* problem: against a
+300 second log of requests between 32 ms and 1.4 s, either one either floors every bar to the same
+sliver or hands the reader a plot thousands of points wide to pan by hand.
 
-While the bars scroll sideways the **request names stay frozen** at the leading edge and the
-**seconds ruler stays pinned** to the top and scrolls horizontally in step with them, the way
-Chrome's network panel and Charles both behave. The ruler ticks on round intervals chosen for the
-current scale, so a tick always sits above the moment it names.
+The minimap — the strip with the colour legend beneath it, no divider between them — is fixed above
+the page rather than scrolling with it: it sits outside the detail list entirely, as a sibling
+above it, hand-styled to still read as one of the list's own inset-grouped sections (same
+background material, same corner radius, the same horizontal margin the list's own sections use)
+so the change is meant to be invisible apart from the stickiness, with a gap below it before the
+list begins tuned by eye rather than borrowed from any system metric. A `List` cannot pin a
+`Section`'s own content — only `.plain` pins section *headers*, and this list is `.insetGrouped` —
+which is why the minimap sits outside it rather than inside as a fixed section. Dragging the strip moves the
+window anywhere in the log in a single gesture, tracked from the very first touch — the strip no
+longer shares a scroll view with anything, so nothing needs to be told apart from a scroll any
+more — the strip only ever moves the window, it never opens a request. Underneath it, the
+**detail list** holds only the requests the
+window currently contains, each a tappable row labelled with its duration and coloured by outcome,
+running oldest first so time reads downward.
+Dragging or zooming into a stretch of the log with nothing in it shows an empty state naming the
+gap, with a button that returns the window to the most recent traffic — distinct from the page's
+other empty state, shown instead of the whole list, for a log with no traffic captured at all. A
+**pinch** anywhere on the page — the detail list or the fixed minimap card above it — narrows or
+widens the window, holding its centre still, down to the point at which the shortest measured
+request in the log would draw narrower than 24 points — past
+that there is nothing left to magnify, only more gap between bars, and both the pinch and the
+strip's adjustable action are disabled rather than left to silently do nothing.
+`.accessibilityAdjustableAction` on the strip
+puts the same zoom range behind VoiceOver's and Switch Control's adjustable gesture, and its
+accessibility value announces how many requests the window holds after every change, so reaching
+zoom never requires a pinch and never leaves a VoiceOver user guessing whether anything happened.
 
-Both surfaces follow the log's search and filter chips, and the page's caption says which it is —
-`Every request in the log…` or `21 of 340 requests…` when a filter is on.
+The minimap's own hand-built header carries a trailing **Reset zoom** button — styled the way
+Traffic Stats' Waterfall section puts "See all" on its trailing edge — the moment the window has
+been zoomed or scrubbed at all. It sits above the minimap card, not above the detail rows: the
+button acts on the window, and the window is what the minimap draws, not the rows underneath it,
+which are only ever a consequence of it. It calls the same `resetWindow()` the gap empty state's
+own button already uses, and it stays visible once shown even if a further zoom happens to land
+back on the same numbers as the opening window; only pressing it clears it.
 
-A bar too narrow to see is still drawn one point wide so it can be found. That is a minimum
-*rendered width*, not a minimum duration, and at a scale derived from the durations present almost
-nothing reaches it. The preview draws every bar at its true length instead — Charts sizes that
-chart's axis, so the section cannot know how many seconds a point is worth. The **preview keeps
-its appearance**: it is a seven-row summary that fits by design, and only the full page gets the
-scale and the scrolling.
+Before that first touch, the same header's leading edge instead carries a small pinch hint —
+`localized("Pinch to change the range")` beside a `hand.pinch` symbol, in the same secondary
+caption styling the detail rows' own duration text uses — because the pinch is otherwise entirely
+invisible: nothing on screen suggests a reader can narrow the window at all. TipKit was considered
+and ruled out, for two reasons: it needs iOS 17 against this package's iOS 16 floor, and
+`Tips.configure()` is process-global, which a debugging library embedded as a guest in someone
+else's app has no business calling on the host's behalf. The hint and the reset button are exact
+inverses of the same flag, `WaterfallViewModel.hasAdjustedWindow`, and never both appear at once;
+pressing **Reset zoom** — or the gap empty state's equivalent button — brings the hint back rather
+than retiring it permanently, since that flag does not distinguish a zoom from a scrub and a
+reader who has only ever dragged the strip may not have discovered the pinch yet either.
+
+A request already running when the window opens, or one that outlives it, is drawn **clipped**
+flush to the window's edge rather than shrunk to fit — the clip reads as "continues", where a
+shrunk bar would read as a request shorter than it actually ran. Tapping a row in the detail list
+opens that request's details.
+
+Both surfaces follow the log's search and filter chips, and the detail section's own footer names
+how many of the log's total requests the current window holds — hidden, not just blank, whenever
+the window is over a gap and showing its own empty state instead of rows.
 
 #### The breakdowns
 

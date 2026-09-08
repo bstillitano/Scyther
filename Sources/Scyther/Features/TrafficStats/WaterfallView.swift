@@ -7,67 +7,190 @@
 
 import Charts
 import SwiftUI
-import UIKit
 
-/// Every logged request as a bar on one shared, scrollable time axis, oldest at the top.
+/// Every logged request as a bar on one shared time axis, oldest at the top, seen through a
+/// window the reader zooms and drags rather than scrolls.
 ///
-/// Reached from the **See all** button in the Waterfall section of ``TrafficStatsView``. It shows
-/// the same session that section previews — the same colours, the same outcome names, the same
-/// legend, the same row height, all from ``WaterfallChartStyle`` — over the whole log rather than
-/// the most recent seven, and made tappable so a bar leads to the request behind it.
+/// Reached from the Waterfall section of ``TrafficStatsView`` by its **See all** link, which opens
+/// at the full span. It shows the whole session that section's own strip only ever previews a
+/// zoomed slice of — the strip and colours are literally the same code,
+/// ``WaterfallOverviewStrip`` drawing from the same ``WaterfallChartStyle``, now carrying the
+/// current window as well — but with every request its own tappable row in a detail list
+/// underneath, leading to the capture behind it, which the section's own preview rows already do
+/// too, just for a handful of the most recent requests rather than all of them.
 ///
-/// ## Why it scrolls in both directions
+/// `init(logs:openingTime:)` also lets a caller open the page already centred on a specific
+/// moment rather than at the full span. Nothing currently does: an earlier round of the Traffic
+/// Stats section let a tap on its own strip reach this page that way, and that tap was removed
+/// once the strip stopped drawing the whole log — see `WaterfallOverviewStrip`'s own removal
+/// comment for why a tap stopped making sense there. The initialiser itself is kept rather than
+/// pruned alongside it: it is `WaterfallViewModel`'s own general "open already centred on a
+/// moment" entry point, not machinery built only for that one caller, so losing the caller is not
+/// a reason to lose the capability — see ``init(logs:openingTime:)`` for what it still does and
+/// for whom.
 ///
-/// The page used to fit the session into one screen width and only scroll vertically. That is
-/// fine for a log whose requests are all roughly as long as each other and terrible for every
-/// other log: against a three hundred second session of requests between thirty-two milliseconds
-/// and one and a half seconds, every bar asked for less than a point of ink, every bar was floored
-/// to the one point minimum, and the fastest and the slowest request in the log drew the same
-/// size. A ruler running to 300 s over 190 points is a statement about the phone, not about the
-/// traffic.
+/// ## Why a window rather than a scroll
 ///
-/// So the axis is drawn at a scale derived from the durations present — see
-/// ``WaterfallTimeScale`` — and the reader scrolls it. Four things follow from that, and all four
-/// are load-bearing:
+/// The page used to fit the session into one screen width and only scroll vertically, then — when
+/// that made every bar in a long session collapse to the same one-point floor — grew a plot tens
+/// of thousands of points wide with a frozen label column and a ruler pinned inside a two-axis
+/// `ScrollView`, the way Chrome's network panel and Charles both behave. Both of those are a
+/// *scroll* answer to what is really a *zoom* problem: a reader does not want to pan across five
+/// minutes of quiet network to find the one burst that mattered, and a plot wide enough to give a
+/// twenty-millisecond request room next to a three-second one is wide enough that panning it by
+/// hand is its own chore.
 ///
-/// - **The rows are lazy.** A log holding thousands of captures only ever builds the handful of
-///   rows on screen, and each row is a rectangle and two labels rather than a `Chart`, because a
-///   chart per row at tens of thousands of points wide is a rendering hazard for no gain.
-/// - **The ruler is a pinned section header inside the same scroll view as the bars.** Pinned, so
-///   the axis never scrolls out of reach vertically; inside the same scroll view, so it moves
-///   horizontally with the bars in the same frame rather than a frame later. A tick that does not
-///   sit above its bar is worse than no ruler.
-/// - **The label column is frozen.** Names hold the leading edge while the timeline slides
-///   underneath them, the way Chrome's network panel and Charles both behave. Reading a bar
-///   against the request that produced it is the one task the page has.
-/// - **The card is a container rather than an assembly.** It used to be built out of its ends —
-///   the pinned header rounding the top corners, the last row the bottom — so that a lazily built
-///   stack still read as one block. With the scroll view living *inside* the card that is no
-///   longer needed: the card is one rounded rectangle and the timeline scrolls within it.
+/// So the page shows two things instead. ``WaterfallOverviewStrip`` compresses the *entire* log
+/// into one short band and marks the current window on it — a drag on the strip moves the window
+/// anywhere in the log in one gesture, which no amount of panning a wide plot could do. Beneath
+/// it, the detail list holds only the requests that window contains: a `List` of `NavigationLink`
+/// rows rather than a `LazyVStack` of hand-laid-out rectangles, because this is a menu screen and
+/// a bar without a row to sit in cannot happen — see ``WaterfallViewModel/visibleRows``. Zoom
+/// narrows the window with a pinch, described below.
+///
+/// - Important: `.accessibilityAdjustableAction` on the strip is what keeps zoom reachable without
+///   a pinch. VoiceOver and Switch Control users get the same range a sighted reader's fingers do;
+///   the toolkit does not get to ship an accessibility audit feature one release and a
+///   gesture-only control the next.
 ///
 /// ## Usage
 /// ```swift
 /// NavigationLink(localized("See all")) {
 ///     WaterfallView(logs: logs)
 /// }
+/// NavigationLink(isActive: $isActive) {
+///     WaterfallView(logs: logs, openingTime: openingTime)
+/// } label: { EmptyView() }
 /// ```
 struct WaterfallView: View {
     /// The network log this page is drawing. Its filtered array is the input, so the page follows
     /// the log's search and filter chips the way the rest of the stats screen does.
     @ObservedObject private var logs: NetworkLogsViewModel
 
-    /// The page's own view model.
+    /// The page's own view model, which owns the laid-out log and the current time window.
     @StateObject private var viewModel: WaterfallViewModel
+
+    /// The detail row's label column, scaled against the reader's text size, before
+    /// ``WaterfallDetailRowMetrics`` decides whether the row still has room to draw it at that
+    /// width. See ``WaterfallChartStyle/detailLabelWidth``.
+    ///
+    /// Owned here rather than by `WaterfallDetailRow` itself — which is where it lived before this
+    /// fix — because ``rowLayout(in:)`` needs the exact same scaled number `WaterfallDetailRow`
+    /// draws its column at. A `@ScaledMetric` in the row and the unscaled `WaterfallChartStyle`
+    /// constant the page's old `plotWidth(in:)` function subtracted were free to disagree the
+    /// moment either one changed independently, and that disagreement is exactly the defect this
+    /// fix exists to close. Hoisting both `@ScaledMetric`s here and
+    /// passing the results down to `WaterfallDetailRow` as plain `let` properties makes the two
+    /// uses read the same property, so they cannot drift again without deleting this one. Reading
+    /// it from the parent rather than the child costs nothing extra: `@ScaledMetric` resolves from
+    /// the environment, which a view and its children already share, so the value is identical
+    /// either way — only which type declares the property differs.
+    @ScaledMetric(relativeTo: .caption) private var scaledLabelWidth: CGFloat = WaterfallChartStyle.detailLabelWidth
+
+    /// The detail row's duration column, scaled against the reader's text size, for the same
+    /// reason and in the same way ``scaledLabelWidth`` is. See
+    /// ``WaterfallChartStyle/detailDurationWidth``.
+    @ScaledMetric(relativeTo: .caption) private var scaledDurationWidth: CGFloat = WaterfallChartStyle.detailDurationWidth
+
+    /// The reader's current Dynamic Type setting, watched only so ``detail`` can recompute the
+    /// zoom limit when it changes while the page is already open.
+    ///
+    /// `@ScaledMetric` itself already keeps ``scaledLabelWidth`` and ``scaledDurationWidth`` — and
+    /// therefore what `WaterfallDetailRow` actually draws — correct on every body evaluation,
+    /// because SwiftUI re-evaluates a view's body whenever an environment value one of its
+    /// property wrappers reads changes. What does *not* happen automatically is
+    /// ``WaterfallViewModel/configureWindow(plotWidth:)`` running again: it is called from
+    /// `.onAppear` and from `.onChange(of: proxy.size.width)`, neither of which fires just because
+    /// the *columns'* width changed while the row's own outer width did not. Without this, opening
+    /// the page, then changing text size in Settings and returning to it, would leave the zoom
+    /// limit computed against the previous text size until the next rotation or resize happened to
+    /// trigger a recompute.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// The magnification the pinch gesture last reported, so each change applies only the delta
+    /// since the previous callback rather than the whole gesture again.
+    ///
+    /// `MagnificationGesture` reports magnitude relative to where the pinch *started*, not to the
+    /// last callback. Feeding that straight to ``WaterfallViewModel/zoom(by:)`` would reapply the
+    /// entire pinch on every frame the gesture reports and slam the window into its zoom limit on
+    /// the first frame of motion.
+    ///
+    /// A plain `@State` now, not `@GestureState`. It used to be `@GestureState`, driven from
+    /// `.updating(_:body:)`, specifically to survive a pinch the enclosing `List` claimed
+    /// mid-gesture — before this fix, ``detail`` attached the gesture with plain `.gesture(_:)`,
+    /// SwiftUI's *lowest* priority, so the `List`'s own pan recogniser routinely won the sequence
+    /// outright and the pinch's `onEnded` never ran; a `@State` reset only there would have been
+    /// left stranded at whatever magnitude the pinch last reported, corrupting the next pinch's
+    /// first delta. `@GestureState` avoided that because SwiftUI resets it whenever the gesture
+    /// ends *or is cancelled*, with no `onEnded` required.
+    ///
+    /// That risk is gone now that ``magnification`` is attached with
+    /// `.simultaneousGesture(_:including:)` instead: the pinch no longer has to wait for the
+    /// `List`'s own gesture to fail before it can recognise, so it is tracked to completion
+    /// independently, and `onEnded` — which resets this back to `1` explicitly, below — is
+    /// reliably the last callback SwiftUI sends for any pinch that recognises at all. With that
+    /// guarantee back, `.updating(_:body:)` stops being the safer choice and starts being the
+    /// worse one: its closure is documented as updating only the transient gesture-state property
+    /// it is attached to, because it runs as part of the gesture's own transaction rather than an
+    /// ordinary event callback, and can be invoked, retried or coalesced as SwiftUI applies that
+    /// transaction. Calling ``WaterfallViewModel/zoom(by:)`` from inside it — a write to a
+    /// `@Published` property, which schedules `objectWillChange` and a body re-evaluation — is a
+    /// side effect exactly of the kind that closure is supposed to be free of, and is the known
+    /// shape of SwiftUI's "publishing changes from within view updates" warning. `.onChanged`
+    /// runs as an ordinary callback instead, so the same mutation runs on the same footing every
+    /// other change to ``WaterfallViewModel`` in this file does.
+    @State private var lastMagnification: CGFloat = 1
 
     /// Creates the page.
     ///
-    /// - Parameter logs: The network log view model whose filtered requests are drawn.
-    init(logs: NetworkLogsViewModel) {
+    /// `openingTime` is forwarded straight into
+    /// ``WaterfallViewModel/init(requests:totalCount:openingTime:)`` rather than applied here
+    /// afterwards, and that is not a stylistic choice: `_viewModel` is a `@StateObject`, whose
+    /// `wrappedValue` is an `@autoclosure` SwiftUI evaluates lazily, exactly once, only when the
+    /// view is actually inserted into the tree. Building the instance eagerly in this initialiser
+    /// and calling `open(centredOn:)` on it afterwards — which is what an earlier version of this
+    /// did — forces that autoclosure to run on *every* construction of a `WaterfallView` value,
+    /// which for the hidden link and the **See all** link together is twice per body evaluation of
+    /// the section that owns them, whether or not either page is ever pushed. The view model's own
+    /// initialiser already lays the whole log out synchronously — see ``WaterfallViewModel``'s own
+    /// documentation on why — so paying for that eagerly, twice, on a screen that merely offers the
+    /// page rather than shows it, is the cost `@StateObject` exists to defer.
+    ///
+    /// - Parameters:
+    ///   - logs: The network log view model whose filtered requests are drawn.
+    ///   - openingTime: Seconds from the log's earliest request, for a caller that wants the page
+    ///     to open already centred on a specific moment rather than at the full span, which is
+    ///     what `nil` leaves it at — the only value anything in this module currently passes,
+    ///     including the **See all** link. No internal caller currently supplies a real value: an
+    ///     earlier round of the Traffic Stats section did, from a tap on its own overview strip,
+    ///     before that tap was removed once the strip stopped drawing the whole log — see this
+    ///     type's own top-level documentation. The reasoning below is kept for whichever caller
+    ///     reaches for this parameter next, not only for the one that used to.
+    ///
+    ///     Measured against whichever series a caller's own moment was read from, and reapplied
+    ///     here against this page's own, separately built ``WaterfallViewModel/series``'s origin,
+    ///     on the assumption the two agree. They almost always do: both would ordinarily be built
+    ///     from the same log, moments apart, and an origin only moves when the log's *oldest*
+    ///     surviving request changes, which navigating to this page does not itself cause. What
+    ///     the two builds would *not* share is `now` — each call to
+    ///     `WaterfallSeries.build(from:limit:now:)` defaults it independently, at whatever instant
+    ///     that particular build ran — so a request still pending when the caller read its moment
+    ///     grows this page's own span a little further by the time its `WaterfallViewModel` is
+    ///     built. The passed moment is still centred exactly, in absolute terms; what shifts is
+    ///     *where that moment falls* on this page's own, now slightly longer, strip —
+    ///     proportionally further toward its leading edge than where it sat on the shorter one it
+    ///     was read from. Accepted rather than threaded through as an absolute `Date`: the drift
+    ///     is bounded by how long the push takes and is invisible unless a request is still
+    ///     pending at the exact moment the caller read, and carrying a `Date` end to end would
+    ///     mean converting it back to a `TimeInterval` against *this* page's origin anyway, which
+    ///     is exactly the assumption above with an extra type in the way.
+    init(logs: NetworkLogsViewModel, openingTime: TimeInterval? = nil) {
         self.logs = logs
         _viewModel = StateObject(
             wrappedValue: WaterfallViewModel(
                 requests: logs.requests,
-                totalCount: logs.totalRequestCount
+                totalCount: logs.totalRequestCount,
+                openingTime: openingTime
             )
         )
     }
@@ -77,11 +200,9 @@ struct WaterfallView: View {
             if viewModel.isEmpty {
                 emptyState
             } else {
-                timeline
+                content
             }
         }
-        // The ground the card sits on, which is what a grouped List paints behind its sections.
-        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(localized("Waterfall"))
         .navigationBarTitleDisplayMode(.inline)
         .onFirstAppear {
@@ -96,57 +217,591 @@ struct WaterfallView: View {
         }
     }
 
-    /// The card, and the caption underneath it.
+    /// The page's body once the log holds something: ``minimap``, fixed above ``detail``'s `List`
+    /// rather than scrolling with it, over one continuous inset-grouped-looking background.
     ///
-    /// Wrapped in a `GeometryReader` because the page's scale needs to know how much of the
-    /// timeline shows at once: that is the lower bound on the scale, so that a session too short
-    /// to need scrolling still fills the card rather than huddling at its leading edge.
-    private var timeline: some View {
-        GeometryReader { geometry in
-            let scale = viewModel.scale(
-                visibleWidth: WaterfallChartStyle.plotWidth(inPageWidth: geometry.size.width)
-            )
-            VStack(alignment: .leading, spacing: 0) {
-                card(scale: scale)
-                Text(viewModel.caption)
-                    .font(.footnote)
-                    .foregroundStyle(Color.secondary)
-                    // Aligned with the card's content rather than its edge, the way a grouped
-                    // List aligns a section footer.
-                    .padding(
-                        .horizontal,
-                        WaterfallChartStyle.cardInset + WaterfallChartStyle.cardContentPadding
-                    )
-                    .padding(.vertical, 12)
+    /// A `VStack` rather than a `List` at the top level — again, the reverse of where this went
+    /// one fix round ago. That round put the minimap in a `Section` at the top of the `List` on
+    /// the owner's own direction; asked to try it, the owner then asked whether it could stay
+    /// fixed while the rows scrolled underneath it instead, and a `List` cannot do that: it never
+    /// pins section content the way a table view can pin a header, and `.insetGrouped` does not
+    /// pin section headers either — only `.plain` does, and this list is `.insetGrouped` by an
+    /// explicit, separate instruction that still stands. A section genuinely cannot be sticky
+    /// here, so the minimap moved back to being a sibling — the shape it had before either of the
+    /// last two fix rounds — but now hand-styled to still read as the inset-grouped card it
+    /// briefly, literally was. See ``minimap`` and ``minimapCard`` for that styling and its own
+    /// honest limits.
+    ///
+    /// Unconditional here on purpose, same as ``minimap`` and ``detail`` are individually: this
+    /// property is only ever reached through ``body``, which shows it only once
+    /// ``WaterfallViewModel/isEmpty`` is `false` — "no traffic at all" still shows nothing but
+    /// ``emptyState``, not a floating card above an empty list.
+    ///
+    /// `.background(WaterfallChartStyle.insetGroupedPageBackground)` on the whole `VStack`: the
+    /// `List` beneath already paints that colour on itself, so this is redundant there, but it is
+    /// what keeps the space around and above ``minimap`` — which paints nothing of its own outside
+    /// ``minimapCard``'s own background — from defaulting to whatever colour this view's own
+    /// container happens to be, breaking the seam between the card and the list beneath it.
+    ///
+    /// `VStack(spacing: WaterfallChartStyle.minimapListSpacing)`, not `spacing: 0`: the gap this
+    /// puts between ``minimap`` and ``detail`` is what makes the card read as fixed above a
+    /// scrolling list rather than as one continuous block with the first row. It used to rely on
+    /// `.insetGrouped` giving a `List` some top inset before its first section instead of an
+    /// explicit gap here, on the reasoning that adding one too would double it — reasoning that
+    /// held up only until the owner actually ran this on device and found no gap at all: the card
+    /// and the first row butted directly together. This `spacing` value has supplied the whole gap
+    /// ever since, not a supplement to one the list already gives, and living on the `VStack`
+    /// itself rather than as padding on either sibling is deliberate: the gap belongs to neither
+    /// view individually, it is the relationship between them, and `VStack`'s own `spacing`
+    /// parameter is the one place that is already true of by construction — see
+    /// ``WaterfallChartStyle/minimapListSpacing`` for the figure itself, which the owner has since
+    /// asked to be tightened once already, and how confident this pipeline can be in it now.
+    private var content: some View {
+        VStack(spacing: WaterfallChartStyle.minimapListSpacing) {
+            minimap
+            detail
+        }
+        .background(WaterfallChartStyle.insetGroupedPageBackground)
+    }
+
+    /// The colour legend, unchanged in content since the page's original design: four marks in one
+    /// line, still drawn by a `Chart` of its own from ``WaterfallChartStyle/styleScale``, the one
+    /// place the outcome colours are declared. The Traffic Stats section has no legend of its own
+    /// for this one to match — it draws only the overview strip — so this exists to give the
+    /// full-log page's own bars something naming what each colour means. See
+    /// ``WaterfallLegendView``.
+    ///
+    /// No manual padding on this property itself: ``minimapCard`` applies padding to the `VStack`
+    /// holding this and ``strip`` together, once, rather than each of them carrying its own — see
+    /// that property's own documentation for what that padding is and why.
+    private var legend: some View {
+        WaterfallLegendView()
+    }
+
+    /// The overview strip, carrying the current window and announcing it to VoiceOver.
+    ///
+    /// Back to `.scrub`'s original, continuous zero-distance drag — see
+    /// ``WaterfallOverviewStrip/Interaction/scrub(_:)``'s own documentation for why that is safe
+    /// again now that ``minimapCard`` sits outside any scroll view.
+    ///
+    /// `.accessibilityValue` rather than baking the count into the label: the strip's label
+    /// (``localized(_:)`` `"Traffic overview"`, set inside ``WaterfallOverviewStrip`` itself)
+    /// names *what* the element is, and the value is what VoiceOver re-announces after every
+    /// drag or adjustable-action change — without it, a VoiceOver user swiping to zoom hears
+    /// "Traffic overview" again on every step and has no way to tell anything happened.
+    ///
+    /// Whether ``minimapCard`` also attaches `.accessibilityAdjustableAction` is decided by
+    /// ``WaterfallViewModel/window``'s `canZoom`, not by this property: `canZoom`'s own
+    /// documentation says the page disables the control rather than letting a pinch silently do
+    /// nothing, and an adjustable action offered on an element that cannot act on it breaks that
+    /// promise for VoiceOver the same way an un-disabled pinch would for a sighted reader.
+    private var strip: some View {
+        WaterfallOverviewStrip(series: viewModel.series,
+                               window: viewModel.window,
+                               height: WaterfallOverviewStrip.pageHeight,
+                               interaction: .scrub { viewModel.scrub(to: $0) })
+            .accessibilityValue(viewModel.windowCaption)
+    }
+
+    /// ``minimapHeader``, stacked directly above ``minimapCard`` with a small gap of its own —
+    /// together, the whole fixed unit ``content`` places above ``detail``'s `List`.
+    ///
+    /// A second, inner `VStack` rather than folding the header into ``minimapCard`` itself: the
+    /// header is a section header, styled and positioned to sit *above* the card the way a real
+    /// `.insetGrouped` section header sits above its own card, not inside it. `spacing: 0` here,
+    /// with the gap to ``minimapCard`` beneath it supplied entirely by ``minimapHeader``'s own
+    /// bottom padding rather than by this `VStack`'s `spacing` parameter — this used to matter
+    /// because the header was a conditionally-absent child, not reliably guaranteed to contribute
+    /// zero `spacing` on every SwiftUI version this package supports, and this sidestepped the
+    /// question entirely rather than depending on the answer. ``minimapHeader`` is unconditional
+    /// now — see its own documentation for why — so that particular reason is gone, but `spacing:
+    /// 0` plus the header's own bottom padding is kept anyway: it is one definition of the gap
+    /// rather than two, and there is no longer even a hypothetical case where it would need to be
+    /// zero.
+    ///
+    /// `.padding(.top, 16)` lives here, on the whole unit, not on ``minimapCard`` alone, so the gap
+    /// from the top of the page to the header sitting above the card only has to be applied once.
+    private var minimap: some View {
+        VStack(spacing: 0) {
+            minimapHeader
+            minimapCard
+        }
+        .padding(.top, 16)
+    }
+
+    /// The minimap's own header: a pinch hint on the leading edge before the window has ever been
+    /// touched, and the reset-zoom button on the trailing edge once it has — see
+    /// ``WaterfallViewModel/hasAdjustedWindow``, which drives both, and never both at once, since
+    /// the two are exact inverses of the same flag.
+    ///
+    /// The reset-zoom button was relocated here from the detail list's own section header on the
+    /// owner's own correction: *"The reset zoom button should be on the minimap section not the
+    /// list rows."* The button acts on the window; the window is what the minimap draws; the list
+    /// of rows is a consequence of it, not the thing being reset.
+    ///
+    /// ## The pinch hint
+    ///
+    /// The owner's own framing of the problem: *"nobody knows they can pinch"* — zoom is this
+    /// page's only way to narrow the window, and a pinch is an entirely invisible gesture with
+    /// nothing on screen suggesting it exists. TipKit was asked about and ruled out for two
+    /// reasons, not one: it is iOS 17 against this package's iOS 16 floor, and — the more durable
+    /// reason, one that would still apply even if the floor moved — `Tips.configure()` is
+    /// process-global. A debugging toolkit that is a guest in whatever host app embeds it has no
+    /// business dictating that host's tip storage or display-frequency policy for its own
+    /// unrelated tips just because Scyther happened to configure `TipKit` first. So the hint is
+    /// built into the UI directly, as an ordinary piece of state-driven text, not a system
+    /// affordance.
+    ///
+    /// **Where it goes.** In this header, opposite the reset-zoom button, rather than under the
+    /// strip inside ``minimapCard`` or somewhere else on the page. Three reasons: it sits directly
+    /// above the card the pinch actually acts on — see ``magnification``'s own "Two attachment
+    /// points" for why a pinch anywhere on the card or the detail list beneath it works — so it
+    /// is adjacent to what it describes without being laid over the strip's own drawing, where
+    /// restraint would be harder to keep; it is the first thing above the fold, seen before the
+    /// reader has had any reason to have already discovered the gesture; and reusing this header
+    /// row rather than adding a second one is what keeps the two states — hint, then button — from
+    /// ever needing two different layouts to reconcile.
+    ///
+    /// **How it looks.** `Label(_:systemImage:)` at `.font(.subheadline)` with
+    /// `.foregroundStyle(.secondary)` — plain caption-weight text naming the gesture, `hand.pinch`
+    /// alongside it, in the same secondary grey the detail rows' own duration text uses elsewhere
+    /// on this page. Deliberately not tinted, not bold, and not a `Button` of its own: it names a
+    /// gesture the reader performs directly on the strip and card, not a control this header
+    /// offers in its own right, and giving it any of the reset button's own visual weight would
+    /// have it compete with the strip it sits beside rather than quietly explain it.
+    ///
+    /// **Same font as the button it replaces, on purpose.** The two are never on screen together,
+    /// but they occupy the exact same row, one at a time, and a hint drawn at `.caption` — a size
+    /// smaller than the button's `.subheadline` — would make this header change height the moment
+    /// the reader's first pinch or drag swaps one for the other, which is precisely the jump the
+    /// brief asked to be checked for. Matching the font sizes is what keeps that check honest:
+    /// this header's own height comes from whichever single child is present, and holding that
+    /// child's font constant across both states is what holds the header's height constant too,
+    /// rather than a coincidence resting on how close two different sizes happen to measure.
+    ///
+    /// **Whether `resetWindow()` should bring the hint back.** It does, by construction — clearing
+    /// ``WaterfallViewModel/hasAdjustedWindow`` is exactly what un-hides it, the same flag flip
+    /// that already brings the *button* back to a hint the next time the reader touches the
+    /// window. Judged correct rather than merely accepted: `hasAdjustedWindow` is set by *either*
+    /// ``WaterfallViewModel/zoom(by:)`` or ``WaterfallViewModel/scrub(to:)``, not only the pinch,
+    /// so a reader who has only ever dragged the strip — discovering the scrub gesture without
+    /// ever discovering the pinch — and then reaches for reset (its own button, or the gap empty
+    /// state's identical call to it) has genuinely not yet learned the one thing this hint
+    /// teaches. Re-showing it costs a reader who *has* pinched before very little — a small,
+    /// secondary caption, not a modal or an alert, sitting for as long as the window stays at its
+    /// default again — against a real teaching gap for the reader who has not. A second, sticky
+    /// "has this developer ever pinched, specifically" flag that survived a reset was considered
+    /// and rejected: it would need its own state, its own place to live, and its own tests, to
+    /// solve a narrower problem than `hasAdjustedWindow` already solves for free, and — since nothing
+    /// on this page currently distinguishes a zoom-shaped adjustment from a scrub-shaped one for
+    /// any other purpose — would be new complexity built for exactly one caller.
+    ///
+    /// ## Matching `.insetGrouped`'s own section header by hand
+    ///
+    /// The minimap has not been a real `Section` since an earlier fix round — see
+    /// ``minimapCard``'s own "Why this is not a `Section` any more" — so there is no header slot
+    /// to hang this on the way `TrafficStatsView`'s own sections do. This hand-builds one instead,
+    /// matching what a real header would give it:
+    ///
+    /// - **Horizontal insets** — `WaterfallChartStyle.insetGroupedCardMargin`, the identical figure
+    ///   ``minimapCard`` insets its own rounded background by. A real section header's text lines
+    ///   up with its card's own edges, not with the card's *interior* content padding, so this
+    ///   reads that literally: the same margin, not the card's `.padding()` on top of it.
+    /// - **Typography and secondary colouring** — the reset-zoom button is deliberately styled
+    ///   *away* from these, exactly as `TrafficStatsView.waterfallSection`'s own trailing "See
+    ///   all" link is: `.font(.subheadline)` and `.buttonStyle(.borderless)` read as a control
+    ///   rather than as small-caps chrome. The hint on the opposite edge goes the other way,
+    ///   deliberately: it *is* secondary, muted caption text, because it is not a control at all.
+    ///   What "same typography and secondary colouring" governs for the button specifically is the
+    ///   header as a *concept* — a real section header's small, secondary, uppercased styling is
+    ///   what the button breaks from, the same trade this page's other header button already
+    ///   made. One difference from that precedent, worth naming because it is easy to get wrong
+    ///   copying the reasoning forward: `TrafficStatsView`'s own button needs `.textCase(nil)` to
+    ///   cancel a `List` section header's automatic uppercase transform. This header is not inside
+    ///   a `List` at all, so there is no such transform for `.textCase` to cancel — including it
+    ///   here would be a modifier doing nothing, describing a mechanism that does not apply, which
+    ///   is exactly the kind of doc drift this file has shipped before. Left off, deliberately,
+    ///   not by oversight.
+    ///
+    /// ## Sizing
+    ///
+    /// This view is unconditional now — previously it rendered nothing at all while
+    /// ``WaterfallViewModel/hasAdjustedWindow`` was `false`, and appeared only once it flipped —
+    /// see ``minimap``'s own documentation for why that conditional moved to living entirely
+    /// inside this property's two children instead. `.padding(.bottom,
+    /// WaterfallChartStyle.minimapHeaderSpacing)` is the gap to ``minimapCard`` beneath it; there
+    /// is no top padding of its own, since ``minimap``'s own `.padding(.top, 16)` already supplies
+    /// the gap from the page's own top.
+    ///
+    /// - Important: Not seen rendered. The horizontal alignment against the card, that the header
+    ///   holds a constant height across both its states, and whether the hint reads as helpful
+    ///   rather than as clutter, are all a visual match only the owner running this can confirm —
+    ///   see the fix report.
+    private var minimapHeader: some View {
+        HStack {
+            if !viewModel.hasAdjustedWindow {
+                Label(localized("Pinch to change the range"), systemImage: "hand.pinch")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if viewModel.hasAdjustedWindow {
+                Button(localized("Reset zoom")) {
+                    viewModel.resetWindow()
+                }
+                .font(.subheadline)
+                .buttonStyle(.borderless)
+            }
+        }
+        .padding(.horizontal, WaterfallChartStyle.insetGroupedCardMargin)
+        .padding(.bottom, WaterfallChartStyle.minimapHeaderSpacing)
+    }
+
+    /// The minimap card itself, styled to still read as an inset-grouped card even though it is
+    /// no longer one: the legend explaining the strip's colours, and the strip itself carrying the
+    /// current window, in one row-shaped `VStack` on a rounded, coloured background — fixed above
+    /// ``detail``'s `List` as a sibling in ``content`` (by way of ``minimap``, which also carries
+    /// ``minimapHeader`` above this), rather than scrolling with it, and carrying
+    /// ``magnification`` so a pinch reaches this whole page rather than only its rows — see that
+    /// property's own "Two attachment points" section.
+    ///
+    /// ## Why this is not a `Section` any more
+    ///
+    /// The previous fix round put this in a `Section` at the top of ``detail``'s `List`, on the
+    /// owner's own direction. Having seen that build, the owner then asked whether it could stay
+    /// on screen while the rows scrolled underneath — and a `List` genuinely cannot do that for
+    /// section content: `List` never pins a section's own rows the way a table view can pin a
+    /// section *header*, and even header-pinning is a `.plain`-list behaviour that
+    /// `.insetGrouped` — this page's list style, on its own separate, still-standing instruction
+    /// — does not have at all. There is no modifier that makes a `Section` sticky here; the only
+    /// way to fix this to the top of the screen is to take it out of the scrolling container
+    /// entirely, which is what ``content`` now does.
+    ///
+    /// ## Matching `.insetGrouped` by hand
+    ///
+    /// Four things make an inset-grouped section look the way it does, and this reaches for the
+    /// most exact version of each it can:
+    ///
+    /// - **Background material** — `WaterfallChartStyle.insetGroupedCardBackground`, which is
+    ///   `UIColor.secondarySystemGroupedBackground`. Not a guess: it is the exact semantic colour
+    ///   an `.insetGrouped` `List` fills its own rows with, so the card's *colour* matches the
+    ///   list's own sections exactly, not approximately.
+    /// - **Corner radius** — `WaterfallChartStyle.insetGroupedCardCornerRadius`, `10`pt. The
+    ///   figure most consistently cited for an inset-grouped section's own rounding; not
+    ///   published as an API constant, so an estimate.
+    /// - **Horizontal insets** — `WaterfallChartStyle.insetGroupedCardMargin`, `20`pt from this
+    ///   page's own edges to the card's rounded background. The same figure, and the same
+    ///   estimate, `WaterfallChartStyle.detailRowInteriorChrome` already uses for the detail
+    ///   list's own section margin — reused rather than picked afresh, since both are estimating
+    ///   the same real quantity for two independently hand-built views that need to agree with
+    ///   each other, and with the real `List` beneath them, for the page to read as one screen.
+    /// - **Internal content padding** — plain `.padding()`, SwiftUI's own system-default spacing,
+    ///   rather than a bespoke figure invented to imitate a `List` row's own content insets. This
+    ///   is a deliberate simplification: it is one fewer guessed constant, and "the platform's own
+    ///   default padding" is a defensible stand-in for "whatever a system list row's padding is"
+    ///   in a way a hand-picked number pretending to know that figure exactly would not be.
+    ///   `.padding()` with no arguments applies the identical length to all four edges of the
+    ///   `VStack` below, which itself sizes to exactly `strip` + this `VStack`'s own `8`pt spacing
+    ///   + `legend` with nothing else stretching it — so the card's own top and bottom padding are
+    ///   equal by construction, not merely by intention. What that construction cannot promise is
+    ///   how *balanced* the result reads once ``WaterfallLegendView``'s own `Chart`-drawn legend
+    ///   renders inside its measured height, which is Charts' own layout, not this view's.
+    ///
+    /// What is still not attempted exactly: the gap *between* the card and the list's first row —
+    /// see ``WaterfallChartStyle/minimapListSpacing`` — and the `16`pt gap from the top of the
+    /// page to whichever view is actually first, now on ``minimap`` rather than here since that
+    /// depends on whether ``minimapHeader`` is showing above this card. Both remain plain
+    /// estimates, tuned by eye rather than derived from anything published.
+    ///
+    /// - Important: None of this was seen rendered before the owner's own device pass confirmed
+    ///   the card sits fixed above the list and reads as a section, which is more than this
+    ///   pipeline could check on its own. The colour is exact by construction; the corner radius
+    ///   and the horizontal margin are still estimates nothing here can confirm further — see the
+    ///   fix report for the full account of what is and is not settled.
+    ///
+    /// ## What did not change
+    ///
+    /// Still one row, not two — the strip and the legend are one `VStack`, strip on top, legend
+    /// beneath, no divider between them, exactly as the previous fix round settled it. Only the
+    /// *container* around that `VStack` changed, from a `Section` back to a plain view with its
+    /// own drawn background.
+    private var minimapCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if viewModel.window.canZoom {
+                strip.accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: viewModel.zoom(by: 2)
+                    case .decrement: viewModel.zoom(by: 0.5)
+                    @unknown default: break
+                    }
+                }
+            } else {
+                strip
+            }
+            legend
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: WaterfallChartStyle.insetGroupedCardCornerRadius, style: .continuous)
+                .fill(WaterfallChartStyle.insetGroupedCardBackground)
+        )
+        .padding(.horizontal, WaterfallChartStyle.insetGroupedCardMargin)
+        // The pinch, reachable here too now — see ``magnification``'s own "Two attachment points"
+        // section for why this reads the same declaration ``detail`` attaches rather than a second
+        // copy of the gesture, and why coexisting with the strip's own drag, nested inside this
+        // view, needs nothing further done for it.
+        .simultaneousGesture(magnification, including: viewModel.window.canZoom ? .all : .subviews)
+    }
+
+    /// The detail rows, in their own `List`.
+    ///
+    /// A `List` rather than a `LazyVStack` in a `ScrollView`: rows are `NavigationLink`s and this
+    /// is a menu screen, so it takes the menu's row treatment, separators and press states for
+    /// free rather than hand-rolling them. `.insetGrouped` — not `.plain`, which is what this used
+    /// to be styled and what ``NetworkLogsView`` still is — because the owner asked for it
+    /// explicitly, and because a `List` built from a section with content, the shape this page's
+    /// `List` has, is the same shape `TrafficStatsView`'s own `List` is, which gets its
+    /// inset-grouped card look by not overriding the style at all. That default is exactly
+    /// `.insetGrouped` on iOS, so setting it here explicitly produces the identical appearance
+    /// without this page's own correctness depending on an unwritten default resolving the same
+    /// way on every iOS version the package supports.
+    ///
+    /// Holds only ``detailSection(rowLayout:)`` now — the minimap left this `List` entirely, see
+    /// ``minimapCard``'s own documentation for why a `Section` could not do what the owner asked
+    /// for. `WaterfallChartStyle.detailRowInteriorChrome`'s own row-inset estimate was re-checked
+    /// against that move, not just assumed to still hold: see that constant's own `- Note`.
+    @ViewBuilder
+    private var detail: some View {
+        GeometryReader { proxy in
+            // Named `metrics`, not `rowLayout` — the latter would shadow the
+            // ``WaterfallView/rowLayout(in:)`` method this line calls, which a local `let` of the
+            // same name silently breaks: every reference to `rowLayout` below this line would
+            // resolve to the constant instead of the method, including the one computing it.
+            let metrics = rowLayout(in: proxy.size.width)
+            List {
+                detailSection(rowLayout: metrics)
+            }
+            .listStyle(.insetGrouped)
+            .onAppear { viewModel.configureWindow(plotWidth: metrics.plotWidth) }
+            .onChange(of: proxy.size.width) { _ in
+                viewModel.configureWindow(plotWidth: rowLayout(in: proxy.size.width).plotWidth)
+            }
+            .onChange(of: dynamicTypeSize) { _ in
+                viewModel.configureWindow(plotWidth: rowLayout(in: proxy.size.width).plotWidth)
+            }
+        }
+        // Attached to the `GeometryReader` — the container this property returns — rather than
+        // chained onto the `List` inside it, and with `.simultaneousGesture` rather than
+        // `.gesture`. Both changed together as the fix ``magnification``'s own documentation
+        // describes in full, and neither moved when the minimap later left this `List`: that
+        // changed what the `List` contains, not what wraps the `List` itself, so this attachment
+        // point was untouched — it just stopped being the *only* one, once a pinch over the strip
+        // was reported as reaching nothing. See ``magnification``'s own "Two attachment points"
+        // section for the second one, on ``minimapCard``, and why both read this one declaration
+        // rather than each carrying a copy. `.subviews` rather than `.all` when zoom is
+        // impossible: it disables the pinch this modifier adds while still letting the `List`
+        // recognise its own scroll and press gestures, so a request the window cannot narrow any
+        // further does not also lose its scroll. See `canZoom`'s own documentation on why the
+        // page disables the gesture rather than letting a pinch silently do nothing.
+        .simultaneousGesture(magnification, including: viewModel.window.canZoom ? .all : .subviews)
+    }
+
+    /// The detail section: the rows the window holds, or ``windowEmptyState`` when it holds none —
+    /// captioned, when it holds rows, with how many of the log's requests they are.
+    ///
+    /// The caption used to sit below the whole `List` as a `Text` of its own, outside every
+    /// section. It is this section's own footer instead, on the owner's own direction after
+    /// driving the build: a footer is exactly SwiftUI's slot for a line explaining what a
+    /// section's rows are, and this caption has always been exactly that — see
+    /// ``WaterfallViewModel/windowCaption``.
+    ///
+    /// The footer is shown only alongside the rows, not alongside ``windowEmptyState``: a footer
+    /// naming how many requests are showing is noise underneath an empty state that already says,
+    /// in its own words, that none are. `viewModel.isWindowEmpty` is what already chooses between
+    /// the two content branches above, so the footer reads the same condition rather than a second
+    /// one that could drift from it.
+    ///
+    /// ## No header — moved, not merely removed
+    ///
+    /// This section briefly had a header of its own holding the reset-zoom button, for exactly one
+    /// fix round. The owner: *"The reset zoom button should be on the minimap section not the list
+    /// rows"* — the button acts on the window, the window is what the minimap draws, and these
+    /// rows are only ever a consequence of it. See ``WaterfallView/minimapHeader`` for where it
+    /// lives now. Nothing else was ever asked of this section's header, so none of it earned a
+    /// reason to stay behind: this now calls the two-closure `Section(content:footer:)`, with no
+    /// `header:` argument at all, rather than a three-closure form whose header closure always
+    /// produced nothing — a `Section` told outright that it has no header, rather than one merely
+    /// never showing the one it has, is what rules out that header closure contributing any space
+    /// of its own to the list's own layout above its first row, which an always-empty closure
+    /// would leave this pipeline no way to check.
+    ///
+    /// - Parameter rowLayout: How wide this frame's rows should draw their columns, from
+    ///   ``WaterfallView/rowLayout(in:)``.
+    @ViewBuilder
+    private func detailSection(rowLayout: WaterfallDetailRowMetrics.Layout) -> some View {
+        Section {
+            if viewModel.isWindowEmpty {
+                windowEmptyState
+            } else {
+                ForEach(viewModel.visibleRows) { row in
+                    NavigationLink {
+                        LogDetailsView(httpRequest: row.request)
+                    } label: {
+                        WaterfallDetailRow(row: row, window: viewModel.window,
+                                           showsHost: viewModel.showsHost,
+                                           labelWidth: rowLayout.labelWidth,
+                                           durationWidth: rowLayout.durationWidth)
+                    }
+                }
+            }
+        } footer: {
+            if !viewModel.isWindowEmpty {
+                Text(viewModel.windowCaption)
             }
         }
     }
 
-    /// The legend, and the scrollable timeline under it, in an inset grouped card.
+    /// How one row divides its width between the label column, the plot, and the duration column,
+    /// and therefore also the width the plot's zoom limit is computed from.
     ///
-    /// The legend sits outside the scroll view rather than above the ruler inside it: it explains
-    /// four colours and has nothing to do with time, so scrolling it sideways with the axis would
-    /// be nonsense. Outside, it also gets the card's full content width, which is what stops
-    /// "Stubbed" wrapping onto a second line the way it did when it shared the ruler's row.
+    /// A thin wrapper around `WaterfallDetailRowMetrics.layout(rowWidth:scaledLabelWidth:scaledDurationWidth:)`,
+    /// which does the actual arithmetic and carries its own documentation of the rule this applies.
+    /// This exists only to supply that function with the two values only a view can produce —
+    /// ``scaledLabelWidth`` and ``scaledDurationWidth``, each a `@ScaledMetric` — so every caller
+    /// in this file reads the columns' width from the same two properties `WaterfallDetailRow` is
+    /// handed, rather than each recomputing its own `@ScaledMetric`, which is exactly how the
+    /// value ``detail`` fed ``WaterfallViewModel/configureWindow(plotWidth:)`` and the value the
+    /// row actually drew its columns at used to disagree: this function and `WaterfallDetailRow`
+    /// now both terminate at the same two stored properties, so there is only one number for
+    /// either of them to be wrong about.
     ///
-    /// - Parameter scale: The page's time scale.
-    /// - Returns: The card.
-    private func card(scale: WaterfallTimeScale) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            WaterfallLegendView()
-                .padding(.horizontal, WaterfallChartStyle.cardContentPadding)
-                .padding(.top, 8)
-            WaterfallTimelineView(rows: viewModel.rows, scale: scale)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: WaterfallChartStyle.cardCornerRadius,
-                                    style: .continuous))
-        .padding(.horizontal, WaterfallChartStyle.cardInset)
-        .padding(.top, 8)
+    /// - Parameter rowWidth: The full width one row is given, from the list's own geometry.
+    /// - Returns: The label, plot and duration widths the row should draw at, none of which put
+    ///   together ever exceed `rowWidth`.
+    private func rowLayout(in rowWidth: CGFloat) -> WaterfallDetailRowMetrics.Layout {
+        WaterfallDetailRowMetrics.layout(rowWidth: rowWidth,
+                                         scaledLabelWidth: scaledLabelWidth,
+                                         scaledDurationWidth: scaledDurationWidth)
     }
 
-    /// The placeholder shown for a log with nothing in it.
+    /// Pinch to zoom, running alongside the list's scrolling rather than instead of it.
+    ///
+    /// `MagnificationGesture` and not `MagnifyGesture`: the package's floor is iOS 16 and
+    /// `MagnifyGesture` is iOS 17.
+    ///
+    /// ## Two attachment points, one gesture
+    ///
+    /// Attached twice — once to ``detail``'s `GeometryReader`, once to ``minimapCard`` — because
+    /// the owner reported the pinch working everywhere on the page *except* over the strip, which
+    /// followed directly from the previous fix round: the minimap moved out from inside
+    /// ``detail``'s `List` to become a sibling above it, and a gesture attached to the `List`'s
+    /// own container reaches nothing outside that container. Zooming has to work wherever the
+    /// finger lands on this screen, not only over the rows.
+    ///
+    /// This property, not a second one, is what both call sites attach: `private var magnification`
+    /// is a computed property, so `.simultaneousGesture(magnification, ...)` at either call site
+    /// reads the same declaration and produces a `Gesture` value built from the same
+    /// `onChanged`/`onEnded` closures, which in turn close over the same `self` — the same
+    /// ``lastMagnification`` and the same ``WaterfallViewModel``. Two attachment points reading
+    /// one declaration is what the owner's own instruction asked for — "factor it so both
+    /// attachments drive the same code rather than maintaining two copies that can drift" — and
+    /// is different in kind from writing the gesture out twice: there is exactly one place either
+    /// attachment's behaviour could be wrong, and fixing it fixes both.
+    ///
+    /// Both attachments use `.simultaneousGesture`, and both gate `including:` on
+    /// ``WaterfallViewModel/window``'s `canZoom` the same way ``detail`` already did — see that
+    /// property's own inline comment for why `.subviews` rather than `.all` when zoom is
+    /// impossible. Coexisting with ``WaterfallOverviewStrip``'s own scrub drag, attached *inside*
+    /// ``minimapCard`` on the strip itself via plain `.gesture(_:)`, needs no special handling
+    /// beyond that: a `MagnificationGesture` only ever recognises a genuine two-finger touch, and
+    /// ``WaterfallOverviewStrip/scrubGesture(width:onScrub:)`` is a one-finger `DragGesture` —
+    /// the two are never simultaneously candidates for the same touch sequence, so nothing about
+    /// adding the pinch here changes what the strip's own drag already did or how it was already
+    /// attached. The one scenario this reasoning does not cover, and nothing in this pipeline can
+    /// check, is a pinch whose two touch points start on either side of the gap between the card
+    /// and the list — whether that recognises as one pinch spanning both attachments, one, or
+    /// neither is untested.
+    ///
+    /// ## Why this never recognised, and what changed
+    ///
+    /// This shipped attached to ``detail``'s `List` with plain `.gesture(_:including:)` — SwiftUI's
+    /// *lowest*-priority attachment, which only recognises once every other gesture in the
+    /// responder chain has failed to. A `List` owns a pan recogniser of its own for scrolling, and
+    /// on device that recogniser claims a touch sequence, pinch included, before deferring to
+    /// anything lower priority — so the `MagnificationGesture` sat behind a recogniser that never
+    /// failed, and never recognised at all. That is the reported defect: the pinch does nothing,
+    /// full stop, on any log long enough to need it.
+    ///
+    /// The fix is ``detail`` attaching this with `.simultaneousGesture(_:including:)` instead —
+    /// and attaching it to the `GeometryReader` that wraps the `List`, not to the `List` itself.
+    /// Both changes matter:
+    ///
+    /// - `.simultaneousGesture` tells SwiftUI the two gestures are allowed to recognise together,
+    ///   rather than requiring the `List`'s own recogniser to fail first — which is precisely the
+    ///   dependency that made plain `.gesture(_:)` never fire.
+    /// - Attaching it one level up, to the `GeometryReader`, rather than chaining it directly onto
+    ///   the `List`: `List` bridges to a UIKit `UICollectionView`, which owns and arbitrates its
+    ///   *own* gesture-recogniser subsystem beneath whatever SwiftUI modifiers are chained onto
+    ///   the `List` value itself. A SwiftUI gesture attached to an ancestor view sits in a
+    ///   different part of the hosting hierarchy, closer to the window, rather than nested inside
+    ///   that subsystem — which is judgement about where a SwiftUI-recognised gesture is most
+    ///   likely to be let through by a UIKit-backed scroll view's own recogniser, not a
+    ///   documented Apple guarantee. It is the more conservative of the two reasonable places to
+    ///   attach this, so it is where this fix puts it.
+    ///
+    /// **What this should do to one-finger scrolling: nothing.** `MagnificationGesture` only
+    /// recognises a two-finger pinch; a one-finger drag never satisfies it regardless of which
+    /// priority it is attached with, so `.simultaneousGesture` allowing the two to run together
+    /// has nothing to arbitrate for an ordinary scroll — the `List`'s pan recogniser is the only
+    /// one that ever sees a single touch. The behaviour this change actually gambles on is what
+    /// happens on a genuine two-finger touch: before, the `List` won it outright and the pinch
+    /// never ran; now both are allowed to recognise, so the list may also register some vertical
+    /// motion for the duration of a pinch. That is the accepted cost of choosing a gesture over a
+    /// dedicated zoom control — recorded in the design spec's own "Zoom" section — not a new one
+    /// this fix introduces.
+    ///
+    /// **On verification:** nobody in this pipeline can drive a two-finger pinch — RocketSim has
+    /// no pinch verb, and this repository has no UI test harness. What *is* checked automatically:
+    /// this gesture's closures are ordinary Swift code with no SwiftUI-only dependency, so
+    /// `WaterfallViewModelTests` exercises ``WaterfallViewModel/zoom(by:)`` — exactly what
+    /// `onChanged` below calls — directly, and that coverage is unaffected by any of this. What it
+    /// does not and cannot show is that the gesture recognises on a real touch sequence at all.
+    ///
+    /// The `detail` attachment *is* now confirmed: the owner ran this on device and reported the
+    /// pinch working "everywhere" — which is also the report that named the minimap as the one
+    /// place it did not reach, since this property was not yet attached there at all. The
+    /// `minimapCard` attachment above is new precisely because of that report, has not itself been
+    /// run on device, and is what still needs the owner's own pass — along with confirming a pinch
+    /// there does not disturb the strip's own one-finger drag, the coexistence this doc's own "Two
+    /// attachment points" section reasons through but cannot check.
+    ///
+    /// ## `.onChanged`/`.onEnded`, not `.updating(_:body:)`
+    ///
+    /// This also used to be driven through `.updating($lastMagnification)`, which is the safer
+    /// shape only while the gesture can be cancelled by the `List` stealing the sequence — see
+    /// ``lastMagnification``'s own documentation, which covers this in full. That risk is gone now
+    /// that the gesture recognises independently rather than behind the `List`'s own, and
+    /// `.updating(_:body:)`'s own contract — a closure meant to update only the transient gesture
+    /// state it is attached to, not to push side effects into other observed state — is what makes
+    /// `.onChanged`/`.onEnded` the better fit now, not merely an equivalent one.
+    private var magnification: some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                guard value.isFinite, value > 0, lastMagnification > 0 else { return }
+                viewModel.zoom(by: Double(value / lastMagnification))
+                lastMagnification = value
+            }
+            .onEnded { _ in
+                lastMagnification = 1
+            }
+    }
+
+    /// The placeholder shown for a log with nothing in it at all.
+    ///
+    /// Distinct from ``windowEmptyState``, which answers ``WaterfallViewModel/isWindowEmpty``: this
+    /// is the whole log holding nothing to draw a strip or a window over in the first place, so
+    /// ``body`` shows this instead of ``content`` entirely — no ``minimap`` floating above an
+    /// empty list, no detail list either.
     @ViewBuilder
     private var emptyState: some View {
         if #available(iOS 17.0, *) {
@@ -172,307 +827,444 @@ struct WaterfallView: View {
             .padding()
         }
     }
-}
 
-/// The scrollable part of the page: the ruler, pinned, over one lazily built row per request.
-///
-/// One scroll view carrying both axes, which is the whole trick. The ruler is a pinned section
-/// header inside it, so it holds the top of the card vertically while travelling horizontally
-/// with the bars — in the same layout pass, not a frame behind, which is what any solution built
-/// out of two scroll views and a published offset would give. The frozen label column is the
-/// mirror image: it lives inside each row and inside the header, and counter-offsets itself by
-/// the row's own position in the scroll view's coordinate space.
-private struct WaterfallTimelineView: View {
-    /// The rows to draw, oldest first.
-    let rows: [WaterfallViewModel.Row]
-
-    /// The page's time scale.
-    let scale: WaterfallTimeScale
-
-    /// The coordinate space the frozen column measures itself against.
+    /// The placeholder shown when the window is over a stretch of the log with nothing in it.
     ///
-    /// Named on the scroll view, so a row's `minX` in this space is zero at rest and negative
-    /// once the timeline has been scrolled — which is exactly the figure
-    /// ``WaterfallChartStyle/frozenColumnOffset(leadingEdge:)`` takes.
-    private static let coordinateSpace = "ScytherWaterfallTimeline"
-
-    var body: some View {
-        ScrollView([.horizontal, .vertical]) {
-            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                Section {
-                    ForEach(rows) { row in
-                        NavigationLink {
-                            LogDetailsView(httpRequest: row.request)
-                        } label: {
-                            WaterfallRowView(
-                                row: row,
-                                scale: scale,
-                                coordinateSpace: Self.coordinateSpace
-                            )
-                        }
-                        // Plain, because the row is a chart: the automatic link style would tint
-                        // the bar's label and its duration in the accent colour, and the two
-                        // surfaces would no longer look like the same chart.
-                        .buttonStyle(.plain)
-                    }
-                } header: {
-                    WaterfallRulerView(scale: scale, coordinateSpace: Self.coordinateSpace)
+    /// Distinct from ``emptyState``, which answers the whole log holding no traffic at all: this
+    /// one answers ``WaterfallViewModel/isWindowEmpty`` — traffic exists elsewhere in the log, the
+    /// current window just is not over any of it. Shown as ``detailSection(rowLayout:)``'s own
+    /// content rather than in place of the whole page, because ``minimap`` above it is still
+    /// showing something real and must stay on screen: a developer who dragged into a gap still
+    /// needs to see where the window sits to drag it back out of one, which swapping the entire
+    /// page for a placeholder — the way ``emptyState`` replaces ``content`` outright — would take
+    /// away.
+    ///
+    /// Replaces a bare `Text` row that used to sit here reading "No requests in this part of the
+    /// log." — which looked like a stray list item rather than a state of the page, the defect
+    /// report this whole fix was written from. Built in the same idiom as ``emptyState``: a title,
+    /// an icon and a description behind `#available(iOS 17.0, *)`, with the same hand-built
+    /// fallback below it for the package's iOS 16 floor. What this state carries that ``emptyState``
+    /// does not is a way out: a request that lands here got there because it was dragged or zoomed
+    /// into a gap, and unlike an empty log — nothing to do about that but wait for traffic — a gap
+    /// in a log that has traffic elsewhere is only ever one tap away from somewhere with something
+    /// to show. The button calls ``WaterfallViewModel/resetWindow()`` directly; see that method's
+    /// own documentation for why it returns to the most recent traffic rather than the whole span.
+    ///
+    /// `ContentUnavailableView`'s three-slot `label:description:actions:` initialiser is what
+    /// supplies that action slot on iOS 17 — the stock SwiftUI shape for exactly this, an
+    /// unavailable-content view with something to do about it, rather than a hand-rolled button
+    /// bolted onto the two-slot convenience initialiser ``emptyState`` uses. The iOS 16 fallback
+    /// hand-builds the same four elements with a stock `Button`.
+    ///
+    /// - Note: The button carries no `.buttonStyle` on either branch, on the owner's own
+    ///   direction after driving the build: `ContentUnavailableView`'s `actions:` slot already
+    ///   styles whatever it is given as the plain tinted text link Apple's own empty states use,
+    ///   and `.buttonStyle(.borderedProminent)` — this page's usual convention for a screen's one
+    ///   primary action elsewhere — fought that here, rendering as a filled capsule that read as
+    ///   a call to action heavier than "go back to where you were." The iOS 16 fallback's `Button`
+    ///   matches it deliberately, styleless, rather than diverging between the two branches.
+    ///
+    /// The title is `"Quiet Stretch"`, not the fuller `"No Requests in This Window"` this first
+    /// read: that title truncated on a standard iPhone width — `ContentUnavailableView`'s title
+    /// is a single line — and the description immediately beneath it already carries the
+    /// explanation in full, so the title only ever needed to name the state, not describe it.
+    ///
+    /// The icon is `"tray"`, not `"timelapse"` this first drew: a dashed, circular glyph read as
+    /// an in-progress spinner to the owner driving the build, telling the reader something was
+    /// still arriving when nothing was — the opposite of what an empty state should say. `"tray"`
+    /// is Apple's own canonical choice for "nothing here" (it is the icon `ContentUnavailableView`
+    /// is demonstrated with in Apple's own documentation), has no animated or loading connotation,
+    /// and reads the same whether the log is a request short of arriving or has been quiet for an
+    /// hour.
+    @ViewBuilder
+    private var windowEmptyState: some View {
+        if #available(iOS 17.0, *) {
+            ContentUnavailableView {
+                Label(localized("Quiet Stretch"), systemImage: "tray")
+            } description: {
+                Text(localized("The window is over a quiet stretch of the log. Move it back to see the most recent traffic."))
+            } actions: {
+                Button(localized("Show Recent Traffic")) {
+                    viewModel.resetWindow()
                 }
             }
+        } else {
+            VStack(spacing: 16) {
+                Image(systemName: "tray")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.secondary)
+                Text(localized("Quiet Stretch"))
+                    .font(.headline)
+                Text(localized("The window is over a quiet stretch of the log. Move it back to see the most recent traffic."))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Button(localized("Show Recent Traffic")) {
+                    viewModel.resetWindow()
+                }
+            }
+            .padding()
         }
-        .coordinateSpace(name: Self.coordinateSpace)
-        // Outside the scroll view, not inside its content: an inset applied to the content would
-        // travel with it, and the frozen column would slide from the card's content margin to its
-        // bare edge the moment the reader scrolled.
-        .padding(.horizontal, WaterfallChartStyle.cardContentPadding)
     }
 }
 
-/// One request's row on the full-log waterfall: its name, frozen at the leading edge, and its bar
-/// somewhere along a timeline far wider than the screen.
+/// Where one row's bar is drawn inside the detail list's plot.
 ///
-/// The bar is a filled rectangle rather than a `Chart`, and that is a deliberate step away from
-/// the preview. A `BarMark` with both axes and the legend hidden *is* a filled rectangle with a
-/// caption beside it, and asking Charts to lay one out inside a plot tens of thousands of points
-/// wide, once per row, buys nothing for a real cost. Everything a reader could compare against the
-/// preview — thickness, colour, the duration label and the four points of air before it — still
-/// comes from ``WaterfallChartStyle``.
-private struct WaterfallRowView: View {
+/// Separated from ``WaterfallDetailRow`` for the same reason ``WaterfallStripGeometry`` is
+/// separated from ``WaterfallOverviewStrip``: a `GeometryReader`'s content cannot be inspected by
+/// a test, so pulling the arithmetic out into a pure function is what makes it something a test
+/// can drive directly instead of asserting against rendered pixels.
+enum WaterfallDetailGeometry {
+
+    /// Where one row's bar sits inside the window, clipped at both edges.
+    ///
+    /// The left edge is pulled back before ``WaterfallChartStyle/detailMinimumBarWidth`` is
+    /// applied, not after — the same shape
+    /// ``WaterfallStripGeometry/barRect(index:count:start:duration:span:size:)`` and
+    /// ``WaterfallStripGeometry/windowRect(startFraction:durationFraction:size:)`` already fix,
+    /// and the defect this function used to carry as `WaterfallDetailRow.barRect(in:)`: because
+    /// ``WaterfallWindow/contains(start:duration:)`` is inclusive of the window's right edge, an
+    /// entry starting exactly there is part of `visibleRows` and computed a raw `x` of exactly
+    /// `size.width`; the old code applied the width floor *after* clamping `x`, so the floored
+    /// rect's far edge ran past `size.width` and drew entirely outside the plot — removed by the
+    /// row's own `.clipped()`, leaving a row with a label, a duration, and no bar to show for it.
+    /// Pulling `x` back first means the two clamps can never fight: the rect this returns is
+    /// always at least ``WaterfallChartStyle/detailMinimumBarWidth`` wide when `size` is that
+    /// wide, and always inside `size`.
+    ///
+    /// Clipping rather than shrinking: a request that outlives the window is drawn flush to the
+    /// edge, so the clip reads as "continues" instead of as a shorter request than it was.
+    ///
+    /// - Parameters:
+    ///   - start: The entry's start, in seconds from the series origin.
+    ///   - duration: The entry's length in seconds.
+    ///   - window: The window the bar is positioned and clipped against.
+    ///   - size: The plot's measured size, from the row's own `GeometryReader`.
+    /// - Returns: The rect to fill, always inside `size`.
+    static func barRect(start: TimeInterval, duration: TimeInterval, window: WaterfallWindow, size: CGSize) -> CGRect {
+        guard window.duration > 0, size.width > 0 else { return .zero }
+        let scale = size.width / CGFloat(window.duration)
+        let rawStart = CGFloat(start - window.start) * scale
+        let rawEnd = CGFloat(start + duration - window.start) * scale
+        let clippedStart = min(max(0, rawStart), size.width)
+        let clippedEnd = min(max(0, rawEnd), size.width)
+        let x = min(clippedStart, max(0, size.width - WaterfallChartStyle.detailMinimumBarWidth))
+        let rawWidth = clippedEnd - clippedStart
+        let width = min(max(rawWidth, WaterfallChartStyle.detailMinimumBarWidth), max(0, size.width - x))
+        return CGRect(x: x, y: 0, width: width, height: WaterfallChartStyle.barThickness)
+    }
+}
+
+/// How the detail row divides its width between the label column, the plot, and the duration
+/// column, given the row's own width and how wide Dynamic Type wants the two fixed columns to be.
+///
+/// Exists because ``WaterfallView/rowLayout(in:)`` — the function feeding
+/// ``WaterfallViewModel/configureWindow(plotWidth:)`` the width the zoom limit is computed against
+/// — used to subtract ``WaterfallChartStyle/detailLabelWidth`` and
+/// ``WaterfallChartStyle/detailDurationWidth``'s *unscaled* base values, while `WaterfallDetailRow`
+/// drew its columns at their own, separately computed `@ScaledMetric` widths. The two agreed at
+/// the default text size, where a `@ScaledMetric` barely moves off its base value, and diverged
+/// the moment Dynamic Type grew past it: the zoom limit kept assuming 132pt and 62pt columns while
+/// the row actually drew columns that could be more than three times that wide at the largest
+/// accessibility category. That is a single value computed two different ways in two different
+/// places, which is the shape every drift in this feature has taken — see ``WaterfallDetailGeometry``
+/// and ``WaterfallStripGeometry`` for the same lesson applied to bar position. The fix is the same
+/// one those types apply: there is now exactly one function that computes the three widths, and
+/// both the plot-width calculation and the row's own columns read its answer instead of each
+/// deriving their own.
+///
+/// ## The rule once the columns no longer fit
+///
+/// At the largest accessibility category the two `@ScaledMetric` columns alone can demand more
+/// width than an ordinary row has — roughly 421pt and 198pt together against a content width near
+/// 358pt, measured at AX5 — which a plain `.frame(width:)` does not shrink to accommodate. Left
+/// uncorrected, the flexible plot column between them is squeezed to nothing and the row overflows
+/// past the screen's edge.
+///
+/// This caps the two columns' combined width, proportionally, at whatever is left of the row after
+/// its fixed chrome (``WaterfallChartStyle/detailRowInteriorChrome``,
+/// ``WaterfallChartStyle/detailRowDisclosureReserve``) and ``WaterfallChartStyle/minimumPlotWidth``
+/// are both reserved — rather than the alternative of dropping the plot column past some threshold
+/// once it would otherwise be squeezed. The plot is what makes this page a *waterfall* rather than
+/// a plain list of durations: it is the one place two requests' overlap is visible at a glance,
+/// which the label and duration columns do not carry between them however much room they are
+/// given. A reader at an accessibility text size has, if anything, more reason to want that
+/// picture, not less — losing fine motor control or reading a shrunk screen from a distance are
+/// common reasons to raise text size, and neither one makes "did these two requests overlap"
+/// stop mattering. So the plot keeps its floor and the two text columns give way instead, split
+/// proportionally to how wide `@ScaledMetric` wanted each of them so neither one is starved
+/// disproportionately: the label and duration text still truncates or wraps rather than clipping
+/// outright — see `WaterfallDetailRow`'s own `.lineLimit`/`.truncationMode` — so a reader loses
+/// some characters at the extreme end of Dynamic Type rather than losing the chart entirely.
+///
+/// - Note: This only guarantees ``WaterfallChartStyle/minimumPlotWidth`` when the row is at least
+///   that wide plus its fixed chrome — true of every iPhone and iPad screen width the toolkit
+///   supports, including Slide Over's narrowest multitasking width. A row narrower even than the
+///   chrome and the floor together — theoretical, not something any supported device produces —
+///   still cannot overflow, because ``layout(rowWidth:scaledLabelWidth:scaledDurationWidth:)``
+///   never reports a plot wider than what is actually left once the (now possibly zero) columns
+///   and the chrome are subtracted; it simply can no longer promise the floor in that case.
+enum WaterfallDetailRowMetrics {
+
+    /// The three widths one row should draw its columns at.
+    struct Layout: Equatable {
+        /// The label column's width, in points.
+        let labelWidth: CGFloat
+
+        /// The plot column's width, in points. Never wider than the space actually left after
+        /// ``labelWidth``, ``durationWidth`` and the row's fixed chrome are accounted for.
+        let plotWidth: CGFloat
+
+        /// The duration column's width, in points.
+        let durationWidth: CGFloat
+    }
+
+    /// The row's fixed horizontal overhead beyond the label and duration columns: the row's own
+    /// `HStack` gaps and `List` insets, plus the `NavigationLink` disclosure chevron's reserve.
+    /// See ``WaterfallChartStyle/detailRowInteriorChrome`` and
+    /// ``WaterfallChartStyle/detailRowDisclosureReserve`` for what each term covers.
+    static var fixedChrome: CGFloat {
+        WaterfallChartStyle.detailRowInteriorChrome + WaterfallChartStyle.detailRowDisclosureReserve
+    }
+
+    /// Computes the row's three column widths for a row of `rowWidth`.
+    ///
+    /// - Parameters:
+    ///   - rowWidth: The full width one row is given, from the list's own geometry — the same
+    ///     value ``WaterfallView/rowLayout(in:)`` passes through unchanged.
+    ///   - scaledLabelWidth: ``WaterfallChartStyle/detailLabelWidth`` after `@ScaledMetric` has
+    ///     scaled it for the reader's current text size.
+    ///   - scaledDurationWidth: ``WaterfallChartStyle/detailDurationWidth``, scaled the same way.
+    /// - Returns: The label, plot and duration widths the row should draw at. Their sum plus
+    ///   ``fixedChrome`` never exceeds `rowWidth`, so the row this feeds can never overflow it.
+    static func layout(rowWidth: CGFloat, scaledLabelWidth: CGFloat, scaledDurationWidth: CGFloat) -> Layout {
+        let safeRowWidth = max(0, rowWidth)
+        let naiveLabelWidth = max(0, scaledLabelWidth)
+        let naiveDurationWidth = max(0, scaledDurationWidth)
+        let naiveColumnsWidth = naiveLabelWidth + naiveDurationWidth
+
+        // What the two columns may spend together while still leaving the plot its floor. `0`
+        // when the row is too narrow even for the chrome and the floor alone — see this type's
+        // own documentation for what happens then.
+        let columnsBudget = max(0, safeRowWidth - fixedChrome - WaterfallChartStyle.minimumPlotWidth)
+
+        let labelWidth: CGFloat
+        let durationWidth: CGFloat
+        if naiveColumnsWidth <= columnsBudget || naiveColumnsWidth <= 0 {
+            // The columns already fit alongside a full-floor plot at their natural scaled width —
+            // the ordinary case at every text size up to roughly AX2 on a typical iPhone width —
+            // so nothing is capped.
+            labelWidth = naiveLabelWidth
+            durationWidth = naiveDurationWidth
+        } else {
+            // Scale both columns down by the same factor, so the ratio `@ScaledMetric` chose
+            // between them — the label wider than the duration, matching their base 132:62 split
+            // — survives the cap instead of one column being starved to save the other.
+            let scale = columnsBudget / naiveColumnsWidth
+            labelWidth = naiveLabelWidth * scale
+            durationWidth = naiveDurationWidth * scale
+        }
+
+        // Derived from what is actually left, not re-floored to `minimumPlotWidth`: whenever
+        // `columnsBudget` was reachable above, this equals `minimumPlotWidth` exactly (or more, if
+        // the columns didn't need the whole budget). In the narrower-than-the-floor-itself case
+        // `columnsBudget` already collapsed to `0`, so this reports whatever genuinely remains —
+        // which is the promise this type's own documentation makes: the plot is never reported as
+        // wider than it actually is.
+        let plotWidth = max(0, safeRowWidth - fixedChrome - labelWidth - durationWidth)
+
+        return Layout(labelWidth: labelWidth, plotWidth: plotWidth, durationWidth: durationWidth)
+    }
+}
+
+/// One request in a waterfall detail list: who it went to, what it was, when it happened inside
+/// the window, and how long it took.
+///
+/// Its own small view rather than a case inside ``WaterfallView``, since it exists only for a
+/// list of these. The bar is a filled rectangle rather than a `Chart`, for the same reason the old
+/// page's rows were: a `BarMark` with both axes and the legend hidden *is* a filled rectangle, and
+/// asking Charts to lay one out per row buys nothing a `RoundedRectangle` does not already give
+/// for free. The row's thickness, colour, row height and duration label all come from
+/// ``WaterfallChartStyle``, which is what keeps a request's colour here the same one the overview
+/// strip drew it in before this row existed to be tapped.
+///
+/// The bar conveys a request's length by width and its outcome by fill colour, neither of which
+/// is anything to VoiceOver, so the row collapses itself into one accessibility element with a
+/// composed label naming the host, the request, its outcome and its duration — see
+/// ``accessibilityLabel``.
+///
+/// The visible host is conditional in a way the accessibility label is not: see ``showsHost`` and
+/// ``label``.
+///
+/// Not `private` any more: `TrafficStatsView`'s own preview of the most recent handful of
+/// requests reuses this exact type rather than a second row that could quietly drift from it —
+/// the owner's own instruction, once the section stopped drawing the whole log as an unreadable
+/// scatter and needed real, tappable rows beneath its own small strip. Nothing about this type's
+/// own shape needed to change to make that work: it already took its `window` as a plain value
+/// rather than reaching into a specific view model, so a second caller supplying its own
+/// `WaterfallWindow` — one spanning a five-request series rather than a zoomed slice of a whole
+/// log — was already exactly what its existing parameters allow. See
+/// `TrafficStatsView.waterfallSection` for that caller and what it constructs to satisfy this
+/// type's contract.
+struct WaterfallDetailRow: View {
     /// The row to draw.
     let row: WaterfallViewModel.Row
 
-    /// The page's time scale, identical for every row and for the ruler above them.
-    let scale: WaterfallTimeScale
+    /// The current window, which is what the bar is placed and clipped against.
+    let window: WaterfallWindow
 
-    /// The scroll view's coordinate space, which the frozen column measures itself against.
-    let coordinateSpace: String
+    /// Whether the log holds more than one distinct host, from
+    /// ``WaterfallViewModel/showsHost``. `false` hides the host entirely rather than drawing it
+    /// dimmed: repeating the same host on every row of a single-host log is noise, and worse, it
+    /// crowds out the path even when there is nothing for the host to distinguish.
+    let showsHost: Bool
 
     /// The row's height, scaled against the reader's text size.
     ///
-    /// Scaled rather than constant because the label beside the bar grows with Dynamic Type; a
-    /// constant height would clip it at exactly the sizes where it most needs to be legible.
+    /// Scaled rather than constant for the same reason the old page's rows were: the label beside
+    /// the bar grows with Dynamic Type, and a constant height would clip it at exactly the sizes
+    /// where it most needs to be legible.
+    ///
+    /// Still this row's own `@ScaledMetric`, unlike ``labelWidth`` and ``durationWidth`` below:
+    /// height does not compete with siblings the way the row's three *horizontal* columns do, so
+    /// there is no budget for ``WaterfallDetailRowMetrics`` to arbitrate and nothing for this to
+    /// disagree with anywhere else in the page.
     @ScaledMetric(relativeTo: .caption) private var rowHeight: CGFloat = WaterfallChartStyle.rowHeight
 
+    /// The row's label column width, already scaled and, where the row is too narrow for its full
+    /// scaled width, already capped — see ``WaterfallDetailRowMetrics``.
+    ///
+    /// A plain `let` rather than this row's own `@ScaledMetric`, unlike before this fix: the width
+    /// ``WaterfallView`` feeds ``WaterfallViewModel/configureWindow(plotWidth:)`` for the zoom
+    /// limit has to be computed from the *same* number this frame is drawn at, and a `@ScaledMetric`
+    /// declared here could never be read from outside this type to make that guarantee. See
+    /// ``WaterfallDetailRowMetrics`` for the full reasoning and ``WaterfallChartStyle/detailLabelWidth``
+    /// for the base value it starts from.
+    let labelWidth: CGFloat
+
+    /// The row's duration column width, already scaled and possibly capped, for the same reason
+    /// and in the same way ``labelWidth`` is. See ``WaterfallChartStyle/detailDurationWidth`` for
+    /// the base value it starts from.
+    let durationWidth: CGFloat
+
     var body: some View {
-        HStack(spacing: 0) {
-            WaterfallFrozenLabel(
-                text: row.label,
-                height: rowHeight,
-                coordinateSpace: coordinateSpace
-            )
-            track
+        HStack(spacing: 8) {
+            label
+
+            GeometryReader { proxy in
+                let rect = WaterfallDetailGeometry.barRect(start: row.entry.start,
+                                                           duration: row.entry.duration,
+                                                           window: window,
+                                                           size: proxy.size)
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(WaterfallChartStyle.colour(for: row.entry))
+                    .frame(width: rect.width, height: WaterfallChartStyle.barThickness)
+                    .offset(x: rect.minX, y: (proxy.size.height - WaterfallChartStyle.barThickness) / 2)
+            }
+            // `GeometryReader` does not clip its own content, and belt-and-braces is cheap: even
+            // though `WaterfallDetailGeometry.barRect(start:duration:window:size:)` now pulls `x`
+            // back before the width floor is applied, so the rect it returns is always inside
+            // `size`, this still guards against a future change to that arithmetic drawing over
+            // the duration column instead of stopping at the plot's edge.
+            .clipped()
+
+            Text(row.entry.isPending
+                 ? "—" // scyther:unlocalised em dash for an unfinished request
+                 : WaterfallChartStyle.valueLabel(for: row.entry))
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .frame(width: durationWidth, alignment: .trailing)
+                // `WaterfallDetailRowMetrics` can hand this a `durationWidth` narrower than the
+                // text's own natural width once the row is too narrow for the full scaled column
+                // — see that type's own documentation. Without a line limit, `Text` would wrap
+                // onto a second line rather than truncate, which `rowHeight` has no budget for and
+                // which would overflow the row vertically instead of the horizontal overflow this
+                // whole fix exists to prevent. Truncated to a leading ellipsis rather than
+                // `WaterfallDetailRowLayoutTests`'s middle for the path: a duration like "1.38 s"
+                // is read right-to-left for its meaning — the unit at the end matters most — so
+                // losing digits off the front is more honest than losing the unit off the back.
+                .lineLimit(1)
+                .truncationMode(.head)
         }
-        .frame(
-            width: WaterfallChartStyle.rowWidth(timelineWidth: scale.contentWidth),
-            height: rowHeight,
-            alignment: .leading
-        )
-        // The whole row is the target, not just the bar: a request drawn at the minimum width is
-        // a point across and would otherwise be unhittable even though it is now visible.
-        .contentShape(Rectangle())
+        .frame(height: rowHeight)
+        // The bar itself conveys length by width, which is nothing to a screen reader, so the
+        // name, the outcome and the duration are spoken instead — the same composition the old
+        // page's row used, and for the same reason: without it a request's outcome is carried
+        // only by the rectangle's fill colour, which VoiceOver cannot read.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
     }
 
-    /// The bar and its duration label, placed along the timeline.
+    /// The row's name column: the path alone, or the host stacked above the path when
+    /// ``showsHost`` is true.
     ///
-    /// The clear rectangle underneath is what gives the track its width; the bar is offset into
-    /// place rather than laid out with spacers, because an offset costs nothing and a leading
-    /// spacer of thirty thousand points is a layout the stack has to solve on every pass.
-    private var track: some View {
-        ZStack(alignment: .leading) {
-            Color.clear
-                .frame(width: scale.contentWidth, height: 1)
-            HStack(spacing: 4) {
-                Rectangle()
-                    .fill(WaterfallChartStyle.colour(for: row.entry))
-                    .frame(
-                        width: scale.width(of: row.entry),
-                        height: WaterfallChartStyle.barThickness
-                    )
-                Text(WaterfallChartStyle.valueLabel(for: row.entry))
-                    .font(.caption2)
-                    .monospacedDigit()
-                    .foregroundStyle(Color.secondary)
-                    .fixedSize()
+    /// Stacked, not side by side. Side by side was tried first — the host capped at a fixed
+    /// width, the path taking what was left — and it read worse than not showing the host at
+    /// all: the label column is 132pt, a capped host left roughly 60pt for the path, and a path
+    /// like `GET /posts/1` needs more than that, so it was the *path* that ended up giving way
+    /// per row. Because how much it gave way depended on how long that row's own host happened to
+    /// be, different rows truncated the host to different widths, so the paths no longer started
+    /// at a common x and the column stopped being scannable down. Widening the label column
+    /// instead would have taken width from the plot, which the zoom limit is computed against.
+    ///
+    /// Stacking removes the contest rather than refereeing it: each line gets the column's full
+    /// width, so nothing about one row's host affects where another row's path starts. It is also
+    /// the same subtitle shape the rest of the menu already uses — Network Logs stacks method and
+    /// status over the URL — so a two-line row here is a pattern the reader has already seen
+    /// rather than a new one.
+    @ViewBuilder
+    private var label: some View {
+        if showsHost {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(verbatim: row.entry.shortHost)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    // Tail, because hosts differ near their front — `jsonplaceholder…` is still
+                    // `jsonplaceholder`.
+                    .truncationMode(.tail)
+                Text(verbatim: row.entry.label)
+                    .font(.subheadline)
+                    .lineLimit(1)
+                    // Middle, not tail: a path's distinguishing content is usually at its *end* —
+                    // a query value in `/comments?postId=1`, a resolution suffix in
+                    // `/assets/logo@3x.png` — and tail truncation is exactly what cuts that off.
+                    // Middle keeps a fragment of both ends.
+                    .truncationMode(.middle)
             }
-            .offset(x: scale.x(atSeconds: row.entry.start))
+            .frame(width: labelWidth, alignment: .leading)
+        } else {
+            Text(verbatim: row.entry.label)
+                .font(.subheadline)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(width: labelWidth, alignment: .leading)
         }
-        .frame(width: scale.contentWidth, alignment: .leading)
     }
 
     /// What VoiceOver reads for the row.
     ///
-    /// The bar itself conveys length by width, which is nothing to a screen reader, so the name,
-    /// the outcome and the duration are spoken instead.
+    /// - Returns: The host and label, the outcome, and the duration (or an em dash for a request
+    ///   still in flight), joined the way ``WaterfallEntry``'s own accessibility summaries are —
+    ///   one sentence per part rather than reading the visible " · " punctuation aloud.
     private var accessibilityLabel: String {
-        [
-            row.label,
+        let name = row.entry.shortHost.isEmpty ? row.entry.label : "\(row.entry.shortHost) \(row.entry.label)"
+        return [
+            name,
             WaterfallChartStyle.outcomeTitle(for: row.entry),
-            WaterfallChartStyle.valueLabel(for: row.entry),
+            row.entry.isPending ? "—" : WaterfallChartStyle.valueLabel(for: row.entry), // scyther:unlocalised em dash for an unfinished request
         ].joined(separator: ", ") // scyther:unlocalised separator between localised parts
     }
 }
 
-/// A block that holds the leading edge of the timeline while the bars scroll underneath it.
+/// What each colour means, at the page's full content width.
 ///
-/// The freeze is one subtraction — see ``WaterfallChartStyle/frozenColumnOffset(leadingEdge:)`` —
-/// applied to the block's own content from a `GeometryReader` wrapped around it. Because the
-/// geometry and the offset are read and applied in the same layout pass, the column moves in the
-/// same frame the bars do; an offset published through `@State` would arrive a frame late and the
-/// names would slide and snap back under the reader's thumb.
-///
-/// The background is opaque and covers the gap to the plot as well, because bars pass beneath it:
-/// a bar showing through the gap would read as a request that started at zero.
-private struct WaterfallFrozenLabel: View {
-    /// The name to draw, or `nil` for the ruler's corner, which is frozen but empty.
-    var text: String?
-
-    /// How tall the block is.
-    let height: CGFloat
-
-    /// The scroll view's coordinate space.
-    let coordinateSpace: String
-
-    var body: some View {
-        GeometryReader { proxy in
-            content
-                .frame(
-                    width: WaterfallChartStyle.labelColumnWidth,
-                    height: height,
-                    alignment: .trailing
-                )
-                .padding(.trailing, WaterfallChartStyle.labelColumnSpacing)
-                .background(Color(uiColor: .secondarySystemGroupedBackground))
-                .overlay(alignment: .trailing) {
-                    // A hairline saying the column is a column: without it the frozen names read
-                    // as bars that failed to move.
-                    Rectangle()
-                        .fill(Color(uiColor: .separator))
-                        .frame(width: 0.5)
-                }
-                .offset(
-                    x: WaterfallChartStyle.frozenColumnOffset(
-                        leadingEdge: proxy.frame(in: .named(coordinateSpace)).minX
-                    )
-                )
-        }
-        .frame(width: WaterfallChartStyle.frozenColumnWidth, height: height)
-        // Above the track, so the bars pass behind the column rather than over it.
-        .zIndex(1)
-    }
-
-    /// The name, or nothing.
-    @ViewBuilder
-    private var content: some View {
-        if let text {
-            Text(text)
-                .font(.caption2)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundStyle(Color.secondary)
-        } else {
-            Color.clear
-        }
-    }
-}
-
-/// The seconds ruler, pinned to the top of the card.
-///
-/// Drawn by hand rather than by Charts, for the same reason the rows are: a chart whose plot is
-/// tens of thousands of points wide would be asked to choose its own tick interval across a span
-/// it cannot see, and the ticks would stop lining up with the bars the moment it chose differently
-/// from them. Here the interval comes from ``WaterfallTimeScale/tickInterval`` and every tick is
-/// placed by the same arithmetic that places a bar, so a tick sits above its bar by construction.
-///
-/// The ticks are lazy: at the widest scale the page allows there are a few hundred of them, and
-/// only the ones on screen are ever built.
-private struct WaterfallRulerView: View {
-    /// The page's time scale.
-    let scale: WaterfallTimeScale
-
-    /// The scroll view's coordinate space, which the frozen corner measures itself against.
-    let coordinateSpace: String
-
-    /// The ruler's height, scaled against the reader's text size.
-    ///
-    /// Fixed rather than measured because the header is pinned: a header that resized as the
-    /// reader scrolled would shift every bar under it. Fixed is not the same as constant, though
-    /// — a constant height clips the tick labels at the sizes where they most need to be legible.
-    @ScaledMetric(relativeTo: .caption) private var rulerHeight: CGFloat = WaterfallChartStyle.rulerHeight
-
-    var body: some View {
-        HStack(spacing: 0) {
-            WaterfallFrozenLabel(
-                text: nil,
-                height: rulerHeight,
-                coordinateSpace: coordinateSpace
-            )
-            ticks
-        }
-        .frame(
-            width: WaterfallChartStyle.rowWidth(timelineWidth: scale.contentWidth),
-            height: rulerHeight,
-            alignment: .leading
-        )
-        // Opaque and card-coloured, because the rows scroll underneath it and it is the top of
-        // the same card they are in.
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color(uiColor: .separator))
-                .frame(height: 0.5)
-        }
-    }
-
-    /// One cell per tick, each as wide as the interval it covers.
-    ///
-    /// A cell rather than an absolute offset so the stack does the arithmetic once and the labels
-    /// cannot collide: the interval was chosen to be at least
-    /// ``WaterfallTimeScale/minimumTickSpacing`` wide, so a cell is always wide enough for its own
-    /// label.
-    private var ticks: some View {
-        LazyHStack(alignment: .top, spacing: 0) {
-            ForEach(0..<scale.tickCount, id: \.self) { index in
-                let seconds = scale.seconds(ofTick: index)
-                VStack(alignment: .leading, spacing: 2) {
-                    Rectangle()
-                        .fill(Color(uiColor: .separator))
-                        .frame(width: 0.5, height: 5)
-                    Text(Self.label(forSeconds: seconds))
-                        .font(.caption2)
-                        .monospacedDigit()
-                        .foregroundStyle(Color.secondary)
-                        .fixedSize()
-                }
-                .frame(width: CGFloat(scale.tickInterval * scale.pointsPerSecond),
-                       alignment: .leading)
-            }
-        }
-        .frame(width: scale.contentWidth, height: rulerHeight, alignment: .topLeading)
-        .padding(.top, 6)
-    }
-
-    /// What one tick is labelled.
-    ///
-    /// The same milliseconds-or-seconds form the bars use, so a ruler zoomed in far enough to tick
-    /// every twenty milliseconds says `20 ms` rather than `0.02 s`. The origin is written as
-    /// seconds whatever the interval, because `0 ms` reads as a measurement rather than as the
-    /// start of the axis.
-    ///
-    /// - Parameter seconds: The moment the tick marks.
-    /// - Returns: The label.
-    private static func label(forSeconds seconds: TimeInterval) -> String {
-        seconds <= 0 ? DurationText.seconds(0) : DurationText.milliseconds(seconds * 1_000)
-    }
-}
-
-/// What each colour means, at the card's full content width.
-///
-/// Still a `Chart`, and deliberately: this is the one piece of the page that has to be laid out
-/// exactly as the preview's legend is, and the surest way to guarantee that is to let Charts draw
-/// both from the same ``WaterfallChartStyle/styleScale``. The zero-width marks exist only to give
-/// Charts something to derive a legend from, and the plot they sit in is collapsed to a point.
+/// Still a `Chart`, and deliberately: letting Charts derive the legend straight from
+/// ``WaterfallChartStyle/styleScale`` is what guarantees it can never name a colour the scale
+/// itself does not produce, rather than hand-drawing four marks that would need to be kept in step
+/// with the scale by hand. The zero-width marks exist only to give Charts something to derive a
+/// legend from, and the plot they sit in is collapsed to a point.
 private struct WaterfallLegendView: View {
     /// The legend's height, scaled against the reader's text size, because a constant height
     /// clips a wrapped legend at the sizes where it would actually wrap.

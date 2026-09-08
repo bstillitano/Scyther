@@ -45,7 +45,7 @@ final class WaterfallPageCostTests: XCTestCase {
     func testAThousandRequestsAreLaidOutInOnePass() {
         let requests = log(of: 1_000)
         let started = CFAbsoluteTimeGetCurrent()
-        let layout = WaterfallViewModel.layout(of: requests)
+        let layout = WaterfallViewModel.layout(of: requests, limit: requests.count)
         let elapsed = CFAbsoluteTimeGetCurrent() - started
         XCTAssertEqual(layout.rows.count, 1_000)
         print("WaterfallPageCostTests: 1,000 requests laid out in \(Int(elapsed * 1_000_000)) µs")
@@ -58,19 +58,19 @@ final class WaterfallPageCostTests: XCTestCase {
     func testTheLayoutIsHeldRatherThanRecomputedOnEveryRead() async {
         let viewModel = WaterfallViewModel(requests: log(of: 10), totalCount: 10)
         await viewModel.recompute()
-        let first = viewModel.rows
+        let first = viewModel.layout.rows
         viewModel.update(requests: log(of: 20), totalCount: 20)
-        XCTAssertEqual(viewModel.rows.map(\.id), first.map(\.id),
+        XCTAssertEqual(viewModel.layout.rows.map(\.id), first.map(\.id),
                        "reading rows must not lay the log out again")
         await viewModel.recompute()
-        XCTAssertEqual(viewModel.rows.count, 20, "recomputation is the only thing that replaces them")
+        XCTAssertEqual(viewModel.layout.rows.count, 20, "recomputation is the only thing that replaces them")
     }
 
     /// Every row is built once, in the same pass, rather than each row looking its own request up
     /// by walking the log — which is the quadratic shape this page invites.
     func testEveryRowIsMatchedToItsRequestInTheSamePass() {
         let requests = log(of: 200)
-        let layout = WaterfallViewModel.layout(of: requests)
+        let layout = WaterfallViewModel.layout(of: requests, limit: requests.count)
         XCTAssertEqual(layout.rows.count, 200)
         XCTAssertEqual(Set(layout.rows.map(\.id)).count, 200, "no request is drawn twice")
         XCTAssertTrue(layout.rows.first?.request === requests.first)

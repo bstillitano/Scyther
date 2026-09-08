@@ -5,40 +5,42 @@
 //  Created by Brandon Stillitano on 7/9/2026.
 //
 
-import Charts
 import CoreGraphics
 import Foundation
 import SwiftUI
+import UIKit
 
 /// The one place the waterfall is drawn from.
 ///
-/// The chart has two surfaces — the preview section on ``TrafficStatsView`` and the full-log page
-/// behind its **See all** button — and the requirement they were built under is that they are the
-/// *same chart*, not two charts that resemble each other. Anything a reader could compare across
-/// the two lives here: the bar itself, the colours, what an outcome is called, how tall a row is
-/// and how wide the axis runs. A second implementation would drift the first time either screen
-/// was touched, and the drift would be invisible until someone compared a bar's length on one
-/// against its length on the other.
+/// The chart has two surfaces: the compressed overview strip — `WaterfallOverviewStrip`, one
+/// implementation used unchanged on both ``TrafficStatsView`` and the full-log page behind **See
+/// all**, so there is nothing there for two copies to drift apart on — and the full-log page's own
+/// detail list, which the strip has no equivalent of at all. What the two surfaces genuinely have
+/// to agree on is which colour an outcome is drawn in, since colour is the one thing both of them
+/// render; that lives here, in ``colour(forOutcome:)`` and ``colour(for:)``, so a failed request
+/// cannot end up red on one and a slightly different red on the other.
 ///
-/// The type holds no state and draws no chrome. It is the geometry, the colour and the naming;
-/// each surface still decides its own layout, because that is the only thing the two legitimately
-/// disagree about — the section stacks seven bars into one `Chart` sized to the screen, and the
-/// page lays every bar in the log out along a scrollable ``WaterfallTimeScale``.
+/// The type holds no state and draws no chrome. Beyond that shared colour, everything else it
+/// holds belongs to the full-log page's own detail list and legend — the row height, the bar
+/// thickness, the label and duration column widths, and the outcome names its rows'
+/// accessibility labels and its own legend speak. None of it has anything on the Traffic Stats
+/// section to agree with, because that section draws the strip and nothing else.
 ///
-/// The page reached the point of drawing its own bars rather than asking Charts for them, because
-/// its plot is now tens of thousands of points wide and a `Chart` per row at that width is a
-/// rendering hazard for no gain — a single `BarMark` with hidden axes is a filled rectangle and a
-/// caption. What still comes from here is everything a reader could compare across the two
-/// surfaces: the thickness, the colour, the outcome names, the row height and the duration label.
-/// The preview is untouched and keeps drawing through ``bar(id:entry:upperBound:plotWidth:)``.
+/// The detail list draws its own bars rather than asking Charts for one: a log can hold thousands
+/// of requests and a `Chart` per row was a rendering hazard for no gain, and the section's own
+/// most-recent-seven `Chart` — the "preview" this file's documentation used to compare against —
+/// is gone along with it; the section draws the overview strip and nothing else now. The strip
+/// draws its own bars too, from a single `Canvas` pass, using the geometry in
+/// ``WaterfallStripGeometry`` rather than anything declared here. The full-log page's legend is
+/// still drawn by Charts, from ``styleScale``, so its marks can never name a colour its own bars
+/// are not using — there is no second legend anywhere in the feature for it to stay in step with.
 ///
 /// ## Usage
 /// ```swift
-/// Chart(rows) { row in
-///     WaterfallChartStyle.bar(id: row.id, entry: row.entry, upperBound: bound, plotWidth: width)
-/// }
-/// .chartForegroundStyleScale(WaterfallChartStyle.styleScale)
-/// .chartXScale(domain: 0...bound)
+/// RoundedRectangle(cornerRadius: 3)
+///     .fill(WaterfallChartStyle.colour(for: entry))
+///     .frame(width: rect.width, height: WaterfallChartStyle.barThickness)
+/// Text(WaterfallChartStyle.valueLabel(for: entry))
 /// ```
 enum WaterfallChartStyle {
 
@@ -51,56 +53,40 @@ enum WaterfallChartStyle {
     ///
     /// Fixed, and deliberately not "whatever divides the available height". Rows that shrink to
     /// fit turn a scrollable waterfall into a static one: twenty-two requests were squeezed onto a
-    /// single screen, which made the full-log page indistinguishable from the preview it was
-    /// opened from, and a thousand requests would have been a thousand hairlines. With a constant
-    /// row height the stack's height is rows × this, and the `ScrollView` scrolls the moment that
-    /// exceeds the screen — which is the entire point of the page.
+    /// single screen, which made the full-log page indistinguishable from the seven-row preview it
+    /// was opened from — back when the Traffic Stats section drew a preview of its own rows rather
+    /// than the overview strip it draws now — and a thousand requests would have been a thousand
+    /// hairlines. With a constant row height the detail list's content height is rows × this, and
+    /// the `List` scrolls the moment that exceeds the screen — which is the entire point of the
+    /// page.
     ///
     /// Forty-four points because the page's rows are tappable and that is the smallest comfortable
-    /// hit target; the preview uses the same figure so a burst has the same visual density on both
-    /// surfaces and a staircase reads at the same slope.
+    /// hit target. Nothing on the Traffic Stats section needs to match it any more: that section
+    /// draws the overview strip, not rows.
     static let rowHeight: CGFloat = 44
 
-    /// How much wider than the longest bar the axis runs.
+    /// The narrowest a bar is ever *rendered* in the full-log page's detail list, in points.
     ///
-    /// The value label sits past the end of its bar, so the axis needs headroom or the longest
-    /// bar's label falls outside the plot.
-    private static let chartHeadroom = 1.35
-
-    /// The narrowest axis the chart will draw, in seconds, so a session with no measured duration
-    /// still has somewhere to put its bars.
-    private static let minimumChartSpan = 0.05
-
-    /// The narrowest a bar is ever *rendered*, in points.
+    /// Not `WaterfallStripGeometry.minimumBarWidth`, the overview strip's own `1pt` floor for the
+    /// same idea. That strip compresses an entire session — sometimes hours of it — into one
+    /// short band, so almost every bar sits at or near its floor and a hairline is the honest
+    /// picture. The detail list draws only the requests inside the current ``WaterfallWindow``, a
+    /// slice the reader has already zoomed to the resolution they want, so a bar there earns real
+    /// space: three points is wide enough to register as a rectangle rather than a hairline lost
+    /// against the row's own separator, while still being far short of the `24pt`
+    /// ``WaterfallWindow/targetShortestBarWidth`` zoom limit aims the *shortest* bar at once zoom
+    /// is exhausted. A fix round once replaced this literal `3` believing it was an undocumented
+    /// magic number matching the strip's `1pt` floor; it is the design's own figure — see the
+    /// detail list's own section of
+    /// `docs/superpowers/specs/2026-09-07-waterfall-window-design.md`, "minimum width `3pt`" — and
+    /// the two floors are required to differ, not accidentally different.
     ///
-    /// A width, not a duration, and that distinction is the whole point. Expressing this as a
-    /// fraction of the axis — which is what it was — made the floor grow with the session: over a
-    /// five minute span it inflated every bar to three and a quarter seconds, so a 5 ms request
-    /// and a 3 s request drew identically and a floored bar could reach across a request it never
-    /// ran alongside. That contradicts the one claim the chart makes.
-    ///
-    /// One point is the smallest mark that is still drawn, and it is below the resolution at which
-    /// the chart could have shown a gap anyway: two bars whose real separation is under a point
-    /// cannot be told apart whether or not the floor is applied, so the floor cannot invent an
-    /// overlap a reader could otherwise have ruled out.
-    ///
-    /// It matters far less than it did. The floor was load-bearing while the page squeezed the
-    /// whole session into one screen and almost every bar reached it; against a
-    /// ``WaterfallTimeScale`` derived from the durations present, almost nothing does.
-    static let minimumBarWidth: CGFloat = 1
-
-    /// How wide the full-log page's frozen label column is, in points.
-    ///
-    /// Two jobs, and both need it fixed. It keeps the axis genuinely shared — a column sized to
-    /// each row's own text would start every bar at a different x and destroy the only claim the
-    /// chart makes, that bars which overlap were in flight together. And it is the column that
-    /// stays put while the timeline scrolls sideways, which is how every waterfall a developer
-    /// has used behaves: a name that scrolls away while the reader inspects a bar leaves the page
-    /// showing coloured rectangles belonging to nothing.
-    static let labelColumnWidth: CGFloat = 132
-
-    /// The gap between the label column and the plot, in points.
-    static let labelColumnSpacing: CGFloat = 8
+    /// This type declares no strip floor of its own to contrast against: the strip's bar and
+    /// window geometry live in ``WaterfallStripGeometry`` instead — see this type's own
+    /// documentation for which of the waterfall's geometry lives where — and an earlier
+    /// `WaterfallChartStyle.minimumBarWidth` duplicating that constant was removed once nothing in
+    /// `Sources/`, `Tests/`, `Example/` or `docs/` still read it.
+    static let detailMinimumBarWidth: CGFloat = 3
 
     /// The narrowest plot the page will draw, in points.
     ///
@@ -109,107 +95,184 @@ enum WaterfallChartStyle {
 
     /// How tall the page's legend is, in points, before Dynamic Type scales it.
     ///
-    /// The legend is drawn by a chart of its own, at the card's full content width, rather than
-    /// beside the ruler. Sharing the ruler's chart put it inside the label column's offset, where
-    /// it had roughly a third less room than the preview gives it and wrapped "Stubbed" onto a
-    /// second line.
+    /// The legend is drawn by a chart of its own, at the page's full content width, so it gets
+    /// its own line rather than sharing a row with anything else — which is what stopped
+    /// "Stubbed" wrapping onto a second line the way it did when an earlier layout squeezed it
+    /// beside the axis.
     static let legendHeight: CGFloat = 24
 
-    /// How tall the page's pinned ruler is, in points, before Dynamic Type scales it.
-    ///
-    /// Enough for the collapsed plot, the tick labels and the axis title. Fixed rather than
-    /// measured because the header is pinned: a header that resized as the reader scrolled would
-    /// shift every bar under it. Fixed is not the same as constant, though — both this and
-    /// ``legendHeight`` are scaled by the view against the reader's text size, or the tick labels
-    /// clip at the sizes where they most need to be legible.
-    static let rulerHeight: CGFloat = 48
+    // MARK: - The detail row
 
-    // MARK: - The grouped card
+    /// The detail list row's label column, in points, before Dynamic Type scales it.
+    ///
+    /// Fixed for the same reason the page's rows used to freeze a label column: a column sized to
+    /// each row's own text would start every bar at a different x and undercut the one claim the
+    /// chart makes, that bars sharing a moment on the window were genuinely in flight together.
+    ///
+    /// A base value, not the width the row actually draws at: ``WaterfallView`` reads this through
+    /// its own `@ScaledMetric` and hands the scaled result down to ``WaterfallDetailRow`` — see
+    /// `WaterfallDetailRowMetrics` for why that scaling happens in the parent rather than in the
+    /// row itself. The column holds a `.caption` line over a `.subheadline` line, both of which
+    /// grow with the reader's text size, and the spec this page was rebuilt from opens by naming
+    /// exactly this failure — "Duration text runs off the right edge" — at the *default* size;
+    /// leaving this column fixed reintroduces it at the accessibility sizes instead, where
+    /// `.caption1` alone grows from 11pt to 26pt at AX5.
+    ///
+    /// `WaterfallDetailRowMetrics.layout(rowWidth:scaledLabelWidth:scaledDurationWidth:)` may draw
+    /// the column narrower than the scaled value this produces, once the row itself no longer has
+    /// room for it — see that type's own documentation for the rule and why the plot column, not
+    /// this one, has to be the one that gives way first.
+    static let detailLabelWidth: CGFloat = 132
 
-    /// How far the card is inset from the edge of the page, in points.
+    /// The detail list row's duration column, in points, before Dynamic Type scales it. Sized for
+    /// "1.25 s" plus a little at the default text size, which is what the row's fixed-width label
+    /// column left for the figure beside it.
     ///
-    /// This and the two figures below are UIKit's inset-grouped metrics rather than invented
-    /// ones. The full-log page is a `ScrollView` rather than a `List`, so nothing draws the card
-    /// for it, and bars sitting on the plain page background read as a different component rather
-    /// than as the same chart with more room.
-    static let cardInset: CGFloat = 20
+    /// Scaled the same way ``detailLabelWidth`` is, for the same reason: "1.38 sec." needs roughly
+    /// 130pt at AX5 against this 62pt base, and a column that did not grow with it would clip the
+    /// very figure the spec calls out by name. Subject to the same possible narrowing
+    /// `WaterfallDetailRowMetrics.layout(rowWidth:scaledLabelWidth:scaledDurationWidth:)` can apply
+    /// to ``detailLabelWidth``.
+    static let detailDurationWidth: CGFloat = 62
 
-    /// The padding between the card's edge and its content, in points.
-    static let cardContentPadding: CGFloat = 16
+    /// Fixed horizontal space the detail row's own `HStack` and the enclosing `List` take up
+    /// around its three columns, in points, other than the label and duration columns themselves.
+    ///
+    /// Two 8pt gaps `WaterfallDetailRow`'s `HStack(spacing: 8)` puts between its three columns,
+    /// plus the 20pt leading and trailing margin an inset-grouped `List` reserves around a
+    /// section's content on a standard compact-width iPhone: `2 * 8 + 20 + 20`. Named so
+    /// `WaterfallDetailRowMetrics` and ``WaterfallView`` add it up the same way rather than each
+    /// carrying their own copy of the arithmetic.
+    ///
+    /// - Note: This was 48 (`2 * 8 + 16 + 16`) while ``WaterfallView``'s detail list was styled
+    ///   `.plain` — 16pt being a plain list's own row inset, measured against a `GeometryReader`
+    ///   wrapping the whole list rather than one row. The list is now `.insetGrouped`, and 20pt is
+    ///   the margin most commonly cited for an inset-grouped section's content on a standard
+    ///   compact-width iPhone, closely matching what Apple's own Settings app visibly uses — the
+    ///   best documented-adjacent figure available to substitute for the plain list's 16pt. It is
+    ///   still not a measurement: nobody in this
+    ///   pipeline has a device to read a rendered row's own frame on, that 20pt figure is not
+    ///   published as an API constant anywhere UIKit or SwiftUI expose, and it does not hold at
+    ///   every width class — an iPad or a wide Slide Over pane adapts inset-grouped's margin via
+    ///   the readable content guide instead of a fixed 20pt, which this constant does not account
+    ///   for at all. Chosen deliberately on the side that reserves *more* space than 16pt did
+    ///   rather than less: if 20pt undershoots the real margin, the plot and duration columns are
+    ///   computed a few points wider than the row's true available width, not narrower, and
+    ///   `WaterfallDetailRow` already clips its bar with `.clipped()` and truncates its duration
+    ///   text against exactly that possibility. Confirming the row's columns land flush against
+    ///   `.insetGrouped`'s real margin on every width class this toolkit supports, and correcting
+    ///   this constant if they do not, is on the owner.
+    ///
+    /// - Note: Re-checked, not just assumed, once the minimap moved back out of ``WaterfallView``'s
+    ///   `List` to become a sticky sibling above it — see ``insetGroupedCardMargin``. That move
+    ///   changes nothing here: this figure estimates the insets a `List` gives its *own* rows, and
+    ///   the detail list still holds exactly the rows it always did, styled `.insetGrouped` exactly
+    ///   as before. What else is or is not a sibling of the `List` has no bearing on the list's own
+    ///   internal row geometry.
+    static let detailRowInteriorChrome: CGFloat = 56
 
-    /// The radius the card's outer corners are rounded to, in points.
-    static let cardCornerRadius: CGFloat = 10
+    /// The width a plain `List` row reserves for a `NavigationLink`'s disclosure chevron, in
+    /// points, beyond ``detailRowInteriorChrome``'s trailing inset.
+    ///
+    /// UIKit does not publish this figure, so it is an estimate, not a measurement: roughly 13pt
+    /// for the chevron glyph itself plus about 8pt of spacing a `List` leaves before it. Left
+    /// uncorrected — and undocumented — for a full fix round after ``detailLabelWidth`` and
+    /// ``detailDurationWidth`` first grew with Dynamic Type, because on its own it cost the plot
+    /// only a few points of slack in the zoom limit. It stopped being safe to ignore once those
+    /// same two columns could grow past the row's own width at accessibility sizes: leaving the
+    /// chevron out of the row's width budget would mean the row still overflows by exactly this
+    /// much even after the columns are capped to fit everything *else*.
+    ///
+    /// Unlike ``detailRowInteriorChrome``, the chevron's own reserve is not expected to move with
+    /// the switch to `.insetGrouped`: a `NavigationLink`'s disclosure indicator is the same glyph
+    /// with the same leading spacing regardless of the enclosing list's grouping style, so nothing
+    /// about this estimate is specific to `.plain`.
+    static let detailRowDisclosureReserve: CGFloat = 21
 
-    /// How much of the timeline is visible at once on the full-log page, for a page of the
-    /// given width.
-    ///
-    /// A *window*, not the plot. The plot is now ``WaterfallTimeScale/contentWidth`` and is
-    /// usually far wider than the screen; this is how much of it shows through at a time, which
-    /// the scale takes as its lower bound so a session too short to need scrolling still fills
-    /// the card instead of huddling at its leading edge.
-    ///
-    /// - Parameter pageWidth: The full width available to the page.
-    /// - Returns: The visible width in points, never below ``minimumPlotWidth``.
-    static func plotWidth(inPageWidth pageWidth: CGFloat) -> CGFloat {
-        let chrome = 2 * cardInset + 2 * cardContentPadding + labelColumnWidth + labelColumnSpacing
-        return max(minimumPlotWidth, pageWidth - chrome)
-    }
+    // MARK: - The sticky minimap card
 
-    // MARK: - The frozen column
+    /// The horizontal margin from ``WaterfallView``'s own edges to the sticky minimap card's
+    /// rounded background, in points.
+    ///
+    /// The same figure — and the same reasoning — as ``detailRowInteriorChrome``'s own inset
+    /// term: "the margin most commonly cited for an inset-grouped section's content on a
+    /// standard compact-width iPhone, closely matching what Apple's own Settings app visibly
+    /// uses." Reused here deliberately rather than picked afresh, because both constants are
+    /// estimating the *same* real-world quantity — how far an inset-grouped section's card sits
+    /// from the screen edge — for two different, independently hand-built views that both need
+    /// to agree with the detail list's own section cards for the page to read as one screen
+    /// rather than two. Neither is a measurement; see ``detailRowInteriorChrome``'s own
+    /// documentation for the full account of that uncertainty, which applies here unchanged.
+    static let insetGroupedCardMargin: CGFloat = 20
 
-    /// How much room the frozen label column occupies, in points.
+    /// The corner radius the sticky minimap card is drawn with, in points.
     ///
-    /// The names and the gap between them and the plot, together, because the column is opaque
-    /// and the bars pass *underneath* it as the timeline scrolls. A block only as wide as the
-    /// text would let a bar show through the gap, where it would read as a request starting at
-    /// zero — which is exactly the misreading the whole chart is built to prevent.
-    static var frozenColumnWidth: CGFloat { labelColumnWidth + labelColumnSpacing }
+    /// 10pt is the figure most consistently cited for an inset-grouped section's own rounded
+    /// background. Like ``insetGroupedCardMargin``, this is not published as a UIKit or SwiftUI
+    /// API constant anywhere this pipeline can read it from, so it carries the same
+    /// "estimate, not measurement" caveat.
+    static let insetGroupedCardCornerRadius: CGFloat = 10
 
-    /// How far the label column has to travel to stay at the leading edge.
+    /// The sticky minimap card's own background fill.
     ///
-    /// The freeze is this one subtraction, applied inside the row's own layout pass from a
-    /// `GeometryReader` reading the row's position in the scroll view's coordinate space. Doing
-    /// it there rather than through a published scroll offset is what keeps the column in the
-    /// same frame as the bars: an offset routed through `@State` and a preference key arrives a
-    /// frame late, and a name that slides and snaps back while the reader drags is worse than one
-    /// that simply scrolled away.
-    ///
-    /// Negative leading edges only. A scroll view that is rubber-banding past its own start
-    /// reports a *positive* edge, and following that would push the column off the leading edge
-    /// and into the plot.
-    ///
-    /// - Parameter leadingEdge: Where the row's start sits in the scroll view's visible
-    ///   coordinate space: zero at rest, negative once scrolled.
-    /// - Returns: The offset to apply to the column, never negative.
-    static func frozenColumnOffset(leadingEdge: CGFloat) -> CGFloat {
-        max(0, -leadingEdge)
-    }
+    /// `UIColor.secondarySystemGroupedBackground` is not a guess the way
+    /// ``insetGroupedCardMargin`` and ``insetGroupedCardCornerRadius`` are: it is the exact
+    /// semantic colour UIKit's own `UITableView.Style.insetGrouped` fills a section's rows
+    /// with, published and named for precisely this purpose, and it is what SwiftUI's
+    /// `.insetGrouped` `List` paints its own rows with in turn. Using it here is what makes the
+    /// card's *colour* an exact match rather than another estimate — only its margin, corner
+    /// radius, and the space around it are approximations.
+    static let insetGroupedCardBackground = Color(uiColor: .secondarySystemGroupedBackground)
 
-    /// How wide one row is, in points: the frozen column plus the whole scrollable timeline.
+    /// The colour behind ``WaterfallView``'s own content, matching what an inset-grouped `List`
+    /// already paints its own background — `UIColor.systemGroupedBackground`, the same exact
+    /// semantic pairing ``insetGroupedCardBackground`` uses for the card that sits on top of it.
     ///
-    /// The scroll view sizes its content from this, and the ruler is laid out from the same call,
-    /// which is what makes a tick sit above its bar by construction rather than by two matching
-    /// stacks of hand-written insets. Sizing a row to the timeline alone would leave the last
-    /// column-width of the log unreachable at the far end of the scroll.
-    ///
-    /// - Parameter timelineWidth: ``WaterfallTimeScale/contentWidth``.
-    /// - Returns: The row's width in points.
-    static func rowWidth(timelineWidth: CGFloat) -> CGFloat {
-        frozenColumnWidth + timelineWidth
-    }
+    /// Applied explicitly because the space around the sticky card — above it, and between it
+    /// and the list beneath — is not part of any `List` and paints nothing on its own; without
+    /// this it would be whatever colour the page's own container happens to default to, and the
+    /// seam between the card and the list would show as a visible colour mismatch rather than
+    /// reading as one continuous grouped background.
+    static let insetGroupedPageBackground = Color(uiColor: .systemGroupedBackground)
 
-    /// Where a moment on the axis is drawn within a row, in points from the row's leading edge.
+    /// The vertical gap between the sticky minimap and the detail list beneath it, in points.
     ///
-    /// The plot starts after the frozen column, so every position on the timeline carries that
-    /// offset. The ruler and the bars both go through here, so neither can forget it.
+    /// - Note: Renamed from `insetGroupedSectionSpacing`, and reduced from `35` to this value,
+    ///   because that name and that figure both stopped being true the moment this stopped
+    ///   matching a system metric. `35` was chosen to match the gap `.insetGrouped` puts between
+    ///   two of its own sections with no header or footer text — a figure carried over from
+    ///   classic `UITableView`'s grouped-style behaviour, not measured in this pipeline. The owner
+    ///   ran that on device and asked for it "a tiny bit smaller." This is no longer an attempt at
+    ///   that system figure at all: it is whatever reads right between this page's own sticky
+    ///   minimap and its own list, tuned once by eye against the owner's own feedback, and it
+    ///   should be named and documented as exactly that rather than as an estimate of something
+    ///   else. A constant whose name and doc comment describe a system metric it no longer targets
+    ///   is worse than one with no comment at all — this file has shipped that mistake before.
     ///
-    /// - Parameters:
-    ///   - seconds: Seconds from the series origin.
-    ///   - scale: The page's time scale.
-    /// - Returns: The offset in points.
-    static func plotX(forSeconds seconds: TimeInterval, on scale: WaterfallTimeScale) -> CGFloat {
-        frozenColumnWidth + scale.x(atSeconds: seconds)
-    }
+    /// `24`pt: roughly two-thirds of the previous `35`, landing at the low end of the range the
+    /// owner named ("something in the low-to-mid twenties") rather than the middle of it. Chosen
+    /// deliberately conservative rather than a bigger cut: this constant exists at all because a
+    /// gap of `0` read as no gap whatsoever — the exact defect it was introduced to fix — so a
+    /// smaller-but-still-generous figure was preferred over one that risked drifting back toward
+    /// that failure on a later "tiny bit smaller."
+    ///
+    /// This gap sits below ``WaterfallView/minimapCard`` — the bottom-most view in
+    /// ``WaterfallView/minimap`` — and above ``WaterfallView/detail``'s `List`, regardless of
+    /// whether ``WaterfallView/minimapHeader`` is showing above the card: the header adds height
+    /// *above* the card, inside `minimap`, and does not touch this gap, which is measured from the
+    /// card's own bottom edge either way. Not verified rendered in either state — see the fix
+    /// report.
+    static let minimapListSpacing: CGFloat = 24
+
+    /// The vertical gap between ``WaterfallView/minimapHeader`` and ``WaterfallView/minimapCard``
+    /// beneath it, in points, when the header is showing at all.
+    ///
+    /// `6`pt: a small, deliberately modest figure for a header sitting directly above the section
+    /// it labels, in the same spirit as — but not derived from — the small gap a real
+    /// `.insetGrouped` section header leaves before its own card begins. Not published as a UIKit
+    /// or SwiftUI API constant, and not measured against one either: chosen by eye, on the same
+    /// footing as ``minimapListSpacing``, and equally in need of the owner's own look to confirm.
+    static let minimapHeaderSpacing: CGFloat = 6
 
     // MARK: - Colour
 
@@ -217,8 +280,8 @@ enum WaterfallChartStyle {
     ///
     /// Given as an explicit scale rather than left to Charts so that the legend shows all four
     /// outcomes whether or not the current log contains one of each — otherwise the legend
-    /// changes shape as traffic arrives, and the two surfaces show different legends for the same
-    /// session.
+    /// changes shape as traffic arrives, growing and shrinking a mark at a time instead of
+    /// standing still while the requests underneath it come and go.
     static var styleScale: KeyValuePairs<String, Color> {
         [
             localized("Succeeded"): Color.green,
@@ -230,8 +293,9 @@ enum WaterfallChartStyle {
 
     /// Every outcome name the chart can produce, in legend order.
     ///
-    /// Used to seed the page's legend with one mark per outcome, so Charts draws the same legend
-    /// there that it draws for the preview's chart.
+    /// Used to seed the full-log page's own legend with one mark per outcome. The Traffic Stats
+    /// section keeps no legend of its own to stay in step with it — it draws only the overview
+    /// strip, which speaks an outcome through colour alone.
     static var outcomeTitles: [String] {
         [localized("Succeeded"), localized("Failed"), localized("Pending"), localized("Stubbed")]
     }
@@ -265,6 +329,21 @@ enum WaterfallChartStyle {
         colour(forOutcome: outcomeTitle(for: entry))
     }
 
+    /// The tint filling the overview strip's current window.
+    ///
+    /// Low alpha on the accent colour, not on any of the four colours ``styleScale`` uses: the
+    /// window is a frame around what you are reading, not a status, so it must not read as one of
+    /// the outcomes the bars themselves are drawn in. Green is ``styleScale``'s success colour —
+    /// using it here would draw an overlay that looks like it is claiming every bar under it
+    /// succeeded, which is precisely the misreading this colour has to avoid.
+    static let windowTint = Color.accentColor.opacity(0.14)
+
+    /// The rules on the window's left and right edges.
+    static let windowEdge = Color.accentColor.opacity(0.9)
+
+    /// The strip's own ground, so the compressed bars have something to sit on.
+    static let stripBackground = Color.primary.opacity(0.06)
+
     // MARK: - Semantics
 
     /// What one bar's outcome is called, which is also its key in ``styleScale``.
@@ -283,97 +362,17 @@ enum WaterfallChartStyle {
         return entry.isPending ? localized("Pending") : localized("Succeeded")
     }
 
-    /// The far end of the chart's seconds axis for a series of the given span.
-    ///
-    /// Wider than the longest bar so the value label past its end stays inside the plot, and
-    /// never zero, which would leave the axis with no extent to draw on.
-    ///
-    /// - Parameter span: The seconds the series covers.
-    /// - Returns: The axis' upper bound in seconds.
-    static func upperBound(forSpan span: TimeInterval) -> Double {
-        max(span * chartHeadroom, minimumChartSpan)
-    }
-
-    /// Where one bar is *drawn* to, which is not always where it ended.
-    ///
-    /// Only ever longer than the measurement, only when the measurement would render narrower
-    /// than ``minimumBarWidth``, and only by enough to reach that width — so the inflation is
-    /// bounded in points however long the session runs.
-    ///
-    /// A surface that does not know how wide its plot is passes zero and gets true lengths. That
-    /// is the preview's actual contract rather than a fallback: Charts sizes the preview's leading
-    /// axis to its own labels, so the section cannot state its plot width without measuring the
-    /// chart it is about to build, and a floor computed from a guess would be a floor of unknown
-    /// size — which is the exact defect this replaced.
-    ///
-    /// Only the preview reaches this now. The full-log page works in points directly, through
-    /// ``WaterfallTimeScale/width(of:)``, because it knows its scale rather than inferring it
-    /// from a plot width.
-    ///
-    /// - Parameters:
-    ///   - entry: The bar.
-    ///   - upperBound: The axis' far end, in seconds.
-    ///   - plotWidth: How wide the plot is, in points, or zero when the surface does not know.
-    /// - Returns: The x value the bar is drawn to, in seconds.
-    static func drawnEnd(of entry: WaterfallEntry, upperBound: Double, plotWidth: CGFloat) -> Double {
-        guard plotWidth > 0, upperBound > 0 else { return entry.start + entry.duration }
-        let secondsPerPoint = upperBound / Double(plotWidth)
-        return entry.start + max(entry.duration, Double(minimumBarWidth) * secondsPerPoint)
-    }
-
-    /// The value label drawn at the end of one bar.
+    /// The value label drawn in the detail row's fixed-width trailing column, beside the bar
+    /// rather than appended to its end.
     ///
     /// In the same milliseconds-or-seconds form the summary uses, so a two millisecond bar reads
     /// as `2 ms` rather than rounding away to `0 s`. Built from ``WaterfallEntry/duration``, never
-    /// from ``drawnEnd(of:upperBound:plotWidth:)``: the width is the legible figure, the label is
-    /// the honest one.
+    /// from whatever width a surface draws the bar at: the width is the legible figure, the label
+    /// is the honest one.
     ///
     /// - Parameter entry: The bar.
     /// - Returns: The bar's real length as text.
     static func valueLabel(for entry: WaterfallEntry) -> String {
         DurationText.milliseconds(entry.duration * 1_000)
-    }
-
-    // MARK: - The mark
-
-    /// One request's bar, with its colour and its trailing duration label.
-    ///
-    /// The preview's mark. The full-log page draws the same bar itself — same thickness, same
-    /// colour from ``colour(for:)``, same label from ``valueLabel(for:)``, same four points of
-    /// air before it — because at a scale of tens of thousands of points a `Chart` per row buys
-    /// nothing and costs a great deal. Change the thickness or the label here and change it there
-    /// too; the pieces a reader can compare are shared, the marks are not.
-    ///
-    /// - Parameters:
-    ///   - id: The bar's value on the chart's categorical y scale. The preview numbers its rows
-    ///     to keep two calls to the same endpoint apart; the page gives each row its own chart,
-    ///     where the value only has to exist.
-    ///   - entry: The bar to draw.
-    ///   - upperBound: The axis' far end, in seconds.
-    ///   - plotWidth: How wide the plot is, in points, or zero for true lengths only.
-    /// - Returns: The mark.
-    @ChartContentBuilder
-    static func bar(
-        id: String,
-        entry: WaterfallEntry,
-        upperBound: Double,
-        plotWidth: CGFloat
-    ) -> some ChartContent {
-        BarMark(
-            xStart: .value(localized("Start"), entry.start),
-            xEnd: .value(
-                localized("End"),
-                drawnEnd(of: entry, upperBound: upperBound, plotWidth: plotWidth)
-            ),
-            y: .value(localized("Request"), id),
-            height: .fixed(barThickness)
-        )
-        .foregroundStyle(by: .value(localized("Outcome"), outcomeTitle(for: entry)))
-        .annotation(position: .trailing, alignment: .leading, spacing: 4) {
-            Text(valueLabel(for: entry))
-                .font(.caption2)
-                .monospacedDigit()
-                .foregroundStyle(Color.secondary)
-        }
     }
 }

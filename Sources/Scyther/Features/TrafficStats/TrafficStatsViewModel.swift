@@ -6,7 +6,6 @@
 //
 
 import Combine
-import CoreGraphics
 import Foundation
 
 /// Drives ``TrafficStatsView``.
@@ -37,17 +36,66 @@ final class TrafficStatsViewModel: ViewModel {
     /// and every change would otherwise walk the whole array twice.
     static let recomputeDebounce: DispatchQueue.SchedulerTimeType.Stride = .milliseconds(500)
 
-    /// The vertical space the chart's axis and labels take, in points.
-    private static let chartChrome: CGFloat = 60
-
-    /// The shortest the chart is ever drawn, in points.
-    private static let minimumChartHeight: CGFloat = 140
+    /// How many of the most recent requests the Waterfall section's own strip and row preview are
+    /// zoomed to.
+    ///
+    /// The section used to draw the *whole* log as one strip — every request in the session
+    /// compressed onto one shared axis, exactly as the full-log page's own overview does. At
+    /// real request counts that read as a scatter of near-invisible specks: 25 requests over 24
+    /// seconds is 25 marks a few points wide each, conveying rough shape and nothing else, and
+    /// naming *when* something happened is the one thing a preview like this exists to do. The
+    /// owner judged it unusable and asked for a small version of the full page instead — a strip
+    /// zoomed to a handful of legible bars, with those same requests listed as real, tappable
+    /// rows beneath it.
+    ///
+    /// `5`, the owner's own suggestion, kept rather than replaced with a rounder or larger figure:
+    /// it is few enough that every bar earns real width even on a screen a few requests apart, few
+    /// enough that five rows plus the section's other chrome still fits comfortably above the
+    /// fold on the smallest supported phone, and small enough that "these are the *most recent*
+    /// few" reads as obviously true rather than as an arbitrary cut-off partway through what would
+    /// otherwise look like a complete list. Larger figures were considered and rejected: even ten
+    /// bars, at the kind of a-few-seconds-apart traffic this toolkit is built to inspect, start
+    /// crowding back toward the specks this constant exists to avoid, and a section meant as a
+    /// glance rather than a workspace does not need to try to be one.
+    ///
+    /// A log holding fewer than this shows exactly what it has — see
+    /// ``WaterfallSeries/build(from:limit:now:)``'s own handling of a `limit` larger than its
+    /// input — rather than padding or hiding anything to reach five.
+    static let recentWaterfallCount = 5
 
     /// The figures for ``requests``. ``TrafficStatistics/empty`` until the first computation lands.
     @Published private(set) var statistics: TrafficStatistics = .empty
 
-    /// The timeline for ``requests``. ``WaterfallSeries/empty`` until the first computation lands.
+    /// The whole session's timeline for ``requests``, laid out on one shared axis.
+    ///
+    /// No longer what the Waterfall section's own strip draws — see ``recentLayout`` for that —
+    /// but still built in full, because ``waterfallCaption`` still describes the whole session as
+    /// context underneath the section's own small preview of the most recent few. See that
+    /// property's own documentation for why the caption kept this rather than following the strip
+    /// down to ``TrafficStatsViewModel/recentWaterfallCount`` requests too.
+    ///
+    /// ``WaterfallSeries/empty`` until the first computation lands.
     @Published private(set) var waterfall: WaterfallSeries = .empty
+
+    /// The strip and the row preview beneath it: the most recent
+    /// ``TrafficStatsViewModel/recentWaterfallCount`` requests, laid out on their own shared axis
+    /// and paired back to the captures behind them.
+    ///
+    /// Built by ``WaterfallViewModel/layout(of:limit:totalCount:now:)`` — the exact function the
+    /// full-log page uses for itself, called here with a small `limit` instead of the whole log,
+    /// rather than a second implementation of the same axis-and-pairing arithmetic. See that
+    /// function's own documentation for why it takes `limit` as a parameter rather than assuming
+    /// "everything" the way it once did.
+    ///
+    /// A `WaterfallViewModel.Layout`, not a bare `WaterfallSeries`, because the section now draws
+    /// real rows beneath its strip — ``WaterfallDetailRow``, reused directly rather than rebuilt —
+    /// and a row needs the capture behind its bar, which only `Layout.rows` carries.
+    /// ``WaterfallViewModel/Layout/showsHost`` is read from here too, scoped to just these few
+    /// requests rather than to the whole log, matching how the full page's own rows decide
+    /// whether to draw a host.
+    ///
+    /// ``WaterfallViewModel/Layout/empty`` until the first computation lands.
+    @Published private(set) var recentLayout: WaterfallViewModel.Layout = .empty
 
     /// The requests the screen is describing: the network log's filtered array.
     private(set) var requests: [HTTPRequest]
@@ -76,22 +124,6 @@ final class TrafficStatsViewModel: ViewModel {
 
     /// The task the current recomputation is running on.
     private var recomputeTask: Task<Void, Never>?
-
-    /// The chart's rows, in the order they are drawn.
-    @Published private(set) var chartRows: [ChartRow] = []
-
-    /// One row of the waterfall chart: a bar and the name the axis gives it.
-    ///
-    /// The name carries the row's position because a chart's categorical axis collapses two rows
-    /// that share a value, and two calls to the same endpoint have the same label. Numbering them
-    /// keeps each request its own bar, and matches the order they were sent in.
-    struct ChartRow: Identifiable, Equatable {
-        /// The axis label, which is also the row's identity on the chart's y scale.
-        let id: String
-
-        /// The bar this row draws.
-        let entry: WaterfallEntry
-    }
 
     /// Creates the view model.
     ///
@@ -149,6 +181,10 @@ final class TrafficStatsViewModel: ViewModel {
     func recompute() async {
         let snapshot = requests
         let snapshotTotal = totalCount
+        // Read on the main actor and captured into a local, the same reason `snapshot` and
+        // `snapshotTotal` are: `recentWaterfallCount` is a `static let` on this `@MainActor` type,
+        // so it is itself main-actor-isolated, and the detached task below cannot read it directly.
+        let recentLimit = Self.recentWaterfallCount
         // Force each capture's lazily assigned hash while still on the main actor. `HTTPRequest`
         // is `@unchecked Sendable` and `getRandomHash()` writes on first call, so leaving it to
         // the detached pass would have two threads racing to assign it — and the waterfall bakes
@@ -157,16 +193,27 @@ final class TrafficStatsViewModel: ViewModel {
             _ = request.getRandomHash()
         }
         let computed = await Task.detached(priority: .userInitiated) {
-            (statistics: TrafficStatistics.compute(from: snapshot), waterfall: WaterfallSeries.build(from: snapshot))
+            (
+                statistics: TrafficStatistics.compute(from: snapshot),
+                // The whole log, kept for the caption's own context even though the strip no
+                // longer draws it — see `waterfall`'s own documentation.
+                waterfall: WaterfallSeries.build(from: snapshot, limit: snapshot.count),
+                // The strip and its row preview, zoomed to the most recent few rather than the
+                // whole log — reusing the full-log page's own layout function with a small
+                // `limit`, not a second implementation. See `recentLayout`'s own documentation.
+                recentLayout: WaterfallViewModel.layout(
+                    of: snapshot,
+                    limit: recentLimit,
+                    totalCount: snapshotTotal
+                )
+            )
         }.value
         guard !Task.isCancelled else { return }
         statistics = computed.statistics
         waterfall = computed.waterfall
+        recentLayout = computed.recentLayout
         captionCount = snapshot.count
         captionTotal = snapshotTotal
-        chartRows = computed.waterfall.entries.enumerated().map { index, entry in
-            ChartRow(id: "\(index + 1). \(entry.label)", entry: entry)
-        }
     }
 
     // MARK: - Caption
@@ -178,10 +225,20 @@ final class TrafficStatsViewModel: ViewModel {
     var isEmpty: Bool { captionCount == 0 }
 
     /// The line under the title saying what the figures cover.
+    ///
+    /// Only the "N of M requests" form now — no longer conditional on ``isFiltered`` the way it
+    /// used to be. ``TrafficStatsView/summarySection`` is this property's only production reader,
+    /// and it now shows the header only when `isFiltered` is true: unfiltered, the header would
+    /// have restated the section's own first row, `LabeledContent(localized("Requests"), …)`, so
+    /// the view omits it entirely rather than call this at all. With the unfiltered case no
+    /// longer reachable from anywhere that reads this, the branch that produced it was dead
+    /// weight — see `TrafficStatsView.summarySection`'s header for the reasoning.
+    ///
+    /// The unfiltered branch's key, `"%lld requests"`, is not orphaned by this: `endpointSubtitle(for:)`
+    /// and `hostSubtitle(for:)` below both still build it from `requestCount`, so it stays in
+    /// `Scripts/localization/strings/TrafficStats.json` untouched.
     var caption: String {
-        isFiltered
-            ? localized("\(captionCount) of \(captionTotal) requests")
-            : localized("\(captionCount) requests")
+        localized("\(captionCount) of \(captionTotal) requests")
     }
 
     // MARK: - Summary
@@ -219,42 +276,61 @@ final class TrafficStatsViewModel: ViewModel {
 
     // MARK: - Waterfall
 
-    /// How tall the chart is drawn at the default text size, so every bar keeps its own row.
-    var chartHeight: CGFloat { chartHeight(rowHeight: WaterfallChartStyle.rowHeight) }
-
-    /// How tall the chart is drawn for a given row height.
+    /// How many distinct hosts the log touched, for the section's footer.
     ///
-    /// Taken as a parameter so the view can pass a row height scaled against the reader's text
-    /// size: the y-axis labels grow with Dynamic Type, and a chart sized from the unscaled figure
-    /// clips them.
+    /// The count rather than the names: the names are on the rows, and a section footer listing
+    /// twelve hosts is a paragraph. Empty hosts — an unparseable request URL, see
+    /// ``WaterfallEntry/host`` — name nothing and are left out, or a log with a single real host
+    /// and one malformed request would count as touching two.
     ///
-    /// - Parameter rowHeight: The vertical space one bar takes, in points.
-    /// - Returns: The chart's height in points, never below the floor.
-    func chartHeight(rowHeight: CGFloat) -> CGFloat {
-        max(Self.minimumChartHeight, CGFloat(waterfall.entries.count) * rowHeight + Self.chartChrome)
-    }
+    /// Lowercased before counting, matching ``WaterfallSeries/shortHost(for:)`` and
+    /// ``TrafficStatistics/HostBreakdown``'s own identity: without it, two requests to the same
+    /// host that merely differ in case — `API.example.com` and `api.example.com` — would count as
+    /// two distinct hosts here while *By Host* below groups them as one, and the footer would
+    /// disagree with the section it sits under.
+    var hostCount: Int { Set(waterfall.entries.map { $0.host.lowercased() }).filter { !$0.isEmpty }.count }
 
-    /// The far end of the chart's seconds axis.
+    /// The sentence under the section: the whole session's own count, span and host total, as
+    /// context beneath the strip and rows above it now showing only the most recent
+    /// ``TrafficStatsViewModel/recentWaterfallCount``.
     ///
-    /// Wider than the longest bar so the value label past its end stays inside the plot, and
-    /// never zero, which would leave the axis with no extent to draw on.
-    var chartUpperBound: Double {
-        WaterfallChartStyle.upperBound(forSpan: waterfall.span)
-    }
-
-    /// The axis labels of the waterfall's bars, oldest first, which is the chart's y-axis domain.
-    var chartDomain: [String] { chartRows.map(\.id) }
-
-    /// The sentence under the chart explaining what it is showing.
+    /// ## Kept, not reworded, once the strip stopped drawing the whole log
     ///
-    /// The chart is a preview: it draws the most recent ``WaterfallSeries/defaultLimit`` requests,
-    /// not the log. When the log holds more than that, the caption has to say where the rest are,
-    /// or the section quietly under-reports the session it claims to describe.
+    /// This sentence used to describe exactly what the strip above it drew, because the strip
+    /// drew everything. It no longer does — see ``recentLayout`` — and the owner's own question
+    /// was direct: keep this caption, reword it, or move it. Decided to keep the wording
+    /// unchanged, for two reasons. First, it never actually claimed to describe the strip in the
+    /// first place: "25 requests over 24 seconds across 3 hosts" is already a plain statement
+    /// about the session, not "the strip above shows…", so nothing about it became false once the
+    /// strip stopped matching it — it was always the session's own summary, sitting in the
+    /// section's footer, which is exactly the slot a summary belongs in. Second, folding in an
+    /// explicit "showing 5 of 25" framing was tried and rejected: every phrasing tested either
+    /// repeated the request count immediately next to itself ("5 of 25 requests. 25 requests
+    /// over…") or left genuine ambiguity about which count a trailing "over X, across Y hosts"
+    /// modified. The visual layout already carries that distinction without more words needing to
+    /// carry it too — a handful of legible bars and real tappable rows read as *recent* on their
+    /// own, next to a **See all** link that already implies there is more, over a footer stating
+    /// bigger numbers than what is drawn above it.
+    ///
+    /// This is a wording judgement, not a settled fact, and the alternative was seriously
+    /// considered rather than dismissed — see the fix report for the phrasings that were tried and
+    /// why each was set aside; the owner may read the rendered result differently.
+    ///
+    /// ## Why two joined sentences, not one
+    ///
+    /// The single sentence this replaced — `"\(count) requests over \(duration) across \(hosts)
+    /// hosts"` — carries two numbers that agree with two different nouns, and the String Catalog
+    /// this package builds from only inflects a key's *first* number: the request count would
+    /// pluralise correctly while the host count stayed flat, so a single-host log read "across 1
+    /// hosts" on the feature's own first screen. Splitting each count into its own pluralised key
+    /// and joining them the way ``endpointSubtitle(for:)`` and ``hostSubtitle(for:)`` already join
+    /// theirs — and the way this very caption did before the whole-log strip briefly replaced its
+    /// most-recent-seven predecessor — lets each half inflect on its own number.
     var waterfallCaption: String {
-        let shown = localized("The most recent \(waterfall.entries.count) requests on a shared axis. Bars that overlap were in flight at the same time.")
-        guard captionCount > waterfall.entries.count else { return shown }
-        return [shown, localized("See all draws the whole log.")]
-            .joined(separator: " ") // scyther:unlocalised space between localised sentences
+        [
+            localized("\(waterfall.entries.count) requests over \(DurationText.milliseconds(waterfall.span * 1_000))"),
+            localized("across \(hostCount) hosts"),
+        ].joined(separator: " ") // scyther:unlocalised space between localised sentences
     }
 
     // MARK: - Breakdowns
