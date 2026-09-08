@@ -135,38 +135,63 @@ enum WaterfallStripGeometry {
 // between axes at all — it fires on the first pixel of any drag, in any direction, exactly as it
 // did before any of this.
 //
-// `Interaction.tap(_:)`, the other gesture in this file, was considered for the same axis check
-// and did not get it: `.tap` already guards itself with `tapTolerance`, a symmetric
+// `Interaction.tap(_:)`, the other gesture this file used to have, was considered for the same
+// axis check and did not get it: `.tap` already guarded itself with `tapTolerance`, a symmetric
 // "did the touch travel at all" radius rather than a "which axis dominates" comparison, checked
-// once at `.onEnded` rather than continuously. `.tap` never reports anything to `onScrub`
-// continuously the way `.scrub` does, so there is no equivalent of a drag "becoming" a scrub
+// once at `.onEnded` rather than continuously. `.tap` never reported anything to `onScrub`
+// continuously the way `.scrub` does, so there was no equivalent of a drag "becoming" a scrub
 // partway through for an axis check to arbitrate — either the touch stayed within `tapTolerance`
 // of where it started, in which case it was never going to be mistaken for a scroll in the first
-// place, or it did not, in which case `.tap` already does nothing. Adding a second, differently-
-// shaped check to a gesture that already answers the only question it needs to would be
+// place, or it did not, in which case `.tap` already did nothing. Adding a second, differently-
+// shaped check to a gesture that already answered the only question it needed to would have been
 // complexity with no defect behind it.
+//
+// `.tap` itself — and `tapGesture(width:onTap:)`, `tapTolerance` and the accessibility action
+// built around it — were removed for an unrelated reason, in a later round: Traffic Stats, `.tap`'s
+// one and only caller, stopped opening the full page centred on the tapped point once its strip
+// stopped drawing the whole log. Zoomed to the most recent handful of requests instead (see
+// `TrafficStatsViewModel.recentWaterfallCount`), the strip's own series origin became the earliest
+// of just those few, not the log's true earliest request — so the mapping
+// `WaterfallView.init(logs:openingTime:)` relied on, which assumed the two origins agreed, would
+// have silently opened the full page centred on the wrong moment by however far those origins had
+// drifted apart. Fixing that mapping would have meant changing `WaterfallView`'s own already-
+// shipped, owner-approved contract for the sake of a caller that no longer had the problem it
+// solved, so the section's strip draws with `interaction: .none` instead — and the rows beneath
+// it, one `NavigationLink` per request, already give more precise navigation than "centred near
+// where you tapped" ever did. That left `.tap` with no caller anywhere in the module, and it was
+// deleted along with `tapGesture(width:onTap:)` and `tapTolerance` rather than kept as untested,
+// uncalled capability — the same choice this file already made once for `WaterfallScrubGeometry`,
+// above. Nothing in `WaterfallOverviewStripTests.swift` exercised either directly — both were only
+// ever reached through the view, never as pure functions the way `WaterfallStripGeometry` is — so
+// no test needed rewriting or deleting alongside them.
 
-/// The whole log compressed into one strip: every request as a short horizontal line, placed by
-/// when it happened and coloured by how it went.
+/// A log compressed into one strip: every request in ``series`` as a short horizontal line,
+/// placed by when it happened and coloured by how it went.
 ///
-/// One view, two jobs. On ``WaterfallView`` it carries the current window as an overlay and takes
-/// a continuous drag that moves it. In ``TrafficStatsView`` it carries no window and a tap opens
-/// the page at the moment touched — see ``Interaction`` for why those are two different gestures
-/// rather than one.
+/// One view, two callers, drawing two different slices of the log. ``WaterfallView`` builds
+/// ``series`` from the whole log and carries the current window as an overlay with a continuous
+/// drag that moves it — see ``Interaction/scrub(_:)``. ``TrafficStatsView`` builds ``series`` from
+/// only the most recent handful of requests instead (`TrafficStatsViewModel.recentLayout`), so it
+/// carries no window to mark and draws only — see ``Interaction/none``. The strip does not know
+/// which slice it was given; it draws whatever ``series`` holds edge to edge, which is what makes
+/// "zoom to the last few requests" as simple as building a smaller series rather than a second
+/// windowing concept.
 ///
-/// Drawn with a `Canvas` rather than a stack of shapes. Both callers now build from the entire
-/// log rather than the most recent handful, and a view per request would be thousands of views
-/// for a busy session; a `Canvas` is one drawing pass whatever the count.
+/// Drawn with a `Canvas` rather than a stack of shapes. ``WaterfallView``'s strip still builds from
+/// the entire log, and a view per request would be thousands of views for a busy session; a
+/// `Canvas` is one drawing pass whatever the count.
 struct WaterfallOverviewStrip: View {
 
     /// How the strip responds to touch, which differs by host.
     ///
     /// The full page keeps the strip outside its scrolling `List` — a fixed sibling above it, see
-    /// `WaterfallView.minimapCard` — so it can afford a continuous drag. Traffic Stats puts it
-    /// inside a `List`, where a zero-distance drag would win arbitration against the list's own
-    /// pan and steal every scroll that happened to start on the strip. A single gesture cannot
-    /// serve both hosts honestly, so the strip is told which one it is in rather than guessing
-    /// from its own state.
+    /// `WaterfallView.minimapCard` — so it can afford a continuous drag: see ``scrub(_:)``.
+    /// Traffic Stats' strip sits inside a `List` too, but does not need a gesture of its own at
+    /// all any more — see ``none`` — because the handful of rows drawn beneath it already give a
+    /// more precise route to any one request than touching the strip ever did. A gesture that had
+    /// to coexist with the list's own pan, the way this type once needed for that section, no
+    /// longer has a caller; the removal comment at the top of this file records why and what it
+    /// was.
     ///
     /// - Note: `.scrub` briefly needed to tolerate living inside a `List` too, when the full
     ///   page's minimap spent one fix round as a `Section` at the top of its own `List` instead of
@@ -180,10 +205,6 @@ struct WaterfallOverviewStrip: View {
         /// Reports continuously while dragged, from the first touch. For a strip that is not
         /// inside a scroll view, where nothing else is competing for the drag.
         case scrub((TimeInterval) -> Void)
-
-        /// Reports once, on a touch that did not travel. For a strip inside a scroll view, where
-        /// the gesture has to let a scroll pass through untouched rather than capture it.
-        case tap((TimeInterval) -> Void)
     }
 
     /// The strip's height on the full page, in points.
@@ -192,13 +213,6 @@ struct WaterfallOverviewStrip: View {
     /// The strip's height inside the Traffic Stats section, in points. Shorter because it is one
     /// section among several rather than the screen's subject.
     static let sectionHeight: CGFloat = 72
-
-    /// How far a touch may travel and still be read as a tap rather than the start of a scroll,
-    /// in points, for ``Interaction/tap(_:)``.
-    ///
-    /// Not zero: a finger is never perfectly still, and a strict zero would read most genuine
-    /// taps as the beginning of a scroll and silently drop them.
-    private static let tapTolerance: CGFloat = 10
 
     /// The log to draw.
     let series: WaterfallSeries
@@ -221,47 +235,26 @@ struct WaterfallOverviewStrip: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    /// ``content(size:)`` plus the accessibility both interactions need, built together because
-    /// ``Interaction/tap(_:)``'s own accessibility action needs the same width the gesture and the
-    /// drawing already read from the enclosing `GeometryReader`.
+    /// ``content(size:)`` plus the accessibility every interaction needs: one element speaking a
+    /// fixed label and a value describing what the strip currently holds.
     ///
-    /// Traffic Stats' strip used to collapse to one element with a label and nothing else — no
-    /// value, no trait, no action — which meant "tap the strip to open the page at that moment"
-    /// was unreachable by VoiceOver at all: the `Chart` this strip replaced made every bar its own
-    /// navigable element with a spoken value, so that was a regression on what shipped before it,
-    /// not a pre-existing gap. `.isButton` plus an `.accessibilityAction` fix the same failure
-    /// `.accessibilityAdjustableAction` already fixed for zoom on ``WaterfallView``'s own strip —
-    /// see that type's own documentation — by giving VoiceOver and Switch Control a route to the
-    /// interaction a sighted reader's tap already has.
+    /// This used to branch on ``interaction``: `.tap`, since removed — see the removal comment at
+    /// the top of this file — added `.isButton` and an `.accessibilityAction` reporting the
+    /// strip's midpoint, because it had no destination view of its own for a `NavigationLink` to
+    /// wrap and a sighted tap and VoiceOver's activation both had to drive the same callback. With
+    /// `.tap` gone, both remaining cases — ``Interaction/none`` and ``Interaction/scrub(_:)`` —
+    /// want exactly this and nothing more, so there is nothing left to switch on. `.scrub`'s own
+    /// page overrides ``accessibilityValue`` with the current window's caption and reaches zoom
+    /// through `.accessibilityAdjustableAction` attached from outside — see
+    /// ``WaterfallView/strip`` — and needs no activation action here: the drag that gesture
+    /// answers to has no single VoiceOver-reachable equivalent the way a tap did.
     ///
     /// - Parameter size: The strip's size in points, from the enclosing `GeometryReader`.
-    @ViewBuilder
     private func accessibleContent(size: CGSize) -> some View {
-        let base = content(size: size)
+        content(size: size)
             .accessibilityElement()
             .accessibilityLabel(localized("Traffic overview"))
             .accessibilityValue(accessibilityValue)
-
-        switch interaction {
-        case .none, .scrub:
-            // `.scrub`'s own page overrides this value with the current window's caption, and
-            // reaches zoom through `.accessibilityAdjustableAction` attached from outside — see
-            // ``WaterfallView/strip``. Nothing here needs an activation action: the drag that
-            // gesture answers to has no single VoiceOver-reachable equivalent the way a tap does.
-            base
-        case .tap(let onTap):
-            // The strip has no destination view of its own for a `NavigationLink` to wrap — see
-            // ``TrafficStatsView/waterfallSection`` — so a sighted tap and VoiceOver's activation
-            // both have to drive the same callback. The midpoint stands in for "the moment
-            // touched" that a sighted tap would otherwise name, which is the best a single
-            // activation action can report without asking the reader to drag first.
-            base
-                .accessibilityAddTraits(.isButton)
-                .accessibilityAction {
-                    guard let time = time(at: size.width / 2, width: size.width) else { return }
-                    onTap(time)
-                }
-        }
     }
 
     /// A description of what the strip shows, read by VoiceOver after
@@ -279,20 +272,19 @@ struct WaterfallOverviewStrip: View {
     /// The strip's drawing and its gesture, built together because the gesture the view attaches
     /// depends on ``interaction`` and the width both need comes from the same `GeometryReader`.
     ///
-    /// A `switch` in a `@ViewBuilder` rather than a single `.gesture` call with a `nil` case,
-    /// because `.tap` has to attach as `.simultaneousGesture` rather than `.gesture` — the two
-    /// modifiers are different types, and this is the only way to choose between them per
-    /// instance without erasing the view.
-    ///
-    /// `.scrub` attaches with plain `.gesture(_:)`, the ordinary case, because the full page keeps
-    /// the strip outside its own scrolling `List` — see ``Interaction``'s own documentation — so
-    /// there is no competing recogniser for `.simultaneousGesture(_:)` to avoid blocking. `.tap`
-    /// is the one that has to reach for `.simultaneousGesture(_:)`: Traffic Stats' `List` owns a
-    /// pan recogniser of its own, and a gesture attached with plain `.gesture(_:)` only recognises
-    /// once every other gesture in the responder chain has failed to — the same failure mode
-    /// ``WaterfallView/magnification`` documents in full for the pinch — so `.tap` has to be
-    /// allowed to recognise independently, and decide for itself whether the touch was short
-    /// enough to count, rather than wait on the list's own recogniser to fail first.
+    /// `.scrub` attaches with plain `.gesture(_:)`: the full page keeps the strip outside its own
+    /// scrolling `List` — see ``Interaction``'s own documentation — so there is no competing
+    /// recogniser to avoid blocking. `.none` attaches nothing at all. This file used to have a
+    /// third case, `.tap`, that had to reach for `.simultaneousGesture(_:)` instead — Traffic
+    /// Stats' `List` owned a pan recogniser of its own, and a gesture attached with plain
+    /// `.gesture(_:)` only recognises once every other gesture in the responder chain has failed
+    /// to, the same failure mode ``WaterfallView/magnification`` documents in full for the pinch —
+    /// but `.tap` had no remaining caller once that section stopped drawing the whole log; see the
+    /// removal comment at the top of this file. The `switch` stays rather than collapsing to a
+    /// single `if`, in case a third case returns: `.gesture(_:)` and `.simultaneousGesture(_:)`
+    /// are different modifier types, so a plain optional gesture could not have expressed the
+    /// choice this made when there were three cases to choose from, and the two remaining are
+    /// cheap enough to keep as a `switch` rather than special-cased back down to an `if`.
     ///
     /// - Parameter size: The strip's size in points, from the enclosing `GeometryReader`.
     @ViewBuilder
@@ -327,8 +319,6 @@ struct WaterfallOverviewStrip: View {
             drawing
         case .scrub(let onScrub):
             drawing.gesture(scrubGesture(width: size.width, onScrub: onScrub))
-        case .tap(let onTap):
-            drawing.simultaneousGesture(tapGesture(width: size.width, onTap: onTap))
         }
     }
 
@@ -399,23 +389,6 @@ struct WaterfallOverviewStrip: View {
             .onChanged { value in
                 guard let time = time(at: value.location.x, width: width) else { return }
                 onScrub(time)
-            }
-    }
-
-    /// Traffic Stats' gesture: reports once, only when the touch ended without travelling more
-    /// than ``tapTolerance`` in either axis, and is attached as a simultaneous gesture so a
-    /// genuine scroll started on the strip still reaches the enclosing `List` untouched.
-    ///
-    /// - Parameters:
-    ///   - width: The strip's width in points.
-    ///   - onTap: Called with the touched time when the touch counts as a tap.
-    private func tapGesture(width: CGFloat, onTap: @escaping (TimeInterval) -> Void) -> some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onEnded { value in
-                guard abs(value.translation.width) < Self.tapTolerance,
-                      abs(value.translation.height) < Self.tapTolerance,
-                      let time = time(at: value.location.x, width: width) else { return }
-                onTap(time)
             }
     }
 }
