@@ -730,14 +730,20 @@ plot wide enough not to, are both a *scroll* answer to what is really a *zoom* p
 300 second log of requests between 32 ms and 1.4 s, either one either floors every bar to the same
 sliver or hands the reader a plot thousands of points wide to pan by hand.
 
-Dragging the strip moves the window anywhere in the log in a single gesture — the strip only ever
-moves the window, it never opens a request. Underneath it, a **detail list** holds only the
-requests the window currently contains, each a tappable row labelled with its duration and
-coloured by outcome, running oldest first so time reads downward. A **pinch** on the detail list
-narrows or widens the window, holding its centre still, down to the point at which the shortest
-measured request in the log would draw narrower than 24 points — past that there is nothing left
-to magnify, only more gap between bars, and both the pinch and the strip's adjustable action are
-disabled rather than left to silently do nothing. `.accessibilityAdjustableAction` on the strip
+The page is one inset-grouped list: a standalone minimap section — the colour legend and the
+strip, together — sits above a detail section holding the rows, rather than the strip sitting
+outside the list as a separate control. Dragging the strip moves the window anywhere in the log in
+a single gesture — the strip only ever moves the window, it never opens a request. Underneath it,
+the **detail section** holds only the requests the window currently contains, each a tappable row
+labelled with its duration and coloured by outcome, running oldest first so time reads downward.
+Dragging or zooming into a stretch of the log with nothing in it shows an empty state naming the
+gap, with a button that returns the window to the most recent traffic — distinct from the page's
+other empty state, shown instead of the whole list, for a log with no traffic captured at all. A
+**pinch** on the detail list narrows or widens the window, holding its centre still, down to the
+point at which the shortest measured request in the log would draw narrower than 24 points — past
+that there is nothing left to magnify, only more gap between bars, and both the pinch and the
+strip's adjustable action are disabled rather than left to silently do nothing.
+`.accessibilityAdjustableAction` on the strip
 puts the same zoom range behind VoiceOver's and Switch Control's adjustable gesture, and its
 accessibility value announces how many requests the window holds after every change, so reaching
 zoom never requires a pinch and never leaves a VoiceOver user guessing whether anything happened.

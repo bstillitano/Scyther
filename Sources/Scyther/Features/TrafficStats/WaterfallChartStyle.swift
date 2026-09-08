@@ -141,6 +141,19 @@ enum WaterfallChartStyle {
     /// plus the 16pt leading and trailing insets a plain `List` gives every row: `2 * 8 + 16 + 16`.
     /// Named so `WaterfallDetailRowMetrics` and ``WaterfallView`` add it up the same way rather
     /// than each carrying their own copy of the arithmetic.
+    ///
+    /// - Note: Derived while ``WaterfallView``'s detail list was styled `.plain`, measured against
+    ///   a `GeometryReader` wrapping the whole list rather than one row. The list is now
+    ///   `.insetGrouped` — see that type's own `content`/`detail` documentation — and UIKit's
+    ///   inset-grouped style typically reserves a little more horizontal margin around a section's
+    ///   content than a plain list's row inset alone, on top of what this constant already
+    ///   subtracts. This was not re-measured against `.insetGrouped`'s actual margin, which nobody
+    ///   in this pipeline can do without a device to read the rendered row's own frame on: the risk
+    ///   is that the plot and duration columns are computed a few points wider than the row's true
+    ///   available width, not that the row breaks outright — `WaterfallDetailRow` already clips its
+    ///   bar with `.clipped()` and truncates its duration text, both guards this predates.
+    ///   Confirming the row's columns still land flush against `.insetGrouped`'s real margin, and
+    ///   correcting this constant if they do not, is on the owner.
     static let detailRowInteriorChrome: CGFloat = 48
 
     /// The width a plain `List` row reserves for a `NavigationLink`'s disclosure chevron, in
@@ -154,14 +167,12 @@ enum WaterfallChartStyle {
     /// same two columns could grow past the row's own width at accessibility sizes: leaving the
     /// chevron out of the row's width budget would mean the row still overflows by exactly this
     /// much even after the columns are capped to fit everything *else*.
-    static let detailRowDisclosureReserve: CGFloat = 21
-
-    /// The padding between the page's edge and its content, in points.
     ///
-    /// Matches UIKit's inset-grouped content margin, which is what the legend above the detail
-    /// list is measured against so it reads as part of the same screen rather than a component
-    /// dropped onto it.
-    static let cardContentPadding: CGFloat = 16
+    /// Unlike ``detailRowInteriorChrome``, the chevron's own reserve is not expected to move with
+    /// the switch to `.insetGrouped`: a `NavigationLink`'s disclosure indicator is the same glyph
+    /// with the same leading spacing regardless of the enclosing list's grouping style, so nothing
+    /// about this estimate is specific to `.plain`.
+    static let detailRowDisclosureReserve: CGFloat = 21
 
     // MARK: - Colour
 

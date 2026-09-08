@@ -383,6 +383,21 @@
     "zh-Hans": "中位数 %@",
     "zh-Hant": "中位數 %@"
   },
+  "No Requests in This Window": {
+    "ar": "لا توجد طلبات في هذه النافذة",
+    "comment": "Title of the empty state shown when the current time window is over a stretch of the log with no traffic, distinct from the log itself being empty",
+    "de": "Keine Anfragen in diesem Fenster",
+    "es": "No hay solicitudes en esta ventana",
+    "fr": "Aucune requête dans cette fenêtre",
+    "it": "Nessuna richiesta in questa finestra",
+    "ja": "このウィンドウにはリクエストがありません",
+    "ko": "이 창에는 요청이 없습니다",
+    "nl": "Geen verzoeken in dit venster",
+    "pt-BR": "Nenhuma solicitação nesta janela",
+    "ru": "В этом окне нет запросов",
+    "zh-Hans": "此窗口中没有请求",
+    "zh-Hant": "此視窗中沒有請求"
+  },
   "No Traffic Captured": {
     "ar": "لم يتم التقاط أي حركة بيانات",
     "comment": "Title of the placeholder shown when no requests have been logged",
@@ -397,21 +412,6 @@
     "ru": "Трафик не записан",
     "zh-Hans": "未捕获流量",
     "zh-Hant": "未擷取流量"
-  },
-  "No requests in this part of the log.": {
-    "ar": "لا توجد طلبات في هذا الجزء من السجل.",
-    "comment": "Row shown in the detail list when the current time window holds no requests",
-    "de": "Keine Anfragen in diesem Teil des Protokolls.",
-    "es": "No hay solicitudes en esta parte del registro.",
-    "fr": "Aucune requête dans cette partie du journal.",
-    "it": "Nessuna richiesta in questa parte del registro.",
-    "ja": "ログのこの部分にはリクエストがありません。",
-    "ko": "로그의 이 부분에는 요청이 없습니다.",
-    "nl": "Geen verzoeken in dit deel van het logboek.",
-    "pt-BR": "Nenhuma solicitação nesta parte do registro.",
-    "ru": "В этой части журнала нет запросов.",
-    "zh-Hans": "此日志片段中没有请求。",
-    "zh-Hant": "此記錄片段中沒有請求。"
   },
   "Outcome": {
     "ar": "النتيجة",
@@ -487,6 +487,21 @@
     "ru": "Показать все",
     "zh-Hans": "查看全部",
     "zh-Hant": "查看全部"
+  },
+  "Show Recent Traffic": {
+    "ar": "إظهار أحدث حركة البيانات",
+    "comment": "Button in the empty state shown when the current time window holds no traffic; returns the window to the most recent traffic",
+    "de": "Aktuellen Traffic anzeigen",
+    "es": "Mostrar tráfico reciente",
+    "fr": "Afficher le trafic récent",
+    "it": "Mostra traffico recente",
+    "ja": "最新のトラフィックを表示",
+    "ko": "최근 트래픽 표시",
+    "nl": "Recent verkeer tonen",
+    "pt-BR": "Mostrar tráfego recente",
+    "ru": "Показать последний трафик",
+    "zh-Hans": "显示最近流量",
+    "zh-Hant": "顯示最近流量"
   },
   "Slowest": {
     "ar": "الأبطأ",
@@ -592,6 +607,21 @@
     "ru": "Число рядом с каждым хостом — медианный цикл запроса для него.",
     "zh-Hans": "每个主机旁的数值是该主机往返时间的中位数。",
     "zh-Hant": "每個主機旁的數值是該主機往返時間的中位數。"
+  },
+  "The window is over a quiet stretch of the log. Move it back to see the most recent traffic.": {
+    "ar": "تقع النافذة فوق جزء هادئ من السجل. أعدها للخلف لرؤية أحدث حركة البيانات.",
+    "comment": "Description under the empty state shown when the current time window holds no traffic, even though the log has traffic elsewhere",
+    "de": "Das Fenster liegt über einem ruhigen Abschnitt des Protokolls. Bewegen Sie es zurück, um den aktuellsten Traffic zu sehen.",
+    "es": "La ventana está sobre un tramo tranquilo del registro. Muévala hacia atrás para ver el tráfico más reciente.",
+    "fr": "La fenêtre se trouve sur une période calme du journal. Ramenez-la pour voir le trafic le plus récent.",
+    "it": "La finestra si trova su un tratto silenzioso del registro. Spostala indietro per vedere il traffico più recente.",
+    "ja": "ウィンドウはログの静かな区間にあります。戻して最新のトラフィックを表示してください。",
+    "ko": "창이 로그의 조용한 구간에 있습니다. 뒤로 이동하여 최신 트래픽을 확인하세요.",
+    "nl": "Het venster bevindt zich boven een rustig deel van het logboek. Verplaats het terug om het meest recente verkeer te zien.",
+    "pt-BR": "A janela está sobre um trecho silencioso do registro. Mova-a de volta para ver o tráfego mais recente.",
+    "ru": "Окно находится над тихим участком журнала. Верните его назад, чтобы увидеть последний трафик.",
+    "zh-Hans": "该窗口位于日志中没有流量的区段。将其移回可查看最新流量。",
+    "zh-Hant": "此視窗位於記錄中沒有流量的區段。將其移回可查看最新流量。"
   },
   "Traffic Stats": {
     "ar": "إحصاءات حركة البيانات",

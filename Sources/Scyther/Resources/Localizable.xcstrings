@@ -35068,6 +35068,83 @@
         }
       }
     },
+    "No Requests in This Window": {
+      "comment": "Title of the empty state shown when the current time window is over a stretch of the log with no traffic, distinct from the log itself being empty",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لا توجد طلبات في هذه النافذة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Keine Anfragen in diesem Fenster"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No hay solicitudes en esta ventana"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aucune requête dans cette fenêtre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nessuna richiesta in questa finestra"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "このウィンドウにはリクエストがありません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "이 창에는 요청이 없습니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Geen verzoeken in dit venster"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nenhuma solicitação nesta janela"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "В этом окне нет запросов"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "此窗口中没有请求"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "此視窗中沒有請求"
+          }
+        }
+      }
+    },
     "No Results": {
       "comment": "Empty state title when a search or query returns nothing",
       "localizations": {
@@ -36758,83 +36835,6 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "未收到通知"
-          }
-        }
-      }
-    },
-    "No requests in this part of the log.": {
-      "comment": "Row shown in the detail list when the current time window holds no requests",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "لا توجد طلبات في هذا الجزء من السجل."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Keine Anfragen in diesem Teil des Protokolls."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "No hay solicitudes en esta parte del registro."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Aucune requête dans cette partie du journal."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Nessuna richiesta in questa parte del registro."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "ログのこの部分にはリクエストがありません。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "로그의 이 부분에는 요청이 없습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Geen verzoeken in dit deel van het logboek."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Nenhuma solicitação nesta parte do registro."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "В этой части журнала нет запросов."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "此日志片段中没有请求。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "此記錄片段中沒有請求。"
           }
         }
       }
@@ -52413,6 +52413,83 @@
         }
       }
     },
+    "Show Recent Traffic": {
+      "comment": "Button in the empty state shown when the current time window holds no traffic; returns the window to the most recent traffic",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "إظهار أحدث حركة البيانات"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aktuellen Traffic anzeigen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostrar tráfico reciente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Afficher le trafic récent"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostra traffico recente"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "最新のトラフィックを表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "최근 트래픽 표시"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Recent verkeer tonen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mostrar tráfego recente"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Показать последний трафик"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "显示最近流量"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "顯示最近流量"
+          }
+        }
+      }
+    },
     "Show Screen Touches": {
       "comment": "Searchable row inside the Touch Visualiser page",
       "localizations": {
@@ -56818,6 +56895,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "無法將所選檔案作為 HAR 文件讀取。"
+          }
+        }
+      }
+    },
+    "The window is over a quiet stretch of the log. Move it back to see the most recent traffic.": {
+      "comment": "Description under the empty state shown when the current time window holds no traffic, even though the log has traffic elsewhere",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "تقع النافذة فوق جزء هادئ من السجل. أعدها للخلف لرؤية أحدث حركة البيانات."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Das Fenster liegt über einem ruhigen Abschnitt des Protokolls. Bewegen Sie es zurück, um den aktuellsten Traffic zu sehen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "La ventana está sobre un tramo tranquilo del registro. Muévala hacia atrás para ver el tráfico más reciente."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "La fenêtre se trouve sur une période calme du journal. Ramenez-la pour voir le trafic le plus récent."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "La finestra si trova su un tratto silenzioso del registro. Spostala indietro per vedere il traffico più recente."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ウィンドウはログの静かな区間にあります。戻して最新のトラフィックを表示してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "창이 로그의 조용한 구간에 있습니다. 뒤로 이동하여 최신 트래픽을 확인하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Het venster bevindt zich boven een rustig deel van het logboek. Verplaats het terug om het meest recente verkeer te zien."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "A janela está sobre um trecho silencioso do registro. Mova-a de volta para ver o tráfego mais recente."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Окно находится над тихим участком журнала. Верните его назад, чтобы увидеть последний трафик."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "该窗口位于日志中没有流量的区段。将其移回可查看最新流量。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "此視窗位於記錄中沒有流量的區段。將其移回可查看最新流量。"
           }
         }
       }

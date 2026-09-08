@@ -456,6 +456,35 @@ final class WaterfallViewModel: ViewModel {
         windowFollowsDefault = false
     }
 
+    /// Returns the window to the page's own default: anchored on the most recent traffic, at
+    /// ``WaterfallWindow/opening(span:narrowest:medianMeasured:plotWidth:)`` — the same window the
+    /// page opens with, and the same window an untouched page keeps tracking as new traffic
+    /// streams in.
+    ///
+    /// This is the way out ``WaterfallView``'s gap empty state offers. Zooming or scrubbing into a
+    /// stretch of the log with nothing in it leaves the developer looking at a blank list with no
+    /// bars left to drag by — see ``isWindowEmpty``. Returning to the opening default rather than
+    /// jumping straight to the widest possible window (the whole span) is deliberate: the whole
+    /// span is still one pinch-out away from there, and "the most recent traffic" answers the more
+    /// common reason a developer ends up looking at a gap in the first place — a drag that
+    /// overshot past the burst they actually wanted — without discarding the zoom level they had
+    /// chosen for a flattened view of the entire session.
+    ///
+    /// Reusing ``configureWindow(plotWidth:)`` rather than duplicating its arithmetic here is what
+    /// keeps this in step with a future change to the opening rule automatically: there is exactly
+    /// one place that computes "the window the page opens with," and both the first frame and this
+    /// button read it.
+    ///
+    /// Marks the window as following the default again — see ``windowFollowsDefault`` — rather
+    /// than only computing the same window once: without that flip, the very next geometry change
+    /// (a rotation, a Dynamic Type change) would hold this position instead of continuing to track
+    /// new traffic the way an untouched page does, and the button's promise — "back to where an
+    /// untouched page would be" — would only hold for one frame.
+    func resetWindow() {
+        windowFollowsDefault = true
+        configureWindow(plotWidth: plotWidth)
+    }
+
     /// Opens the window at ``openingWindowFraction`` of the span, centred on `time`, and marks it
     /// as held — see ``windowFollowsDefault``. Without this, ``WaterfallView``'s own `.onAppear`
     /// call to ``configureWindow(plotWidth:)`` — which runs after this, once the real plot width

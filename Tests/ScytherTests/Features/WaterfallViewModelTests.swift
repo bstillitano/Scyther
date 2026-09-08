@@ -455,6 +455,57 @@ final class WaterfallViewModelTests: XCTestCase {
         XCTAssertTrue(model.isWindowEmpty)
     }
 
+    // MARK: - The escape from a gap
+
+    /// The button `WaterfallView`'s gap empty state offers has to land somewhere with traffic in
+    /// it, not merely somewhere different: dragging into another empty stretch would be no escape
+    /// at all.
+    func testResetWindowReturnsToTheMostRecentTraffic() async {
+        let model = makeModel(starts: [0, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+        model.zoom(by: 20)
+        model.scrub(to: 15)
+        XCTAssertTrue(model.isWindowEmpty, "starting from the same gap the reported defect describes")
+
+        model.resetWindow()
+
+        XCTAssertFalse(model.visibleRows.isEmpty, "the escape must land somewhere with traffic")
+        XCTAssertFalse(model.isWindowEmpty)
+        XCTAssertEqual(model.window.end, model.series.span, accuracy: 0.0001,
+                       "anchored on the most recent traffic, the same as the page's own opening default")
+    }
+
+    /// `resetWindow()` has to do more than move the window once: a developer who taps the button
+    /// and then leaves the page open while more traffic streams in should see it keep tracking the
+    /// tail of the log, the same as a page nobody has touched at all — not freeze wherever the
+    /// button happened to leave it.
+    func testResetWindowResumesTrackingNewTraffic() async {
+        let model = makeModel(starts: [0, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+        model.zoom(by: 20)
+        model.scrub(to: 15)
+        model.resetWindow()
+        XCTAssertEqual(model.window.end, model.series.span, accuracy: 0.0001)
+
+        // New traffic arrives well past the old span; an untouched page's window would move to
+        // keep tracking it, via `configureWindow(plotWidth:)`'s own `windowFollowsDefault` branch
+        // running again on the next `recompute()`.
+        let origin = Date(timeIntervalSince1970: 1_000)
+        let newer = HTTPRequest()
+        newer.requestURL = "https://api.ipify.org/?format=json"
+        newer.requestMethod = "GET"
+        newer.requestDate = origin.addingTimeInterval(60)
+        newer.responseDate = origin.addingTimeInterval(60.05)
+        model.update(requests: model.requests + [newer], totalCount: model.requests.count + 1)
+        await model.recompute()
+
+        XCTAssertEqual(model.window.end, model.series.span, accuracy: 0.0001,
+                       "still tracking the tail of the log after the button was used")
+        XCTAssertGreaterThan(model.series.span, 30, "the new request really did extend the span")
+    }
+
     func testASingleRequestCannotZoom() async {
         let model = makeModel(starts: [0])
         await model.recompute()
