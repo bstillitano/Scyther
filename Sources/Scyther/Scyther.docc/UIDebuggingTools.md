@@ -90,6 +90,27 @@ GridOverlay.instance.size = 8
 GridOverlay.instance.size = 4
 ```
 
+## Layout Guides
+
+Draw the key window's safe-area insets and layout margins over your UI, each labelled with its
+measurement in points.
+
+### Enabling Layout Guides
+
+```swift
+// Enable layout guides
+Scyther.interface.layoutGuidesEnabled = true
+```
+
+### Reading the Overlay
+
+Safe-area insets are drawn as solid blue lines; layout margins are drawn as dashed purple lines,
+offset along the line from the safe-area label so the two remain legible even where a margin
+lands on top of a safe-area inset — the common case, since a root view's `layoutMargins` are
+inset from the safe area by default. An inset that is zero — the bottom safe area on a device
+with no home indicator, say — is not drawn at all: a line labelled `0 pt` flush against the
+screen edge would be noise, not information.
+
 ## View Frame Debugging
 
 Highlight view boundaries to understand your view hierarchy.
@@ -160,6 +181,9 @@ Scyther.interface.touchVisualizerEnabled = true/false
 // Grid overlay
 Scyther.interface.gridOverlayEnabled = true/false
 
+// Layout guides
+Scyther.interface.layoutGuidesEnabled = true/false
+
 // View debugging
 InterfaceToolkit.showViewFrames = true/false
 InterfaceToolkit.showViewSizes = true/false
@@ -194,4 +218,5 @@ All UI debugging tools are automatically disabled in App Store builds.
 - ``TouchVisualiser``
 - ``TouchVisualiserConfiguration``
 - ``GridOverlay``
+- ``LayoutGuides``
 

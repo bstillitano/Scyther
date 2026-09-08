@@ -12,6 +12,8 @@ final class LayoutGuidesTests: XCTestCase {
 
     private let bounds = CGRect(x: 0, y: 0, width: 400, height: 800)
 
+    // MARK: - Line Placement
+
     func testASafeAreaLineIsDrawnForEachNonZeroInset() {
         let lines = LayoutGuidesView.guideLines(
             safeArea: UIEdgeInsets(top: 59, left: 0, bottom: 34, right: 0),
@@ -63,14 +65,221 @@ final class LayoutGuidesTests: XCTestCase {
         XCTAssertTrue(lines.isEmpty)
     }
 
+    // MARK: - Rounding
+
+    /// `Int(...)` truncation would print a sub-point inset as `"0 pt"` — exactly the noise the
+    /// zero-inset rule exists to prevent. Rounding is what the visibility guard is written
+    /// against, so an inset that rounds down to zero is not drawn at all.
+    func testASubPointInsetThatRoundsToZeroIsNotDrawn() {
+        let lines = LayoutGuidesView.guideLines(
+            safeArea: UIEdgeInsets(top: 0.3, left: 0, bottom: 0, right: 0),
+            margins: .zero,
+            in: bounds
+        )
+        XCTAssertTrue(lines.isEmpty)
+    }
+
+    /// An inset that rounds *up* to a whole point is drawn, and ``GuideLine/roundedValue`` — what
+    /// the label actually reads — reflects the rounded value rather than the truncated one.
+    func testAnInsetThatRoundsUpIsDrawnWithTheRoundedValue() throws {
+        let lines = LayoutGuidesView.guideLines(
+            safeArea: UIEdgeInsets(top: 0.6, left: 0, bottom: 0, right: 0),
+            margins: .zero,
+            in: bounds
+        )
+        let line = try XCTUnwrap(lines.first)
+        XCTAssertEqual(line.value, 0.6)
+        XCTAssertEqual(line.roundedValue, 1)
+    }
+
+    func testAWholePointInsetRoundsToItself() throws {
+        let lines = LayoutGuidesView.guideLines(
+            safeArea: UIEdgeInsets(top: 59, left: 0, bottom: 0, right: 0),
+            margins: .zero,
+            in: bounds
+        )
+        let line = try XCTUnwrap(lines.first)
+        XCTAssertEqual(line.roundedValue, 59)
+    }
+
+    /// `20.33` truncates to `20`, which happens to be right by coincidence; `20.6` is the case
+    /// that actually distinguishes rounding from truncation.
+    func testASubPointRemainderRoundsRatherThanTruncates() throws {
+        let lines = LayoutGuidesView.guideLines(
+            safeArea: UIEdgeInsets(top: 20.6, left: 0, bottom: 0, right: 0),
+            margins: .zero,
+            in: bounds
+        )
+        let line = try XCTUnwrap(lines.first)
+        XCTAssertEqual(line.roundedValue, 21, "truncation would read 20, which is the bug")
+    }
+
+    // MARK: - Coincident Lines (Kind)
+
+    /// Colour alone cannot separate two lines drawn at identical coordinates — the line stroked
+    /// second simply paints over the line stroked first. A dash pattern means both stay visible
+    /// regardless of paint order.
+    func testOnlyMarginLinesAreDashed() {
+        XCTAssertFalse(GuideLine.Kind.safeArea.isDashed)
+        XCTAssertTrue(GuideLine.Kind.margin.isDashed)
+    }
+
+    /// The two kinds' labels sit at different fractions along the line, so a margin line
+    /// coincident with a safe-area line still reads as two measurements instead of the second
+    /// erasing the first — without moving where either line is actually drawn.
+    func testSafeAreaAndMarginLabelsSitAtDifferentFractionsAlongACoincidentLine() {
+        let start = CGPoint(x: 0, y: 100)
+        let end = CGPoint(x: 400, y: 100)
+        let safeArea = GuideLine(start: start, end: end, value: 16, kind: .safeArea)
+        let margin = GuideLine(start: start, end: end, value: 16, kind: .margin)
+
+        XCTAssertEqual(safeArea.labelMidpoint.x, 400.0 / 3.0, accuracy: 0.001)
+        XCTAssertEqual(safeArea.labelMidpoint.y, 100)
+        XCTAssertEqual(margin.labelMidpoint.x, 800.0 / 3.0, accuracy: 0.001)
+        XCTAssertEqual(margin.labelMidpoint.y, 100)
+        XCTAssertNotEqual(safeArea.labelMidpoint, margin.labelMidpoint)
+    }
+
+    /// The line itself — what a developer measures by eye, and what the earlier tests in this
+    /// file assert — is unaffected by where its label sits.
+    func testLabelFractionsDoNotMoveTheLineItself() {
+        let start = CGPoint(x: 0, y: 100)
+        let end = CGPoint(x: 400, y: 100)
+        let margin = GuideLine(start: start, end: end, value: 16, kind: .margin)
+
+        XCTAssertEqual(margin.start, start)
+        XCTAssertEqual(margin.end, end)
+    }
+
+    // MARK: - Label Placement
+
+    /// The layout ruler already solves keeping a label inside the screen —
+    /// `LayoutRulerGeometry.labelOrigin(midpoint:labelSize:in:)`. This asserts the guides
+    /// actually route through it rather than solving clipping a second, different way: a label
+    /// near the left edge must not have any part of its frame off-screen.
+    func testALabelNearTheLeftEdgeIsKeptFullyOnScreen() {
+        let line = GuideLine(start: CGPoint(x: 16, y: 0), end: CGPoint(x: 16, y: 800), value: 16, kind: .margin)
+        let frame = LayoutGuidesView.labelFrame(for: line, labelSize: CGSize(width: 40, height: 18), in: bounds.size)
+
+        XCTAssertGreaterThanOrEqual(frame.minX, 0)
+        XCTAssertLessThanOrEqual(frame.maxX, bounds.width)
+    }
+
+    /// The same on the right edge, where a naive "centre on the midpoint" placement overflows
+    /// the far edge instead of the near one.
+    func testALabelNearTheRightEdgeIsKeptFullyOnScreen() {
+        let line = GuideLine(start: CGPoint(x: 390, y: 0), end: CGPoint(x: 390, y: 800), value: 10, kind: .safeArea)
+        let frame = LayoutGuidesView.labelFrame(for: line, labelSize: CGSize(width: 40, height: 18), in: bounds.size)
+
+        XCTAssertGreaterThanOrEqual(frame.minX, 0)
+        XCTAssertLessThanOrEqual(frame.maxX, bounds.width)
+    }
+
+    // MARK: - Frame Tracking (F1/F2 regression)
+
+    /// Before the fix, `updateFrame()` ran only once, from `init(frame:)`, where `superview` is
+    /// always `nil` — so the overlay's frame stayed `.zero` for its whole life unless the device
+    /// happened to rotate. `didMoveToSuperview()` is what gives it a real frame the moment it is
+    /// actually installed.
+    ///
+    /// `TopLevelViewsWrapper.updateFrame()` always sizes itself to `UIScreen.main.bounds`,
+    /// ignoring whatever frame it is constructed with — and `LayoutGuidesView`'s own
+    /// pre-attachment fallback reads the same `UIScreen.main.bounds`, so the two would coincide
+    /// even without the fix under test. The wrapper is deliberately resized to something else
+    /// immediately afterwards, so this test can only pass because ``LayoutGuidesView`` actually
+    /// asked its superview, not because both happened to read the same screen.
+    func testTheOverlayAcquiresTheWrappersFrameAsSoonAsItIsAdded() {
+        let window = UIWindow(frame: UIScreen.main.bounds)
+        let wrapper = TopLevelViewsWrapper(frame: window.bounds)
+        window.addSubview(wrapper)
+        wrapper.frame = CGRect(x: 0, y: 0, width: 123, height: 456)
+
+        let guides = LayoutGuidesView()
+        XCTAssertNotEqual(guides.frame, wrapper.bounds, "the assertion below would be vacuous otherwise")
+
+        wrapper.addTopLevelView(topLevelView: guides)
+
+        XCTAssertEqual(guides.frame, wrapper.bounds)
+    }
+
+    /// Before the fix, a rotation left the overlay's frame — and everything `draw(_:)` measured
+    /// from it — describing the *previous* orientation, because nothing but a notification of
+    /// uncertain ordering ever told it to resize. `autoresizingMask` plus `layoutSubviews()`
+    /// track the wrapper's size structurally, with no notification involved at all.
+    func testTheOverlayTracksTheWrapperThroughASimulatedRotation() {
+        let window = UIWindow(frame: UIScreen.main.bounds)
+        let wrapper = TopLevelViewsWrapper(frame: window.bounds)
+        window.addSubview(wrapper)
+
+        let guides = LayoutGuidesView()
+        wrapper.addTopLevelView(topLevelView: guides)
+        let portrait = wrapper.bounds
+        XCTAssertEqual(guides.frame, portrait)
+
+        // Simulate a rotation to landscape by swapping the wrapper's own dimensions, the way
+        // `TopLevelViewsWrapper.updateFrame()` would after `UIScreen.main.bounds` itself rotates.
+        let landscape = CGRect(x: 0, y: 0, width: portrait.height, height: portrait.width)
+        wrapper.frame = landscape
+        guides.layoutIfNeeded()
+
+        XCTAssertEqual(guides.frame, landscape)
+
+        // And back to portrait.
+        wrapper.frame = portrait
+        guides.layoutIfNeeded()
+
+        XCTAssertEqual(guides.frame, portrait)
+    }
+
+    /// `updateFrame()` is still called directly by
+    /// `TopLevelViewsWrapper.deviceDidChangeOrientation`, and `TopLevelView` requires the
+    /// override, so it has to keep working — including before there is a superview, when it must
+    /// not fall back to `.zero`.
+    func testUpdateFrameFallsBackToTheScreenWhenThereIsNoSuperviewYet() {
+        let guides = LayoutGuidesView()
+        XCTAssertNotEqual(guides.frame, .zero)
+        XCTAssertEqual(guides.frame, UIScreen.main.bounds)
+    }
+
     // MARK: - Settings
 
-    func testTheGuidesAreOffByDefault() {
-        let suite = "LayoutGuidesTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defer { defaults.removePersistentDomain(forName: suite) }
+    nonisolated(unsafe) private var suiteName: String!
+    nonisolated(unsafe) private var defaults: UserDefaults!
 
-        XCTAssertFalse(defaults.bool(forKey: LayoutGuides.EnabledDefaultsKey),
+    override func setUpWithError() throws {
+        suiteName = "LayoutGuidesTests.\(UUID().uuidString)"
+        defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+    }
+
+    override func tearDownWithError() throws {
+        defaults.removePersistentDomain(forName: suiteName)
+    }
+
+    /// The settings singleton itself, against a throwaway suite — not a bare read of the suite,
+    /// which is `false` for every key whatsoever on an empty suite and would pass just as well if
+    /// `LayoutGuides.enabled` read a different key, or a different default, entirely.
+    func testTheGuidesAreOffByDefault() {
+        XCTAssertFalse(LayoutGuides(defaults: defaults).enabled,
                        "an overlay that is quietly on is an overlay the developer will blame the app for")
+    }
+
+    func testEnablingPersistsToTheGivenDefaults() {
+        let guides = LayoutGuides(defaults: defaults)
+        guides.enabled = true
+
+        XCTAssertTrue(defaults.bool(forKey: LayoutGuides.EnabledDefaultsKey))
+    }
+
+    func testSettingsSurviveANewInstance() {
+        LayoutGuides(defaults: defaults).enabled = true
+        XCTAssertTrue(LayoutGuides(defaults: defaults).enabled)
+    }
+
+    func testDisablingClearsThePersistedValue() {
+        let guides = LayoutGuides(defaults: defaults)
+        guides.enabled = true
+        guides.enabled = false
+
+        XCTAssertFalse(LayoutGuides(defaults: defaults).enabled)
     }
 }

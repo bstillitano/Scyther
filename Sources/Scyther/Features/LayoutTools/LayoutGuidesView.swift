@@ -14,7 +14,8 @@ import UIKit
 /// the placement rules can be exercised by a test without a window, a superview, or a run loop —
 /// see ``LayoutGuidesView/guideLines(safeArea:margins:in:)``.
 struct GuideLine: Equatable, Sendable {
-    /// What the line represents, which decides its colour in ``LayoutGuidesView/draw(_:)``.
+    /// What the line represents, which decides its colour and stroke style in
+    /// ``LayoutGuidesView/draw(_:)``.
     enum Kind: Sendable {
         /// Drawn at a `UIWindow`'s safe-area inset.
         case safeArea
@@ -29,11 +30,37 @@ struct GuideLine: Equatable, Sendable {
     /// Where the line ends, in the overlay's own bounds.
     let end: CGPoint
 
-    /// The inset this line marks, in points — also what its label reads.
+    /// The inset this line marks, in points. Not necessarily a whole number — see
+    /// ``roundedValue``, which is what the label actually reads.
     let value: CGFloat
 
     /// Whether this is a safe-area line or a layout-margin line.
     let kind: Kind
+
+    /// The value rounded to whole points, matching what the label reads.
+    ///
+    /// A sub-point inset such as `0.33` is real and passes ``LayoutGuidesView/guideLines(safeArea:margins:in:)``'s
+    /// visibility guard once rounded, but truncating it to `0` for display would print exactly
+    /// the noise that guard exists to prevent. Rounding, not truncation, is also what that guard
+    /// itself is written against, so a line only exists here at all when this value is non-zero.
+    var roundedValue: Int {
+        Int(value.rounded())
+    }
+
+    /// Where this line's label should be centred, as a fraction along `start`–`end`.
+    ///
+    /// A root view's `layoutMargins` are inset from the safe area by default, so on the common
+    /// device — a notch or a home indicator, no custom margins — a margin line lands at exactly
+    /// the same coordinates as a safe-area line and would otherwise paint directly over it,
+    /// erasing both the line and the label that was meant to distinguish them. Placing the two
+    /// kinds' labels at different fractions along the same coincident line keeps both legible
+    /// without changing where either line is actually drawn — ``start`` and ``end`` still mark
+    /// the true measurement, which is what a test, and a developer measuring by eye, both read.
+    var labelMidpoint: CGPoint {
+        let fraction: CGFloat = kind == .safeArea ? 1.0 / 3.0 : 2.0 / 3.0
+        return CGPoint(x: start.x + (end.x - start.x) * fraction,
+                       y: start.y + (end.y - start.y) * fraction)
+    }
 }
 
 extension GuideLine.Kind {
@@ -51,37 +78,99 @@ extension GuideLine.Kind {
             return .systemPurple
         }
     }
+
+    /// Whether this kind strokes as a dashed line rather than a solid one.
+    ///
+    /// The second half of telling a coincident safe-area line and margin line apart — see
+    /// ``GuideLine/labelMidpoint`` for the first half. Colour alone cannot separate two lines
+    /// drawn at identical coordinates, since the one stroked second simply paints over the one
+    /// stroked first; a different dash pattern means both remain visible regardless of paint
+    /// order.
+    var isDashed: Bool {
+        switch self {
+        case .safeArea:
+            return false
+
+        case .margin:
+            return true
+        }
+    }
 }
 
 /// Draws the key window's safe-area insets and layout margins.
 ///
 /// A `TopLevelView` like ``GridOverlayView``: no touches, no state beyond its setting, redrawn
 /// on ``updateFrame()``. Unlike ``GridOverlayView``, it holds no configuration of its own —
-/// there is no size or colour to pick — so everything it draws is read fresh from the window on
-/// every ``draw(_:)``.
+/// there is no size or colour to pick — so everything it draws is read fresh from the window.
+///
+/// Its frame tracks its superview — ``InterfaceToolkit/topLevelViewsWrapper`` — structurally
+/// rather than by being told. Three things cooperate to make that true at every moment the view
+/// exists rather than only after the next rotation notification happens to fire:
+///
+/// 1. ``autoresizingMask`` is set to `[.flexibleWidth, .flexibleHeight]`, so UIKit itself keeps
+///    this view's `frame` equal to its superview's `bounds` through every superview resize —
+///    including a rotation — without this view doing anything at all.
+/// 2. ``didMoveToSuperview()`` gives the view its first real frame the moment it actually has a
+///    superview to size itself against, rather than in `init`, when `superview` is always `nil`
+///    and the frame would otherwise stay `.zero` — and a zero-sized view is never asked to draw.
+/// 3. ``layoutSubviews()`` repaints whenever `bounds` has actually changed, which is what makes
+///    a rotation correct rather than merely present: `contentMode` defaults to `.scaleToFill`, so
+///    a bounds change alone does not schedule a fresh `draw(_:)` — it stretches whatever was
+///    last drawn into the new size, which is precisely what "the guides describe the previous
+///    orientation" looks like.
+///
+/// This is deliberately independent of `TopLevelViewsWrapper.deviceDidChangeOrientation`'s
+/// notification-driven `updateFrame()` call. That notification's ordering against the screen's
+/// own bounds update is not something this view need bet on now — (1)–(3) alone are correct with
+/// or without it — but `updateFrame()` still exists and does real work, because `TopLevelView`
+/// requires the override and the wrapper still calls it: see ``updateFrame()``.
 internal class LayoutGuidesView: TopLevelView {
     // MARK: - Static Data
 
     /// Width, in points, of every stroked guide line.
-    static var LineWidth: CGFloat = 1.0
+    static let LineWidth: CGFloat = 1.0
 
     /// Font size for each line's `"N pt"` label.
-    static var LabelFontSize: CGFloat = 9.0
+    static let LabelFontSize: CGFloat = 9.0
 
     /// Horizontal padding inside a label, on each side of its text.
-    static var LabelHorizontalPadding: CGFloat = 4.0
+    static let LabelHorizontalPadding: CGFloat = 4.0
+
+    /// The dash pattern used for a margin line's stroke — see ``GuideLine/Kind/isDashed``.
+    static let MarginDashPattern: [CGFloat] = [4, 3]
 
     // MARK: - UI Elements
 
-    /// The labels drawn for the current set of lines, torn down and rebuilt on every
-    /// ``draw(_:)`` because the number of lines varies with how many insets are non-zero — see
-    /// ``guideLines(safeArea:margins:in:)``. A fixed pool, the way ``GridOverlayView`` keeps two
-    /// permanent labels, does not fit a count that can be anywhere from zero to eight.
+    /// The labels for the current set of lines, laid out in ``layoutSubviews()`` rather than in
+    /// ``draw(_:)``: mutating the view hierarchy — adding and removing subviews — during a render
+    /// pass works, but `layoutSubviews()` is where UIKit expects that kind of work to happen, and
+    /// doing it there also means a plain re-layout (a superview resize) refreshes the labels'
+    /// positions without necessarily forcing every label to be torn down and rebuilt on every
+    /// single `draw(_:)` this view is asked for.
+    ///
+    /// Rebuilt in full, rather than reused, because the *count* varies with how many insets are
+    /// non-zero — anywhere from zero to eight — so there is no fixed pool the way
+    /// ``GridOverlayView``'s two permanent labels are.
     private var labels: [UILabel] = []
+
+    /// The lines from the most recent ``layoutLabels()`` pass — what ``draw(_:)`` strokes.
+    ///
+    /// Computed in ``layoutLabels()`` rather than inside ``draw(_:)`` itself, so ``draw(_:)``'s
+    /// only job is to stroke what has already been decided, matching
+    /// ``guideLines(safeArea:margins:in:)``'s whole reason for existing: an overlay's drawing
+    /// cannot be inspected by a test, so nothing that has a right answer should be decided only
+    /// there.
+    private var lines: [GuideLine] = []
+
+    /// `bounds` as of the last time this view actually recomputed its guides, so
+    /// ``layoutSubviews()`` can tell a layout pass that changed nothing about this view's size
+    /// apart from a bounds change that did.
+    private var lastRefreshedBounds: CGRect = .zero
 
     // MARK: - Init
 
-    /// Initialises the overlay, non-interactive and sized to its eventual superview.
+    /// Initialises the overlay, non-interactive and briefly sized to the screen until it
+    /// acquires a real superview — see ``didMoveToSuperview()``.
     ///
     /// - Parameter frame: Ignored in favour of ``updateFrame()``, matching ``GridOverlayView``.
     public override init(frame: CGRect) {
@@ -98,30 +187,83 @@ internal class LayoutGuidesView: TopLevelView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    /// Configures the view to take no touches and draw nothing of its own until ``draw(_:)``
-    /// strokes the current guides.
+    /// Configures the view to take no touches, to track its superview's size automatically, and
+    /// to draw nothing of its own until ``draw(_:)`` strokes the current guides.
     ///
     /// `accessibilityElementsHidden` is set here, and not merely inherited from
     /// `isUserInteractionEnabled = false`, because a screen reader can still describe a
     /// non-interactive view's frame — a guide line has nothing to say to VoiceOver, and every
     /// other overlay in Scyther keeps quiet the same way.
     private func setupUI() {
-        updateFrame()
+        autoresizingMask = [.flexibleWidth, .flexibleHeight]
         isUserInteractionEnabled = false
         isOpaque = false
         accessibilityElementsHidden = true
+        updateFrame()
     }
 
-    /// Resizes the overlay to match its superview — ``InterfaceToolkit/topLevelViewsWrapper`` —
-    /// and asks for a fresh ``draw(_:)``.
+    /// Gives the view its first real frame the moment it actually has a superview to size itself
+    /// against.
     ///
-    /// Bound to the superview rather than to `UIScreen.main.bounds`, as ``GridOverlayView``
-    /// is: the superview is already kept in step with the screen (see
-    /// `TopLevelViewsWrapper.updateFrame()`), and reading it here means this view's bounds are
-    /// never a frame behind its own coordinate space — which matters more here than for the
-    /// grid, since ``guideLines(safeArea:margins:in:)`` measures every line from `bounds`.
+    /// `init(frame:)` cannot do this: `superview` is always `nil` at that point, so a frame set
+    /// there can only ever be a guess — `UIScreen.main.bounds`, ``updateFrame()``'s own fallback
+    /// — rather than the real answer. Once this view is added to
+    /// ``InterfaceToolkit/topLevelViewsWrapper``, ``autoresizingMask`` takes over keeping the
+    /// frame in step with every subsequent superview resize; this is only the one moment
+    /// autoresizing itself does not cover, because autoresizing reacts to a superview's bounds
+    /// *changing*, and attaching to a superview for the first time is not a change to
+    /// anything — it is the frame's very first value.
+    override func didMoveToSuperview() {
+        super.didMoveToSuperview()
+        updateFrame()
+    }
+
+    /// Repaints whenever a layout pass leaves this view an actually different size.
+    ///
+    /// This, together with ``autoresizingMask``, is what makes a rotation correct rather than
+    /// merely eventually present: `UIView`'s default `contentMode` is `.scaleToFill`, so
+    /// `autoresizingMask` alone would keep this view's *frame* correct through a rotation while
+    /// silently stretching whatever was last drawn into the new aspect ratio — which is exactly
+    /// what lines describing the previous orientation looks like. Guarded on
+    /// ``lastRefreshedBounds`` so a layout pass that leaves `bounds` unchanged — this view has
+    /// no subviews whose own layout would trigger one, but a superview's unrelated layout pass
+    /// can still call this — costs nothing beyond the comparison.
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard bounds != lastRefreshedBounds else { return }
+        refreshGuides()
+    }
+
+    /// Resizes the overlay to match its superview, or to the screen if it has none yet, and
+    /// refreshes the guides.
+    ///
+    /// Kept, and kept doing real work, for two reasons. `TopLevelView` requires the override, and
+    /// `TopLevelViewsWrapper.deviceDidChangeOrientation` still calls it directly on every
+    /// `TopLevelView` it holds — this view's own ``autoresizingMask``/``layoutSubviews()`` pair
+    /// makes that call redundant for keeping the *frame* correct, but not for keeping the guides
+    /// themselves fresh: a rotation can change `window?.safeAreaInsets` and the root view's
+    /// `layoutMargins` independently of whether this view's own `bounds` size happens to change,
+    /// so this always refreshes rather than gating on ``lastRefreshedBounds`` the way
+    /// ``layoutSubviews()`` does.
+    ///
+    /// `superview?.bounds ?? UIScreen.main.bounds`, matching
+    /// `AccessibilityAuditOverlayView.updateFrame()`, rather than `?? .zero`: called from `init`
+    /// before there is a superview, `.zero` produces a view that is never asked to draw, where
+    /// the screen's own bounds are at least a usable guess until ``didMoveToSuperview()`` gives
+    /// the real answer moments later.
     internal override func updateFrame() {
-        frame = superview?.bounds ?? .zero
+        frame = superview?.bounds ?? UIScreen.main.bounds
+        refreshGuides()
+    }
+
+    /// Recomputes ``lines`` and ``labels`` for the current `bounds` and window, and asks for a
+    /// fresh ``draw(_:)``.
+    ///
+    /// The one place ``lastRefreshedBounds`` is written, so every caller — ``updateFrame()``,
+    /// ``layoutSubviews()`` — leaves it in step with what was actually just computed.
+    private func refreshGuides() {
+        lastRefreshedBounds = bounds
+        layoutLabels()
         setNeedsDisplay()
     }
 
@@ -132,8 +274,11 @@ internal class LayoutGuidesView: TopLevelView {
     /// Static and pure so the rules are testable: an overlay's `draw(_:)` cannot be inspected by
     /// a test, so anything decided inside it is decided unchecked.
     ///
-    /// A zero inset draws nothing. A line labelled `0 pt` flush against the screen edge is noise,
-    /// and on a device with no home indicator the bottom inset genuinely is zero.
+    /// A zero inset draws nothing, and so does an inset that *rounds* to zero: a sub-point inset
+    /// such as `0.33` passes a raw `> 0` check yet would still label itself `"0 pt"` flush
+    /// against the screen edge — exactly the noise the zero-inset rule exists to prevent. The
+    /// guard below is therefore written against the rounded value, matching
+    /// ``GuideLine/roundedValue``, which is what the label actually reads.
     ///
     /// - Parameters:
     ///   - safeArea: The window's safe-area insets.
@@ -146,7 +291,7 @@ internal class LayoutGuidesView: TopLevelView {
         var lines: [GuideLine] = []
 
         func add(_ inset: CGFloat, _ kind: GuideLine.Kind, _ make: (CGFloat) -> (CGPoint, CGPoint)) {
-            guard inset > 0 else { return }
+            guard inset.rounded() > 0 else { return }
             let (start, end) = make(inset)
             lines.append(GuideLine(start: start, end: end, value: inset, kind: kind))
         }
@@ -163,53 +308,84 @@ internal class LayoutGuidesView: TopLevelView {
         return lines
     }
 
-    // MARK: - Drawing
+    // MARK: - Labels
 
-    /// Strokes one line per non-zero inset and labels each with its measurement.
+    /// Where a line's label should sit, clamped inside `bounds`.
+    ///
+    /// A thin forward to ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:)`` — the same
+    /// placement rule the layout ruler uses to keep its own measurement label inside the screen —
+    /// rather than a second clamping rule written here. A label simply centred on its line, as
+    /// the first version of this view did, is cut off by the screen edge whenever the line itself
+    /// is close to one; reusing the ruler's rule means that failure mode has exactly one fix in
+    /// the codebase rather than two that could drift apart. Static and pure, like
+    /// ``guideLines(safeArea:margins:in:)``, so the integration itself — not just the geometry
+    /// underneath it — is directly testable.
+    ///
+    /// - Parameters:
+    ///   - line: The guide the label belongs to; its ``GuideLine/labelMidpoint`` is what gets
+    ///     clamped.
+    ///   - labelSize: The label's rendered, padded size.
+    ///   - bounds: The overlay's size.
+    /// - Returns: The label's frame, guaranteed to stay within `bounds`.
+    static func labelFrame(for line: GuideLine, labelSize: CGSize, in bounds: CGSize) -> CGRect {
+        let origin = LayoutRulerGeometry.labelOrigin(midpoint: line.labelMidpoint, labelSize: labelSize, in: bounds)
+        return CGRect(origin: origin, size: labelSize)
+    }
+
+    /// Rebuilds ``labels`` for the current window and `bounds`, and refreshes ``lines`` to match.
     ///
     /// Reads the safe-area insets and layout margins from `window` rather than caching them,
-    /// because both can change without this view's own frame changing — a rotation moves the
-    /// home indicator's inset, and a keyboard or a sheet can shift a root view's margins — and
-    /// there is no cheaper hook than redrawing on demand for a view that is otherwise idle.
+    /// because both can change without this view's own `bounds` changing — a keyboard or a sheet
+    /// can shift a root view's margins independently of this view's size.
+    private func layoutLabels() {
+        labels.forEach { $0.removeFromSuperview() }
+        labels.removeAll()
+
+        let currentLines = LayoutGuidesView.guideLines(
+            safeArea: window?.safeAreaInsets ?? .zero,
+            margins: window?.rootViewController?.view.layoutMargins ?? .zero,
+            in: bounds
+        )
+        lines = currentLines
+
+        for line in currentLines {
+            let label = UILabel()
+            label.font = .systemFont(ofSize: LayoutGuidesView.LabelFontSize)
+            label.textColor = .white
+            label.backgroundColor = line.kind.colour
+            label.textAlignment = .center
+            label.text = String(format: localized("%lld pt"), Int64(line.roundedValue))
+            label.sizeToFit()
+
+            let paddedSize = CGSize(width: label.frame.width + LayoutGuidesView.LabelHorizontalPadding * 2,
+                                    height: label.frame.height)
+            label.frame = LayoutGuidesView.labelFrame(for: line, labelSize: paddedSize, in: bounds.size)
+
+            addSubview(label)
+            labels.append(label)
+        }
+    }
+
+    // MARK: - Drawing
+
+    /// Strokes one line per guide in ``lines`` — safe-area lines solid, margin lines dashed.
     ///
-    /// Labels are plain `UILabel`s, positioned and added directly inside this method the way
-    /// ``GridOverlayView/draw(_:)`` repositions its own two labels — except here the *count* of
-    /// labels varies with how many insets are non-zero, so the previous pass's labels are torn
-    /// down first rather than merely repositioned.
+    /// Only strokes: label construction and placement happen in ``layoutLabels()``, not here —
+    /// see ``labels``'s own documentation for why mutating the view hierarchy moved out of the
+    /// render pass.
     ///
     /// - Parameter rect: The portion of the view's bounds that needs to be updated.
     public override func draw(_ rect: CGRect) {
         super.draw(rect)
         guard let context = UIGraphicsGetCurrentContext() else { return }
 
-        labels.forEach { $0.removeFromSuperview() }
-        labels.removeAll()
-
-        let lines = LayoutGuidesView.guideLines(
-            safeArea: window?.safeAreaInsets ?? .zero,
-            margins: window?.rootViewController?.view.layoutMargins ?? .zero,
-            in: bounds
-        )
-
         for line in lines {
             context.setStrokeColor(line.kind.colour.cgColor)
             context.setLineWidth(LayoutGuidesView.LineWidth)
+            context.setLineDash(phase: 0, lengths: line.kind.isDashed ? LayoutGuidesView.MarginDashPattern : [])
             context.move(to: line.start)
             context.addLine(to: line.end)
             context.strokePath()
-
-            let label = UILabel()
-            label.font = .systemFont(ofSize: LayoutGuidesView.LabelFontSize)
-            label.textColor = .white
-            label.backgroundColor = line.kind.colour
-            label.textAlignment = .center
-            label.text = localized("\(Int(line.value)) pt")
-            label.sizeToFit()
-            label.frame = label.frame.insetBy(dx: -LayoutGuidesView.LabelHorizontalPadding, dy: 0)
-            label.center = CGPoint(x: (line.start.x + line.end.x) / 2,
-                                   y: (line.start.y + line.end.y) / 2)
-            addSubview(label)
-            labels.append(label)
         }
     }
 }

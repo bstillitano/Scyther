@@ -163,6 +163,8 @@ public struct MenuView: View {
                 Toggle(isOn: $viewModel.showViewFrames) { searchResultLabel(for: entry) }
             case .showViewSizes:
                 Toggle(isOn: $viewModel.showViewSizes) { searchResultLabel(for: entry) }
+            case .layoutGuides:
+                Toggle(isOn: $viewModel.layoutGuidesEnabled) { searchResultLabel(for: entry) }
             case .ipAddress:
                 HStack {
                     searchResultLabel(for: entry)
