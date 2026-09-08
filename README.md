@@ -758,6 +758,13 @@ puts the same zoom range behind VoiceOver's and Switch Control's adjustable gest
 accessibility value announces how many requests the window holds after every change, so reaching
 zoom never requires a pinch and never leaves a VoiceOver user guessing whether anything happened.
 
+The detail section's own header carries a trailing **Reset zoom** button — styled the way Traffic
+Stats' Waterfall section puts "See all" on its trailing edge, nothing on the leading edge since
+this page has only the one section to name — the moment the window has been zoomed or scrubbed at
+all. It calls the same `resetWindow()` the gap empty state's own button already uses, and it stays
+visible once shown even if a further zoom happens to land back on the same numbers as the opening
+window; only pressing it clears it.
+
 A request already running when the window opens, or one that outlives it, is drawn **clipped**
 flush to the window's edge rather than shrunk to fit — the clip reads as "continues", where a
 shrunk bar would read as a request shorter than it actually ran. Tapping a row in the detail list

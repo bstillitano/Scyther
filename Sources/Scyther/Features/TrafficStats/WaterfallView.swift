@@ -443,7 +443,8 @@ struct WaterfallView: View {
     }
 
     /// The detail section: the rows the window holds, or ``windowEmptyState`` when it holds none —
-    /// captioned, when it holds rows, with how many of the log's requests they are.
+    /// captioned, when it holds rows, with how many of the log's requests they are, and headed,
+    /// once the window has been zoomed or scrubbed at all, with a button that puts it back.
     ///
     /// The caption used to sit below the whole `List` as a `Text` of its own, outside every
     /// section. It is this section's own footer instead, on the owner's own direction after
@@ -456,6 +457,32 @@ struct WaterfallView: View {
     /// in its own words, that none are. `viewModel.isWindowEmpty` is what already chooses between
     /// the two content branches above, so the footer reads the same condition rather than a second
     /// one that could drift from it.
+    ///
+    /// ## The reset-zoom header button
+    ///
+    /// Styled the way `TrafficStatsView`'s own Waterfall section puts "See all" on its trailing
+    /// edge — read directly from that section's header, not invented afresh: `.textCase(nil)`,
+    /// `.font(.subheadline)`, `.buttonStyle(.borderless)`, undoing the small-caps chrome styling a
+    /// section header gives its content by default so the button reads as a control rather than as
+    /// a label. Calls ``WaterfallViewModel/resetWindow()`` directly — the same action the gap empty
+    /// state's own button already uses, on purpose: one definition of "back to normal" for this
+    /// page, not two independently maintained ones that could drift apart on what "normal" means.
+    ///
+    /// **Nothing on the leading edge**, unlike `TrafficStatsView`'s own sections, which each open
+    /// with a `Text` naming the section — "Waterfall", "Slowest Endpoints", and so on. Those names
+    /// exist to tell several sibling sections apart on one screen; this page has exactly one
+    /// section, already named by the navigation title above it, so repeating that name here would
+    /// be chrome that says nothing new. `TrafficStatsView.summarySection`'s own header already
+    /// sets the precedent for leaving one empty rather than filling it with something that adds no
+    /// information: it shows nothing at all unless the log is filtered, for the same reason.
+    ///
+    /// The header itself is conditional on ``WaterfallViewModel/hasAdjustedWindow``, not merely
+    /// the button inside it: an `HStack` with nothing but a `Spacer` would still reserve a section
+    /// header's own row height, drawing an empty strip of chrome above the rows whenever the
+    /// window has never been touched — the common case, true from the moment the page opens until
+    /// a reader's first zoom or drag. Wrapping the whole header in the same `if` as
+    /// `TrafficStatsView.summarySection`'s own conditional header, rather than only the button
+    /// inside an unconditional one, is what keeps that common case free of it entirely.
     ///
     /// - Parameter rowLayout: How wide this frame's rows should draw their columns, from
     ///   ``WaterfallView/rowLayout(in:)``.
@@ -474,6 +501,18 @@ struct WaterfallView: View {
                                            labelWidth: rowLayout.labelWidth,
                                            durationWidth: rowLayout.durationWidth)
                     }
+                }
+            }
+        } header: {
+            if viewModel.hasAdjustedWindow {
+                HStack {
+                    Spacer()
+                    Button(localized("Reset zoom")) {
+                        viewModel.resetWindow()
+                    }
+                    .textCase(nil)
+                    .font(.subheadline)
+                    .buttonStyle(.borderless)
                 }
             }
         } footer: {

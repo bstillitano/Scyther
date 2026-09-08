@@ -458,6 +458,21 @@
     "zh-Hans": "安静区段",
     "zh-Hant": "安靜區段"
   },
+  "Reset zoom": {
+    "ar": "إعادة تعيين التكبير",
+    "comment": "Trailing button in the detail section's header, shown only once the window has been zoomed or scrubbed away from its opening state; returns the window to that opening state",
+    "de": "Zoom zurücksetzen",
+    "es": "Restablecer zoom",
+    "fr": "Réinitialiser le zoom",
+    "it": "Reimposta zoom",
+    "ja": "ズームをリセット",
+    "ko": "줌 재설정",
+    "nl": "Zoom resetten",
+    "pt-BR": "Redefinir zoom",
+    "ru": "Сбросить масштаб",
+    "zh-Hans": "重置缩放",
+    "zh-Hant": "重置縮放"
+  },
   "Seconds": {
     "ar": "ثوانٍ",
     "comment": "Unit label on the waterfall chart's horizontal axis",

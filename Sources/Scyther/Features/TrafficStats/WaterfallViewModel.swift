@@ -360,6 +360,38 @@ final class WaterfallViewModel: ViewModel {
     /// one earns a row saying so, because a blank list after a drag reads as a bug.
     var isWindowEmpty: Bool { !layout.rows.isEmpty && visibleRows.isEmpty }
 
+    /// Whether the window has been zoomed or scrubbed away from wherever it opened, for
+    /// ``WaterfallView``'s own reset-zoom section header button.
+    ///
+    /// `false` from construction, `true` from the first call to ``zoom(by:)`` or ``scrub(to:)``,
+    /// and `false` again only once ``resetWindow()`` is called — the owner's own specification,
+    /// verbatim: the button "doesn't need to go away until the users presses it, i.e. if the user
+    /// zooms to the default zoom, without pressing the button, it can stay." That is a claim a
+    /// computed comparison against the opening window cannot make honestly: a window that has
+    /// drifted back to numerically match ``WaterfallWindow/opening(span:narrowest:)`` — entirely
+    /// possible after a zoom out, or several zooms that cancel out — is still a window the reader
+    /// *chose*, not one they are still looking at by default, and the button's whole job is to
+    /// mark that distinction. Only an explicit flag, set once and cleared once, can tell "adjusted,
+    /// currently equal to the default" apart from "never adjusted at all" — a stored fact about
+    /// history, not a property of the window's current value.
+    ///
+    /// - Note: `open(centredOn:)` — reached only from a tap on the Traffic Stats strip, landing on
+    ///   this page already centred on a specific moment — deliberately does *not* set this. The
+    ///   owner named `zoom(by:)` and `scrub(to:)` specifically, and `open(centredOn:)` is not the
+    ///   developer adjusting a window they are already looking at; it is how the window the page
+    ///   opens with was chosen in the first place, for that one entrance. Showing "reset zoom" the
+    ///   instant a reader arrives at a page they explicitly navigated to a moment on, before they
+    ///   have touched anything, would flag a change they never made.
+    ///
+    /// Distinct from ``windowFollowsDefault``, which tracks a different question — whether
+    /// ``configureWindow(plotWidth:)`` should keep recomputing the window against fresh geometry —
+    /// and which does flip back conceptually in the sense that ``resetWindow()`` sets it back to
+    /// `true`. The two happen to change together at every call site that touches either, but they
+    /// answer different questions for different readers: ``windowFollowsDefault`` is this type's
+    /// own internal bookkeeping, `private`; this property is public precisely because a view needs
+    /// to read it.
+    @Published private(set) var hasAdjustedWindow = false
+
     /// Whether ``window`` is still following ``WaterfallWindow/opening(span:narrowest:)``
     /// rather than a position or size the developer — or a tap on the Traffic Stats strip — chose.
     ///
@@ -425,48 +457,58 @@ final class WaterfallViewModel: ViewModel {
     }
 
     /// Magnifies the window, holding its centre, and marks it as held — see
-    /// ``windowFollowsDefault``.
+    /// ``windowFollowsDefault`` — and as adjusted — see ``hasAdjustedWindow``.
     ///
     /// - Parameter factor: The pinch's magnitude. Above 1 zooms in.
     func zoom(by factor: Double) {
         guard window.canZoom else { return }
         window = window.zoomed(by: factor)
         windowFollowsDefault = false
+        hasAdjustedWindow = true
     }
 
-    /// Moves the window's centre to `time`, and marks it as held — see ``windowFollowsDefault``.
+    /// Moves the window's centre to `time`, and marks it as held — see ``windowFollowsDefault`` —
+    /// and as adjusted — see ``hasAdjustedWindow``.
     ///
     /// - Parameter time: Seconds from the series origin.
     func scrub(to time: TimeInterval) {
         window = window.movedToCentre(time)
         windowFollowsDefault = false
+        hasAdjustedWindow = true
     }
 
     /// Returns the window to the page's own default: anchored on the most recent traffic, at
     /// ``WaterfallWindow/opening(span:narrowest:)`` — the same window the page opens with, and
     /// the same window an untouched page keeps tracking as new traffic streams in.
     ///
-    /// This is the way out ``WaterfallView``'s gap empty state offers. Zooming or scrubbing into a
-    /// stretch of the log with nothing in it leaves the developer looking at a blank list with no
-    /// bars left to drag by — see ``isWindowEmpty``. Returning to the opening default rather than
-    /// jumping straight to the widest possible window (the whole span) is deliberate: the whole
-    /// span is still one pinch-out away from there, and "the most recent traffic" answers the more
-    /// common reason a developer ends up looking at a gap in the first place — a drag that
-    /// overshot past the burst they actually wanted — without discarding the zoom level they had
-    /// chosen for a flattened view of the entire session.
+    /// Two buttons call this, and it is one definition of "back to normal" for both rather than
+    /// two: ``WaterfallView``'s gap empty state, and its reset-zoom section header button. Zooming
+    /// or scrubbing into a stretch of the log with nothing in it leaves the developer looking at a
+    /// blank list with no bars left to drag by — see ``isWindowEmpty`` — and that is the first
+    /// button's way out. The second is the more general case ``hasAdjustedWindow`` exists for: any
+    /// zoom or scrub at all, gap or not. Returning to the opening default rather than jumping
+    /// straight to the widest possible window (the whole span) is deliberate: the whole span is
+    /// still one pinch-out away from there, and "the most recent traffic" answers the more common
+    /// reason a developer reaches for either button — a drag or a zoom that overshot what they
+    /// actually wanted — without discarding the zoom level they had chosen for a flattened view of
+    /// the entire session.
     ///
     /// Reusing ``configureWindow(plotWidth:)`` rather than duplicating its arithmetic here is what
     /// keeps this in step with a future change to the opening rule automatically: there is exactly
-    /// one place that computes "the window the page opens with," and both the first frame and this
-    /// button read it.
+    /// one place that computes "the window the page opens with," and both the first frame and both
+    /// buttons read it.
     ///
     /// Marks the window as following the default again — see ``windowFollowsDefault`` — rather
     /// than only computing the same window once: without that flip, the very next geometry change
     /// (a rotation, a Dynamic Type change) would hold this position instead of continuing to track
-    /// new traffic the way an untouched page does, and the button's promise — "back to where an
-    /// untouched page would be" — would only hold for one frame.
+    /// new traffic the way an untouched page does, and the buttons' promise — "back to where an
+    /// untouched page would be" — would only hold for one frame. Also the one place
+    /// ``hasAdjustedWindow`` is cleared: see that property's own documentation for why nothing
+    /// short of this call — not a zoom or a scrub that happens to land back on the same numbers —
+    /// is allowed to clear it.
     func resetWindow() {
         windowFollowsDefault = true
+        hasAdjustedWindow = false
         configureWindow(plotWidth: plotWidth)
     }
 

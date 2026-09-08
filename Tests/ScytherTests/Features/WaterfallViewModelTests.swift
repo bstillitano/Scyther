@@ -507,6 +507,66 @@ final class WaterfallViewModelTests: XCTestCase {
         XCTAssertGreaterThan(model.series.span, 30, "the new request really did extend the span")
     }
 
+    // MARK: - hasAdjustedWindow
+
+    /// `hasAdjustedWindow` is what ``WaterfallView``'s reset-zoom section header button reads to
+    /// decide whether it exists at all. An untouched page has nothing to reset.
+    func testHasAdjustedWindowIsFalseOnOpen() {
+        let model = makeModel(starts: [0, 10, 20, 30])
+        XCTAssertFalse(model.hasAdjustedWindow)
+    }
+
+    func testHasAdjustedWindowIsTrueAfterAZoom() async {
+        let model = makeModel(starts: [0, 10, 20, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+        model.zoom(by: 2)
+
+        XCTAssertTrue(model.hasAdjustedWindow)
+    }
+
+    func testHasAdjustedWindowIsTrueAfterAScrub() async {
+        let model = makeModel(starts: [0, 10, 20, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+        model.scrub(to: 20)
+
+        XCTAssertTrue(model.hasAdjustedWindow)
+    }
+
+    /// The whole reason this is a stored flag rather than a comparison against the opening
+    /// window, spelled out as its own test: a zoom that happens to cancel back out to the exact
+    /// same duration is still a window the reader chose to zoom, not one they are looking at by
+    /// default, and the button must not flicker away just because the numbers now agree.
+    func testHasAdjustedWindowStaysTrueAfterZoomingBackToTheOpeningWindow() async {
+        let model = makeModel(starts: [0, 10, 20, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+        let openingDuration = model.window.duration
+        model.zoom(by: 8)
+        model.zoom(by: 0.125) // 1 / 8, cancels the previous zoom back out exactly
+
+        XCTAssertEqual(model.window.duration, openingDuration, accuracy: 0.0001,
+                       "the zoom really did cancel back out to the opening window's own duration")
+        XCTAssertTrue(model.hasAdjustedWindow, "still adjusted, even though the numbers now match")
+    }
+
+    /// The only call that may clear the flag, checked directly rather than only implied by the
+    /// tests above: after both a zoom and a scrub, it takes `resetWindow()` — not another zoom,
+    /// not a scrub, not merely time passing — to bring it back to `false`.
+    func testHasAdjustedWindowIsFalseOnlyAfterResetWindow() async {
+        let model = makeModel(starts: [0, 10, 20, 30])
+        await model.recompute()
+        model.configureWindow(plotWidth: 240)
+        model.zoom(by: 2)
+        model.scrub(to: 20)
+        XCTAssertTrue(model.hasAdjustedWindow)
+
+        model.resetWindow()
+
+        XCTAssertFalse(model.hasAdjustedWindow)
+    }
+
     func testASingleRequestCannotZoom() async {
         let model = makeModel(starts: [0])
         await model.recompute()
