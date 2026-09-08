@@ -676,7 +676,7 @@ internal class LayoutRulerOverlayView: TopLevelView {
         let unbounded = CGSize(width: CGFloat.greatestFiniteMagnitude,
                                height: CGFloat.greatestFiniteMagnitude)
         let distanceSize = distanceLabel.sizeThatFits(unbounded)
-        let namesSize = namesLabel.isHidden ? CGSize.zero : namesLabel.sizeThatFits(unbounded)
+        let namesSize = namesLabel.isHidden ? CGSize.zero : Self.naturalSize(of: readout.names, in: namesLabel)
 
         let contentWidth = Self.readoutWidth(distance: distanceSize.width,
                                              names: namesSize.width,
@@ -692,6 +692,26 @@ internal class LayoutRulerOverlayView: TopLevelView {
                                                     margin: Self.ReadoutMargin)
         readoutContainer.frame = clearOfTheControl(CGRect(origin: origin, size: size))
         readoutContainer.layoutIfNeeded()
+    }
+
+    /// The size `text` genuinely wants, measured from the string rather than from the label.
+    ///
+    /// `UILabel.sizeThatFits(_:)` under-reports the natural width of a label whose
+    /// `lineBreakMode` is `.byTruncatingMiddle`, however much room it is offered. The cap above was
+    /// therefore comparing against a width smaller than the text actually needs, and the label then
+    /// clipped characters from the *head* of the leading name as well as truncating its middle —
+    /// rendering `BackdropView.bottom` for a `UIBackdropView`. That defeats the reason middle
+    /// truncation was chosen in the first place: both ends of a UIKit class name carry information
+    /// and the middle does not. Measuring the string with the label's own font sidesteps the
+    /// truncating label's measurement path entirely.
+    ///
+    /// - Parameters:
+    ///   - text: The text to measure, or `nil` when there is none.
+    ///   - label: The label whose font the text will be drawn in.
+    /// - Returns: The size the text wants, or `.zero` when there is no text.
+    private static func naturalSize(of text: String?, in label: UILabel) -> CGSize {
+        guard let text, !text.isEmpty else { return .zero }
+        return (text as NSString).size(withAttributes: [.font: label.font as Any])
     }
 
     /// Lifts a readout that would land underneath the floating control.
