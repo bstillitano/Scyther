@@ -227,24 +227,75 @@ final class TrafficStatsViewModelTests: XCTestCase {
 
     // MARK: Waterfall overview
 
-    /// The section is a minimap now, so it draws everything rather than the most recent handful.
-    func testTheWaterfallSectionDrawsTheWholeLogRatherThanAPreviewsWorth() async {
-        let origin = Date(timeIntervalSince1970: 1_000)
-        let requests: [HTTPRequest] = (0..<40).map { index in
+    /// Builds `count` requests one second apart, oldest first.
+    ///
+    /// - Parameters:
+    ///   - count: How many to build.
+    ///   - origin: The first request's own date; each later one lands a second after the last.
+    /// - Returns: The requests, oldest first.
+    private func datedRequests(count: Int, origin: Date) -> [HTTPRequest] {
+        (0..<count).map { index in
             let request = HTTPRequest()
-            request.requestURL = "https://httpbin.org/json"
+            request.requestURL = "https://httpbin.org/json/\(index)"
             request.requestMethod = "GET"
             request.requestDate = origin.addingTimeInterval(Double(index))
             request.responseDate = origin.addingTimeInterval(Double(index) + 0.1)
             return request
         }
+    }
+
+    /// The section used to draw the whole log as its own strip, an overview of everything rather
+    /// than a sample of it — precisely the policy the owner later reversed once it read as an
+    /// unreadable scatter at real request counts. Rewritten to pin the *current* policy rather
+    /// than deleted quietly, matching this feature's own established practice for a reversed
+    /// design decision: `waterfall` still lays out everything, because `waterfallCaption` still
+    /// describes the whole session as context; `recentLayout` — what the strip and its row preview
+    /// actually draw now — is capped at `TrafficStatsViewModel.recentWaterfallCount` instead.
+    func testWaterfallIsTheWholeLogButRecentLayoutIsCappedAtRecentWaterfallCount() async {
+        let requests = datedRequests(count: 40, origin: Date(timeIntervalSince1970: 1_000))
 
         let model = TrafficStatsViewModel(requests: [], totalCount: 0)
         model.update(requests: requests, totalCount: requests.count)
         await model.recompute()
 
         XCTAssertEqual(model.waterfall.entries.count, 40,
-                       "the strip is an overview of everything, not a sample of it")
+                       "the caption's own whole-log context is unaffected by the preview's cap")
+        XCTAssertEqual(model.recentLayout.rows.count, TrafficStatsViewModel.recentWaterfallCount,
+                       "the strip and its rows are capped, not a sample of it")
+    }
+
+    /// "Fewer than the log holds is the point" — the owner's own words for
+    /// `TrafficStatsViewModel.recentWaterfallCount`. A log shorter than the cap must show exactly
+    /// what it has, not be padded or hidden to reach it.
+    func testRecentLayoutShowsEverythingWhenTheLogHoldsFewerThanTheCap() async {
+        let requests = datedRequests(count: 3, origin: Date(timeIntervalSince1970: 1_500))
+
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: requests.count)
+        await viewModel.recompute()
+
+        XCTAssertLessThan(requests.count, TrafficStatsViewModel.recentWaterfallCount,
+                          "precondition: the log is shorter than the cap")
+        XCTAssertEqual(viewModel.recentLayout.rows.count, 3)
+    }
+
+    /// The preview has to be the *most recent* few, not an arbitrary slice: a reader opening this
+    /// section wants to know what just happened, and the oldest handful would answer a different
+    /// question entirely.
+    func testRecentLayoutHoldsTheMostRecentRequestsNotTheOldest() async {
+        let requests = datedRequests(count: 8, origin: Date(timeIntervalSince1970: 2_000))
+
+        let viewModel = TrafficStatsViewModel(requests: requests, totalCount: requests.count)
+        await viewModel.recompute()
+
+        // `datedRequests(count:origin:)` names each request `.../json/<index>`, oldest first, so
+        // the most recent five are indices 3 through 7.
+        let labels = viewModel.recentLayout.rows.map(\.entry.label)
+        for index in 3...7 {
+            XCTAssertTrue(labels.contains("GET /json/\(index)"), "missing the recent request at index \(index)")
+        }
+        for index in 0...2 {
+            XCTAssertFalse(labels.contains("GET /json/\(index)"), "the oldest requests must not appear")
+        }
     }
 
     /// The count behind the footer's "N hosts": distinct, non-empty hosts only.

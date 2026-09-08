@@ -133,11 +133,13 @@ struct WaterfallSeries: Equatable, Sendable {
     /// - Parameters:
     ///   - requests: The requests to lay out, in any order.
     ///   - limit: How many of the most recent requests to keep. Required rather than defaulted:
-    ///     the section on **Traffic Stats** and the full-log page now agree on how much of the log
-    ///     they want — everything — so both pass `requests.count`. That agreement is exactly why
-    ///     there is no default to give this: "everything" depends on the caller's own array, a
-    ///     parameter default cannot read another parameter, and no fixed figure could stand in for
-    ///     it without being wrong for whatever count actually shows up.
+    ///     the full-log page wants everything, so it passes `requests.count`, while the section on
+    ///     **Traffic Stats** deliberately wants far less — see
+    ///     `TrafficStatsViewModel.recentWaterfallCount` — so it passes that instead. Those two
+    ///     callers disagreeing on purpose is exactly why there is no default to give this:
+    ///     "everything" depends on the caller's own array, a fixed constant would be wrong for the
+    ///     caller that wants a handful, and a parameter default cannot read another parameter to
+    ///     tell which caller it is.
     ///   - now: The moment the series describes, which is where a still-running bar ends.
     ///     Defaults to the current time; a test passes its own so the arithmetic is deterministic.
     /// - Returns: The series, oldest entry first. Empty when there is nothing to place.

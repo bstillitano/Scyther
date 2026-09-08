@@ -32,21 +32,21 @@ struct TrafficStatsView: View {
     /// The screen's own view model.
     @StateObject private var viewModel: TrafficStatsViewModel
 
-    /// The moment the Waterfall section's overview strip was tapped, which the full-log page opens
-    /// centred on.
+    /// The Waterfall section's own row label column, scaled against the reader's text size,
+    /// before ``WaterfallDetailRowMetrics`` decides whether the row still has room to draw it at
+    /// that width.
     ///
-    /// Not read back by anything here: it is only ever written just before
-    /// ``isWaterfallNavigationActive`` is set, and handed straight to ``WaterfallView``'s own
-    /// initialiser, which applies it to the page's own view model — see
-    /// ``WaterfallView/init(logs:openingTime:)``. This screen never reaches into that view model
-    /// itself, the way its own ``viewModel`` is never reached into by anything that presents it.
-    @State private var waterfallOpeningTime: TimeInterval?
+    /// The same `@ScaledMetric` ``WaterfallView`` declares for its own, much longer, detail list —
+    /// see that type's own documentation for why the value is hoisted to the parent rather than
+    /// left inside ``WaterfallDetailRow`` itself, and why that reasoning applies here identically:
+    /// ``rowLayout(in:)`` needs the exact width ``WaterfallDetailRow`` draws its column at, and a
+    /// `@ScaledMetric` resolves from the environment, so declaring it again here reads the same
+    /// value ``WaterfallView``'s own property would, not a second, independently-drifting one.
+    @ScaledMetric(relativeTo: .caption) private var scaledLabelWidth: CGFloat = WaterfallChartStyle.detailLabelWidth
 
-    /// Whether the hidden link to the full-log page, opened at ``waterfallOpeningTime``, is active.
-    ///
-    /// A tap on the strip has no destination view to carry a `NavigationLink`'s own label, unlike
-    /// the **See all** link beside it, so navigation is driven by activating this flag instead.
-    @State private var isWaterfallNavigationActive = false
+    /// The Waterfall section's own row duration column, scaled the same way and for the same
+    /// reason ``scaledLabelWidth`` is. See ``WaterfallChartStyle/detailDurationWidth``.
+    @ScaledMetric(relativeTo: .caption) private var scaledDurationWidth: CGFloat = WaterfallChartStyle.detailDurationWidth
 
     /// Creates the screen.
     ///
@@ -83,17 +83,25 @@ struct TrafficStatsView: View {
     private var logRevision: [Int] { [logs.requests.count, logs.totalRequestCount] }
 
     /// The figures, once there is traffic to describe.
+    ///
+    /// Wrapped in a `GeometryReader` now, unlike every other section on this screen, purely so
+    /// ``waterfallSection(rowLayout:)`` can hand ``WaterfallDetailRow`` the same pre-computed
+    /// column widths ``WaterfallView`` does — see ``rowLayout(in:)``. No pinch, no scrub, nothing
+    /// else on this screen needs the measured width, so nothing else changes shape for it.
     private var statistics: some View {
-        List {
-            summarySection
-            if !viewModel.waterfall.entries.isEmpty {
-                waterfallSection
-            }
-            if !viewModel.statistics.endpoints.isEmpty {
-                endpointSection
-            }
-            if !viewModel.statistics.hosts.isEmpty {
-                hostSection
+        GeometryReader { proxy in
+            let rowLayout = rowLayout(in: proxy.size.width)
+            List {
+                summarySection
+                if !viewModel.recentLayout.rows.isEmpty {
+                    waterfallSection(rowLayout: rowLayout)
+                }
+                if !viewModel.statistics.endpoints.isEmpty {
+                    endpointSection
+                }
+                if !viewModel.statistics.hosts.isEmpty {
+                    hostSection
+                }
             }
         }
     }
@@ -166,47 +174,80 @@ struct TrafficStatsView: View {
         }
     }
 
-    /// The whole session compressed into one strip, exactly as ``WaterfallView`` draws it.
+    /// The most recent ``TrafficStatsViewModel/recentWaterfallCount`` requests: a strip zoomed to
+    /// just them, then the same requests again as real, tappable rows.
     ///
-    /// The section used to stack its own most-recent-seven bars into a `Chart` of its own; that
-    /// chart is gone. ``WaterfallOverviewStrip`` is the *same* overview the full-log page marks
-    /// its current window on, drawn here with no window — the section names no span of the log as
-    /// "current", the page does — which is what ``WaterfallOverviewStrip/window`` being `nil`
-    /// buys.
+    /// ## What this used to be
     ///
-    /// The gesture is `.tap`, not `.scrub`, and that is not a stylistic choice: this section sits
-    /// inside the screen's `List`, and `.scrub`'s zero-distance drag would win arbitration against
-    /// the list's own pan and steal every scroll that happened to start on the strip. `.tap` lets
-    /// a genuine scroll pass through untouched and only reports the moment touched when the touch
-    /// did not travel — see ``WaterfallOverviewStrip/Interaction``.
-    private var waterfallSection: some View {
-        Section {
+    /// The section first stacked its own most-recent-seven bars into a `Chart` of its own; that
+    /// chart went, replaced by ``WaterfallOverviewStrip`` drawing the *whole* log — the same
+    /// overview the full-log page marks its current window on, drawn here with no window at all.
+    /// That read fine at the traffic volumes it shipped against and unusable at ordinary ones: 25
+    /// requests over 24 seconds compresses to 25 marks a few points wide apiece, which conveys
+    /// rough shape and nothing else — precisely the failure this section exists to avoid, back
+    /// under a different cause. The owner judged it unusable and asked for a small version of the
+    /// full page instead. See the design spec's own "Traffic Stats" section and its Amendments for
+    /// the fuller account of both reversals.
+    ///
+    /// ## What it is now
+    ///
+    /// `WaterfallOverviewStrip(series: viewModel.recentLayout.series, window: nil, …)` — the same
+    /// view, still with no window, but now built from ``TrafficStatsViewModel/recentLayout``,
+    /// whose own series is limited to the most recent few requests rather than every one of them.
+    /// Read literally: the drawn *range* is those few, not the whole log with a subset merely
+    /// marked on it. A marked-window reading was considered and rejected — it would still compress
+    /// the entire log onto the strip's width first, which is the exact defect being fixed, and
+    /// would only additionally highlight a sliver of it.
+    ///
+    /// Beneath the strip, ``ForEach(viewModel.recentLayout.rows)`` draws the same requests again as
+    /// ``WaterfallDetailRow``, reused directly rather than rebuilt — see that type's own
+    /// documentation for why its existing shape already fit this second caller with no changes of
+    /// its own required. Each wraps a `NavigationLink` to `LogDetailsView`, exactly as the full
+    /// page's own rows do — tappable through to the log entry, per the owner's own instruction.
+    ///
+    /// `window` for those rows is `WaterfallWindow(span: viewModel.recentLayout.series.span,
+    /// narrowest: 0)` — the widest window that series can have, i.e. no zoom applied at all — built
+    /// fresh here rather than reused from anywhere, because there is no `WaterfallViewModel` behind
+    /// this screen to own one. `WaterfallDetailRow` only ever reads a `WaterfallWindow` to place and
+    /// clip its bar against a span; it has no opinion about whether that value came from a
+    /// zoomable page or, as here, a plain span with nothing to zoom.
+    ///
+    /// ## The strip's own gesture: judged, not kept
+    ///
+    /// `.none`, not `.tap`. Tapping the old, whole-log strip opened the full page centred on the
+    /// moment touched, mapping a time relative to *this* section's own strip onto the full page's
+    /// own, separately built series — see `WaterfallView.init(logs:openingTime:)`'s own
+    /// documentation on that mapping, which explicitly assumed the two series shared the same
+    /// origin. They no longer do: this strip's series now starts at the earliest of only the most
+    /// recent few requests, not the log's true earliest one, so reusing that mapping unchanged
+    /// would centre the full page on the *wrong* moment, silently, by however much time separates
+    /// the two origins. Fixing the mapping itself — carrying an absolute `Date` end to end instead
+    /// of a relative offset — would mean changing `WaterfallView`'s own, already-shipped and
+    /// owner-approved contract for a page this fix has no other reason to touch. Simpler, and
+    /// arguably more honest about what changed here: the five rows directly beneath the strip
+    /// already give exact, correct navigation to precisely the request tapped, which is strictly
+    /// *more* precise than "centred near where you tapped" ever was. A tap on the strip itself
+    /// would now be redundant with the row right underneath it, not a second way to reach
+    /// something the rows cannot. **See all**, unchanged, is still how this screen reaches the
+    /// full, unzoomed page.
+    private func waterfallSection(rowLayout: WaterfallDetailRowMetrics.Layout) -> some View {
+        let window = WaterfallWindow(span: viewModel.recentLayout.series.span, narrowest: 0)
+        return Section {
             WaterfallOverviewStrip(
-                series: viewModel.waterfall,
+                series: viewModel.recentLayout.series,
                 window: nil,
                 height: WaterfallOverviewStrip.sectionHeight,
-                interaction: .tap { time in
-                    waterfallOpeningTime = time
-                    isWaterfallNavigationActive = true
-                }
+                interaction: .none
             )
-            // A hidden link rather than one wrapping the strip: the strip's own gesture already
-            // decides whether a touch counts as a tap, and a `NavigationLink` wrapping it would
-            // fire on release regardless, pushing the page on the drag that was meant to keep
-            // scrolling. Driving navigation from `isActive` instead lets the strip's own gesture
-            // stay the only thing deciding whether this section was tapped or scrolled past.
-            //
-            // `.accessibilityHidden(true)`: the strip already carries the row's whole
-            // accessibility element — see ``WaterfallOverviewStrip`` — so without this VoiceOver
-            // would also land on an empty, unlabelled control sitting behind it.
-            .background {
-                NavigationLink(isActive: $isWaterfallNavigationActive) {
-                    WaterfallView(logs: logs, openingTime: waterfallOpeningTime)
+            ForEach(viewModel.recentLayout.rows) { row in
+                NavigationLink {
+                    LogDetailsView(httpRequest: row.request)
                 } label: {
-                    EmptyView()
+                    WaterfallDetailRow(row: row, window: window,
+                                       showsHost: viewModel.recentLayout.showsHost,
+                                       labelWidth: rowLayout.labelWidth,
+                                       durationWidth: rowLayout.durationWidth)
                 }
-                .opacity(0)
-                .accessibilityHidden(true)
             }
         } header: {
             HStack {
@@ -228,6 +269,23 @@ struct TrafficStatsView: View {
         } footer: {
             Text(viewModel.waterfallCaption)
         }
+    }
+
+    /// How one of this section's own rows divides its width between the label column, the plot,
+    /// and the duration column — a thin wrapper around
+    /// `WaterfallDetailRowMetrics.layout(rowWidth:scaledLabelWidth:scaledDurationWidth:)` for the
+    /// same reason ``WaterfallView/rowLayout(in:)`` is: supplying it with the two values only a
+    /// view can produce, ``scaledLabelWidth`` and ``scaledDurationWidth``, so this screen's own
+    /// rows read their column widths from the same two properties ``WaterfallDetailRow`` is
+    /// actually handed, rather than each recomputing its own `@ScaledMetric`.
+    ///
+    /// - Parameter rowWidth: The full width one row is given, from ``statistics``'s own
+    ///   `GeometryReader`.
+    /// - Returns: The label, plot and duration widths the row should draw at.
+    private func rowLayout(in rowWidth: CGFloat) -> WaterfallDetailRowMetrics.Layout {
+        WaterfallDetailRowMetrics.layout(rowWidth: rowWidth,
+                                         scaledLabelWidth: scaledLabelWidth,
+                                         scaledDurationWidth: scaledDurationWidth)
     }
 
     /// The endpoint breakdown, slowest first.
