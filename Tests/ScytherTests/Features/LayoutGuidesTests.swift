@@ -65,6 +65,36 @@ final class LayoutGuidesTests: XCTestCase {
         XCTAssertTrue(lines.isEmpty)
     }
 
+    /// The pure function has no memory of a previous call. A rotation's real bug was never
+    /// here — it was the overlay's own `bounds` and `window` reads going stale — but this pins
+    /// down that `guideLines` itself carries nothing forward: called once with portrait-shaped
+    /// bounds and insets and again with landscape-shaped ones, the second call's lines describe
+    /// only the landscape input, not a mix of the two.
+    func testGuideLinesCarriesNothingForwardBetweenOrientations() {
+        let portraitBounds = CGRect(x: 0, y: 0, width: 402, height: 874)
+        let landscapeBounds = CGRect(x: 0, y: 0, width: 874, height: 402)
+
+        _ = LayoutGuidesView.guideLines(
+            safeArea: UIEdgeInsets(top: 59, left: 0, bottom: 34, right: 0),
+            margins: .zero,
+            in: portraitBounds
+        )
+
+        let landscapeLines = LayoutGuidesView.guideLines(
+            safeArea: UIEdgeInsets(top: 0, left: 62, bottom: 20, right: 62),
+            margins: .zero,
+            in: landscapeBounds
+        )
+
+        XCTAssertEqual(Set(landscapeLines.map(\.value)), [62, 20])
+        for line in landscapeLines {
+            XCTAssertLessThanOrEqual(line.start.x, landscapeBounds.width)
+            XCTAssertLessThanOrEqual(line.end.x, landscapeBounds.width)
+            XCTAssertLessThanOrEqual(line.start.y, landscapeBounds.height)
+            XCTAssertLessThanOrEqual(line.end.y, landscapeBounds.height)
+        }
+    }
+
     // MARK: - Rounding
 
     /// `Int(...)` truncation would print a sub-point inset as `"0 pt"` — exactly the noise the

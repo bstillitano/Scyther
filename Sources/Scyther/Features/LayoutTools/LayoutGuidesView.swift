@@ -104,7 +104,7 @@ extension GuideLine.Kind {
 /// there is no size or colour to pick — so everything it draws is read fresh from the window.
 ///
 /// Its frame tracks its superview — ``InterfaceToolkit/topLevelViewsWrapper`` — structurally
-/// rather than by being told. Three things cooperate to make that true at every moment the view
+/// rather than by being told. Four things cooperate to make that true at every moment the view
 /// exists rather than only after the next rotation notification happens to fire:
 ///
 /// 1. ``autoresizingMask`` is set to `[.flexibleWidth, .flexibleHeight]`, so UIKit itself keeps
@@ -118,12 +118,19 @@ extension GuideLine.Kind {
 ///    a bounds change alone does not schedule a fresh `draw(_:)` — it stretches whatever was
 ///    last drawn into the new size, which is precisely what "the guides describe the previous
 ///    orientation" looks like.
+/// 4. ``safeAreaInsetsDidChange()`` repaints when the insets change even on the rare occasion
+///    that arrives without a `bounds` change of its own — see that method's own doc comment.
 ///
-/// This is deliberately independent of `TopLevelViewsWrapper.deviceDidChangeOrientation`'s
-/// notification-driven `updateFrame()` call. That notification's ordering against the screen's
-/// own bounds update is not something this view need bet on now — (1)–(3) alone are correct with
-/// or without it — but `updateFrame()` still exists and does real work, because `TopLevelView`
-/// requires the override and the wrapper still calls it: see ``updateFrame()``.
+/// (1)–(3) alone were not enough on their own the first time this was fixed: `autoresizingMask`
+/// only makes this view follow *its superview*, and `TopLevelViewsWrapper` was itself sizing
+/// itself from `UIScreen.main.bounds`, sampled inside a `UIDevice.orientationDidChangeNotification`
+/// handler with no guarantee that value had caught up to the new orientation yet — one rotation
+/// behind, throughout a full round trip. This view's own structural fix could not fix a stale
+/// superview; `TopLevelViewsWrapper` needed the same treatment, sizing itself from `window.bounds`
+/// with its own `autoresizingMask`, before (1)–(3) here meant anything. See
+/// `TopLevelViewsWrapper`'s own doc comment for that half of the story. `updateFrame()` still
+/// exists and does real work regardless, because `TopLevelView` requires the override and the
+/// wrapper still calls it: see ``updateFrame()``.
 internal class LayoutGuidesView: TopLevelView {
     // MARK: - Static Data
 
@@ -231,6 +238,23 @@ internal class LayoutGuidesView: TopLevelView {
     override func layoutSubviews() {
         super.layoutSubviews()
         guard bounds != lastRefreshedBounds else { return }
+        refreshGuides()
+    }
+
+    /// Repaints when the safe area changes without necessarily changing `bounds`.
+    ///
+    /// UIKit's own hook for exactly this, called only after the new insets are already correct
+    /// — unlike `deviceDidChangeOrientation`'s notification, there is no ordering question here.
+    /// Needed because ``layoutSubviews()`` above only fires on a *bounds* change: a rotation
+    /// normally changes both together, but the two are not guaranteed to arrive as a single
+    /// event, and a device that changes its safe area without changing its bounds at all — a
+    /// notch appearing behind a status-bar-height change, for one — would otherwise leave this
+    /// view's insets stale with nothing to notice. Calls ``refreshGuides()`` rather than a bare
+    /// `setNeedsDisplay()`: ``draw(_:)`` only strokes the already-computed ``lines``, so a redraw
+    /// with nothing recomputed would just repaint the same stale lines — the insets have to be
+    /// re-read, not merely asked to be shown again.
+    override func safeAreaInsetsDidChange() {
+        super.safeAreaInsetsDidChange()
         refreshGuides()
     }
 
