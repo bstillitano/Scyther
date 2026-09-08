@@ -748,8 +748,9 @@ running oldest first so time reads downward.
 Dragging or zooming into a stretch of the log with nothing in it shows an empty state naming the
 gap, with a button that returns the window to the most recent traffic — distinct from the page's
 other empty state, shown instead of the whole list, for a log with no traffic captured at all. A
-**pinch** on the detail list narrows or widens the window, holding its centre still, down to the
-point at which the shortest measured request in the log would draw narrower than 24 points — past
+**pinch** anywhere on the page — the detail list or the fixed minimap card above it — narrows or
+widens the window, holding its centre still, down to the point at which the shortest measured
+request in the log would draw narrower than 24 points — past
 that there is nothing left to magnify, only more gap between bars, and both the pinch and the
 strip's adjustable action are disabled rather than left to silently do nothing.
 `.accessibilityAdjustableAction` on the strip

@@ -293,7 +293,9 @@ struct WaterfallView: View {
     /// The minimap, styled to still read as an inset-grouped card even though it is no longer
     /// one: the legend explaining the strip's colours, and the strip itself carrying the current
     /// window, in one row-shaped `VStack` on a rounded, coloured background — fixed above
-    /// ``detail``'s `List` as a sibling in ``content``, rather than scrolling with it.
+    /// ``detail``'s `List` as a sibling in ``content``, rather than scrolling with it, and now
+    /// also carrying ``magnification`` so a pinch reaches this whole page rather than only its
+    /// rows — see that property's own "Two attachment points" section.
     ///
     /// ## Why this is not a `Section` any more
     ///
@@ -380,6 +382,11 @@ struct WaterfallView: View {
         )
         .padding(.horizontal, WaterfallChartStyle.insetGroupedCardMargin)
         .padding(.top, 16)
+        // The pinch, reachable here too now — see ``magnification``'s own "Two attachment points"
+        // section for why this reads the same declaration ``detail`` attaches rather than a second
+        // copy of the gesture, and why coexisting with the strip's own drag, nested inside this
+        // view, needs nothing further done for it.
+        .simultaneousGesture(magnification, including: viewModel.window.canZoom ? .all : .subviews)
     }
 
     /// The detail rows, in their own `List`.
@@ -422,13 +429,16 @@ struct WaterfallView: View {
         // Attached to the `GeometryReader` — the container this property returns — rather than
         // chained onto the `List` inside it, and with `.simultaneousGesture` rather than
         // `.gesture`. Both changed together as the fix ``magnification``'s own documentation
-        // describes in full, and neither moved for *this* fix: the minimap leaving this `List`
-        // changes what the `List` contains, not what wraps the `List` itself, so the gesture's
-        // attachment point is untouched. `.subviews` rather than `.all` when zoom is impossible:
-        // it disables the pinch this modifier adds while still letting the `List` recognise its
-        // own scroll and press gestures, so a request the window cannot narrow any further does
-        // not also lose its scroll. See `canZoom`'s own documentation on why the page disables
-        // the gesture rather than letting a pinch silently do nothing.
+        // describes in full, and neither moved when the minimap later left this `List`: that
+        // changed what the `List` contains, not what wraps the `List` itself, so this attachment
+        // point was untouched — it just stopped being the *only* one, once a pinch over the strip
+        // was reported as reaching nothing. See ``magnification``'s own "Two attachment points"
+        // section for the second one, on ``minimapCard``, and why both read this one declaration
+        // rather than each carrying a copy. `.subviews` rather than `.all` when zoom is
+        // impossible: it disables the pinch this modifier adds while still letting the `List`
+        // recognise its own scroll and press gestures, so a request the window cannot narrow any
+        // further does not also lose its scroll. See `canZoom`'s own documentation on why the
+        // page disables the gesture rather than letting a pinch silently do nothing.
         .simultaneousGesture(magnification, including: viewModel.window.canZoom ? .all : .subviews)
     }
 
@@ -501,6 +511,39 @@ struct WaterfallView: View {
     /// `MagnificationGesture` and not `MagnifyGesture`: the package's floor is iOS 16 and
     /// `MagnifyGesture` is iOS 17.
     ///
+    /// ## Two attachment points, one gesture
+    ///
+    /// Attached twice — once to ``detail``'s `GeometryReader`, once to ``minimapCard`` — because
+    /// the owner reported the pinch working everywhere on the page *except* over the strip, which
+    /// followed directly from the previous fix round: the minimap moved out from inside
+    /// ``detail``'s `List` to become a sibling above it, and a gesture attached to the `List`'s
+    /// own container reaches nothing outside that container. Zooming has to work wherever the
+    /// finger lands on this screen, not only over the rows.
+    ///
+    /// This property, not a second one, is what both call sites attach: `private var magnification`
+    /// is a computed property, so `.simultaneousGesture(magnification, ...)` at either call site
+    /// reads the same declaration and produces a `Gesture` value built from the same
+    /// `onChanged`/`onEnded` closures, which in turn close over the same `self` — the same
+    /// ``lastMagnification`` and the same ``WaterfallViewModel``. Two attachment points reading
+    /// one declaration is what the owner's own instruction asked for — "factor it so both
+    /// attachments drive the same code rather than maintaining two copies that can drift" — and
+    /// is different in kind from writing the gesture out twice: there is exactly one place either
+    /// attachment's behaviour could be wrong, and fixing it fixes both.
+    ///
+    /// Both attachments use `.simultaneousGesture`, and both gate `including:` on
+    /// ``WaterfallViewModel/window``'s `canZoom` the same way ``detail`` already did — see that
+    /// property's own inline comment for why `.subviews` rather than `.all` when zoom is
+    /// impossible. Coexisting with ``WaterfallOverviewStrip``'s own scrub drag, attached *inside*
+    /// ``minimapCard`` on the strip itself via plain `.gesture(_:)`, needs no special handling
+    /// beyond that: a `MagnificationGesture` only ever recognises a genuine two-finger touch, and
+    /// ``WaterfallOverviewStrip/scrubGesture(width:onScrub:)`` is a one-finger `DragGesture` —
+    /// the two are never simultaneously candidates for the same touch sequence, so nothing about
+    /// adding the pinch here changes what the strip's own drag already did or how it was already
+    /// attached. The one scenario this reasoning does not cover, and nothing in this pipeline can
+    /// check, is a pinch whose two touch points start on either side of the gap between the card
+    /// and the list — whether that recognises as one pinch spanning both attachments, one, or
+    /// neither is untested.
+    ///
     /// ## Why this never recognised, and what changed
     ///
     /// This shipped attached to ``detail``'s `List` with plain `.gesture(_:including:)` — SwiftUI's
@@ -540,13 +583,19 @@ struct WaterfallView: View {
     /// this fix introduces.
     ///
     /// **On verification:** nobody in this pipeline can drive a two-finger pinch — RocketSim has
-    /// no pinch verb, and this repository has no UI test harness. This was not verified against a
-    /// running app. What *is* checked automatically: this gesture's closures are ordinary Swift
-    /// code with no SwiftUI-only dependency, so `WaterfallViewModelTests` exercises
-    /// ``WaterfallViewModel/zoom(by:)`` — exactly what `onChanged` below calls — directly, and
-    /// that coverage is unaffected by any of this. What it does not and cannot show is that the
-    /// gesture recognises on a real touch sequence at all. Confirming that the pinch now responds
-    /// on device, and that one-finger scrolling still works, is on the owner.
+    /// no pinch verb, and this repository has no UI test harness. What *is* checked automatically:
+    /// this gesture's closures are ordinary Swift code with no SwiftUI-only dependency, so
+    /// `WaterfallViewModelTests` exercises ``WaterfallViewModel/zoom(by:)`` — exactly what
+    /// `onChanged` below calls — directly, and that coverage is unaffected by any of this. What it
+    /// does not and cannot show is that the gesture recognises on a real touch sequence at all.
+    ///
+    /// The `detail` attachment *is* now confirmed: the owner ran this on device and reported the
+    /// pinch working "everywhere" — which is also the report that named the minimap as the one
+    /// place it did not reach, since this property was not yet attached there at all. The
+    /// `minimapCard` attachment above is new precisely because of that report, has not itself been
+    /// run on device, and is what still needs the owner's own pass — along with confirming a pinch
+    /// there does not disturb the strip's own one-finger drag, the coexistence this doc's own "Two
+    /// attachment points" section reasons through but cannot check.
     ///
     /// ## `.onChanged`/`.onEnded`, not `.updating(_:body:)`
     ///
