@@ -87,6 +87,7 @@ import SwiftUI
 ///
 /// - ``slowAnimationsEnabled``
 /// - ``layoutGuidesEnabled``
+/// - ``canShowLayoutGuides``
 /// - ``activateLayoutRuler()``
 /// - ``showsLayoutRulerUnavailableAlert``
 /// - ``showViewFrames``
@@ -426,6 +427,18 @@ class MenuViewModel: ViewModel {
             Scyther.interface.layoutGuidesEnabled = layoutGuidesEnabled
             InterfaceToolkit.instance.showLayoutGuides()
         }
+    }
+
+    /// Whether the guides row can do anything, so ``MenuView`` can disable it when it cannot.
+    ///
+    /// The guides' half of the spec's "neither tool activates; the menu row reports it rather than
+    /// appearing to work". The ruler answers that with an alert because it has a tap to intercept;
+    /// a `Toggle` has none — by the time it calls back the flag has already moved — so the row says
+    /// it instead by being disabled, which is the stock way a control states it cannot act. The
+    /// setting itself is left alone: it is persisted, and a launch that has a key window should
+    /// still find the guides as the developer left them.
+    var canShowLayoutGuides: Bool {
+        InterfaceToolkit.instance.canShowLayoutGuides
     }
 
     /// Dismisses the menu and puts the layout ruler on screen.

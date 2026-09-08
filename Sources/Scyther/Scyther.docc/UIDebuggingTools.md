@@ -102,6 +102,10 @@ measurement in points.
 Scyther.interface.layoutGuidesEnabled = true
 ```
 
+With no key window there is nothing to draw over, so the menu's toggle is disabled rather than
+persisting a setting that puts nothing on screen — the same rule the Layout Ruler's row reports
+with an alert.
+
 ### Reading the Overlay
 
 Safe-area insets are drawn as solid blue lines; layout margins are drawn as dashed purple lines,
@@ -296,5 +300,6 @@ All UI debugging tools are automatically disabled in App Store builds.
 - ``TouchVisualiser``
 - ``TouchVisualiserConfiguration``
 - ``GridOverlay``
-- ``LayoutGuides``
+- <doc:UIDebuggingTools#Layout-Guides>
+- <doc:UIDebuggingTools#Layout-Ruler>
 

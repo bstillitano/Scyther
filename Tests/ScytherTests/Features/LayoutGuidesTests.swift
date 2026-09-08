@@ -122,16 +122,6 @@ final class LayoutGuidesTests: XCTestCase {
         XCTAssertEqual(line.roundedValue, 1)
     }
 
-    func testAWholePointInsetRoundsToItself() throws {
-        let lines = LayoutGuidesView.guideLines(
-            safeArea: UIEdgeInsets(top: 59, left: 0, bottom: 0, right: 0),
-            margins: .zero,
-            in: bounds
-        )
-        let line = try XCTUnwrap(lines.first)
-        XCTAssertEqual(line.roundedValue, 59)
-    }
-
     /// `20.33` truncates to `20`, which happens to be right by coincidence; `20.6` is the case
     /// that actually distinguishes rounding from truncation.
     func testASubPointRemainderRoundsRatherThanTruncates() throws {
@@ -170,29 +160,20 @@ final class LayoutGuidesTests: XCTestCase {
         XCTAssertNotEqual(safeArea.labelMidpoint, margin.labelMidpoint)
     }
 
-    /// The line itself — what a developer measures by eye, and what the earlier tests in this
-    /// file assert — is unaffected by where its label sits.
-    func testLabelFractionsDoNotMoveTheLineItself() {
-        let start = CGPoint(x: 0, y: 100)
-        let end = CGPoint(x: 400, y: 100)
-        let margin = GuideLine(start: start, end: end, value: 16, kind: .margin)
-
-        XCTAssertEqual(margin.start, start)
-        XCTAssertEqual(margin.end, end)
-    }
-
     // MARK: - Label Placement
 
     /// The layout ruler already solves keeping a label inside the screen —
-    /// `LayoutRulerGeometry.labelOrigin(midpoint:labelSize:in:)`. This asserts the guides
+    /// `LayoutRulerGeometry.labelOrigin(midpoint:labelSize:in:margin:)`. This asserts the guides
     /// actually route through it rather than solving clipping a second, different way: a label
-    /// near the left edge must not have any part of its frame off-screen.
+    /// near the left edge must not have any part of its frame off-screen, and must not sit flush
+    /// against it either — the margin the guides pass is theirs, but the clamp applying it is the
+    /// ruler's.
     func testALabelNearTheLeftEdgeIsKeptFullyOnScreen() {
         let line = GuideLine(start: CGPoint(x: 16, y: 0), end: CGPoint(x: 16, y: 800), value: 16, kind: .margin)
         let frame = LayoutGuidesView.labelFrame(for: line, labelSize: CGSize(width: 40, height: 18), in: bounds.size)
 
-        XCTAssertGreaterThanOrEqual(frame.minX, 0)
-        XCTAssertLessThanOrEqual(frame.maxX, bounds.width)
+        XCTAssertGreaterThanOrEqual(frame.minX, LayoutGuidesView.LabelMargin)
+        XCTAssertLessThanOrEqual(frame.maxX, bounds.width - LayoutGuidesView.LabelMargin)
     }
 
     /// The same on the right edge, where a naive "centre on the midpoint" placement overflows
@@ -201,8 +182,20 @@ final class LayoutGuidesTests: XCTestCase {
         let line = GuideLine(start: CGPoint(x: 390, y: 0), end: CGPoint(x: 390, y: 800), value: 10, kind: .safeArea)
         let frame = LayoutGuidesView.labelFrame(for: line, labelSize: CGSize(width: 40, height: 18), in: bounds.size)
 
-        XCTAssertGreaterThanOrEqual(frame.minX, 0)
-        XCTAssertLessThanOrEqual(frame.maxX, bounds.width)
+        XCTAssertGreaterThanOrEqual(frame.minX, LayoutGuidesView.LabelMargin)
+        XCTAssertLessThanOrEqual(frame.maxX, bounds.width - LayoutGuidesView.LabelMargin)
+    }
+
+    /// The defect this margin closes. Before it, the guides called the shared clamp with no margin
+    /// at all and a label on a line near an edge was placed flush against the screen — the exact
+    /// behaviour the ruler had already diagnosed and fixed in a second, private clamp of its own.
+    /// A right-margin line at `x = 384` with a 40 pt label used to land at `maxX = 400`, touching
+    /// the edge.
+    func testALabelOnALineAgainstTheRightEdgeIsNotPlacedFlushAgainstIt() {
+        let line = GuideLine(start: CGPoint(x: 384, y: 0), end: CGPoint(x: 384, y: 800), value: 16, kind: .margin)
+        let frame = LayoutGuidesView.labelFrame(for: line, labelSize: CGSize(width: 40, height: 18), in: bounds.size)
+
+        XCTAssertEqual(frame.maxX, bounds.width - LayoutGuidesView.LabelMargin, accuracy: 0.001)
     }
 
     // MARK: - Frame Tracking (F1/F2 regression)

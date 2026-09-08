@@ -60,7 +60,7 @@ internal class LayoutRulerOverlayView: TopLevelView {
     ///
     /// **Chosen to be unlike every other overlay Scyther draws, and the next one added should keep
     /// that going.** Taken so far: `GridOverlayView` draws red, ``GuideLine/Kind/colour`` draws
-    /// blue for a safe-area inset and magenta for a layout margin, and
+    /// blue for a safe-area inset and purple for a layout margin, and
     /// ``AccessibilityAuditOverlayView`` draws orange issue boxes. The ruler was orange too, and
     /// with the audit's live mode on, its boxes and the ruler's line read as one feature — the
     /// reason this is green now. These overlays are deliberately usable at the same time, so hue is
@@ -83,6 +83,15 @@ internal class LayoutRulerOverlayView: TopLevelView {
     /// The margin the readout keeps from each edge of the overlay, and so half of what it gives up
     /// from the overlay's width — see ``readoutWidth(distance:names:availableWidth:)``.
     static let ReadoutMargin: CGFloat = 16.0
+
+    /// The widest the readout's content may ever be, whatever room there is.
+    ///
+    /// The available width is not the right ceiling on its own. In landscape it is around 850
+    /// points, which is wide enough for a long private UIKit class name at each end to fit without
+    /// ever reaching ``namesLabel``'s middle truncation — so the readout stops being a label and
+    /// becomes a full-width strip laid across the app it is measuring. 360 is about the portrait cap
+    /// on a current phone, which is the width this readout was actually designed and read at.
+    static let ReadoutMaximumContentWidth: CGFloat = 360.0
 
     /// Corner radius of the readout's background.
     static let ReadoutCornerRadius: CGFloat = 6.0
@@ -324,7 +333,8 @@ internal class LayoutRulerOverlayView: TopLevelView {
     /// Auto Layout here, and frames everywhere else in this file, is deliberate rather than
     /// inconsistent: the control's position is a fixed relationship to an edge, which is precisely
     /// what constraints express well, while the readout's position is arithmetic
-    /// (``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:)``) that no constraint can state.
+    /// (``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:margin:)``) that no constraint can
+    /// state.
     private func setupControl() {
         modeControl.selectedSegmentIndex = Self.SnapSegment
         modeControl.addTarget(self, action: #selector(modeChanged), for: .valueChanged)
@@ -574,15 +584,19 @@ internal class LayoutRulerOverlayView: TopLevelView {
     /// How wide the readout may be.
     ///
     /// Pure and static because this is the decision that went wrong: the first version handed
-    /// ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:)`` whatever size the text wanted,
-    /// and that function clamps an origin rather than a size, so a readout wider than the screen
-    /// was placed at `x = 0` and ran off both edges. The cap belongs before the placement, and
+    /// ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:margin:)`` whatever size the text
+    /// wanted, and that function clamps an origin rather than a size, so a readout wider than the
+    /// screen was placed at `x = 0` and ran off both edges. The cap belongs before the placement, and
     /// somewhere a test can reach it.
     ///
     /// Answers the width of the readout's *content*, and the cap it applies already gives up
     /// ``ReadoutPadding`` on each side as well as ``ReadoutMargin``, so the box drawn around that
     /// content still fits inside the overlay less its margins. Getting that wrong is how a
     /// twelve-point overhang gets shipped.
+    ///
+    /// The cap is the smaller of that room and ``ReadoutMaximumContentWidth``: the room alone is
+    /// the right answer in portrait and far too generous in landscape, and the room still has to be
+    /// able to win, or a readout on a narrow overlay overhangs it.
     ///
     /// The readout is as wide as its widest line, and never wider than that cap. When the cap
     /// bites it is the names that give way, because
@@ -598,7 +612,8 @@ internal class LayoutRulerOverlayView: TopLevelView {
     internal static func readoutWidth(distance: CGFloat,
                                       names: CGFloat,
                                       availableWidth: CGFloat) -> CGFloat {
-        let cap = max(0, availableWidth - (ReadoutMargin + ReadoutPadding) * 2)
+        let room = max(0, availableWidth - (ReadoutMargin + ReadoutPadding) * 2)
+        let cap = min(room, ReadoutMaximumContentWidth)
         return min(max(distance, names), cap)
     }
 
@@ -632,9 +647,11 @@ internal class LayoutRulerOverlayView: TopLevelView {
     /// only. ``applyCoverage()`` changes what the answer is and then calls this rather than
     /// computing a second copy of it.
     ///
-    /// Positioned by ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:)`` — the same rule
-    /// ``LayoutGuidesView`` uses for its own labels — so a measurement taken near an edge of the
-    /// screen does not place its own answer off it.
+    /// Positioned by ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:margin:)`` — the same
+    /// rule ``LayoutGuidesView`` uses for its own labels — so a measurement taken near an edge of
+    /// the screen does not place its own answer off it, nor flush against it: the margin passed is
+    /// ``ReadoutMargin``, the same one ``readoutWidth(distance:names:availableWidth:)`` gave up the
+    /// room for, so the room reserved is the room actually used.
     private func refreshReadout() {
         guard let measurement, !isCoveredByScyther() else {
             readoutContainer.isHidden = true
@@ -669,36 +686,18 @@ internal class LayoutRulerOverlayView: TopLevelView {
 
         let size = CGSize(width: contentWidth + Self.ReadoutPadding * 2,
                           height: contentHeight + Self.ReadoutPadding * 2)
-        let origin = LayoutRulerGeometry.labelOrigin(midpoint: midpoint, labelSize: size, in: bounds.size)
-        readoutContainer.frame = clearOfTheControl(withinMargins(CGRect(origin: origin, size: size)))
+        let origin = LayoutRulerGeometry.labelOrigin(midpoint: midpoint,
+                                                    labelSize: size,
+                                                    in: bounds.size,
+                                                    margin: Self.ReadoutMargin)
+        readoutContainer.frame = clearOfTheControl(CGRect(origin: origin, size: size))
         readoutContainer.layoutIfNeeded()
-    }
-
-    /// Keeps the readout inside the same margin its width was capped against.
-    ///
-    /// ``readoutWidth(distance:names:availableWidth:)`` gives up ``ReadoutMargin`` on each side so
-    /// the readout can never be wider than the space between the margins, but
-    /// ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:)`` clamps to the overlay's *bounds*
-    /// — it knows nothing about a margin — so a measurement near an edge still ended up with the
-    /// readout flush against it, touching the screen. Reserving the room and then not using it is
-    /// the sort of half-applied rule that reads as a bug.
-    ///
-    /// Horizontal only. The vertical position has ``clearOfTheControl(_:)`` to answer to, and a
-    /// second clamp on the same axis would be two rules fighting over one number.
-    ///
-    /// - Parameter frame: The readout's frame as the geometry placed it.
-    /// - Returns: The same frame, moved inside the margins.
-    private func withinMargins(_ frame: CGRect) -> CGRect {
-        let rightmost = max(Self.ReadoutMargin, bounds.width - Self.ReadoutMargin - frame.width)
-        var inset = frame
-        inset.origin.x = min(max(Self.ReadoutMargin, frame.origin.x), rightmost)
-        return inset
     }
 
     /// Lifts a readout that would land underneath the floating control.
     ///
-    /// ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:)`` clamps to the overlay's bounds
-    /// and knows nothing about the control, so a measurement whose midpoint sits near the bottom
+    /// ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:margin:)`` clamps to the overlay's
+    /// bounds less a margin and knows nothing about the control, so a measurement whose midpoint sits near the bottom
     /// centre of the screen puts its own answer behind an opaque blur. Fixed here rather than in
     /// the geometry because the control is a fact about *this view* — its size, its padding, its
     /// safe-area constraint — and pushing that into a pure function that four other things call

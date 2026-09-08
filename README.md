@@ -1678,6 +1678,10 @@ its measurement in points. Zero insets are not drawn:
 Scyther.interface.layoutGuidesEnabled = true
 ```
 
+With no key window there is nothing to draw over, and the menu's toggle is disabled rather than
+persisting a setting that shows nothing — the same rule the Layout Ruler's row reports with an
+alert.
+
 #### Layout Ruler
 
 Drag anywhere on the running app to measure between two points. Open the Scyther menu and choose

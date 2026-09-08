@@ -143,6 +143,21 @@ internal class LayoutGuidesView: TopLevelView {
     /// Horizontal padding inside a label, on each side of its text.
     static let LabelHorizontalPadding: CGFloat = 4.0
 
+    /// The smallest distance a label may sit from any edge of the overlay.
+    ///
+    /// Small — these labels annotate lines that are themselves only a few points from an edge, and
+    /// a large margin would drag a label away from the line it names. Not zero, because a label
+    /// clamped flush against the screen reads as one that has been clipped rather than one that has
+    /// been placed, which is the failure the ruler's readout was already fixed for. Passed to
+    /// ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:margin:)`` so both tools take their
+    /// margin in the one place rather than each clamping again afterwards.
+    ///
+    /// Smaller than ``LayoutRulerOverlayView/ReadoutMargin``, which is the ruler's equivalent: this
+    /// label is a 9-point number in a 4-point-padded box, and an inset the size of the ruler's
+    /// would move it further from its own line than the line is from the edge. Large enough to
+    /// read as placed rather than clipped, which is the whole point of it being non-zero.
+    static let LabelMargin: CGFloat = 8.0
+
     /// The dash pattern used for a margin line's stroke — see ``GuideLine/Kind/isDashed``.
     static let MarginDashPattern: [CGFloat] = [4, 3]
 
@@ -169,10 +184,14 @@ internal class LayoutGuidesView: TopLevelView {
     /// there.
     private var lines: [GuideLine] = []
 
-    /// `bounds` as of the last time this view actually recomputed its guides, so
+    /// `bounds` as of the last time this view reacted to its own size changing, so
     /// ``layoutSubviews()`` can tell a layout pass that changed nothing about this view's size
-    /// apart from a bounds change that did.
-    private var lastRefreshedBounds: CGRect = .zero
+    /// from one that did.
+    ///
+    /// Named as ``LayoutRulerOverlayView`` and ``TopLevelViewsWrapper`` name theirs: the three are
+    /// the same guard, and a reader tracing a rotation through all three should not have to work
+    /// out three times that they are.
+    private var lastHandledBounds: CGRect = .zero
 
     // MARK: - Init
 
@@ -232,12 +251,12 @@ internal class LayoutGuidesView: TopLevelView {
     /// `autoresizingMask` alone would keep this view's *frame* correct through a rotation while
     /// silently stretching whatever was last drawn into the new aspect ratio — which is exactly
     /// what lines describing the previous orientation looks like. Guarded on
-    /// ``lastRefreshedBounds`` so a layout pass that leaves `bounds` unchanged — this view has
+    /// ``lastHandledBounds`` so a layout pass that leaves `bounds` unchanged — this view has
     /// no subviews whose own layout would trigger one, but a superview's unrelated layout pass
     /// can still call this — costs nothing beyond the comparison.
     override func layoutSubviews() {
         super.layoutSubviews()
-        guard bounds != lastRefreshedBounds else { return }
+        guard bounds != lastHandledBounds else { return }
         refreshGuides()
     }
 
@@ -267,7 +286,7 @@ internal class LayoutGuidesView: TopLevelView {
     /// makes that call redundant for keeping the *frame* correct, but not for keeping the guides
     /// themselves fresh: a rotation can change `window?.safeAreaInsets` and the root view's
     /// `layoutMargins` independently of whether this view's own `bounds` size happens to change,
-    /// so this always refreshes rather than gating on ``lastRefreshedBounds`` the way
+    /// so this always refreshes rather than gating on ``lastHandledBounds`` the way
     /// ``layoutSubviews()`` does.
     ///
     /// `superview?.bounds ?? UIScreen.main.bounds`, matching
@@ -283,10 +302,10 @@ internal class LayoutGuidesView: TopLevelView {
     /// Recomputes ``lines`` and ``labels`` for the current `bounds` and window, and asks for a
     /// fresh ``draw(_:)``.
     ///
-    /// The one place ``lastRefreshedBounds`` is written, so every caller — ``updateFrame()``,
+    /// The one place ``lastHandledBounds`` is written, so every caller — ``updateFrame()``,
     /// ``layoutSubviews()`` — leaves it in step with what was actually just computed.
     private func refreshGuides() {
-        lastRefreshedBounds = bounds
+        lastHandledBounds = bounds
         layoutLabels()
         setNeedsDisplay()
     }
@@ -336,12 +355,14 @@ internal class LayoutGuidesView: TopLevelView {
 
     /// Where a line's label should sit, clamped inside `bounds`.
     ///
-    /// A thin forward to ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:)`` — the same
-    /// placement rule the layout ruler uses to keep its own measurement label inside the screen —
-    /// rather than a second clamping rule written here. A label simply centred on its line, as
-    /// the first version of this view did, is cut off by the screen edge whenever the line itself
-    /// is close to one; reusing the ruler's rule means that failure mode has exactly one fix in
-    /// the codebase rather than two that could drift apart. Static and pure, like
+    /// A thin forward to ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:margin:)`` — the
+    /// same placement rule the layout ruler uses to keep its own measurement label inside the
+    /// screen — rather than a second clamping rule written here. A label simply centred on its
+    /// line, as the first version of this view did, is cut off by the screen edge whenever the line
+    /// itself is close to one; reusing the ruler's rule means that failure mode has exactly one fix
+    /// in the codebase rather than two that could drift apart — including the margin, which is
+    /// ``LabelMargin`` here and ``LayoutRulerOverlayView/ReadoutMargin`` there, both taken by the
+    /// same clamp rather than by a second one per caller. Static and pure, like
     /// ``guideLines(safeArea:margins:in:)``, so the integration itself — not just the geometry
     /// underneath it — is directly testable.
     ///
@@ -350,9 +371,13 @@ internal class LayoutGuidesView: TopLevelView {
     ///     clamped.
     ///   - labelSize: The label's rendered, padded size.
     ///   - bounds: The overlay's size.
-    /// - Returns: The label's frame, guaranteed to stay within `bounds`.
+    /// - Returns: The label's frame, guaranteed to stay within `bounds` and no closer than
+    ///   ``LabelMargin`` to any of its edges.
     static func labelFrame(for line: GuideLine, labelSize: CGSize, in bounds: CGSize) -> CGRect {
-        let origin = LayoutRulerGeometry.labelOrigin(midpoint: line.labelMidpoint, labelSize: labelSize, in: bounds)
+        let origin = LayoutRulerGeometry.labelOrigin(midpoint: line.labelMidpoint,
+                                                     labelSize: labelSize,
+                                                     in: bounds,
+                                                     margin: LabelMargin)
         return CGRect(origin: origin, size: labelSize)
     }
 
@@ -378,7 +403,7 @@ internal class LayoutGuidesView: TopLevelView {
             label.textColor = .white
             label.backgroundColor = line.kind.colour
             label.textAlignment = .center
-            label.text = String(format: localized("%lld pt"), Int64(line.roundedValue))
+            label.text = localized("\(line.roundedValue) pt")
             label.sizeToFit()
 
             let paddedSize = CGSize(width: label.frame.width + LayoutGuidesView.LabelHorizontalPadding * 2,

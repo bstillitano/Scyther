@@ -369,6 +369,27 @@ final class LayoutRulerTests: XCTestCase {
         XCTAssertEqual(width, 40)
     }
 
+    /// Landscape has room for a readout no one can read at a glance: around 830 points, wide
+    /// enough for a long private UIKit class name at each end to fit without ever reaching the
+    /// names label's middle truncation, so the readout stops being a label and becomes a strip laid
+    /// across the app it is measuring. The cap is the smaller of the room available and a width the
+    /// eye can take in, not the room alone.
+    func testALandscapeReadoutIsCappedByTheFixedMaximumRatherThanTheRoom() {
+        let width = LayoutRulerOverlayView.readoutWidth(distance: 40,
+                                                        names: 4000,
+                                                        availableWidth: 874)
+        XCTAssertEqual(width, LayoutRulerOverlayView.ReadoutMaximumContentWidth)
+    }
+
+    /// The other half of that `min`: the room still has to be able to win. A narrow overlay caps
+    /// below the fixed maximum, or the readout overhangs a small screen.
+    func testTheRoomStillWinsWhenItIsNarrowerThanTheFixedMaximum() {
+        let width = LayoutRulerOverlayView.readoutWidth(distance: 40,
+                                                        names: 4000,
+                                                        availableWidth: 402)
+        XCTAssertLessThan(width, LayoutRulerOverlayView.ReadoutMaximumContentWidth)
+    }
+
     /// The cap wins even against the distance. It cannot bite in practice — a number and a unit
     /// are never that wide — but a readout wider than the screen answers nothing at all.
     func testTheCapAppliesToAnAbsurdlyNarrowOverlay() {
@@ -455,6 +476,15 @@ final class LayoutRulerTests: XCTestCase {
         XCTAssertTrue(viewModel.showsLayoutRulerUnavailableAlert)
         XCTAssertFalse(LayoutRuler.instance.isActive,
                        "activating with nothing to draw over would leave no visible Done to switch it off again")
+    }
+
+    /// The same spec rule for the other tool. The guides' row cannot raise an alert — a `Toggle`
+    /// has moved the flag by the time it calls back — so it says the same thing by being disabled,
+    /// and this is the property `MenuView` disables it on.
+    func testTheGuidesRowIsUnavailableWithNoWindowToDrawOver() {
+        XCTAssertFalse(InterfaceToolkit.instance.canShowLayoutGuides,
+                       "the overlay is in no window in a test process, which is the case under test")
+        XCTAssertFalse(MenuViewModel().canShowLayoutGuides)
     }
 
 }

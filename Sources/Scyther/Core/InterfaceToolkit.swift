@@ -407,6 +407,22 @@ extension InterfaceToolkit {
         showLayoutGuides()
     }
 
+    /// Whether the guides have anything to draw over.
+    ///
+    /// The same question ``canShowLayoutRuler`` asks, asked the same way and for the same reason:
+    /// the overlay lives in ``topLevelViewsWrapper``, which is only installed once there is a key
+    /// window, so without one switching the guides on persists a setting and puts nothing at all on
+    /// screen. The spec's rule covers both tools — "Neither tool activates; the menu row reports it
+    /// rather than appearing to work" — and a toggle that silently keeps a flag is the plainest
+    /// form of appearing to work.
+    ///
+    /// Asked of the overlay's own `window` rather than of `UIApplication`, because the overlay
+    /// being in a window is the exact condition for it being able to draw, where "a key window
+    /// exists somewhere" is only a proxy for it.
+    @MainActor internal var canShowLayoutGuides: Bool {
+        layoutGuidesView.window != nil
+    }
+
     /// Applies ``LayoutGuides/enabled`` to the overlay.
     @MainActor internal func showLayoutGuides() {
         layoutGuidesView.isHidden = !LayoutGuides.instance.enabled

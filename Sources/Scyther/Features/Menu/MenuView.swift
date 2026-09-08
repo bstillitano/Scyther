@@ -20,7 +20,7 @@ import SwiftUI
 /// - **Security**: Keychain browser
 /// - **System Tools**: Location spoofer, console logs
 /// - **Notifications**: Notification logger and tester
-/// - **UI/UX**: Fonts, components, grid overlay, layout guides, touch visualizer
+/// - **UI/UX**: Fonts, components, grid overlay, layout guides, layout ruler, touch visualizer
 ///
 /// The menu displays device information in a header and provides navigation
 /// to all sub-features.
@@ -174,6 +174,7 @@ public struct MenuView: View {
                 Toggle(isOn: $viewModel.showViewSizes) { searchResultLabel(for: entry) }
             case .layoutGuides:
                 Toggle(isOn: $viewModel.layoutGuidesEnabled) { searchResultLabel(for: entry) }
+                    .disabled(!viewModel.canShowLayoutGuides)
             case .layoutRuler:
                 // An action, not a destination: without a case of its own this would fall
                 // through to `navigationResult(for:)`, whose `destination(for:)` has nothing to
@@ -581,7 +582,11 @@ public struct MenuView: View {
         case .gridOverlay:
             navigationRow(for: item)
         case .layoutGuides:
+            // Disabled with no key window to draw over, mirroring the ruler's alert — see
+            // ``MenuViewModel/canShowLayoutGuides`` for why the two tools report the same
+            // condition in two different shapes.
             toggleRow(item.title, icon: item.icon, tint: item.tint, isOn: $viewModel.layoutGuidesEnabled)
+                .disabled(!viewModel.canShowLayoutGuides)
         case .layoutRuler:
             actionRow(for: item) { viewModel.activateLayoutRuler() }
         case .fpsCounter:

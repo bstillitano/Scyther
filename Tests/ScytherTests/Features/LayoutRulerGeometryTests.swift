@@ -111,7 +111,8 @@ final class LayoutRulerGeometryTests: XCTestCase {
     func testTheLabelSitsAboveTheMidpointWhenThereIsRoom() {
         let origin = LayoutRulerGeometry.labelOrigin(midpoint: CGPoint(x: 200, y: 300),
                                                      labelSize: CGSize(width: 80, height: 20),
-                                                     in: CGSize(width: 400, height: 800))
+                                                     in: CGSize(width: 400, height: 800),
+                                                     margin: 0)
         XCTAssertEqual(origin.x, 160, accuracy: 0.001, "centred on the midpoint")
         XCTAssertLessThan(origin.y, 300, "above it")
     }
@@ -120,25 +121,72 @@ final class LayoutRulerGeometryTests: XCTestCase {
     func testTheLabelIsPushedInsideWhenItWouldLeaveTheTop() {
         let origin = LayoutRulerGeometry.labelOrigin(midpoint: CGPoint(x: 200, y: 4),
                                                      labelSize: CGSize(width: 80, height: 20),
-                                                     in: CGSize(width: 400, height: 800))
+                                                     in: CGSize(width: 400, height: 800),
+                                                     margin: 0)
         XCTAssertGreaterThanOrEqual(origin.y, 0)
     }
 
     func testTheLabelIsPushedInsideWhenItWouldLeaveTheRight() {
         let origin = LayoutRulerGeometry.labelOrigin(midpoint: CGPoint(x: 396, y: 300),
                                                      labelSize: CGSize(width: 80, height: 20),
-                                                     in: CGSize(width: 400, height: 800))
+                                                     in: CGSize(width: 400, height: 800),
+                                                     margin: 0)
         XCTAssertLessThanOrEqual(origin.x + 80, 400.001)
+    }
+
+    /// The margin is the whole reason this function takes one: both callers want their label kept
+    /// off the edge rather than merely inside it, and before it was a parameter the ruler took its
+    /// own inset in a second, private clamp afterwards while the guides took none at all. A label
+    /// that would otherwise be pushed flush against an edge stops at the margin instead — on both
+    /// axes, and on the near edge as well as the far one.
+    func testTheMarginIsHonouredOnEveryEdge() {
+        let bounds = CGSize(width: 400, height: 800)
+        let labelSize = CGSize(width: 80, height: 20)
+
+        let right = LayoutRulerGeometry.labelOrigin(midpoint: CGPoint(x: 396, y: 300),
+                                                    labelSize: labelSize,
+                                                    in: bounds,
+                                                    margin: 16)
+        XCTAssertEqual(right.x + labelSize.width, bounds.width - 16, accuracy: 0.001)
+
+        let left = LayoutRulerGeometry.labelOrigin(midpoint: CGPoint(x: 4, y: 300),
+                                                   labelSize: labelSize,
+                                                   in: bounds,
+                                                   margin: 16)
+        XCTAssertEqual(left.x, 16, accuracy: 0.001)
+
+        let top = LayoutRulerGeometry.labelOrigin(midpoint: CGPoint(x: 200, y: 4),
+                                                  labelSize: labelSize,
+                                                  in: bounds,
+                                                  margin: 16)
+        XCTAssertEqual(top.y, 16, accuracy: 0.001)
+
+        let bottom = LayoutRulerGeometry.labelOrigin(midpoint: CGPoint(x: 200, y: 900),
+                                                     labelSize: labelSize,
+                                                     in: bounds,
+                                                     margin: 16)
+        XCTAssertEqual(bottom.y + labelSize.height, bounds.height - 16, accuracy: 0.001)
     }
 
     /// A label bigger than the space it is drawn in — plausible at accessibility text sizes on a
     /// small measurement — has no room for the inside-push clamp to satisfy on either axis, so it
-    /// pins to the near edge (`0`) and overflows the far one instead of computing a negative
-    /// origin that would overflow both.
+    /// pins to the near edge and overflows the far one instead of computing a negative origin that
+    /// would overflow both. With no margin the near edge is `0`.
     func testALabelLargerThanItsBoundsPinsToTheOriginAndOverflowsTheFarEdge() {
         let origin = LayoutRulerGeometry.labelOrigin(midpoint: CGPoint(x: 30, y: 15),
                                                      labelSize: CGSize(width: 100, height: 50),
-                                                     in: CGSize(width: 60, height: 30))
+                                                     in: CGSize(width: 60, height: 30),
+                                                     margin: 0)
         XCTAssertEqual(origin, .zero)
+    }
+
+    /// The same case with a margin: the near edge the label pins to is the margin, not `0`, so a
+    /// label too big to fit still starts where a label that fits would have.
+    func testALabelLargerThanItsBoundsPinsToTheMarginRatherThanTheEdge() {
+        let origin = LayoutRulerGeometry.labelOrigin(midpoint: CGPoint(x: 30, y: 15),
+                                                     labelSize: CGSize(width: 100, height: 50),
+                                                     in: CGSize(width: 60, height: 30),
+                                                     margin: 16)
+        XCTAssertEqual(origin, CGPoint(x: 16, y: 16))
     }
 }

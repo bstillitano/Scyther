@@ -111,7 +111,8 @@ enum LayoutRulerGeometry {
         return (dx * dx + dy * dy).squareRoot()
     }
 
-    /// Where a label of `labelSize` sits so it reads near `midpoint` without leaving `bounds`.
+    /// Where a label of `labelSize` sits so it reads near `midpoint` without leaving `bounds`, or
+    /// coming closer than `margin` to any edge of them.
     ///
     /// Placed above the midpoint by preference, and offset by a small gap rather than sitting
     /// flush against it: a label drawn under the line it describes tends to land under the
@@ -119,24 +120,38 @@ enum LayoutRulerGeometry {
     /// labelling it. Pushed back inside on every edge afterwards, since a measurement taken near
     /// the top or a side of the screen would otherwise place its own answer off it.
     ///
-    /// If `labelSize` is larger than `bounds` on an axis — plausible at accessibility text
-    /// sizes on a small measurement — the inside-push clamp has nothing to satisfy on that axis
-    /// and pins the origin to `0` instead, so the label overflows the far edge rather than the
-    /// near one. That is deliberate: a clipped trailing edge is a less confusing failure than an
-    /// origin computed to a negative coordinate, which would push part of the label off the
-    /// *near* edge as well and make the overflow harder to reason about.
+    /// `margin` has no default, so every caller states the inset it wants rather than inheriting
+    /// one. Clamping to the bounds alone leaves a label near an edge flush against the screen,
+    /// which reads as a clipping bug rather than as a deliberate placement; both callers want some
+    /// inset, they want different amounts, and the ruler previously took its own in a second,
+    /// private clamp of its own — two answers to the one question this type exists to answer once.
+    ///
+    /// If `labelSize` plus its margins is larger than `bounds` on an axis — plausible at
+    /// accessibility text sizes on a small measurement — the inside-push clamp has nothing to
+    /// satisfy on that axis and pins the origin to `margin` instead, so the label overflows the far
+    /// edge rather than the near one. That is deliberate: a clipped trailing edge is a less
+    /// confusing failure than an origin computed to a negative coordinate, which would push part of
+    /// the label off the *near* edge as well and make the overflow harder to reason about.
     ///
     /// - Parameters:
     ///   - midpoint: The middle of the drawn measurement, in the overlay's coordinate space.
     ///   - labelSize: The label's rendered size.
     ///   - bounds: The overlay's size, in the same space as `midpoint`.
-    /// - Returns: The label's origin, clamped so the whole label stays within `bounds`.
-    static func labelOrigin(midpoint: CGPoint, labelSize: CGSize, in bounds: CGSize) -> CGPoint {
+    ///   - margin: The smallest distance the label may sit from any edge of `bounds`. Pass `0` for
+    ///     a label that may touch the edge.
+    /// - Returns: The label's origin, clamped so the whole label stays within `bounds` less
+    ///   `margin` on every side.
+    static func labelOrigin(midpoint: CGPoint,
+                            labelSize: CGSize,
+                            in bounds: CGSize,
+                            margin: CGFloat) -> CGPoint {
         /// Vertical breathing room between the measurement line and its label.
         let gap: CGFloat = 8
 
-        let x = min(max(0, midpoint.x - labelSize.width / 2), max(0, bounds.width - labelSize.width))
-        let y = min(max(0, midpoint.y - labelSize.height - gap), max(0, bounds.height - labelSize.height))
+        let rightmost = max(margin, bounds.width - margin - labelSize.width)
+        let lowest = max(margin, bounds.height - margin - labelSize.height)
+        let x = min(max(margin, midpoint.x - labelSize.width / 2), rightmost)
+        let y = min(max(margin, midpoint.y - labelSize.height - gap), lowest)
         return CGPoint(x: x, y: y)
     }
 }
