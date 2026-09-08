@@ -228,8 +228,23 @@ struct WaterfallView: View {
     /// what keeps the space around and above ``minimapCard`` — which paints nothing of its own —
     /// from defaulting to whatever colour this view's own container happens to be, breaking the
     /// seam between the card and the list beneath it.
+    ///
+    /// `VStack(spacing: WaterfallChartStyle.insetGroupedSectionSpacing)`, not `spacing: 0`: the
+    /// gap this puts between ``minimapCard`` and ``detail`` is what makes the card read as fixed
+    /// above a scrolling list rather than as one continuous block with the first row. It used to
+    /// be `0` on the reasoning that `.insetGrouped` already gives a `List` some top inset before
+    /// its first section, so an explicit gap here would only double it — reasoning that held up
+    /// only until the owner actually ran this on device and found no gap at all: the card and the
+    /// first row butted directly together. Whatever top inset `.insetGrouped` gives a `List` in
+    /// other contexts, it was not contributing anything here, so the gap is now supplied entirely
+    /// by this one `spacing` value rather than split, guessed at, or assumed. Living on the
+    /// `VStack` itself, not as extra bottom padding on ``minimapCard`` or extra top padding on
+    /// ``detail``: the gap belongs to neither view individually, it is the relationship between
+    /// them, and `VStack`'s own `spacing` parameter is the one place that is already true of by
+    /// construction — see ``WaterfallChartStyle/insetGroupedSectionSpacing`` for the figure
+    /// itself and how confident this pipeline can be in it.
     private var content: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: WaterfallChartStyle.insetGroupedSectionSpacing) {
             minimapCard
             detail
         }
@@ -315,18 +330,27 @@ struct WaterfallView: View {
     ///   is a deliberate simplification: it is one fewer guessed constant, and "the platform's own
     ///   default padding" is a defensible stand-in for "whatever a system list row's padding is"
     ///   in a way a hand-picked number pretending to know that figure exactly would not be.
+    ///   `.padding()` with no arguments applies the identical length to all four edges of the
+    ///   `VStack` below, which itself sizes to exactly `strip` + this `VStack`'s own `8`pt spacing
+    ///   + `legend` with nothing else stretching it — so the card's own top and bottom padding are
+    ///   equal by construction, not merely by intention. What that construction cannot promise is
+    ///   how *balanced* the result reads once ``WaterfallLegendView``'s own `Chart`-drawn legend
+    ///   renders inside its measured height, which is Charts' own layout, not this view's.
     ///
-    /// What is **not** attempted: the exact vertical gap between the top of the page and the
-    /// card, and between the card and the list's own first row. The `16`pt top padding below is a
-    /// plain estimate with no particular source, and the gap to the list beneath relies entirely
-    /// on whatever top inset `.insetGrouped` already gives a `List`'s first section — this view
-    /// adds no bottom padding of its own, on the reasoning that doing so would very likely double
-    /// a gap the list is already contributing on its own, but that reasoning was not checked
-    /// against a running app either.
+    /// What is still not attempted exactly: the `16`pt top padding below, the gap between the top
+    /// of the page and the card, remains a plain estimate with no particular source. The gap
+    /// *between* the card and the list's first row is no longer attempted by this view at all —
+    /// see ``WaterfallView/content`` and ``WaterfallChartStyle/insetGroupedSectionSpacing`` for
+    /// where that moved and why: it turned out, once the owner ran an earlier version of this on
+    /// device, that `.insetGrouped` was not contributing the top inset this view had been relying
+    /// on instead of an explicit gap, so there is no risk left of this view's own padding and that
+    /// reliance doubling up — there is no reliance left to double.
     ///
-    /// - Important: None of this was seen rendered. The colour is exact by construction; the
-    ///   corner radius, the horizontal margin, and both vertical gaps are estimates a device or
-    ///   simulator pass is needed to confirm or correct — see the fix report.
+    /// - Important: None of this was seen rendered before the owner's own device pass confirmed
+    ///   the card sits fixed above the list and reads as a section, which is more than this
+    ///   pipeline could check on its own. The colour is exact by construction; the corner radius
+    ///   and the horizontal margin are still estimates nothing here can confirm further — see the
+    ///   fix report for the full account of what is and is not settled.
     ///
     /// ## What did not change
     ///

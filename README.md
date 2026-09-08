@@ -734,8 +734,9 @@ sliver or hands the reader a plot thousands of points wide to pan by hand.
 The minimap — the strip with the colour legend beneath it, no divider between them — is fixed above
 the page rather than scrolling with it: it sits outside the detail list entirely, as a sibling
 above it, hand-styled to still read as one of the list's own inset-grouped sections (same
-background material, same corner radius, the same horizontal margin the list's own sections use)
-so the change is meant to be invisible apart from the stickiness. A `List` cannot pin a `Section`'s
+background material, same corner radius, the same horizontal margin the list's own sections use,
+and the same vertical gap `.insetGrouped` puts between two of its own sections) so the change is
+meant to be invisible apart from the stickiness. A `List` cannot pin a `Section`'s
 own content — only `.plain` pins section *headers*, and this list is `.insetGrouped` — which is
 why the minimap sits outside it rather than inside as a fixed section. Dragging the strip moves the
 window anywhere in the log in a single gesture, tracked from the very first touch — the strip no

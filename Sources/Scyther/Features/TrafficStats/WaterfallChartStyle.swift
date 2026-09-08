@@ -235,6 +235,28 @@ enum WaterfallChartStyle {
     /// reading as one continuous grouped background.
     static let insetGroupedPageBackground = Color(uiColor: .systemGroupedBackground)
 
+    /// The vertical gap between the sticky minimap card and the detail list beneath it, in
+    /// points — meant to match the gap `.insetGrouped` puts between two of its own sections with
+    /// no header or footer text on either.
+    ///
+    /// 35pt is the figure most consistently cited for that inter-section gap, carried over from
+    /// classic `UITableView`'s own grouped-style behaviour, where a section with no footer text
+    /// still reserves a footer-sized gap before the next section begins. Like
+    /// ``insetGroupedCardMargin`` and ``insetGroupedCardCornerRadius``, this is not published as
+    /// a UIKit or SwiftUI API constant anywhere this pipeline can read it from, so it is an
+    /// estimate, not a measurement, on exactly the same footing as those two.
+    ///
+    /// - Note: This constant exists because a `.insetGrouped` `List`'s own built-in top inset —
+    ///   the space it normally leaves above its first section — turned out, once the owner ran
+    ///   this on device, not to be present at all when the `List` sits as a sibling beneath
+    ///   another view rather than as the page's only content directly under a navigation bar: the
+    ///   card and the first row butted together with no gap whatsoever. That top inset was the
+    ///   thing ``WaterfallView/minimapCard``'s own documentation originally planned to lean on
+    ///   instead of adding an explicit gap, on the reasoning that adding one too would double it;
+    ///   the device run showed there was nothing there to double. This constant is the whole gap
+    ///   now, not a supplement to one the list already supplies.
+    static let insetGroupedSectionSpacing: CGFloat = 35
+
     // MARK: - Colour
 
     /// The colour each outcome is drawn in, and the order the legend lists them in.
