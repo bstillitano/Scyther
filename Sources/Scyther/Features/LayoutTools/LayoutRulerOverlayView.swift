@@ -116,7 +116,10 @@ internal class LayoutRulerOverlayView: TopLevelView {
     ///
     /// A `UILabel` rather than text drawn in ``draw(_:)``, matching ``LayoutGuidesView``: text
     /// drawn into a graphics context has no line breaking, no font scaling and no VoiceOver.
-    private let readoutLabel = UILabel()
+    ///
+    /// - Note: Readable rather than private so a test can check where it was placed — see
+    ///   ``clearOfTheControl(_:)``. It is still owned entirely by this view.
+    internal private(set) var readoutLabel = UILabel()
 
     // MARK: - Data
 
@@ -252,8 +255,10 @@ internal class LayoutRulerOverlayView: TopLevelView {
         configuration.cornerStyle = .capsule
         configuration.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16)
         doneButton.configuration = configuration
+        // No `accessibilityLabel` of its own: `UIButton` derives one from its configuration's
+        // title, so setting the same localised string again would only imply the title was not
+        // being announced.
         doneButton.addTarget(self, action: #selector(doneTapped), for: .touchUpInside)
-        doneButton.accessibilityLabel = localized("Done")
 
         let stack = UIStackView(arrangedSubviews: [modeControl, doneButton])
         stack.axis = .horizontal
@@ -334,13 +339,23 @@ internal class LayoutRulerOverlayView: TopLevelView {
     }
 
     /// Resizes the overlay to match its superview, or to the screen if it has none yet, and clears
-    /// whatever was being measured.
+    /// the measurement *if that actually changed this view's size*.
     ///
     /// `superview?.bounds ?? UIScreen.main.bounds` matches ``LayoutGuidesView/updateFrame()``:
     /// called from `init` before there is a superview, `.zero` would produce a view that is never
     /// asked to draw.
+    ///
+    /// The bounds guard is the whole point of this method reading the way it does, and it is not
+    /// an optimisation. `TopLevelViewsWrapper.deviceDidChangeOrientation` calls this on every child
+    /// for `UIDevice.orientationDidChangeNotification`, which fires for `.faceUp` and `.faceDown`
+    /// and for rotations a portrait-locked app never honours — none of which moves a single view.
+    /// Clearing unconditionally meant laying the phone flat erased a measurement the developer was
+    /// still reading, which is the opposite of "a measurement persists after the finger lifts".
+    /// The spec clears a measurement because "its endpoints described a layout that no longer
+    /// exists", so the trigger has to be the layout actually changing, not a notification arriving.
     internal override func updateFrame() {
         frame = superview?.bounds ?? UIScreen.main.bounds
+        guard bounds != lastHandledBounds else { return }
         handleNewBounds()
     }
 
@@ -379,8 +394,11 @@ internal class LayoutRulerOverlayView: TopLevelView {
     /// Turns a drag into a measurement.
     ///
     /// The start point comes from ``dragOrigin`` — the real touch-down, recorded in
-    /// ``touchesBegan(_:with:)`` — and falls back to `location - translation` only if no
-    /// touch-down was seen. See ``dragOrigin`` for why that fallback is not good enough on its own.
+    /// ``touchesBegan(_:with:)``. There is deliberately no `location - translation` fallback: it is
+    /// unreachable, because `touchesBegan(_:with:)` runs for every touch this view hit-tests before
+    /// the pan can recognise, and if it ever did run it would silently reintroduce the very error
+    /// ``dragOrigin`` exists to fix. Measuring nothing is the honest answer to a drag whose start
+    /// was never seen.
     ///
     /// Every state that has moved recomputes the measurement, so the line and its number track the
     /// finger. `.ended` recomputes once more and then leaves it: a measurement persists after the
@@ -393,9 +411,8 @@ internal class LayoutRulerOverlayView: TopLevelView {
 
         switch recogniser.state {
         case .began, .changed, .ended:
+            guard let origin = dragOrigin else { return }
             let current = recogniser.location(in: self)
-            let translation = recogniser.translation(in: self)
-            let origin = dragOrigin ?? CGPoint(x: current.x - translation.x, y: current.y - translation.y)
             measurement = LayoutRuler.measurement(from: convert(origin, to: window),
                                                   to: convert(current, to: window),
                                                   in: window,
@@ -484,16 +501,21 @@ internal class LayoutRulerOverlayView: TopLevelView {
 
     /// Rebuilds the readout for the current ``measurement`` and puts it where it can be read.
     ///
+    /// The single owner of ``readoutLabel``'s visibility: there is one rule — a readout is shown
+    /// when there is a measurement and Scyther is not in front of the app — and it is stated here
+    /// only. ``applyCoverage()`` changes what the answer is and then calls this rather than
+    /// computing a second copy of it.
+    ///
     /// Positioned by ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:)`` — the same rule
     /// ``LayoutGuidesView`` uses for its own labels — so a measurement taken near an edge of the
     /// screen does not place its own answer off it.
     private func refreshReadout() {
-        guard let measurement else {
+        guard let measurement, !isCoveredByScyther() else {
             readoutLabel.isHidden = true
             return
         }
 
-        readoutLabel.isHidden = isCoveredByScyther()
+        readoutLabel.isHidden = false
         readoutLabel.text = Self.readout(for: measurement)
 
         let start = pointInOverlay(measurement.start)
@@ -506,7 +528,30 @@ internal class LayoutRulerOverlayView: TopLevelView {
         let size = CGSize(width: text.width + Self.ReadoutPadding * 2,
                           height: text.height + Self.ReadoutPadding * 2)
         let origin = LayoutRulerGeometry.labelOrigin(midpoint: midpoint, labelSize: size, in: bounds.size)
-        readoutLabel.frame = CGRect(origin: origin, size: size)
+        readoutLabel.frame = clearOfTheControl(CGRect(origin: origin, size: size))
+    }
+
+    /// Lifts a readout that would land underneath the floating control.
+    ///
+    /// ``LayoutRulerGeometry/labelOrigin(midpoint:labelSize:in:)`` clamps to the overlay's bounds
+    /// and knows nothing about the control, so a measurement whose midpoint sits near the bottom
+    /// centre of the screen puts its own answer behind an opaque blur. Fixed here rather than in
+    /// the geometry because the control is a fact about *this view* — its size, its padding, its
+    /// safe-area constraint — and pushing that into a pure function that four other things call
+    /// would be leaking one view's furniture into shared arithmetic.
+    ///
+    /// Moves the readout above the control rather than below it, and never above the top of the
+    /// overlay: a readout clipped by the top edge is a worse failure than one sitting a little
+    /// higher than the midpoint it describes.
+    ///
+    /// - Parameter frame: The readout's frame as the geometry placed it.
+    /// - Returns: The same frame, lifted clear of the control if it needed to be.
+    private func clearOfTheControl(_ frame: CGRect) -> CGRect {
+        guard !controlContainer.isHidden, frame.intersects(controlContainer.frame) else { return frame }
+
+        var lifted = frame
+        lifted.origin.y = max(0, controlContainer.frame.minY - frame.height - Self.ReadoutPadding)
+        return lifted
     }
 
     // MARK: - Hit Testing
@@ -596,9 +641,8 @@ internal class LayoutRulerOverlayView: TopLevelView {
     /// the menu's own search field looking like part of it. ``point(inside:with:)`` already stops
     /// it stealing the menu's touches; this stops it claiming the menu's pixels.
     private func applyCoverage() {
-        let covered = isCoveredByScyther()
-        controlContainer.isHidden = covered
-        readoutLabel.isHidden = covered || measurement == nil
+        controlContainer.isHidden = isCoveredByScyther()
+        refreshReadout()
         setNeedsDisplay()
     }
 

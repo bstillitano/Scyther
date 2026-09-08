@@ -102,7 +102,21 @@ enum ViewProbe {
     ///
     /// `backgroundColor` is read through its `cgColor`'s alpha rather than tested for `nil`,
     /// because `.clear` is a background colour that paints nothing and is extremely common on
-    /// exactly the container views this rule exists to pass over.
+    /// exactly the container views this rule exists to pass over. It is also why `layer.contents`
+    /// is the clause that carries this rule in production rather than a fallback: a `UILabel`'s
+    /// background is `.clear`, not `nil`, so a rendered label qualifies *only* through its
+    /// `CABackingStore` — which is exactly the spec's own example of what a developer means to
+    /// measure.
+    ///
+    /// **Known limit, named rather than fixed: content drawn by a sublayer.** A view whose visible
+    /// content comes from a `CAShapeLayer`, `CAGradientLayer` or `CATextLayer` it hosts — rather
+    /// than from its own layer — has no background, no `contents`, no border and no shadow, and is
+    /// deprioritised behind whatever painted ancestor is under the point. It is the most common way
+    /// this approximation will be wrong. There is no cheap discriminator for it: every container
+    /// view's layer has sublayers, one per subview, so "has sublayers" says nothing, and telling a
+    /// drawing sublayer from a subview's backing layer means inspecting each one's class and its own
+    /// paint properties on a per-touch-move path. The failure it produces is the safe one — the
+    /// nearest thing that is visibly there — so it is documented rather than guessed at.
     ///
     /// - Parameter view: The view to test.
     /// - Returns: `true` when the view has a visible background, rendered contents, a border, or a

@@ -144,7 +144,12 @@ Neither activation nor the mode survives a relaunch. A ruler that came back afte
 be a debugging tool that has to be remembered and switched off, and it eats every touch on the
 screen while it is on.
 
-A rotation clears the measurement. Its endpoints described a layout that no longer exists.
+A rotation clears the measurement. Its endpoints described a layout that no longer exists. An
+orientation change the app does not honour — face-up, face-down, or a rotation a portrait-locked
+app ignores — leaves it alone, because nothing moved.
+
+With no key window there is nothing to draw over, so the row says so in an alert rather than
+activating and putting nothing — not even its own Done button — on screen.
 
 ## View Frame Debugging
 

@@ -159,16 +159,53 @@ final class LayoutRulerTests: XCTestCase {
         XCTAssertFalse(overlay.accessibilityViewIsModal)
     }
 
+    /// An overlay inside a superview it tracks, which is how it lives in `TopLevelViewsWrapper`.
+    ///
+    /// Sizing has to come from a real superview for these tests to mean anything: `init(frame:)`
+    /// runs `updateFrame()`, which with no superview falls back to `UIScreen.main.bounds`, so the
+    /// frame passed to the initialiser is gone before the first line of a test runs. The previous
+    /// version of the rotation test below did exactly that and passed for a reason unrelated to
+    /// rotation.
+    private func makeHostedOverlay(size: CGSize) -> (superview: UIView, overlay: LayoutRulerOverlayView) {
+        let superview = UIView(frame: CGRect(origin: .zero, size: size))
+        let overlay = LayoutRulerOverlayView(frame: .zero)
+        superview.addSubview(overlay)
+        return (superview, overlay)
+    }
+
+    private func aMeasurement() -> LayoutRuler.Measurement {
+        LayoutRuler.Measurement(start: .zero,
+                                end: CGPoint(x: 10, y: 10),
+                                distance: 14,
+                                startDescription: nil,
+                                endDescription: nil)
+    }
+
     /// After a rotation the endpoints describe a layout that no longer exists.
-    func testAFrameChangeClearsTheMeasurement() {
-        let overlay = LayoutRulerOverlayView(frame: CGRect(x: 0, y: 0, width: 400, height: 800))
-        overlay.measurement = LayoutRuler.Measurement(start: .zero,
-                                                      end: CGPoint(x: 10, y: 10),
-                                                      distance: 14,
-                                                      startDescription: nil,
-                                                      endDescription: nil)
+    func testARealSizeChangeClearsTheMeasurement() {
+        let (superview, overlay) = makeHostedOverlay(size: CGSize(width: 400, height: 800))
+        XCTAssertEqual(overlay.bounds.size, CGSize(width: 400, height: 800),
+                       "the overlay has to be tracking its superview before the size change means anything")
+
+        overlay.measurement = aMeasurement()
+        superview.bounds = CGRect(x: 0, y: 0, width: 800, height: 400)
         overlay.updateFrame()
+
         XCTAssertNil(overlay.measurement)
+    }
+
+    /// The companion to the test above, and the one that pins the actual defect:
+    /// `UIDevice.orientationDidChangeNotification` fires for face-up, face-down and for rotations a
+    /// portrait-locked app never honours, and `TopLevelViewsWrapper` calls `updateFrame()` on every
+    /// child for each one. None of those moves a view, so none of them may erase an answer the
+    /// developer is still reading.
+    func testAnUpdateThatChangesNoSizeKeepsTheMeasurement() {
+        let (_, overlay) = makeHostedOverlay(size: CGSize(width: 400, height: 800))
+        overlay.measurement = aMeasurement()
+
+        overlay.updateFrame()
+
+        XCTAssertNotNil(overlay.measurement, "laying the phone flat must not wipe a finished measurement")
     }
 
     /// Deactivating clears it too: a measurement left behind would be redrawn against whatever
@@ -252,6 +289,25 @@ final class LayoutRulerTests: XCTestCase {
                        "UILabel.bottom → UIImageView.top\n40 pt")
     }
 
+    /// The one string this feature invented: an endpoint that snapped and one that did not.
+    func testAHalfSnappedMeasurementNamesTheEndThatAttachedToNothing() {
+        let startSnapped = LayoutRuler.Measurement(start: .zero,
+                                                   end: CGPoint(x: 0, y: 40),
+                                                   distance: 40,
+                                                   startDescription: "UILabel.bottom",
+                                                   endDescription: nil)
+        XCTAssertEqual(LayoutRulerOverlayView.readout(for: startSnapped),
+                       "UILabel.bottom → free point\n40 pt")
+
+        let endSnapped = LayoutRuler.Measurement(start: .zero,
+                                                 end: CGPoint(x: 0, y: 40),
+                                                 distance: 40,
+                                                 startDescription: nil,
+                                                 endDescription: "UILabel.top")
+        XCTAssertEqual(LayoutRulerOverlayView.readout(for: endSnapped),
+                       "free point → UILabel.top\n40 pt")
+    }
+
     /// A fractional gap is the interesting one: a ruler that rounded `16.5` to `16` would hide
     /// exactly the discrepancy someone reached for it to find.
     func testAFractionalDistanceKeepsOneDecimal() {
@@ -262,4 +318,45 @@ final class LayoutRulerTests: XCTestCase {
                                                   endDescription: nil)
         XCTAssertEqual(LayoutRulerOverlayView.readout(for: measurement), "16.5 pt")
     }
+
+    // MARK: - Placement
+
+    /// A measurement taken near the bottom of the screen must not put its own answer behind the
+    /// control: `LayoutRulerGeometry.labelOrigin` clamps to the overlay's bounds and knows nothing
+    /// about the floating control, so the overlay lifts the readout clear of it.
+    func testTheReadoutIsKeptClearOfTheControl() {
+        let (_, overlay) = makeHostedOverlay(size: CGSize(width: 400, height: 800))
+        overlay.setActive(true)
+        overlay.layoutIfNeeded()
+        XCTAssertFalse(overlay.controlContainer.frame.isEmpty, "the control has to be laid out to be avoided")
+
+        // A short measurement whose midpoint sits inside the control's own frame.
+        let midpoint = CGPoint(x: overlay.controlContainer.frame.midX, y: overlay.controlContainer.frame.midY)
+        overlay.measurement = LayoutRuler.Measurement(start: CGPoint(x: midpoint.x, y: midpoint.y - 10),
+                                                      end: CGPoint(x: midpoint.x, y: midpoint.y + 10),
+                                                      distance: 20,
+                                                      startDescription: nil,
+                                                      endDescription: nil)
+
+        XCTAssertFalse(overlay.readoutLabel.frame.intersects(overlay.controlContainer.frame),
+                       "the readout would be behind an opaque blur")
+    }
+
+    // MARK: - No Key Window
+
+    /// The spec's edge case: "Neither tool activates; the menu row reports it rather than appearing
+    /// to work." A test process has no key window with Scyther's wrapper in it, which is exactly
+    /// the condition — so this is the real thing rather than a simulated one.
+    func testActivatingWithNoWindowToDrawOverReportsItAndDoesNotActivate() {
+        XCTAssertFalse(InterfaceToolkit.instance.canShowLayoutRuler,
+                       "the overlay is in no window in a test process, which is the case under test")
+
+        let viewModel = MenuViewModel()
+        viewModel.activateLayoutRuler()
+
+        XCTAssertTrue(viewModel.showsLayoutRulerUnavailableAlert)
+        XCTAssertFalse(LayoutRuler.instance.isActive,
+                       "activating with nothing to draw over would leave no visible Done to switch it off again")
+    }
+
 }

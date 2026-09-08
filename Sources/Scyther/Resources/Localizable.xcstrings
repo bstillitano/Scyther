@@ -35915,6 +35915,83 @@
         }
       }
     },
+    "No Window to Measure": {
+      "comment": "Alert title shown when the layout ruler is chosen but the app has no key window to draw over",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لا توجد نافذة للقياس"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Kein Fenster zum Messen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No hay ventana que medir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aucune fenêtre à mesurer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nessuna finestra da misurare"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "計測できるウインドウがありません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "측정할 윈도우 없음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Geen venster om te meten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Nenhuma janela para medir"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Нет окна для измерения"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "没有可测量的窗口"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "沒有可測量的視窗"
+          }
+        }
+      }
+    },
     "No actions": {
       "comment": "Row subtitle for an override that does nothing to the requests it matches",
       "localizations": {
@@ -57049,6 +57126,83 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "每個主機旁的數值是該主機往返時間的中位數。"
+          }
+        }
+      }
+    },
+    "The layout ruler draws over the app's key window, and this app has none right now.": {
+      "comment": "Alert message explaining why the layout ruler did not activate",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ترسم مسطرة التخطيط فوق النافذة الرئيسية للتطبيق، ولا توجد نافذة رئيسية حاليًا."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Das Layout-Lineal zeichnet über dem Schlüsselfenster der App, und diese App hat derzeit keines."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "La regla de diseño se dibuja sobre la ventana principal de la app, y ahora mismo no hay ninguna."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "La règle de mise en page se dessine sur la fenêtre principale de l’app, et celle-ci n’en a aucune pour l’instant."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Il righello di layout disegna sulla finestra principale dell’app, che al momento non ne ha una."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "レイアウト定規はアプリのキーウインドウ上に描画しますが、現在キーウインドウがありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "레이아웃 자는 앱의 키 윈도우 위에 그려지는데, 지금은 키 윈도우가 없습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "De lay-outliniaal tekent over het hoofdvenster van de app, en die heeft er nu geen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "A régua de layout desenha sobre a janela principal do app, e no momento não há nenhuma."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Линейка макета рисуется поверх ключевого окна приложения, а сейчас его нет."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "布局标尺绘制在 App 的主窗口之上，而此 App 当前没有主窗口。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "版面尺規繪製於 App 的主視窗之上，而此 App 目前沒有主視窗。"
           }
         }
       }

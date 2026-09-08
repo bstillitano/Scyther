@@ -1690,7 +1690,8 @@ exactly where you put them and the readout carries the distance alone. An end wi
 is named `free point` instead of reporting a snap that did not happen.
 
 The measurement stays on screen so it can be read, is replaced by the next drag, cleared by a tap,
-and cleared by a rotation — its endpoints described a layout that no longer exists. The overlay
+and cleared by a rotation that actually resizes the app — its endpoints described a layout that no
+longer exists. An orientation change the app does not honour leaves it alone. The overlay
 consumes every touch while it is up, so **Done** is always visible; the shake gesture still reaches
 the menu regardless, being a motion event rather than a touch. Neither activation nor the mode is
 persisted.

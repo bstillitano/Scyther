@@ -118,5 +118,35 @@
     "ko": "자유 지점",
     "ru": "свободная точка",
     "ar": "نقطة حرة"
+  },
+  "No Window to Measure": {
+    "comment": "Alert title shown when the layout ruler is chosen but the app has no key window to draw over",
+    "fr": "Aucune fenêtre à mesurer",
+    "de": "Kein Fenster zum Messen",
+    "es": "No hay ventana que medir",
+    "it": "Nessuna finestra da misurare",
+    "pt-BR": "Nenhuma janela para medir",
+    "nl": "Geen venster om te meten",
+    "ja": "計測できるウインドウがありません",
+    "zh-Hans": "没有可测量的窗口",
+    "zh-Hant": "沒有可測量的視窗",
+    "ko": "측정할 윈도우 없음",
+    "ru": "Нет окна для измерения",
+    "ar": "لا توجد نافذة للقياس"
+  },
+  "The layout ruler draws over the app's key window, and this app has none right now.": {
+    "comment": "Alert message explaining why the layout ruler did not activate",
+    "fr": "La règle de mise en page se dessine sur la fenêtre principale de l’app, et celle-ci n’en a aucune pour l’instant.",
+    "de": "Das Layout-Lineal zeichnet über dem Schlüsselfenster der App, und diese App hat derzeit keines.",
+    "es": "La regla de diseño se dibuja sobre la ventana principal de la app, y ahora mismo no hay ninguna.",
+    "it": "Il righello di layout disegna sulla finestra principale dell’app, che al momento non ne ha una.",
+    "pt-BR": "A régua de layout desenha sobre a janela principal do app, e no momento não há nenhuma.",
+    "nl": "De lay-outliniaal tekent over het hoofdvenster van de app, en die heeft er nu geen.",
+    "ja": "レイアウト定規はアプリのキーウインドウ上に描画しますが、現在キーウインドウがありません。",
+    "zh-Hans": "布局标尺绘制在 App 的主窗口之上，而此 App 当前没有主窗口。",
+    "zh-Hant": "版面尺規繪製於 App 的主視窗之上，而此 App 目前沒有主視窗。",
+    "ko": "레이아웃 자는 앱의 키 윈도우 위에 그려지는데, 지금은 키 윈도우가 없습니다.",
+    "ru": "Линейка макета рисуется поверх ключевого окна приложения, а сейчас его нет.",
+    "ar": "ترسم مسطرة التخطيط فوق النافذة الرئيسية للتطبيق، ولا توجد نافذة رئيسية حاليًا."
   }
 }

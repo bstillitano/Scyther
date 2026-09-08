@@ -65,6 +65,16 @@ final class ViewProbeTests: XCTestCase {
         return (root, child)
     }
 
+    // MARK: - The fallback pass
+    //
+    // Every tree below is built from bare `UIView`s with no background, no rendered contents, no
+    // border and no shadow, so nothing in it satisfies `paints(_:)`: the probe's first pass finds
+    // nothing anywhere under the point and its second — the original deepest-match rule — answers.
+    // That is deliberate rather than incidental. These tests state the fallback's semantics and the
+    // skip rules both passes share (`isEligible`), and they are the same assertions Task 2 shipped,
+    // so a change to the two-pass structure that broke the original rule still fails here. The
+    // primary pass has its own section below, including painted counterparts of each skip rule.
+
     func testTheDeepestViewUnderThePointIsReturned() {
         let (root, child) = makeTree(childFrame: CGRect(x: 50, y: 50, width: 100, height: 100))
         let grandchild = UIView(frame: CGRect(x: 10, y: 10, width: 20, height: 20))
@@ -81,7 +91,14 @@ final class ViewProbeTests: XCTestCase {
         XCTAssertTrue(hit === root)
     }
 
-    func testTheFrontmostOfTwoOverlappingViewsWins() {
+    /// Front-to-back order decides between two candidates the probe cannot otherwise tell apart.
+    ///
+    /// Read this together with ``testAnUnpaintedViewInFrontOfAPaintedOneLoses``, which is the same
+    /// scenario asserting the *back* view wins. They are not in contradiction: here neither view
+    /// paints anything, so the question is only which is in front; there the front view paints
+    /// nothing and the back one does, and the primary pass prefers the one that is visibly there.
+    /// The name says "unpainted" so the difference is legible from the test list.
+    func testTheFrontmostOfTwoOverlappingUnpaintedViewsWins() {
         let root = UIView(frame: CGRect(x: 0, y: 0, width: 400, height: 800))
         let back = UIView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
         let front = UIView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
@@ -138,12 +155,18 @@ final class ViewProbeTests: XCTestCase {
         XCTAssertTrue(hit === root, "the walk cannot descend into container once the point misses its bounds, so the visible badge is never reached")
     }
 
-    // MARK: - Painting
+    // MARK: - The primary pass
+    //
+    // These trees contain something that paints, so the probe's first pass answers — the path every
+    // touch takes in a real app. Each skip rule from the fallback section has a painted counterpart
+    // here, because `isEligible` is shared by both passes and a rule proven only on the branch that
+    // rarely executes is only half proven.
 
     /// The defect that made the ruler useless on iOS 26 before this rule existed: a plain SwiftUI
-    /// `TabView` puts a full-screen, unpainted `FloatingBarHostingView` in front of the whole app,
-    /// and the deepest-match rule returned it for every point on the screen.
-    func testAnUnpaintedViewInFrontDoesNotBeatAPaintedViewBehindIt() {
+    /// `TabView` and `List` put a full-screen, unpainted container — `_UITouchPassthroughView`, or
+    /// `FloatingBarHostingView` on the native floating-bar path — in front of the whole app, and
+    /// the deepest-match rule returned it for every point on the screen.
+    func testAnUnpaintedViewInFrontOfAPaintedOneLoses() {
         let root = UIView(frame: CGRect(x: 0, y: 0, width: 400, height: 800))
         let painted = UIView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
         painted.backgroundColor = .red
@@ -153,6 +176,110 @@ final class ViewProbeTests: XCTestCase {
 
         XCTAssertTrue(ViewProbe.view(at: CGPoint(x: 50, y: 50), in: root) === painted,
                       "the container hosting a floating tab bar is not what the developer is pointing at")
+    }
+
+    /// The clause the whole rule rests on in production, exercised on its own.
+    ///
+    /// A rendered `UILabel` — the spec's own example of what a developer means to measure — has a
+    /// `.clear` background, not a `nil` one, so it fails the background check and qualifies *only*
+    /// through `layer.contents`. Every other test in this file qualifies its views through
+    /// `backgroundColor`, so without this one an edit that dropped or reordered the `contents`
+    /// check would leave the suite green while the ruler silently snapped to painted ancestors
+    /// instead of labels on every real screen. The view here therefore sets `layer.contents` and
+    /// nothing else.
+    func testAViewThatPaintsOnlyThroughItsLayerContentsIsPreferred() throws {
+        let root = UIView(frame: CGRect(x: 0, y: 0, width: 400, height: 800))
+        let rendered = UIView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        rendered.layer.contents = try onePixelImage()
+        XCTAssertNil(rendered.backgroundColor, "the point is that contents alone carries this")
+
+        let passthrough = UIView(frame: root.bounds)
+        root.addSubview(rendered)
+        root.addSubview(passthrough)
+
+        XCTAssertTrue(ViewProbe.view(at: CGPoint(x: 50, y: 50), in: root) === rendered)
+    }
+
+    /// The same clause, on a real `UILabel` in a real window rather than on a stand-in.
+    ///
+    /// Skipped rather than failed when the platform declines to render into the layer, matching
+    /// ``HostedSwiftUIWindow``'s precedent: a test process's window is not always committed to the
+    /// render server, and "this toolchain did not draw" is not a defect in the probe.
+    func testARenderedLabelIsReturnedRatherThanItsPaintedContainer() throws {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+        }
+        let container = UIView(frame: window.bounds)
+        container.backgroundColor = .white
+        let label = UILabel(frame: CGRect(x: 20, y: 100, width: 200, height: 40))
+        label.text = "Title"
+        container.addSubview(label)
+
+        let root = UIViewController()
+        root.view = container
+        window.rootViewController = root
+        window.makeKeyAndVisible()
+        container.layoutIfNeeded()
+        label.layer.setNeedsDisplay()
+        label.layer.displayIfNeeded()
+
+        try XCTSkipIf(label.layer.contents == nil,
+                      "This toolchain did not render the label into its layer, so the clause under test cannot be reached here.")
+        XCTAssertNotEqual(label.backgroundColor?.cgColor.alpha, 1,
+                          "a label's background is clear, which is why `contents` is what admits it")
+
+        let hit = ViewProbe.view(at: CGPoint(x: 100, y: 120), in: container)
+        XCTAssertTrue(hit === label, "pointing at a label means the label, not the white container behind it")
+    }
+
+    func testAHiddenPaintedViewIsSkipped() {
+        let (root, child) = makeTree(childFrame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        child.backgroundColor = .red
+        child.isHidden = true
+        let behind = UIView(frame: CGRect(x: 0, y: 0, width: 300, height: 300))
+        behind.backgroundColor = .blue
+        root.insertSubview(behind, belowSubview: child)
+
+        XCTAssertTrue(ViewProbe.view(at: CGPoint(x: 50, y: 50), in: root) === behind)
+    }
+
+    func testAFullyTransparentPaintedViewIsSkipped() {
+        let (root, child) = makeTree(childFrame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        child.backgroundColor = .red
+        child.alpha = 0
+        let behind = UIView(frame: CGRect(x: 0, y: 0, width: 300, height: 300))
+        behind.backgroundColor = .blue
+        root.insertSubview(behind, belowSubview: child)
+
+        XCTAssertTrue(ViewProbe.view(at: CGPoint(x: 50, y: 50), in: root) === behind)
+    }
+
+    /// The rule that stops the ruler measuring itself, proven on the pass production takes: the
+    /// ruler's own overlay paints a control and a measurement over the whole screen.
+    func testAScytherOwnedPaintedViewIsSkipped() {
+        let root = UIView(frame: CGRect(x: 0, y: 0, width: 400, height: 800))
+        let app = UIView(frame: CGRect(x: 0, y: 0, width: 300, height: 300))
+        app.backgroundColor = .blue
+        let ours = TopLevelView(frame: root.bounds)
+        ours.backgroundColor = .red
+        root.addSubview(app)
+        root.addSubview(ours)
+
+        XCTAssertTrue(ViewProbe.view(at: CGPoint(x: 50, y: 50), in: root) === app)
+    }
+
+    /// Deepest-match still holds on the primary pass: a painted view inside a painted view is the
+    /// answer, not its parent.
+    func testTheDeepestPaintedViewWins() {
+        let (root, child) = makeTree(childFrame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        child.backgroundColor = .red
+        let grandchild = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+        grandchild.backgroundColor = .green
+        child.addSubview(grandchild)
+
+        XCTAssertTrue(ViewProbe.view(at: CGPoint(x: 50, y: 50), in: root) === grandchild)
     }
 
     /// A `.clear` background is a background colour that paints nothing, and it is what the
@@ -197,5 +324,17 @@ final class ViewProbeTests: XCTestCase {
 
         XCTAssertFalse(AccessibilitySpyView.wasAsked,
                        "the probe runs per touch-move; forcing an accessibility subtree hung the app once already")
+    }
+
+    /// A one-pixel image, the smallest thing that makes `layer.contents` non-nil.
+    private func onePixelImage() throws -> CGImage {
+        let context = try XCTUnwrap(CGContext(data: nil,
+                                              width: 1,
+                                              height: 1,
+                                              bitsPerComponent: 8,
+                                              bytesPerRow: 4,
+                                              space: CGColorSpaceCreateDeviceRGB(),
+                                              bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue))
+        return try XCTUnwrap(context.makeImage())
     }
 }

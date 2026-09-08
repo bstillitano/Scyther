@@ -88,6 +88,7 @@ import SwiftUI
 /// - ``slowAnimationsEnabled``
 /// - ``layoutGuidesEnabled``
 /// - ``activateLayoutRuler()``
+/// - ``showsLayoutRulerUnavailableAlert``
 /// - ``showViewFrames``
 /// - ``showViewSizes``
 ///
@@ -439,13 +440,29 @@ class MenuViewModel: ViewModel {
     /// key window, and one activated mid-animation would sit over the dismissal it is interrupting.
     /// The hop through `Task { @MainActor in }` is because that completion is a plain,
     /// non-isolated closure, while ``LayoutRuler`` is main-actor state.
+    ///
+    /// With no key window there is nothing to draw over, and this reports that instead of
+    /// dismissing the menu — ``showsLayoutRulerUnavailableAlert``. The spec's rule for the case is
+    /// that the tool "does not activate; the menu row reports it rather than appearing to work",
+    /// and the ruler is the worst possible place to fail silently: it would leave
+    /// ``LayoutRuler/isActive`` set with no visible Done to clear it.
     func activateLayoutRuler() {
+        guard InterfaceToolkit.instance.canShowLayoutRuler else {
+            showsLayoutRulerUnavailableAlert = true
+            return
+        }
+
         Scyther.hideMenu {
             Task { @MainActor in
                 LayoutRuler.instance.isActive = true
             }
         }
     }
+
+    /// Whether to tell the developer the ruler has no window to draw over.
+    ///
+    /// Driven only by ``activateLayoutRuler()``; ``MenuView`` binds an alert to it.
+    @Published var showsLayoutRulerUnavailableAlert: Bool = false
 
     /// Whether view frames are shown.
     ///

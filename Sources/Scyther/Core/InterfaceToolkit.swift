@@ -437,6 +437,23 @@ extension InterfaceToolkit {
         showLayoutRuler()
     }
 
+    /// Whether the ruler has anything to draw over.
+    ///
+    /// The overlay lives in ``topLevelViewsWrapper``, which is only installed once there is a key
+    /// window — ``setupTopLevelViewsWrapper()`` logs and returns when there is not. Without one the
+    /// wrapper is in no window, so activating the ruler would set ``LayoutRuler/isActive`` to `true`
+    /// and put nothing at all on screen: no measurement, and — worse — no Done button, which is
+    /// the one control the whole design depends on being visible. The spec's rule for this case is
+    /// that the tool "does not activate; the menu row reports it rather than appearing to work",
+    /// and this is the question the row asks before trying.
+    ///
+    /// Asked of the overlay's own `window` rather than of `UIApplication`: the overlay being in a
+    /// window is the exact condition for it being able to draw and take touches, where "a key
+    /// window exists somewhere" is a proxy for it.
+    @MainActor internal var canShowLayoutRuler: Bool {
+        layoutRulerView.window != nil
+    }
+
     /// Applies ``LayoutRuler/isActive`` and ``LayoutRuler/snaps`` to the overlay, mirroring
     /// ``showLayoutGuides()``.
     ///

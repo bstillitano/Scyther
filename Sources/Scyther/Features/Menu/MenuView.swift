@@ -59,6 +59,15 @@ public struct MenuView: View {
             }
         }
         .searchable(text: $viewModel.searchText, prompt: localized("Search"))
+        // An alert rather than anything quieter: the row it answers for did nothing visible, and a
+        // tool that silently declines to start is indistinguishable from one that is broken. Bound
+        // here rather than on either row so both the browsing row and the search result — which
+        // call the same method — are covered by one.
+        .alert(localized("No Window to Measure"), isPresented: $viewModel.showsLayoutRulerUnavailableAlert) {
+            Button(localized("OK"), role: .cancel) {}
+        } message: {
+            Text(localized("The layout ruler draws over the app's key window, and this app has none right now."))
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
