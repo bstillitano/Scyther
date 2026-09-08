@@ -41459,6 +41459,83 @@
         }
       }
     },
+    "Pinch to change the range": {
+      "comment": "Hint in the minimap's own header, shown only until the developer has zoomed or scrubbed the window at least once — the only way to change the window's width is an otherwise-undiscoverable pinch gesture",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "اقرص لتغيير النطاق"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Kneifen, um den Bereich zu ändern"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Pellizca para cambiar el rango"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Pincez pour modifier la plage"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Pizzica per cambiare l'intervallo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ピンチして範囲を変更"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "핀치하여 범위 변경"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Knijp om het bereik te wijzigen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Belisque para alterar o intervalo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Сведите пальцы, чтобы изменить диапазон"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "捏合以更改范围"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "以兩指撥動來變更範圍"
+          }
+        }
+      }
+    },
     "Pinned": {
       "comment": "Menu section header above the rows the user has pinned",
       "localizations": {

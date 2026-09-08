@@ -11,13 +11,23 @@ import SwiftUI
 /// Every logged request as a bar on one shared time axis, oldest at the top, seen through a
 /// window the reader zooms and drags rather than scrolls.
 ///
-/// Reached from the Waterfall section of ``TrafficStatsView`` two ways: the **See all** link opens
-/// at the full span, and a tap on the section's own overview strip opens centred on the moment
-/// touched — see ``init(logs:openingTime:)``. Either way it shows the same session that section's
-/// strip already compresses — literally the same strip, ``WaterfallOverviewStrip``, drawing from
-/// the same ``WaterfallChartStyle`` colours, now carrying the current window as well — but with
-/// every request its own tappable row in a detail list underneath, leading to the capture behind
-/// it, which the section has no equivalent of at all.
+/// Reached from the Waterfall section of ``TrafficStatsView`` by its **See all** link, which opens
+/// at the full span. It shows the whole session that section's own strip only ever previews a
+/// zoomed slice of — the strip and colours are literally the same code,
+/// ``WaterfallOverviewStrip`` drawing from the same ``WaterfallChartStyle``, now carrying the
+/// current window as well — but with every request its own tappable row in a detail list
+/// underneath, leading to the capture behind it, which the section's own preview rows already do
+/// too, just for a handful of the most recent requests rather than all of them.
+///
+/// `init(logs:openingTime:)` also lets a caller open the page already centred on a specific
+/// moment rather than at the full span. Nothing currently does: an earlier round of the Traffic
+/// Stats section let a tap on its own strip reach this page that way, and that tap was removed
+/// once the strip stopped drawing the whole log — see `WaterfallOverviewStrip`'s own removal
+/// comment for why a tap stopped making sense there. The initialiser itself is kept rather than
+/// pruned alongside it: it is `WaterfallViewModel`'s own general "open already centred on a
+/// moment" entry point, not machinery built only for that one caller, so losing the caller is not
+/// a reason to lose the capability — see ``init(logs:openingTime:)`` for what it still does and
+/// for whom.
 ///
 /// ## Why a window rather than a scroll
 ///
@@ -148,28 +158,32 @@ struct WaterfallView: View {
     ///
     /// - Parameters:
     ///   - logs: The network log view model whose filtered requests are drawn.
-    ///   - openingTime: Seconds from the log's earliest request, when the page is reached by
-    ///     tapping a moment on the Traffic Stats section's overview strip. The window opens
-    ///     already centred there instead of at the full span, which is what `nil` — the **See
-    ///     all** link's default — leaves it at.
+    ///   - openingTime: Seconds from the log's earliest request, for a caller that wants the page
+    ///     to open already centred on a specific moment rather than at the full span, which is
+    ///     what `nil` leaves it at — the only value anything in this module currently passes,
+    ///     including the **See all** link. No internal caller currently supplies a real value: an
+    ///     earlier round of the Traffic Stats section did, from a tap on its own overview strip,
+    ///     before that tap was removed once the strip stopped drawing the whole log — see this
+    ///     type's own top-level documentation. The reasoning below is kept for whichever caller
+    ///     reaches for this parameter next, not only for the one that used to.
     ///
-    ///     Measured against ``TrafficStatsViewModel/waterfall``'s origin — the strip that was
-    ///     tapped — and reapplied here against this page's own, separately built
-    ///     ``WaterfallViewModel/series``'s origin, on the assumption the two agree. They almost
-    ///     always do: both are built from the same log, moments apart, and an origin only moves
-    ///     when the log's *oldest* surviving request changes, which navigating to this page does
-    ///     not itself cause. What the two builds do *not* share is `now` — each call to
+    ///     Measured against whichever series a caller's own moment was read from, and reapplied
+    ///     here against this page's own, separately built ``WaterfallViewModel/series``'s origin,
+    ///     on the assumption the two agree. They almost always do: both would ordinarily be built
+    ///     from the same log, moments apart, and an origin only moves when the log's *oldest*
+    ///     surviving request changes, which navigating to this page does not itself cause. What
+    ///     the two builds would *not* share is `now` — each call to
     ///     `WaterfallSeries.build(from:limit:now:)` defaults it independently, at whatever instant
-    ///     that particular build ran — so a request still pending when the strip was tapped grows
-    ///     this page's own span a little further by the time its `WaterfallViewModel` is built.
-    ///     The tapped moment is still centred exactly, in absolute terms; what shifts is *where
-    ///     that moment falls* on this page's own, now slightly longer, strip — proportionally
-    ///     further toward its leading edge than where the finger actually was on the shorter one
-    ///     it tapped. Accepted rather than threaded through as an absolute `Date`: the drift is
-    ///     bounded by how long the push takes and is invisible unless a request is still pending
-    ///     at the exact moment of the tap, and carrying a `Date` end to end would mean converting
-    ///     it back to a `TimeInterval` against *this* page's origin anyway, which is exactly the
-    ///     assumption above with an extra type in the way.
+    ///     that particular build ran — so a request still pending when the caller read its moment
+    ///     grows this page's own span a little further by the time its `WaterfallViewModel` is
+    ///     built. The passed moment is still centred exactly, in absolute terms; what shifts is
+    ///     *where that moment falls* on this page's own, now slightly longer, strip —
+    ///     proportionally further toward its leading edge than where it sat on the shorter one it
+    ///     was read from. Accepted rather than threaded through as an absolute `Date`: the drift
+    ///     is bounded by how long the push takes and is invisible unless a request is still
+    ///     pending at the exact moment the caller read, and carrying a `Date` end to end would
+    ///     mean converting it back to a `TimeInterval` against *this* page's origin anyway, which
+    ///     is exactly the assumption above with an extra type in the way.
     init(logs: NetworkLogsViewModel, openingTime: TimeInterval? = nil) {
         self.logs = logs
         _viewModel = StateObject(
@@ -289,42 +303,102 @@ struct WaterfallView: View {
             .accessibilityValue(viewModel.windowCaption)
     }
 
-    /// ``minimapHeader``, shown only once the window has been touched, stacked directly above
-    /// ``minimapCard`` with a small gap of its own — together, the whole fixed unit ``content``
-    /// places above ``detail``'s `List`.
+    /// ``minimapHeader``, stacked directly above ``minimapCard`` with a small gap of its own —
+    /// together, the whole fixed unit ``content`` places above ``detail``'s `List`.
     ///
     /// A second, inner `VStack` rather than folding the header into ``minimapCard`` itself: the
     /// header is a section header, styled and positioned to sit *above* the card the way a real
     /// `.insetGrouped` section header sits above its own card, not inside it. `spacing: 0` here,
-    /// with the gap between the two supplied entirely by ``minimapHeader``'s own bottom padding
-    /// rather than by this `VStack`'s `spacing` parameter: a conditionally-absent child — the
-    /// header renders nothing at all while ``WaterfallViewModel/hasAdjustedWindow`` is `false` —
-    /// is not reliably guaranteed to contribute zero `spacing` on every SwiftUI version this
-    /// package supports, and this sidesteps the question entirely rather than depending on the
-    /// answer. `minimapHeader`'s own padding is `0` exactly when it is not there to carry any.
+    /// with the gap to ``minimapCard`` beneath it supplied entirely by ``minimapHeader``'s own
+    /// bottom padding rather than by this `VStack`'s `spacing` parameter — this used to matter
+    /// because the header was a conditionally-absent child, not reliably guaranteed to contribute
+    /// zero `spacing` on every SwiftUI version this package supports, and this sidestepped the
+    /// question entirely rather than depending on the answer. ``minimapHeader`` is unconditional
+    /// now — see its own documentation for why — so that particular reason is gone, but `spacing:
+    /// 0` plus the header's own bottom padding is kept anyway: it is one definition of the gap
+    /// rather than two, and there is no longer even a hypothetical case where it would need to be
+    /// zero.
     ///
-    /// `.padding(.top, 16)` lives here, on the whole unit, not on ``minimapCard`` alone: the gap
-    /// from the top of the page to whichever view is actually first — the header, once the window
-    /// has been adjusted, or the card, before that — has to move with which one that is, and
-    /// applying it once here is what keeps it from having to be duplicated onto both.
+    /// `.padding(.top, 16)` lives here, on the whole unit, not on ``minimapCard`` alone, so the gap
+    /// from the top of the page to the header sitting above the card only has to be applied once.
     private var minimap: some View {
         VStack(spacing: 0) {
-            if viewModel.hasAdjustedWindow {
-                minimapHeader
-            }
+            minimapHeader
             minimapCard
         }
         .padding(.top, 16)
     }
 
-    /// The reset-zoom section header, relocated here from the detail list's own section header on
-    /// the owner's own correction: *"The reset zoom button should be on the minimap section not
-    /// the list rows."* The button acts on the window; the window is what the minimap draws; the
-    /// list of rows is a consequence of it, not the thing being reset.
+    /// The minimap's own header: a pinch hint on the leading edge before the window has ever been
+    /// touched, and the reset-zoom button on the trailing edge once it has — see
+    /// ``WaterfallViewModel/hasAdjustedWindow``, which drives both, and never both at once, since
+    /// the two are exact inverses of the same flag.
+    ///
+    /// The reset-zoom button was relocated here from the detail list's own section header on the
+    /// owner's own correction: *"The reset zoom button should be on the minimap section not the
+    /// list rows."* The button acts on the window; the window is what the minimap draws; the list
+    /// of rows is a consequence of it, not the thing being reset.
+    ///
+    /// ## The pinch hint
+    ///
+    /// The owner's own framing of the problem: *"nobody knows they can pinch"* — zoom is this
+    /// page's only way to narrow the window, and a pinch is an entirely invisible gesture with
+    /// nothing on screen suggesting it exists. TipKit was asked about and ruled out for two
+    /// reasons, not one: it is iOS 17 against this package's iOS 16 floor, and — the more durable
+    /// reason, one that would still apply even if the floor moved — `Tips.configure()` is
+    /// process-global. A debugging toolkit that is a guest in whatever host app embeds it has no
+    /// business dictating that host's tip storage or display-frequency policy for its own
+    /// unrelated tips just because Scyther happened to configure `TipKit` first. So the hint is
+    /// built into the UI directly, as an ordinary piece of state-driven text, not a system
+    /// affordance.
+    ///
+    /// **Where it goes.** In this header, opposite the reset-zoom button, rather than under the
+    /// strip inside ``minimapCard`` or somewhere else on the page. Three reasons: it sits directly
+    /// above the card the pinch actually acts on — see ``magnification``'s own "Two attachment
+    /// points" for why a pinch anywhere on the card or the detail list beneath it works — so it
+    /// is adjacent to what it describes without being laid over the strip's own drawing, where
+    /// restraint would be harder to keep; it is the first thing above the fold, seen before the
+    /// reader has had any reason to have already discovered the gesture; and reusing this header
+    /// row rather than adding a second one is what keeps the two states — hint, then button — from
+    /// ever needing two different layouts to reconcile.
+    ///
+    /// **How it looks.** `Label(_:systemImage:)` at `.font(.subheadline)` with
+    /// `.foregroundStyle(.secondary)` — plain caption-weight text naming the gesture, `hand.pinch`
+    /// alongside it, in the same secondary grey the detail rows' own duration text uses elsewhere
+    /// on this page. Deliberately not tinted, not bold, and not a `Button` of its own: it names a
+    /// gesture the reader performs directly on the strip and card, not a control this header
+    /// offers in its own right, and giving it any of the reset button's own visual weight would
+    /// have it compete with the strip it sits beside rather than quietly explain it.
+    ///
+    /// **Same font as the button it replaces, on purpose.** The two are never on screen together,
+    /// but they occupy the exact same row, one at a time, and a hint drawn at `.caption` — a size
+    /// smaller than the button's `.subheadline` — would make this header change height the moment
+    /// the reader's first pinch or drag swaps one for the other, which is precisely the jump the
+    /// brief asked to be checked for. Matching the font sizes is what keeps that check honest:
+    /// this header's own height comes from whichever single child is present, and holding that
+    /// child's font constant across both states is what holds the header's height constant too,
+    /// rather than a coincidence resting on how close two different sizes happen to measure.
+    ///
+    /// **Whether `resetWindow()` should bring the hint back.** It does, by construction — clearing
+    /// ``WaterfallViewModel/hasAdjustedWindow`` is exactly what un-hides it, the same flag flip
+    /// that already brings the *button* back to a hint the next time the reader touches the
+    /// window. Judged correct rather than merely accepted: `hasAdjustedWindow` is set by *either*
+    /// ``WaterfallViewModel/zoom(by:)`` or ``WaterfallViewModel/scrub(to:)``, not only the pinch,
+    /// so a reader who has only ever dragged the strip — discovering the scrub gesture without
+    /// ever discovering the pinch — and then reaches for reset (its own button, or the gap empty
+    /// state's identical call to it) has genuinely not yet learned the one thing this hint
+    /// teaches. Re-showing it costs a reader who *has* pinched before very little — a small,
+    /// secondary caption, not a modal or an alert, sitting for as long as the window stays at its
+    /// default again — against a real teaching gap for the reader who has not. A second, sticky
+    /// "has this developer ever pinched, specifically" flag that survived a reset was considered
+    /// and rejected: it would need its own state, its own place to live, and its own tests, to
+    /// solve a narrower problem than `hasAdjustedWindow` already solves for free, and — since nothing
+    /// on this page currently distinguishes a zoom-shaped adjustment from a scrub-shaped one for
+    /// any other purpose — would be new complexity built for exactly one caller.
     ///
     /// ## Matching `.insetGrouped`'s own section header by hand
     ///
-    /// The minimap has not been a real `Section` since the previous fix round — see
+    /// The minimap has not been a real `Section` since an earlier fix round — see
     /// ``minimapCard``'s own "Why this is not a `Section` any more" — so there is no header slot
     /// to hang this on the way `TrafficStatsView`'s own sections do. This hand-builds one instead,
     /// matching what a real header would give it:
@@ -333,46 +407,51 @@ struct WaterfallView: View {
     ///   ``minimapCard`` insets its own rounded background by. A real section header's text lines
     ///   up with its card's own edges, not with the card's *interior* content padding, so this
     ///   reads that literally: the same margin, not the card's `.padding()` on top of it.
-    /// - **Typography and secondary colouring** — the button is deliberately styled *away* from
-    ///   these, exactly as `TrafficStatsView.waterfallSection`'s own trailing "See all" link is:
-    ///   `.font(.subheadline)` and `.buttonStyle(.borderless)` read as a control rather than as
-    ///   small-caps chrome. What "same typography and secondary colouring" governs here is the
+    /// - **Typography and secondary colouring** — the reset-zoom button is deliberately styled
+    ///   *away* from these, exactly as `TrafficStatsView.waterfallSection`'s own trailing "See
+    ///   all" link is: `.font(.subheadline)` and `.buttonStyle(.borderless)` read as a control
+    ///   rather than as small-caps chrome. The hint on the opposite edge goes the other way,
+    ///   deliberately: it *is* secondary, muted caption text, because it is not a control at all.
+    ///   What "same typography and secondary colouring" governs for the button specifically is the
     ///   header as a *concept* — a real section header's small, secondary, uppercased styling is
-    ///   what the button is deliberately breaking from, the same trade this page's other header
-    ///   button already made — not something applied to this row's own content, because this row
-    ///   has no leading text for it to apply to. One difference from that precedent, worth naming
-    ///   because it is easy to get wrong copying the reasoning forward: `TrafficStatsView`'s own
-    ///   button needs `.textCase(nil)` to cancel a `List` section header's automatic uppercase
-    ///   transform. This header is not inside a `List` at all, so there is no such transform for
-    ///   `.textCase` to cancel — including it here would be a modifier doing nothing, describing a
-    ///   mechanism that does not apply, which is exactly the kind of doc drift this file has
-    ///   shipped before. Left off, deliberately, not by oversight.
-    ///
-    /// **Nothing on the leading edge**, for the same reason ``detailSection(rowLayout:)``'s own
-    /// header had nothing there before this button moved out of it: this page has exactly one
-    /// section to name, already named by the navigation title above it, so a repeated `Text` would
-    /// be chrome that says nothing new.
+    ///   what the button breaks from, the same trade this page's other header button already
+    ///   made. One difference from that precedent, worth naming because it is easy to get wrong
+    ///   copying the reasoning forward: `TrafficStatsView`'s own button needs `.textCase(nil)` to
+    ///   cancel a `List` section header's automatic uppercase transform. This header is not inside
+    ///   a `List` at all, so there is no such transform for `.textCase` to cancel — including it
+    ///   here would be a modifier doing nothing, describing a mechanism that does not apply, which
+    ///   is exactly the kind of doc drift this file has shipped before. Left off, deliberately,
+    ///   not by oversight.
     ///
     /// ## Sizing
     ///
-    /// This view's own existence is already conditional — see ``minimap``, which only includes it
-    /// at all once ``WaterfallViewModel/hasAdjustedWindow`` is `true` — so nothing inside this
-    /// property needs its own visibility check. `.padding(.bottom, WaterfallChartStyle.minimapHeaderSpacing)`
-    /// is the gap to ``minimapCard`` beneath it; there is no top padding of its own, since
-    /// ``minimap``'s own `.padding(.top, 16)` already supplies the gap from the page's own top,
-    /// whichever view ends up first.
+    /// This view is unconditional now — previously it rendered nothing at all while
+    /// ``WaterfallViewModel/hasAdjustedWindow`` was `false`, and appeared only once it flipped —
+    /// see ``minimap``'s own documentation for why that conditional moved to living entirely
+    /// inside this property's two children instead. `.padding(.bottom,
+    /// WaterfallChartStyle.minimapHeaderSpacing)` is the gap to ``minimapCard`` beneath it; there
+    /// is no top padding of its own, since ``minimap``'s own `.padding(.top, 16)` already supplies
+    /// the gap from the page's own top.
     ///
-    /// - Important: Not seen rendered. The horizontal alignment against the card, and against how
-    ///   a real `.insetGrouped` section header sits above its own section, is a visual match only
-    ///   the owner running this can confirm — see the fix report.
+    /// - Important: Not seen rendered. The horizontal alignment against the card, that the header
+    ///   holds a constant height across both its states, and whether the hint reads as helpful
+    ///   rather than as clutter, are all a visual match only the owner running this can confirm —
+    ///   see the fix report.
     private var minimapHeader: some View {
         HStack {
-            Spacer()
-            Button(localized("Reset zoom")) {
-                viewModel.resetWindow()
+            if !viewModel.hasAdjustedWindow {
+                Label(localized("Pinch to change the range"), systemImage: "hand.pinch")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-            .font(.subheadline)
-            .buttonStyle(.borderless)
+            Spacer()
+            if viewModel.hasAdjustedWindow {
+                Button(localized("Reset zoom")) {
+                    viewModel.resetWindow()
+                }
+                .font(.subheadline)
+                .buttonStyle(.borderless)
+            }
         }
         .padding(.horizontal, WaterfallChartStyle.insetGroupedCardMargin)
         .padding(.bottom, WaterfallChartStyle.minimapHeaderSpacing)

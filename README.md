@@ -771,13 +771,24 @@ accessibility value announces how many requests the window holds after every cha
 zoom never requires a pinch and never leaves a VoiceOver user guessing whether anything happened.
 
 The minimap's own hand-built header carries a trailing **Reset zoom** button — styled the way
-Traffic Stats' Waterfall section puts "See all" on its trailing edge, nothing on the leading edge
-since this page has only the one section to name — the moment the window has been zoomed or
-scrubbed at all. It sits above the minimap card, not above the detail rows: the button acts on the
-window, and the window is what the minimap draws, not the rows underneath it, which are only ever
-a consequence of it. It calls the same `resetWindow()` the gap empty state's own button already
-uses, and it stays visible once shown even if a further zoom happens to land back on the same
-numbers as the opening window; only pressing it clears it.
+Traffic Stats' Waterfall section puts "See all" on its trailing edge — the moment the window has
+been zoomed or scrubbed at all. It sits above the minimap card, not above the detail rows: the
+button acts on the window, and the window is what the minimap draws, not the rows underneath it,
+which are only ever a consequence of it. It calls the same `resetWindow()` the gap empty state's
+own button already uses, and it stays visible once shown even if a further zoom happens to land
+back on the same numbers as the opening window; only pressing it clears it.
+
+Before that first touch, the same header's leading edge instead carries a small pinch hint —
+`localized("Pinch to change the range")` beside a `hand.pinch` symbol, in the same secondary
+caption styling the detail rows' own duration text uses — because the pinch is otherwise entirely
+invisible: nothing on screen suggests a reader can narrow the window at all. TipKit was considered
+and ruled out, for two reasons: it needs iOS 17 against this package's iOS 16 floor, and
+`Tips.configure()` is process-global, which a debugging library embedded as a guest in someone
+else's app has no business calling on the host's behalf. The hint and the reset button are exact
+inverses of the same flag, `WaterfallViewModel.hasAdjustedWindow`, and never both appear at once;
+pressing **Reset zoom** — or the gap empty state's equivalent button — brings the hint back rather
+than retiring it permanently, since that flag does not distinguish a zoom from a scrub and a
+reader who has only ever dragged the strip may not have discovered the pinch yet either.
 
 A request already running when the window opens, or one that outlives it, is drawn **clipped**
 flush to the window's edge rather than shrunk to fit — the clip reads as "continues", where a

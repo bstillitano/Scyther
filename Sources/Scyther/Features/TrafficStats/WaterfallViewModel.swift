@@ -42,10 +42,12 @@ final class WaterfallViewModel: ViewModel {
     /// disagree about how much traffic there is for up to half a second at a time.
     static let recomputeDebounce: DispatchQueue.SchedulerTimeType.Stride = .milliseconds(500)
 
-    /// How much of the span the page opens with when it is reached by tapping the Traffic Stats
-    /// strip.
+    /// How much of the span the window opens with when a caller of ``open(centredOn:)`` lands the
+    /// page already centred on a specific moment, rather than at the full span. No caller within
+    /// this module currently does this — see ``open(centredOn:)``'s own documentation — but the
+    /// figure is kept rather than the function, for whichever caller reaches for it next.
     ///
-    /// An eighth is wide enough to carry context around the moment tapped and narrow enough to be
+    /// An eighth is wide enough to carry context around the moment given and narrow enough to be
     /// worth the navigation. Opening at the narrowest allowed window would be well defined and
     /// could land the developer inside a tenth of a second.
     static let openingWindowFraction: Double = 1.0 / 8.0
@@ -382,7 +384,11 @@ final class WaterfallViewModel: ViewModel {
     var isWindowEmpty: Bool { !layout.rows.isEmpty && visibleRows.isEmpty }
 
     /// Whether the window has been zoomed or scrubbed away from wherever it opened, for
-    /// ``WaterfallView``'s own reset-zoom section header button.
+    /// ``WaterfallView``'s own minimap header: the reset-zoom button once this is `true`, and the
+    /// pinch-discoverability hint — see `WaterfallView.minimapHeader`'s own documentation — for as
+    /// long as it is `false`. The two read the same flag rather than one apiece on purpose: they
+    /// are exact inverses of the same fact, "has the developer ever touched this window," and a
+    /// second flag could only ever disagree with this one by a bug, never usefully.
     ///
     /// `false` from construction, `true` from the first call to ``zoom(by:)`` or ``scrub(to:)``,
     /// and `false` again only once ``resetWindow()`` is called — the owner's own specification,
@@ -396,9 +402,9 @@ final class WaterfallViewModel: ViewModel {
     /// currently equal to the default" apart from "never adjusted at all" — a stored fact about
     /// history, not a property of the window's current value.
     ///
-    /// - Note: `open(centredOn:)` — reached only from a tap on the Traffic Stats strip, landing on
-    ///   this page already centred on a specific moment — deliberately does *not* set this. The
-    ///   owner named `zoom(by:)` and `scrub(to:)` specifically, and `open(centredOn:)` is not the
+    /// - Note: `open(centredOn:)` — which lands the page already centred on a specific moment for
+    ///   a caller that wants that, currently none within this module — deliberately does *not* set
+    ///   this. The owner named `zoom(by:)` and `scrub(to:)` specifically, and `open(centredOn:)` is not the
     ///   developer adjusting a window they are already looking at; it is how the window the page
     ///   opens with was chosen in the first place, for that one entrance. Showing "reset zoom" the
     ///   instant a reader arrives at a page they explicitly navigated to a moment on, before they
@@ -414,7 +420,7 @@ final class WaterfallViewModel: ViewModel {
     @Published private(set) var hasAdjustedWindow = false
 
     /// Whether ``window`` is still following ``WaterfallWindow/opening(span:narrowest:)``
-    /// rather than a position or size the developer — or a tap on the Traffic Stats strip — chose.
+    /// rather than a position or size the developer — or a caller of ``open(centredOn:)`` — chose.
     ///
     /// `true` from construction until the first call to ``zoom(by:)``, ``scrub(to:)`` or
     /// ``open(centredOn:)`` that actually changes something, and `false` for the rest of this
@@ -430,10 +436,11 @@ final class WaterfallViewModel: ViewModel {
     /// as long as nobody has touched it.
     ///
     /// Once it flips to `false` it never flips back: a window the developer has zoomed, dragged,
-    /// or arrived at by tapping a moment on the Traffic Stats strip must not be silently replaced
-    /// by "the newest traffic" again just because Dynamic Type changed or the device rotated —
-    /// the same guarantee ``configureWindow(plotWidth:)`` always made for a *zoomed* window,
-    /// extended here to cover the window's position too, now that opening can narrow it.
+    /// or that a caller of ``open(centredOn:)`` opened already centred on a moment must not be
+    /// silently replaced by "the newest traffic" again just because Dynamic Type changed or the
+    /// device rotated — the same guarantee ``configureWindow(plotWidth:)`` always made for a
+    /// *zoomed* window, extended here to cover the window's position too, now that opening can
+    /// narrow it.
     private var windowFollowsDefault = true
 
     /// Recomputes the window for a plot of `plotWidth`.
@@ -540,8 +547,8 @@ final class WaterfallViewModel: ViewModel {
     ///
     /// - Parameter time: Seconds from ``series``'s own origin — this instance's, not necessarily
     ///   whichever series `time` was originally measured against. See
-    ///   ``WaterfallView/init(logs:openingTime:)`` for the one caller that crosses that boundary,
-    ///   from Traffic Stats' own strip, and the bound that crossing accepts.
+    ///   ``WaterfallView/init(logs:openingTime:)`` for the caller that would cross that boundary,
+    ///   currently none within this module, and the bound that crossing accepts.
     func open(centredOn time: TimeInterval) {
         let span = layout.series.span
         guard span > 0 else { return }

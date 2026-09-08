@@ -443,6 +443,21 @@
     "zh-Hans": "百分位数至少需要五个已完成的请求才有意义，因此这里改为显示原始时长。",
     "zh-Hant": "百分位數至少需要五個已完成的請求才有意義，因此這裡改為顯示原始時長。"
   },
+  "Pinch to change the range": {
+    "ar": "اقرص لتغيير النطاق",
+    "comment": "Hint in the minimap's own header, shown only until the developer has zoomed or scrubbed the window at least once — the only way to change the window's width is an otherwise-undiscoverable pinch gesture",
+    "de": "Kneifen, um den Bereich zu ändern",
+    "es": "Pellizca para cambiar el rango",
+    "fr": "Pincez pour modifier la plage",
+    "it": "Pizzica per cambiare l'intervallo",
+    "ja": "ピンチして範囲を変更",
+    "ko": "핀치하여 범위 변경",
+    "nl": "Knijp om het bereik te wijzigen",
+    "pt-BR": "Belisque para alterar o intervalo",
+    "ru": "Сведите пальцы, чтобы изменить диапазон",
+    "zh-Hans": "捏合以更改范围",
+    "zh-Hant": "以兩指撥動來變更範圍"
+  },
   "Quiet Stretch": {
     "ar": "فترة هادئة",
     "comment": "Title of the empty state shown when the current time window is over a stretch of the log with no traffic, distinct from the log itself being empty. Short deliberately: the description beneath it carries the explanation, this only needs to name the state without truncating on a standard iPhone width",

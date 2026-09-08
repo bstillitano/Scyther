@@ -509,8 +509,12 @@ final class WaterfallViewModelTests: XCTestCase {
 
     // MARK: - hasAdjustedWindow
 
-    /// `hasAdjustedWindow` is what ``WaterfallView``'s reset-zoom section header button reads to
-    /// decide whether it exists at all. An untouched page has nothing to reset.
+    /// `hasAdjustedWindow` is what ``WaterfallView``'s minimap header reads to decide which of its
+    /// two states to show: the reset-zoom button once this is `true` — an untouched page has
+    /// nothing to reset — and, added on the same flag, a pinch-discoverability hint for as long as
+    /// it is `false`, so `testHasAdjustedWindowIsFalseOnlyAfterResetWindow` below doubles as the
+    /// model-level proof that resetting genuinely brings the hint back, not only clears the
+    /// button.
     func testHasAdjustedWindowIsFalseOnOpen() {
         let model = makeModel(starts: [0, 10, 20, 30])
         XCTAssertFalse(model.hasAdjustedWindow)
@@ -553,7 +557,10 @@ final class WaterfallViewModelTests: XCTestCase {
 
     /// The only call that may clear the flag, checked directly rather than only implied by the
     /// tests above: after both a zoom and a scrub, it takes `resetWindow()` — not another zoom,
-    /// not a scrub, not merely time passing — to bring it back to `false`.
+    /// not a scrub, not merely time passing — to bring it back to `false`. Clearing it is also
+    /// what un-hides the minimap header's pinch hint again, judged correct rather than incidental
+    /// — see `WaterfallView.minimapHeader`'s own documentation, "Whether `resetWindow()` should
+    /// bring the hint back" — so this same assertion is the model-level half of that decision.
     func testHasAdjustedWindowIsFalseOnlyAfterResetWindow() async {
         let model = makeModel(starts: [0, 10, 20, 30])
         await model.recompute()

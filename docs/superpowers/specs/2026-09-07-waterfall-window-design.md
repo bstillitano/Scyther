@@ -249,6 +249,25 @@ the strip, halving or doubling the window's duration per step within the same cl
 available only to a pinch would be a control those users cannot operate, which is not something
 this toolkit gets to ship a month after adding an accessibility audit.
 
+**Discoverability, added in a later round.** A pinch has no visible affordance of its own, and the
+owner reported that nobody looking at the page knew it was there. TipKit was asked about and
+ruled out for two reasons: it is iOS 17 against this package's iOS 16 floor, and — the reason that
+would still apply even if the floor moved — `Tips.configure()` is process-global, and a debugging
+toolkit embedded as a guest in someone else's app has no business dictating that host's tip
+storage or display-frequency policy for the sake of its own tip. The affordance is built into the
+UI directly instead: a short hint, `localized("Pinch to change the range")` beside a `hand.pinch`
+symbol, in the minimap's own header, on the opposite edge from the reset-zoom button and reusing
+the same `WaterfallViewModel.hasAdjustedWindow` flag that already drives that button — the hint
+before the first adjustment, the button after it, never both. Pressing **Reset zoom** — or the gap
+empty state's identical call to `resetWindow()` — brings the hint back rather than retiring it
+permanently: `hasAdjustedWindow` does not distinguish a zoom from a scrub, so a reader who has
+only ever dragged the strip may genuinely not have discovered the pinch yet, and a second, sticky
+flag to prevent the hint's return was considered and rejected as complexity built for exactly one
+caller. See `WaterfallView.minimapHeader`'s own documentation for the full reasoning, including why
+the hint sits in the header rather than under the strip and why it is styled away from the button
+it replaces. Not verified on device: whether the hint reads as helpful rather than as clutter, and
+whether the header holds a constant height as the two states swap, are for the owner to confirm.
+
 ## Traffic Stats
 
 *Amended after the whole-log strip described below shipped and was judged unusable at real
@@ -332,7 +351,12 @@ embedding one is a single key with an interpolation.
 **Not unit-tested, and said plainly:** the pinch gesture itself, and its interaction with the
 list's scrolling. Both are verified by hand on the simulator. This is the accepted cost of
 choosing a gesture over a control, and the reason the arithmetic behind it was pulled into a
-value type.
+value type. The minimap header's own choice between the pinch hint and the reset-zoom button is
+SwiftUI view logic reading `hasAdjustedWindow`, not pulled into a value type of its own, so it is
+not unit-tested either — `testHasAdjustedWindowIsFalseOnlyAfterResetWindow` in
+`WaterfallViewModelTests.swift` is the model-level half of that decision (that resetting clears
+the flag both states read), and the rest — that the header actually shows the right one of the two
+and holds a constant height while doing it — is for the device pass below.
 
 ## Verification on device
 
@@ -357,6 +381,11 @@ Before the work is called done, on the simulator, with the example app's traffic
    tapped point" — the strip lost its tap interaction entirely; see
    [Amendments](#amendments), "The Traffic Stats strip, zoomed instead of whole".
 7. With VoiceOver on, confirm the strip's adjustable action zooms.
+8. On a page just opened, confirm the minimap header shows the pinch hint — not the reset-zoom
+   button — and that it reads plainly rather than as clutter beside the strip. Zoom or drag once
+   and confirm the hint is replaced by the reset-zoom button, with the header's own height
+   unchanged across that swap. Press **Reset zoom** and confirm the hint returns rather than the
+   header staying empty. See [Zoom](#zoom), "Discoverability, added in a later round".
 
 ## Amendments
 
