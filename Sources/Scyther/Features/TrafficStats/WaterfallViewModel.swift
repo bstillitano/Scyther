@@ -11,9 +11,12 @@ import Foundation
 
 /// Drives ``WaterfallView``, the full-log waterfall.
 ///
-/// The section on **Traffic Stats** now draws the same whole-log overview this view model does —
-/// see ``WaterfallOverviewStrip`` — but as one compressed strip with no per-request detail behind
-/// it. This view model is what turns that strip into something a developer can actually work in:
+/// The section on **Traffic Stats** draws a small preview of the same idea — see
+/// ``WaterfallOverviewStrip`` and `TrafficStatsViewModel.recentLayout` — a strip zoomed to the
+/// most recent handful of requests with a few tappable rows beneath it, rather than the whole log
+/// this view model lays out. The two share ``layout(of:limit:totalCount:now:)``, called with a
+/// different `limit`, not a second implementation: see that function's own documentation. This
+/// view model is what turns the full-log strip into something a developer can actually work in:
 /// it lays out *every* request the log is currently showing on one axis, and pairs each bar back
 /// with the request it was drawn from so tapping the bar can open it.
 ///
@@ -179,7 +182,7 @@ final class WaterfallViewModel: ViewModel {
         self.requests = requests
         self.totalCount = totalCount
         super.init()
-        layout = Self.layout(of: requests, totalCount: totalCount)
+        layout = Self.layout(of: requests, limit: requests.count, totalCount: totalCount)
         configureWindow(plotWidth: plotWidth)
         if let openingTime {
             open(centredOn: openingTime)
@@ -255,14 +258,14 @@ final class WaterfallViewModel: ViewModel {
             _ = request.getRandomHash()
         }
         let computed = await Task.detached(priority: .userInitiated) {
-            Self.layout(of: snapshot, totalCount: snapshotTotal)
+            Self.layout(of: snapshot, limit: snapshot.count, totalCount: snapshotTotal)
         }.value
         guard !Task.isCancelled else { return }
         layout = computed
         configureWindow(plotWidth: plotWidth)
     }
 
-    /// Lays a whole log out on one shared axis.
+    /// Lays out the most recent `limit` of `requests` on one shared axis.
     ///
     /// Pure and `nonisolated` so it can run on a detached task and be measured by a test without
     /// building a view. The pairing back to captures is done through a hash-keyed dictionary in
@@ -270,8 +273,19 @@ final class WaterfallViewModel: ViewModel {
     /// is quadratic, and a log holding thousands of entries is exactly the case this page was
     /// built for.
     ///
+    /// `limit` has no default, matching ``WaterfallSeries/build(from:limit:now:)``'s own — see
+    /// that function's documentation for why a fixed figure could never stand in for it. This
+    /// function has two callers now with two different answers: ``WaterfallView`` still wants
+    /// everything, and passes `requests.count`; `TrafficStatsViewModel` wants only
+    /// ``TrafficStatsViewModel/recentWaterfallCount``, so it can draw a small preview whose bars
+    /// are legible rather than the whole log flattened to specks. Neither caller's choice belongs
+    /// to this function, which is exactly why it takes a parameter instead of a policy.
+    ///
     /// - Parameters:
     ///   - requests: The captures to lay out, in any order.
+    ///   - limit: How many of the most recent (by request date) to keep. See
+    ///     ``WaterfallSeries/build(from:limit:now:)``'s own `limit` for the exact rule, including
+    ///     what happens when `requests` holds fewer than this many.
     ///   - totalCount: How many requests the log holds unfiltered, carried through for the
     ///     caption.
     ///   - now: The moment the layout describes, which is where a still-running bar ends.
@@ -279,6 +293,7 @@ final class WaterfallViewModel: ViewModel {
     /// - Returns: The axis, the rows on it, and the counts they describe.
     nonisolated static func layout(
         of requests: [HTTPRequest],
+        limit: Int,
         totalCount: Int = 0,
         now: Date = Date()
     ) -> Layout {
@@ -286,7 +301,7 @@ final class WaterfallViewModel: ViewModel {
             return Layout(series: .empty, rows: [], count: 0, total: totalCount,
                           shortestMeasured: nil, showsHost: false)
         }
-        let series = WaterfallSeries.build(from: requests, limit: requests.count, now: now)
+        let series = WaterfallSeries.build(from: requests, limit: limit, now: now)
         var byHash = [String: HTTPRequest](minimumCapacity: requests.count)
         for request in requests {
             byHash[request.getRandomHash() as String] = request
@@ -301,7 +316,13 @@ final class WaterfallViewModel: ViewModel {
         return Layout(
             series: series,
             rows: rows,
-            count: requests.count,
+            // `rows.count`, not `requests.count`: the two agreed exactly as long as every caller
+            // passed `limit: requests.count` and no capture lacked a start date, which was every
+            // caller until `TrafficStatsViewModel` started passing a genuine limit. `count` is
+            // documented as "how many requests the rows were laid out from" — once `limit` can
+            // truncate the input, `requests.count` stops answering that question and `rows.count`
+            // is what actually does, in both the truncated and the untruncated case alike.
+            count: rows.count,
             total: totalCount,
             shortestMeasured: shortestMeasured,
             showsHost: distinctHosts.count > 1

@@ -998,14 +998,14 @@ enum WaterfallDetailRowMetrics {
     }
 }
 
-/// One request in the waterfall's detail list: who it went to, what it was, when it happened
-/// inside the window, and how long it took.
+/// One request in a waterfall detail list: who it went to, what it was, when it happened inside
+/// the window, and how long it took.
 ///
-/// Its own small view rather than a case inside ``WaterfallView``, since it exists only for this
-/// list. The bar is a filled rectangle rather than a `Chart`, for the same reason the old page's
-/// rows were: a `BarMark` with both axes and the legend hidden *is* a filled rectangle, and asking
-/// Charts to lay one out per row buys nothing a `RoundedRectangle` does not already give for free.
-/// The row's thickness, colour, row height and duration label all come from
+/// Its own small view rather than a case inside ``WaterfallView``, since it exists only for a
+/// list of these. The bar is a filled rectangle rather than a `Chart`, for the same reason the old
+/// page's rows were: a `BarMark` with both axes and the legend hidden *is* a filled rectangle, and
+/// asking Charts to lay one out per row buys nothing a `RoundedRectangle` does not already give
+/// for free. The row's thickness, colour, row height and duration label all come from
 /// ``WaterfallChartStyle``, which is what keeps a request's colour here the same one the overview
 /// strip drew it in before this row existed to be tapped.
 ///
@@ -1016,7 +1016,18 @@ enum WaterfallDetailRowMetrics {
 ///
 /// The visible host is conditional in a way the accessibility label is not: see ``showsHost`` and
 /// ``label``.
-private struct WaterfallDetailRow: View {
+///
+/// Not `private` any more: `TrafficStatsView`'s own preview of the most recent handful of
+/// requests reuses this exact type rather than a second row that could quietly drift from it —
+/// the owner's own instruction, once the section stopped drawing the whole log as an unreadable
+/// scatter and needed real, tappable rows beneath its own small strip. Nothing about this type's
+/// own shape needed to change to make that work: it already took its `window` as a plain value
+/// rather than reaching into a specific view model, so a second caller supplying its own
+/// `WaterfallWindow` — one spanning a five-request series rather than a zoomed slice of a whole
+/// log — was already exactly what its existing parameters allow. See
+/// `TrafficStatsView.waterfallSection` for that caller and what it constructs to satisfy this
+/// type's contract.
+struct WaterfallDetailRow: View {
     /// The row to draw.
     let row: WaterfallViewModel.Row
 

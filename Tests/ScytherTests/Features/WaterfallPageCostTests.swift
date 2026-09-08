@@ -45,7 +45,7 @@ final class WaterfallPageCostTests: XCTestCase {
     func testAThousandRequestsAreLaidOutInOnePass() {
         let requests = log(of: 1_000)
         let started = CFAbsoluteTimeGetCurrent()
-        let layout = WaterfallViewModel.layout(of: requests)
+        let layout = WaterfallViewModel.layout(of: requests, limit: requests.count)
         let elapsed = CFAbsoluteTimeGetCurrent() - started
         XCTAssertEqual(layout.rows.count, 1_000)
         print("WaterfallPageCostTests: 1,000 requests laid out in \(Int(elapsed * 1_000_000)) µs")
@@ -70,7 +70,7 @@ final class WaterfallPageCostTests: XCTestCase {
     /// by walking the log — which is the quadratic shape this page invites.
     func testEveryRowIsMatchedToItsRequestInTheSamePass() {
         let requests = log(of: 200)
-        let layout = WaterfallViewModel.layout(of: requests)
+        let layout = WaterfallViewModel.layout(of: requests, limit: requests.count)
         XCTAssertEqual(layout.rows.count, 200)
         XCTAssertEqual(Set(layout.rows.map(\.id)).count, 200, "no request is drawn twice")
         XCTAssertTrue(layout.rows.first?.request === requests.first)
