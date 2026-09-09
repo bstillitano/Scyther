@@ -95,4 +95,121 @@ final class TextCarryingViewTests: XCTestCase {
         XCTAssertEqual(TextCarryingView(field)?.font?.pointSize, 13)
         XCTAssertEqual(TextCarryingView(field)?.textColour, .blue)
     }
+
+    // MARK: - The accessibility guarantee
+
+    /// The never-touch-accessibility rule covers **all three** properties, not just `text`.
+    ///
+    /// `font` and `textColour` are read from a live view by ``ViewDetailViewModel`` on every
+    /// detail page, and a regression shaped like `label.font ?? somethingAccessibility` there
+    /// would reach `UIAccessibility` on a view the walk had deliberately left alone. Every
+    /// property is read on a spy that counts, and each is left unset so a `??` fallback cannot
+    /// short-circuit past its own right-hand side — the same reason
+    /// `ViewHierarchyWalkerTests` gives its spies no text.
+    func testReadingEveryPropertyTouchesNoAccessibilityMember() {
+        let labelSpy = AccessibilitySpyLabel()
+        let buttonSpy = AccessibilitySpyButton(type: .custom)
+        let fieldSpy = AccessibilitySpyTextField()
+
+        for view in [labelSpy as UIView, buttonSpy, fieldSpy] {
+            let carrying = TextCarryingView(view)
+            _ = carrying?.text
+            _ = carrying?.font
+            _ = carrying?.textColour
+        }
+
+        XCTAssertEqual(labelSpy.accessibilityReads, 0)
+        XCTAssertEqual(buttonSpy.accessibilityReads, 0)
+        XCTAssertEqual(fieldSpy.accessibilityReads, 0)
+    }
+}
+
+/// Counts every accessibility member a text read could plausibly reach for, on a `UILabel`.
+private final class AccessibilitySpyLabel: UILabel {
+    var accessibilityReads = 0
+
+    override var isAccessibilityElement: Bool {
+        get { accessibilityReads += 1; return super.isAccessibilityElement }
+        set { super.isAccessibilityElement = newValue }
+    }
+
+    override var accessibilityLabel: String? {
+        get { accessibilityReads += 1; return super.accessibilityLabel }
+        set { super.accessibilityLabel = newValue }
+    }
+
+    override var accessibilityValue: String? {
+        get { accessibilityReads += 1; return super.accessibilityValue }
+        set { super.accessibilityValue = newValue }
+    }
+
+    override var accessibilityIdentifier: String? {
+        get { accessibilityReads += 1; return super.accessibilityIdentifier }
+        set { super.accessibilityIdentifier = newValue }
+    }
+
+    override var accessibilityAttributedLabel: NSAttributedString? {
+        get { accessibilityReads += 1; return super.accessibilityAttributedLabel }
+        set { super.accessibilityAttributedLabel = newValue }
+    }
+}
+
+/// The same instrumentation, on a `UIButton`.
+private final class AccessibilitySpyButton: UIButton {
+    var accessibilityReads = 0
+
+    override var isAccessibilityElement: Bool {
+        get { accessibilityReads += 1; return super.isAccessibilityElement }
+        set { super.isAccessibilityElement = newValue }
+    }
+
+    override var accessibilityLabel: String? {
+        get { accessibilityReads += 1; return super.accessibilityLabel }
+        set { super.accessibilityLabel = newValue }
+    }
+
+    override var accessibilityValue: String? {
+        get { accessibilityReads += 1; return super.accessibilityValue }
+        set { super.accessibilityValue = newValue }
+    }
+
+    override var accessibilityIdentifier: String? {
+        get { accessibilityReads += 1; return super.accessibilityIdentifier }
+        set { super.accessibilityIdentifier = newValue }
+    }
+
+    override var accessibilityAttributedLabel: NSAttributedString? {
+        get { accessibilityReads += 1; return super.accessibilityAttributedLabel }
+        set { super.accessibilityAttributedLabel = newValue }
+    }
+}
+
+/// The same instrumentation, on a `UITextField`.
+private final class AccessibilitySpyTextField: UITextField {
+    var accessibilityReads = 0
+
+    override var isAccessibilityElement: Bool {
+        get { accessibilityReads += 1; return super.isAccessibilityElement }
+        set { super.isAccessibilityElement = newValue }
+    }
+
+    override var accessibilityLabel: String? {
+        get { accessibilityReads += 1; return super.accessibilityLabel }
+        set { super.accessibilityLabel = newValue }
+    }
+
+    override var accessibilityValue: String? {
+        get { accessibilityReads += 1; return super.accessibilityValue }
+        set { super.accessibilityValue = newValue }
+    }
+
+    override var accessibilityIdentifier: String? {
+        get { accessibilityReads += 1; return super.accessibilityIdentifier }
+        set { super.accessibilityIdentifier = newValue }
+    }
+
+    override var accessibilityAttributedLabel: NSAttributedString? {
+        get { accessibilityReads += 1; return super.accessibilityAttributedLabel }
+        set { super.accessibilityAttributedLabel = newValue }
+    }
 }

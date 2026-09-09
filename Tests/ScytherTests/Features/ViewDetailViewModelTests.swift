@@ -12,16 +12,30 @@ final class ViewDetailViewModelTests: XCTestCase {
 
     private let windowBounds = CGRect(x: 0, y: 0, width: 400, height: 800)
 
-    /// Keeps the walked hierarchy alive for the length of the test.
+    /// Keeps the walked hierarchy alive for the length of the test. Written only by ``pin(_:)``.
     ///
-    /// The snapshot's side table is weak on purpose, so a root left to go out of scope with
-    /// ``makeModel(configure:)`` would take the subject view with it and every test here would
-    /// quietly be exercising the deallocated case instead of the one it names.
+    /// The snapshot's side table is weak on purpose, so a root left to go out of scope at the end
+    /// of the statement that walked it would take the subject view with it and every test here
+    /// would quietly be exercising the deallocated case instead of the one it names.
     private var hierarchyRoot: UIView?
 
-    private func makeModel(configure: (UIView) -> Void = { _ in }) -> ViewDetailViewModel {
-        let root = UIView(frame: windowBounds)
+    /// Pins a root for the length of the test and hands it back.
+    ///
+    /// Every test here goes through this, including the ones that build their own hierarchy:
+    /// forgetting the pin is not a test that fails, it is a test that quietly passes against the
+    /// deallocated case instead of the one it names, and this branch fixed that three times.
+    @discardableResult
+    private func pin(_ root: UIView) -> UIView {
         hierarchyRoot = root
+        return root
+    }
+
+    private func makeRoot() -> UIView {
+        pin(UIView(frame: windowBounds))
+    }
+
+    private func makeModel(configure: (UIView) -> Void = { _ in }) -> ViewDetailViewModel {
+        let root = makeRoot()
         let subject = UIView(frame: CGRect(x: 16, y: 100, width: 200, height: 44))
         configure(subject)
         root.addSubview(subject)
@@ -82,7 +96,7 @@ final class ViewDetailViewModelTests: XCTestCase {
     }
 
     func testAZeroSizeViewReportsZeroSize() async {
-        let root = UIView(frame: windowBounds)
+        let root = makeRoot()
         let collapsed = UIView(frame: CGRect(x: 0, y: 0, width: 200, height: 0))
         root.addSubview(collapsed)
         let snapshot = ViewHierarchyWalker.snapshot(of: root, windowBounds: windowBounds)
@@ -96,7 +110,9 @@ final class ViewDetailViewModelTests: XCTestCase {
     }
 
     func testAViewDeallocatedSinceTheSnapshotReportsUnavailable() async {
-        let root = UIView(frame: windowBounds)
+        // The root is pinned like every other test's, so the only thing this can be exercising is
+        // the subject's own deallocation rather than the whole hierarchy going out of scope.
+        let root = makeRoot()
         var subject: UIView? = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 44))
         root.addSubview(subject!)
         let snapshot = ViewHierarchyWalker.snapshot(of: root, windowBounds: windowBounds)
@@ -119,6 +135,7 @@ final class ViewDetailViewModelTests: XCTestCase {
     func testContextNamesTheOwningController() async {
         let controller = UIViewController()
         controller.view.frame = windowBounds
+        pin(controller.view)
         let subject = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 44))
         controller.view.addSubview(subject)
 
