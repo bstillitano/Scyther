@@ -68,6 +68,8 @@ public final class InterfaceToolkit: NSObject, Sendable {
     // MARK: - UI Elements
     public var touchVisualiser: TouchVisualiser = TouchVisualiser.instance
     internal var gridOverlayView: GridOverlayView = GridOverlayView()
+    internal var layoutGuidesView: LayoutGuidesView = LayoutGuidesView()
+    internal var layoutRulerView: LayoutRulerOverlayView = LayoutRulerOverlayView()
     internal var fpsCounterView: FPSCounterView = FPSCounterView()
     internal var accessibilityAuditView: AccessibilityAuditOverlayView = AccessibilityAuditOverlayView()
     internal var topLevelViewsWrapper: TopLevelViewsWrapper = TopLevelViewsWrapper()
@@ -262,8 +264,10 @@ public final class InterfaceToolkit: NSObject, Sendable {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             self?.setupTopLevelViewsWrapper()
             self?.setupGridOverlay()
+            self?.setupLayoutGuides()
             self?.setupFPSCounter()
             self?.setupAccessibilityAudit()
+            self?.setupLayoutRuler()
             self?.setWindowSpeed()
             // Always swizzle so views can respond to debug toggle changes
             self?.swizzleLayout()
@@ -371,6 +375,7 @@ public final class InterfaceToolkit: NSObject, Sendable {
     @objc
     internal func scytherCoverageDidChangeNotification(notification: NSNotification) {
         accessibilityAuditView.refreshForCoverageChange()
+        layoutRulerView.refreshForCoverageChange()
         guard !isScytherCoveringScreen() else { return }
         scheduleAccessibilityReaudit()
     }
@@ -390,6 +395,89 @@ extension InterfaceToolkit {
     @MainActor internal func showGridOverlay() {
         gridOverlayView.opacity = GridOverlay.instance.enabled ? CGFloat(GridOverlay.instance.opacity) : 0.0
         gridOverlayView.isHidden = !GridOverlay.instance.enabled
+    }
+}
+
+// MARK: - Layout Guides
+extension InterfaceToolkit {
+    /// Installs the guides overlay, hidden, and brings it to its current setting.
+    @MainActor internal func setupLayoutGuides() {
+        layoutGuidesView.isHidden = true
+        topLevelViewsWrapper.addTopLevelView(topLevelView: layoutGuidesView)
+        showLayoutGuides()
+    }
+
+    /// Whether the guides have anything to draw over.
+    ///
+    /// The same question ``canShowLayoutRuler`` asks, asked the same way and for the same reason:
+    /// the overlay lives in ``topLevelViewsWrapper``, which is only installed once there is a key
+    /// window, so without one switching the guides on persists a setting and puts nothing at all on
+    /// screen. The spec's rule covers both tools — "Neither tool activates; the menu row reports it
+    /// rather than appearing to work" — and a toggle that silently keeps a flag is the plainest
+    /// form of appearing to work.
+    ///
+    /// Asked of the overlay's own `window` rather than of `UIApplication`, because the overlay
+    /// being in a window is the exact condition for it being able to draw, where "a key window
+    /// exists somewhere" is only a proxy for it.
+    @MainActor internal var canShowLayoutGuides: Bool {
+        layoutGuidesView.window != nil
+    }
+
+    /// Applies ``LayoutGuides/enabled`` to the overlay.
+    @MainActor internal func showLayoutGuides() {
+        layoutGuidesView.isHidden = !LayoutGuides.instance.enabled
+    }
+}
+
+// MARK: - Layout Ruler
+extension InterfaceToolkit {
+    /// Installs the ruler's overlay, inactive, and wires the two things it reports back.
+    ///
+    /// Added after ``setupAccessibilityAudit()`` inside ``start()``, so it is the frontmost of the
+    /// wrapper's children: while the ruler is active it is the one overlay that takes touches, and
+    /// a sibling added later would sit over it and take them instead.
+    ///
+    /// ``LayoutRulerOverlayView/onDone`` and ``LayoutRulerOverlayView/onSnapModeChanged`` are wired
+    /// here rather than the overlay reaching for ``LayoutRuler`` itself, matching
+    /// ``AccessibilityAuditOverlayView/onOpenReport``: the overlay knows only that its button was
+    /// tapped, and this is the one place that knows what that means.
+    @MainActor internal func setupLayoutRuler() {
+        layoutRulerView.isHidden = true
+        layoutRulerView.onDone = {
+            LayoutRuler.instance.isActive = false
+        }
+        layoutRulerView.onSnapModeChanged = { snaps in
+            LayoutRuler.instance.snaps = snaps
+        }
+        topLevelViewsWrapper.addTopLevelView(topLevelView: layoutRulerView)
+        showLayoutRuler()
+    }
+
+    /// Whether the ruler has anything to draw over.
+    ///
+    /// The overlay lives in ``topLevelViewsWrapper``, which is only installed once there is a key
+    /// window — ``setupTopLevelViewsWrapper()`` logs and returns when there is not. Without one the
+    /// wrapper is in no window, so activating the ruler would set ``LayoutRuler/isActive`` to `true`
+    /// and put nothing at all on screen: no measurement, and — worse — no Done button, which is
+    /// the one control the whole design depends on being visible. The spec's rule for this case is
+    /// that the tool "does not activate; the menu row reports it rather than appearing to work",
+    /// and this is the question the row asks before trying.
+    ///
+    /// Asked of the overlay's own `window` rather than of `UIApplication`: the overlay being in a
+    /// window is the exact condition for it being able to draw and take touches, where "a key
+    /// window exists somewhere" is a proxy for it.
+    @MainActor internal var canShowLayoutRuler: Bool {
+        layoutRulerView.window != nil
+    }
+
+    /// Applies ``LayoutRuler/isActive`` and ``LayoutRuler/snaps`` to the overlay, mirroring
+    /// ``showLayoutGuides()``.
+    ///
+    /// Both in one call because activation is the moment the mode matters: the picker has to show
+    /// the mode the next drag will actually use, and the two are only ever read together.
+    @MainActor internal func showLayoutRuler() {
+        layoutRulerView.snapsToEdges = LayoutRuler.instance.snaps
+        layoutRulerView.setActive(LayoutRuler.instance.isActive)
     }
 }
 

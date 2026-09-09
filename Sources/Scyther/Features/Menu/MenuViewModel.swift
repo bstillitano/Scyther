@@ -86,6 +86,10 @@ import SwiftUI
 /// ### UI Debugging Controls
 ///
 /// - ``slowAnimationsEnabled``
+/// - ``layoutGuidesEnabled``
+/// - ``canShowLayoutGuides``
+/// - ``activateLayoutRuler()``
+/// - ``showsLayoutRulerUnavailableAlert``
 /// - ``showViewFrames``
 /// - ``showViewSizes``
 ///
@@ -404,6 +408,74 @@ class MenuViewModel: ViewModel {
             InterfaceToolkit.slowAnimationsEnabled = slowAnimationsEnabled
         }
     }
+
+    /// Whether the layout guides overlay is visible.
+    ///
+    /// This property is two-way synchronized with ``Scyther/interface``'s
+    /// ``Interface/layoutGuidesEnabled`` facade — the same pattern ``Interface/gridOverlayEnabled``
+    /// uses, rather than ``showViewFrames``'s direct binding to a static on ``InterfaceToolkit``,
+    /// because ``LayoutGuides`` is a settings singleton like ``GridOverlay``, not a bare
+    /// `UserDefaults`-backed static.
+    ///
+    /// The explicit call to ``InterfaceToolkit/showLayoutGuides()`` is not strictly needed —
+    /// ``LayoutGuides/enabled``'s own setter already pushes the change there — but it is kept
+    /// here anyway so this binding does not rely on a side effect buried two layers down: if a
+    /// future change to ``LayoutGuides`` ever dropped that push, the menu's own toggle would
+    /// still work.
+    @Published var layoutGuidesEnabled: Bool = Scyther.interface.layoutGuidesEnabled {
+        didSet {
+            Scyther.interface.layoutGuidesEnabled = layoutGuidesEnabled
+            InterfaceToolkit.instance.showLayoutGuides()
+        }
+    }
+
+    /// Whether the guides row can do anything, so ``MenuView`` can disable it when it cannot.
+    ///
+    /// The guides' half of the spec's "neither tool activates; the menu row reports it rather than
+    /// appearing to work". The ruler answers that with an alert because it has a tap to intercept;
+    /// a `Toggle` has none — by the time it calls back the flag has already moved — so the row says
+    /// it instead by being disabled, which is the stock way a control states it cannot act. The
+    /// setting itself is left alone: it is persisted, and a launch that has a key window should
+    /// still find the guides as the developer left them.
+    var canShowLayoutGuides: Bool {
+        InterfaceToolkit.instance.canShowLayoutGuides
+    }
+
+    /// Dismisses the menu and puts the layout ruler on screen.
+    ///
+    /// Not a toggle, which is why it is a method rather than a `@Published` property: the ruler
+    /// consumes every touch on the screen while it is active, so leaving it switched on behind an
+    /// open menu would mean the developer dismissed the menu into an app that no longer responds
+    /// to anything. Activation and dismissal are one gesture.
+    ///
+    /// Activated in `hideMenu`'s completion rather than before it, so the overlay starts taking
+    /// touches only once the menu has actually gone — an overlay is brought to the front of the
+    /// key window, and one activated mid-animation would sit over the dismissal it is interrupting.
+    /// The hop through `Task { @MainActor in }` is because that completion is a plain,
+    /// non-isolated closure, while ``LayoutRuler`` is main-actor state.
+    ///
+    /// With no key window there is nothing to draw over, and this reports that instead of
+    /// dismissing the menu — ``showsLayoutRulerUnavailableAlert``. The spec's rule for the case is
+    /// that the tool "does not activate; the menu row reports it rather than appearing to work",
+    /// and the ruler is the worst possible place to fail silently: it would leave
+    /// ``LayoutRuler/isActive`` set with no visible Done to clear it.
+    func activateLayoutRuler() {
+        guard InterfaceToolkit.instance.canShowLayoutRuler else {
+            showsLayoutRulerUnavailableAlert = true
+            return
+        }
+
+        Scyther.hideMenu {
+            Task { @MainActor in
+                LayoutRuler.instance.isActive = true
+            }
+        }
+    }
+
+    /// Whether to tell the developer the ruler has no window to draw over.
+    ///
+    /// Driven only by ``activateLayoutRuler()``; ``MenuView`` binds an alert to it.
+    @Published var showsLayoutRulerUnavailableAlert: Bool = false
 
     /// Whether view frames are shown.
     ///

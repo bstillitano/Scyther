@@ -91,6 +91,8 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 
 ### UI/UX Tools
 - **Grid Overlay**: Display alignment grid over your UI
+- **Layout Guides**: Draw the key window's safe-area insets and layout margins over your UI
+- **Layout Ruler**: Drag to measure between two points, snapping each end to the nearest view edge — it takes over every touch on screen while active, so tap **Done** to get the app back
 - **FPS Counter**: Real-time frame rate overlay with color-coded performance indicators
 - **Touch Visualizer**: Show touch points for demos and recordings
 - **Accessibility Audit**: Walk the live accessibility tree for missing VoiceOver labels, undersized touch targets, and low-contrast text, with a live on-screen overlay for the two checks that cost nothing
@@ -1665,6 +1667,44 @@ GridOverlay.instance.size = 8        // Grid size in points
 GridOverlay.instance.opacity = 0.5   // Grid opacity (0.0 - 1.0)
 GridOverlay.instance.colorScheme = .blue
 ```
+
+#### Layout Guides
+
+Draw the key window's safe-area insets and layout margins over your UI, each labelled with
+its measurement in points. Zero insets are not drawn:
+
+```swift
+// Enable layout guides
+Scyther.interface.layoutGuidesEnabled = true
+```
+
+With no key window there is nothing to draw over, and the menu's toggle is disabled rather than
+persisting a setting that shows nothing — the same rule the Layout Ruler's row reports with an
+alert.
+
+#### Layout Ruler
+
+Drag anywhere on the running app to measure between two points. Open the Scyther menu and choose
+**Layout Ruler** under **UI/UX**; the menu dismisses and an overlay takes the screen.
+
+In **Snap** mode — the default — each end attaches to the nearest edge of the view beneath it, so
+a drag roughly between two labels reports the real gap rather than how steady your thumb was, and
+the readout names both ends (`UILabel.bottom → UIImageView.top`). In **Free** mode the ends stay
+exactly where you put them and the readout carries the distance alone. An end with nothing under it
+is named `free point` instead of reporting a snap that did not happen.
+
+The measurement stays on screen so it can be read, is replaced by the next drag, cleared by a tap,
+and cleared by a rotation that actually resizes the app — its endpoints described a layout that no
+longer exists. An orientation change the app does not honour leaves it alone.
+
+**While active, the overlay takes over every touch on screen: the app underneath cannot be
+tapped, scrolled, or navigated until you leave the ruler.** Nothing has frozen — tap **Done** to
+exit the overlay and hand touches straight back to the app; it stays on screen for exactly this
+reason. The shake gesture still reaches the menu regardless, being a motion event rather than a
+touch. Neither activation nor the mode is persisted, and with no key window to draw over the menu
+row reports that rather than activating with no visible way out.
+
+Scyther's own interface is never measured: the probe skips it and finds the app underneath.
 
 #### FPS Counter
 

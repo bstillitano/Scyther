@@ -20,7 +20,7 @@ import SwiftUI
 /// - **Security**: Keychain browser
 /// - **System Tools**: Location spoofer, console logs
 /// - **Notifications**: Notification logger and tester
-/// - **UI/UX**: Fonts, components, grid overlay, touch visualizer
+/// - **UI/UX**: Fonts, components, grid overlay, layout guides, layout ruler, touch visualizer
 ///
 /// The menu displays device information in a header and provides navigation
 /// to all sub-features.
@@ -59,6 +59,15 @@ public struct MenuView: View {
             }
         }
         .searchable(text: $viewModel.searchText, prompt: localized("Search"))
+        // An alert rather than anything quieter: the row it answers for did nothing visible, and a
+        // tool that silently declines to start is indistinguishable from one that is broken. Bound
+        // here rather than on either row so both the browsing row and the search result — which
+        // call the same method — are covered by one.
+        .alert(localized("No Window to Measure"), isPresented: $viewModel.showsLayoutRulerUnavailableAlert) {
+            Button(localized("OK"), role: .cancel) {}
+        } message: {
+            Text(localized("The layout ruler draws over the app's key window, and this app has none right now."))
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
@@ -163,6 +172,20 @@ public struct MenuView: View {
                 Toggle(isOn: $viewModel.showViewFrames) { searchResultLabel(for: entry) }
             case .showViewSizes:
                 Toggle(isOn: $viewModel.showViewSizes) { searchResultLabel(for: entry) }
+            case .layoutGuides:
+                Toggle(isOn: $viewModel.layoutGuidesEnabled) { searchResultLabel(for: entry) }
+                    .disabled(!viewModel.canShowLayoutGuides)
+            case .layoutRuler:
+                // An action, not a destination: without a case of its own this would fall
+                // through to `navigationResult(for:)`, whose `destination(for:)` has nothing to
+                // push for a row that is not a page — a search hit that opened a blank screen with
+                // only a back button, which is exactly the defect Layout Guides shipped with.
+                Button {
+                    viewModel.activateLayoutRuler()
+                } label: {
+                    searchResultLabel(for: entry)
+                }
+                .buttonStyle(.plain)
             case .ipAddress:
                 HStack {
                     searchResultLabel(for: entry)
@@ -558,6 +581,14 @@ public struct MenuView: View {
             navigationRow(for: item)
         case .gridOverlay:
             navigationRow(for: item)
+        case .layoutGuides:
+            // Disabled with no key window to draw over, mirroring the ruler's alert — see
+            // ``MenuViewModel/canShowLayoutGuides`` for why the two tools report the same
+            // condition in two different shapes.
+            toggleRow(item.title, icon: item.icon, tint: item.tint, isOn: $viewModel.layoutGuidesEnabled)
+                .disabled(!viewModel.canShowLayoutGuides)
+        case .layoutRuler:
+            actionRow(for: item) { viewModel.activateLayoutRuler() }
         case .fpsCounter:
             navigationRow(for: item)
         case .touchVisualiser:
@@ -577,6 +608,26 @@ public struct MenuView: View {
         case .showViewSizes:
             toggleRow(item.title, icon: item.icon, tint: item.tint, isOn: $viewModel.showViewSizes)
         }
+    }
+
+    /// A row that performs something immediately rather than navigating or toggling.
+    ///
+    /// The layout ruler is the menu's only one: it has no page to push and no setting to show,
+    /// because activating it means dismissing the menu and handing the screen to an overlay. The
+    /// row still wears the shared anatomy — icon tile, title — so it reads as part of the list
+    /// rather than as a stray control, and `.buttonStyle(.plain)` is what keeps it doing so: a
+    /// `Button` in a `List` otherwise tints its entire label, icon tile included, with the accent
+    /// colour.
+    ///
+    /// - Parameters:
+    ///   - item: The row, supplying its title, icon and section tint.
+    ///   - action: What tapping it does.
+    /// - Returns: The row.
+    func actionRow(for item: MenuItem, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            row(withLabel: item.title, icon: item.icon, tint: item.tint)
+        }
+        .buttonStyle(.plain)
     }
 
     func row(withLabel label: String, description: String? = nil, icon: String? = nil, tint: Color = .accentColor, andLoadingState loading: Bool = false) -> some View {
