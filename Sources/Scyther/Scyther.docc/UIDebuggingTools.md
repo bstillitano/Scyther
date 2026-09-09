@@ -221,7 +221,8 @@ This shows width and height labels, helping you verify views are sized correctly
 
 Browse a snapshot of the key window's view hierarchy — every view's class, its size, and why it
 might be invisible — without adding anything to your code. Open **View Hierarchy** under **UI/UX**
-in the Scyther menu.
+in the Scyther menu. The row is disabled when the app has no key window, since there would be
+nothing to walk.
 
 ### The Tree
 
@@ -235,14 +236,21 @@ A `.searchable` field matches a view's class name and any text it carries itself
 `text`, a `UIButton`'s current title — and lists each hit with its ancestor path, so a result reads
 `UIWindow › … › UIButton` before you tap it.
 
+**Text search reaches UIKit-backed text only.** SwiftUI *draws* a `Text` rather than holding the
+string in a label, so on a SwiftUI screen a navigation bar title matches — it is a `UILabel` under
+the hood — and body text does not. The richer answer would be each view's accessibility label, and
+that is exactly the property this feature must never read: see *Read-Only, and a Snapshot Rather
+Than a Live Tree* below, and <doc:AccessibilityAuditing>.
+
 Pull to refresh walks the window again; expansion is preserved for rows that still exist. The
 header states the node count and when the snapshot was taken.
 
 ### The Detail Page
 
 Selecting a row pushes a page carrying, in order: a rendered thumbnail beside a position map
-showing where the view sits on a scaled outline of the screen; **Geometry** (`frame`, `bounds`,
-`center`, safe-area insets, layout margins); **Appearance** (`alpha`, `isHidden`, background
+showing where the view sits on a scaled outline of the screen; **Geometry** (the frame — stated in
+*window* space, not the superview's, which is why the row says so — `bounds`, `center`, safe-area
+insets, layout margins); **Appearance** (`alpha`, `isHidden`, background
 colour, corner radius, `clipsToBounds`, content mode, and — for views that carry text — the
 string, font and text colour); **Context** (the owning view controller, the view's position in the
 responder chain, and whether it is first responder); and **Behaviour**

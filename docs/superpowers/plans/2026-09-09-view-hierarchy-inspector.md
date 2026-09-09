@@ -10,6 +10,34 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-09-view-hierarchy-inspector-design.md`
 
+---
+
+## What shipped, and where it differs from this plan
+
+**This plan is finished.** It was written before the code and amended once mid-execution; the code
+blocks below are the shape the work was *started* from, not the shape it ended in. The source of
+truth is `Sources/Scyther/Features/ViewHierarchy/` and the twelve rulings recorded in
+`.superpowers/sdd/2026-09-09-view-hierarchy-inspector/`. Copy from the code, not from here.
+
+Every difference a reader would otherwise trip over:
+
+| Planned | Shipped | Why |
+| --- | --- | --- |
+| `isOwned: (UIView) -> Bool = { $0.isScytherOwned }` | `isOwned: (UIView, ObjectIdentifier?) -> Bool = { $0.isScytherOwned(below: $1) }` | The unbounded rule re-climbs the responder chain per node — 8.73 ms against 3.01 ms on a 1,663-node tree. The parent, already known not to be Scyther's, is the boundary. Task 2 fix round. |
+| `testTheDefaultOwnershipTestIsScytherOwn` asserts a plain `UIView` is not skipped | It asserts a real `TopLevelView` **is** skipped, having first asserted that premise | A plain `UIView` is not Scyther's under any candidate rule, so the planned test proved only that the default is not aggressive — the wrong direction. Task 2 review. |
+| `let frame = view.superview.map { $0.convert(view.frame, to: root) } ?? view.frame` | `let frame = root.convert(view.bounds, from: view)` | `frame` is undefined when `transform` is not the identity. The bounds form is defined in every case, identical without a transform, and needs no root special case. Final review, F1. |
+| A private `text(of:)` on the walker, and two more copies on the detail page | One `TextCarryingView` whitelist carrying `text`, `font` and `textColour` | The same three-case switch was being written three times against three different properties. Task 4. |
+| Tree rows drawn with a stock `DisclosureGroup` | A leading disclosure `Button` beside the row's `NavigationLink` | A `DisclosureGroup` whose label is a `NavigationLink` draws the collapsed chevron identically to the link's own accessory: one glyph, two meanings, and a collapsed parent indistinguishable from a leaf. Ruling 16, earned on device. |
+| The model publishes `visibleNodes: [ViewNode]` and `matches: [Match]` | It publishes `visibleRows: [TreeRow]` and `matchRows: [MatchRow]` only | A `ViewNode` carries its whole subtree, so a row built from one held four hundred nodes to draw one line. Two parallel representations then came apart in the one branch that maintained them by hand. Task 5; final review, F2. |
+| One `Row` type for the tree and for search | `Row` (the line), `TreeRow` (the line plus its place in the tree), `MatchRow` (the line plus its ancestor path) | Indentation, child count and expansion are meaningless in a flat result list. Final review, F9. |
+| The detail page's first geometry row is labelled `Frame` | `Frame (in window)` | `UIView.frame` is in the superview's space; the row reports window space. Final review, F10. |
+| The menu row navigates unconditionally; the page reports a missing key window | The row **and** its search result are `.disabled` when there is no key window, and the page still reports it | The spec's first edge case says the menu row reports it, and the Layout Guides row already answers the same condition the same way. Final review, F3. |
+| Each feature resolves the key window privately | `UIApplication.scytherKeyWindow`, shared | There were seven copies, three still carrying an unreachable pre-iOS-15 fallback. Final review, F14. |
+| Tree rows mark a view deallocated since the walk | They do not; the detail page does | Marking them means re-resolving every visible weak reference on every render — the hot path this feature exists to avoid. The spec's edge-case table was amended to say so rather than leaving the omission to read as an accident. Ruling 17. |
+| `ViewNode`'s own tests sit in `ViewNodeSearchTests.swift` | `Tests/ScytherTests/Features/ViewNodeTests.swift` | Every other type on the branch has a test file named after it. Final review, F7. |
+
+---
+
 ## Global Constraints
 
 - Swift 6 language mode, complete strict concurrency. iOS 16 deployment floor — `ContentUnavailableView` and `MagnifyGesture` are iOS 17 and need `#available` guards.
@@ -536,21 +564,33 @@ final class ViewHierarchyWalkerTests: XCTestCase {
 
         let snapshot = ViewHierarchyWalker.snapshot(of: root,
                                                     windowBounds: windowBounds,
-                                                    isOwned: { $0 === ours })
+                                                    isOwned: { view, _ in view === ours })
 
         XCTAssertEqual(snapshot.root.children.count, 1,
                        "the owned view and everything beneath it is gone, the host view stays")
         XCTAssertEqual(snapshot.nodeCount, 2)
     }
 
-    /// The default really is the shared rule, not a stub that only the tests exercise.
+    /// The default really is the shared rule, and in the direction that matters.
+    ///
+    /// **Amended after the Task 2 review.** As planned, this asserted that a plain `UIView` is not
+    /// skipped — which is true under every candidate rule, permissive or strict, and so proved
+    /// only that the default is not aggressive. The defect worth catching is the opposite one: an
+    /// unguarded default that skips nothing means Scyther's own menu shows up in the tree it is
+    /// rendering. What shipped asserts its own premise first, then that a real Scyther type is
+    /// skipped and its plain sibling survives.
     func testTheDefaultOwnershipTestIsScytherOwn() {
         let root = makeRoot()
-        root.addSubview(UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10)))
+        let ours = TopLevelView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
+        XCTAssertTrue(ours.isScytherOwned, "the premise the rest of this test depends on")
+        root.addSubview(ours)
+        root.addSubview(UIView(frame: CGRect(x: 0, y: 200, width: 10, height: 10)))
 
         let snapshot = ViewHierarchyWalker.snapshot(of: root, windowBounds: windowBounds)
 
-        XCTAssertEqual(snapshot.nodeCount, 2, "a plain UIView is not Scyther's, so nothing is skipped")
+        XCTAssertEqual(snapshot.root.children.count, 1,
+                       "the default rule skips Scyther's own view; the plain sibling survives")
+        XCTAssertEqual(snapshot.nodeCount, 2)
     }
 
     func testTheSideTableResolvesANodeBackToItsView() {
@@ -622,10 +662,12 @@ private final class AccessibilitySpyView: UIView {
 ```swift
 static func snapshot(of root: UIView,
                      windowBounds: CGRect,
-                     isOwned: (UIView) -> Bool = { $0.isScytherOwned }) -> ViewHierarchySnapshot
+                     isOwned: (UIView, ObjectIdentifier?) -> Bool = { $0.isScytherOwned(below: $1) }) -> ViewHierarchySnapshot
 ```
 
-Only the one test passes a stub; every production call site uses the default, and `testTheDefaultOwnershipTestIsScytherOwn` proves the default is wired to the real rule rather than to something permissive.
+Only the one test passes a stub; every production call site uses the default, and `testTheDefaultOwnershipTestIsScytherOwn` proves the default is wired to the real rule rather than to something permissive — by asserting a real Scyther type *is* skipped, not that a plain `UIView` is not.
+
+The second parameter is the boundary the shipped code added: the nearest ancestor already known not to be Scyther's, so the rule tests one link instead of re-climbing the responder chain from every node. See the amendment table at the top of this plan.
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
@@ -739,20 +781,23 @@ enum ViewHierarchyWalker {
     ///   - root: The view to walk.
     ///   - windowBounds: The bounds every frame is converted into and measured against.
     /// - Returns: The snapshot.
-    ///   - isOwned: The ownership test. Defaults to the shared ``AuditNode/isScytherOwned`` rule;
-    ///     injectable only because that property lives on an extension and cannot be overridden
-    ///     by a test subclass.
+    ///   - isOwned: The ownership test, given the candidate view and the nearest ancestor already
+    ///     known not to be Scyther's. Defaults to the shared ``AuditNode/isScytherOwned(below:)``
+    ///     rule; injectable only because that member lives on an extension and cannot be
+    ///     overridden by a test subclass.
     static func snapshot(of root: UIView,
                          windowBounds: CGRect,
-                         isOwned: (UIView) -> Bool = { $0.isScytherOwned }) -> ViewHierarchySnapshot {
+                         isOwned: (UIView, ObjectIdentifier?) -> Bool = { $0.isScytherOwned(below: $1) }) -> ViewHierarchySnapshot {
         var views: [ObjectIdentifier: UIView] = [:]
 
         func node(for view: UIView, depth: Int, ancestorsHidden: Bool) -> ViewNode {
-            let frame = view.superview.map { $0.convert(view.frame, to: root) } ?? view.frame
+            // `bounds`, never `frame`: `frame` is undefined under a transform. See the amendment
+            // table at the top of this plan.
+            let frame = root.convert(view.bounds, from: view)
             let hidden = ancestorsHidden || view.isHidden || view.alpha <= 0.01
 
             let children = view.subviews
-                .filter { !isOwned($0) }
+                .filter { !isOwned($0, ObjectIdentifier(view)) }
                 .map { node(for: $0, depth: depth + 1, ancestorsHidden: hidden) }
 
             views[ObjectIdentifier(view)] = view
@@ -1553,7 +1598,7 @@ Create `Sources/Scyther/Features/ViewHierarchy/ViewHierarchyViewModel.swift`, su
 
 Create `Sources/Scyther/Features/ViewHierarchy/ViewHierarchyView.swift`:
 
-- A `List`. When not searching it shows the tree, each row indented by `ViewNode.indentationLevel(forDepth:)` × a fixed step, with a stock `DisclosureGroup` for nodes with children. When searching it shows one row per `ViewNodeSearch.Match`, the ancestor path above the class name in `.caption`.
+- A `List`. When not searching it shows the tree, each row indented by `ViewNode.indentationLevel(forDepth:)` × a fixed step, with a leading disclosure `Button` beside the row's `NavigationLink` for nodes with children — **not** a `DisclosureGroup`; see the amendment table at the top of this plan. When searching it shows one row per match, the ancestor path above the class name in `.caption`.
 - Each row shows the class name, `"\(Int(size.width)) × \(Int(size.height))"`, and badges for hidden / zero-size / off-screen. Each badge's word goes through `localized(_:)` and is included in the row's `.accessibilityLabel`, so a badge is spoken and not only seen.
 - `.searchable(text: $viewModel.searchText, prompt: localized("Search classes and text"))`
 - `.refreshable { viewModel.loadFromKeyWindow() }`
