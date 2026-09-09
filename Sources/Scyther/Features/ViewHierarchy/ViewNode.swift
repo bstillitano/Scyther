@@ -29,8 +29,8 @@ struct ViewNode: Identifiable, Equatable, Sendable {
     /// How many ancestors sit between this node and the root. The root is `0`.
     let depth: Int
 
-    /// Text the view carries itself — a `UILabel`'s `text`, a `UIButton`'s current title —
-    /// or `nil`. Never read from an accessibility property.
+    /// Text the view carries itself — a `UILabel`'s `text`, a `UIButton`'s current title, a
+    /// `UITextField`'s `text` — or `nil`. Never read from an accessibility property.
     let text: String?
 
     /// Whether the view is invisible: `isHidden`, or an effective alpha at or below `0.01`

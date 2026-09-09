@@ -30,6 +30,23 @@ final class ViewHierarchyWalkerTests: XCTestCase {
         XCTAssertEqual(snapshot.nodeCount, 3)
     }
 
+    /// `snapshot(of: UIWindow)` is the overload production actually calls — it decides what
+    /// `windowBounds` is in real use, which the `UIView` overload's tests never exercise.
+    func testSnapshotOfAWindowUsesTheWindowsBounds() {
+        let window = UIWindow(frame: windowBounds)
+        let child = UIView(frame: CGRect(x: 0, y: 780, width: 100, height: 50))
+        let away = UIView(frame: CGRect(x: 0, y: 900, width: 100, height: 50))
+        window.addSubview(child)
+        window.addSubview(away)
+
+        let snapshot = ViewHierarchyWalker.snapshot(of: window)
+
+        XCTAssertEqual(snapshot.root.frameInWindow, windowBounds)
+        XCTAssertFalse(snapshot.root.children[0].isOffScreen,
+                       "twenty points of it are visible against the window's own bounds")
+        XCTAssertTrue(snapshot.root.children[1].isOffScreen)
+    }
+
     func testDepthCountsAncestorsFromTheRoot() {
         let root = makeRoot()
         let middle = UIView()
@@ -144,6 +161,17 @@ final class ViewHierarchyWalkerTests: XCTestCase {
         XCTAssertEqual(buttonNode.text, "Run GraphQL Query")
     }
 
+    func testATextFieldsTextIsCarried() {
+        let root = makeRoot()
+        let field = UITextField(frame: CGRect(x: 0, y: 0, width: 100, height: 30))
+        field.text = "user@example.com"
+        root.addSubview(field)
+
+        let snapshot = ViewHierarchyWalker.snapshot(of: root, windowBounds: windowBounds)
+
+        XCTAssertEqual(snapshot.root.children[0].text, "user@example.com")
+    }
+
     func testAPlainViewCarriesNoText() {
         let root = makeRoot()
         root.addSubview(UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10)))
@@ -168,21 +196,35 @@ final class ViewHierarchyWalkerTests: XCTestCase {
 
         let snapshot = ViewHierarchyWalker.snapshot(of: root,
                                                     windowBounds: windowBounds,
-                                                    isOwned: { $0 === ours })
+                                                    isOwned: { view, _ in view === ours })
 
         XCTAssertEqual(snapshot.root.children.count, 1,
                        "the owned view and everything beneath it is gone, the host view stays")
         XCTAssertEqual(snapshot.nodeCount, 2)
     }
 
-    /// The default really is the shared rule, not a stub that only the tests exercise.
+    /// The default really is the shared rule, and in the direction that matters.
+    ///
+    /// A plain `UIView` is not Scyther's under *any* candidate rule — permissive, strict, or
+    /// correct — so asserting that nothing is skipped for one only proves the default is not
+    /// *aggressive*. That is the wrong direction: an unguarded default that skips nothing would
+    /// mean Scyther's own menu shows up in the tree it is rendering, which is the actual defect
+    /// this test exists to catch. `TopLevelView` is a concrete, cheaply-instantiated Scyther type
+    /// that the shared rule recognises structurally (`isScytherOwnedType(_:)` in `AuditNode.swift`),
+    /// so the premise is asserted first — if that ever stops holding, this must fail loudly rather
+    /// than quietly proving nothing.
     func testTheDefaultOwnershipTestIsScytherOwn() {
         let root = makeRoot()
-        root.addSubview(UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10)))
+        let ours = TopLevelView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
+        XCTAssertTrue(ours.isScytherOwned, "the premise the rest of this test depends on")
+        root.addSubview(ours)
+        root.addSubview(UIView(frame: CGRect(x: 0, y: 200, width: 10, height: 10)))
 
         let snapshot = ViewHierarchyWalker.snapshot(of: root, windowBounds: windowBounds)
 
-        XCTAssertEqual(snapshot.nodeCount, 2, "a plain UIView is not Scyther's, so nothing is skipped")
+        XCTAssertEqual(snapshot.root.children.count, 1,
+                       "the default rule skips Scyther's own view; the plain sibling survives")
+        XCTAssertEqual(snapshot.nodeCount, 2)
     }
 
     func testTheSideTableResolvesANodeBackToItsView() {
@@ -220,6 +262,13 @@ final class ViewHierarchyWalkerTests: XCTestCase {
 
     /// The accessibility audit hung this app in 4.3.0 by asking views for their accessibility
     /// children. This proves the walk never asks — kept honest by a spy rather than by intent.
+    ///
+    /// A plain `UIView` spy only ever reaches `text(of:)`'s `default` branch, so it cannot catch
+    /// the regression's likeliest shape: a read added *inside* a concrete-type branch, such as
+    /// `label.text ?? label.accessibilityLabel`.
+    /// ``testTheWalkNeverReadsAnAccessibilityPropertyFromTextBearingViews()`` covers that with
+    /// subclass spies on `UILabel` and `UIButton` themselves, matched by the same
+    /// `case let … as` tests `text(of:)` runs.
     func testTheWalkNeverReadsAnAccessibilityProperty() {
         let root = makeRoot()
         let spy = AccessibilitySpyView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
@@ -229,9 +278,34 @@ final class ViewHierarchyWalkerTests: XCTestCase {
 
         XCTAssertEqual(spy.accessibilityReads, 0)
     }
+
+    /// See the comment on ``testTheWalkNeverReadsAnAccessibilityProperty()``: this is the half of
+    /// the guard a plain-`UIView` spy cannot provide, because the walk only ever reaches these
+    /// members through `text(of:)`'s `UILabel` and `UIButton` branches.
+    ///
+    /// `text`/`currentTitle` are deliberately left unset (`nil`), not given a value. A regression
+    /// shaped like `label.text ?? label.accessibilityLabel` only evaluates its right-hand side
+    /// when the left is `nil` — `??` short-circuits otherwise — so a spy with real text would let
+    /// that exact regression through silently. Leaving both unset is what makes this test able to
+    /// see the read it exists to catch.
+    func testTheWalkNeverReadsAnAccessibilityPropertyFromTextBearingViews() {
+        let root = makeRoot()
+        let labelSpy = AccessibilityLabelSpy(frame: CGRect(x: 0, y: 0, width: 100, height: 20))
+        let buttonSpy = AccessibilityButtonSpy(type: .system)
+        buttonSpy.frame = CGRect(x: 0, y: 30, width: 100, height: 44)
+        root.addSubview(labelSpy)
+        root.addSubview(buttonSpy)
+
+        _ = ViewHierarchyWalker.snapshot(of: root, windowBounds: windowBounds)
+
+        XCTAssertEqual(labelSpy.accessibilityReads, 0)
+        XCTAssertEqual(buttonSpy.accessibilityReads, 0)
+    }
 }
 
-/// Counts every accessibility member the walk could reach through the container protocol.
+/// Counts every accessibility member the walk could reach through the container protocol, plus
+/// the members a `text(of:)` regression would plausibly reach for on a view with no text property
+/// of its own.
 private final class AccessibilitySpyView: UIView {
     var accessibilityReads = 0
 
@@ -250,8 +324,91 @@ private final class AccessibilitySpyView: UIView {
         return super.accessibilityElement(at: index)
     }
 
+    override var isAccessibilityElement: Bool {
+        get { accessibilityReads += 1; return super.isAccessibilityElement }
+        set { super.isAccessibilityElement = newValue }
+    }
+
     override var accessibilityLabel: String? {
         get { accessibilityReads += 1; return super.accessibilityLabel }
         set { super.accessibilityLabel = newValue }
+    }
+
+    override var accessibilityIdentifier: String? {
+        get { accessibilityReads += 1; return super.accessibilityIdentifier }
+        set { super.accessibilityIdentifier = newValue }
+    }
+
+    override var accessibilityValue: String? {
+        get { accessibilityReads += 1; return super.accessibilityValue }
+        set { super.accessibilityValue = newValue }
+    }
+
+    override var accessibilityTraits: UIAccessibilityTraits {
+        get { accessibilityReads += 1; return super.accessibilityTraits }
+        set { super.accessibilityTraits = newValue }
+    }
+}
+
+/// The same instrumentation as ``AccessibilitySpyView``, on a `UILabel` — the concrete type
+/// `text(of:)` actually matches, so this is the spy that would catch
+/// `label.text ?? label.accessibilityLabel` written inside that branch.
+private final class AccessibilityLabelSpy: UILabel {
+    var accessibilityReads = 0
+
+    override var isAccessibilityElement: Bool {
+        get { accessibilityReads += 1; return super.isAccessibilityElement }
+        set { super.isAccessibilityElement = newValue }
+    }
+
+    override var accessibilityLabel: String? {
+        get { accessibilityReads += 1; return super.accessibilityLabel }
+        set { super.accessibilityLabel = newValue }
+    }
+
+    override var accessibilityIdentifier: String? {
+        get { accessibilityReads += 1; return super.accessibilityIdentifier }
+        set { super.accessibilityIdentifier = newValue }
+    }
+
+    override var accessibilityValue: String? {
+        get { accessibilityReads += 1; return super.accessibilityValue }
+        set { super.accessibilityValue = newValue }
+    }
+
+    override var accessibilityTraits: UIAccessibilityTraits {
+        get { accessibilityReads += 1; return super.accessibilityTraits }
+        set { super.accessibilityTraits = newValue }
+    }
+}
+
+/// The same instrumentation as ``AccessibilitySpyView``, on a `UIButton` — the concrete type
+/// `text(of:)` matches for its `currentTitle` branch.
+private final class AccessibilityButtonSpy: UIButton {
+    var accessibilityReads = 0
+
+    override var isAccessibilityElement: Bool {
+        get { accessibilityReads += 1; return super.isAccessibilityElement }
+        set { super.isAccessibilityElement = newValue }
+    }
+
+    override var accessibilityLabel: String? {
+        get { accessibilityReads += 1; return super.accessibilityLabel }
+        set { super.accessibilityLabel = newValue }
+    }
+
+    override var accessibilityIdentifier: String? {
+        get { accessibilityReads += 1; return super.accessibilityIdentifier }
+        set { super.accessibilityIdentifier = newValue }
+    }
+
+    override var accessibilityValue: String? {
+        get { accessibilityReads += 1; return super.accessibilityValue }
+        set { super.accessibilityValue = newValue }
+    }
+
+    override var accessibilityTraits: UIAccessibilityTraits {
+        get { accessibilityReads += 1; return super.accessibilityTraits }
+        set { super.accessibilityTraits = newValue }
     }
 }

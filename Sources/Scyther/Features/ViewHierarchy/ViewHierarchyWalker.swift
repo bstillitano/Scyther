@@ -9,10 +9,17 @@ import UIKit
 /// Builds a ``ViewHierarchySnapshot`` from a live view hierarchy.
 ///
 /// **Everything this reads is a cheap stored property**: `subviews`, `frame`, `isHidden`,
-/// `alpha`, and a text property on two concrete types. It must never touch the accessibility
-/// tree. Asking a `UIView` for its accessibility children forces `UIAccessibility` to compute a
-/// subtree recursively, which is what hung this app in 4.3.0 — and a hierarchy walk is that
-/// mistake's natural home.
+/// `alpha`, and a text property on three concrete types (`UILabel`, `UIButton`, `UITextField`).
+/// It must never touch the accessibility tree. Asking a `UIView` for its accessibility children
+/// forces `UIAccessibility` to compute a subtree recursively, which is what hung this app in
+/// 4.3.0 — and a hierarchy walk is that mistake's natural home.
+///
+/// Recursion is deliberately unbounded, unlike ``AccessibilityAuditor``'s depth and node caps.
+/// Those exist because one link the audit climbs — `accessibilityContainer` — is an app-settable
+/// weak reference that can point back at itself, a genuine cycle `subviews` cannot form. A
+/// hierarchy deep enough to overflow this walk would already have broken UIKit's own recursive
+/// layout and hit-testing, so a cap here would only silently truncate a real tree to defend
+/// against one that cannot exist.
 @MainActor
 enum ViewHierarchyWalker {
     /// Walks the key window.
@@ -28,29 +35,54 @@ enum ViewHierarchyWalker {
     /// Split from ``snapshot(of:)-(UIWindow)`` so the rules can be exercised against a synthetic
     /// hierarchy without standing up a window.
     ///
+    /// The root itself is never ownership-tested — only its subviews are, before the walk
+    /// recurses into them. In production `root` is always the key window, which is never
+    /// Scyther's, so this is a deliberate trust rather than a gap: ownership is a rule about what
+    /// the walk descends *into*, not about the view the caller chose to start from.
+    ///
     /// - Parameters:
     ///   - root: The view to walk.
     ///   - windowBounds: The bounds every frame is converted into and measured against.
-    ///   - isOwned: The ownership test. Defaults to the shared ``AuditNode/isScytherOwned`` rule;
-    ///     injectable only because that property lives on an extension and cannot be overridden
-    ///     by a test subclass.
+    ///   - isOwned: The ownership test, given the candidate view and the nearest ancestor already
+    ///     known not to be Scyther's. Defaults to the shared ``AuditNode/isScytherOwned(below:)``
+    ///     rule; injectable only because that member lives on an extension and cannot be
+    ///     overridden by a test subclass.
     /// - Returns: The snapshot.
-    static func snapshot(of root: UIView,
-                         windowBounds: CGRect,
-                         isOwned: (UIView) -> Bool = { $0.isScytherOwned }) -> ViewHierarchySnapshot {
+    static func snapshot(
+        of root: UIView,
+        windowBounds: CGRect,
+        isOwned: (UIView, ObjectIdentifier?) -> Bool = { $0.isScytherOwned(below: $1) }
+    ) -> ViewHierarchySnapshot {
         var views: [ObjectIdentifier: UIView] = [:]
 
         func node(for view: UIView, depth: Int, ancestorsHidden: Bool) -> ViewNode {
+            // Every node's frame is converted into `root`'s own coordinate space, so the whole
+            // tree is measured in one space. `root` itself is the one view with nowhere to
+            // convert *from* in that space other than itself: when it has a superview, this
+            // converts its own `frame` — defined in that superview's space — back into its own
+            // space, which is its bounds' size at its own origin, not the `frame` value literally
+            // unconverted. That is correct, not merely tolerated: the root defines the space
+            // everything else is measured in, so its own frame in that space *is* its bounds.
+            // `snapshot(of: UIWindow)`, the only production entry point, never hits this case —
+            // a window has no superview — so this only matters for a synthetic root in a test.
             let frame = view.superview.map { $0.convert(view.frame, to: root) } ?? view.frame
             let hidden = ancestorsHidden || view.isHidden || view.alpha <= 0.01
+            let identity = ObjectIdentifier(view)
 
+            // `view` reaches this point only once it is already known not to be Scyther's — it
+            // is either `root`, which is trusted, or a subview that has already passed the
+            // filter below in its parent's call. So its own identity is a sound boundary for the
+            // climb each of its children makes: the shared rule only needs to test the single
+            // link between a child and this view, not re-climb the chain all the way to the
+            // window, which is what made the unbounded default quadratic in the depth of the
+            // screen. See ``AuditNode/isScytherOwned(below:)`` for why the shortcut holds.
             let children = view.subviews
-                .filter { !isOwned($0) }
+                .filter { !isOwned($0, identity) }
                 .map { node(for: $0, depth: depth + 1, ancestorsHidden: hidden) }
 
-            views[ObjectIdentifier(view)] = view
+            views[identity] = view
 
-            return ViewNode(id: ObjectIdentifier(view),
+            return ViewNode(id: identity,
                             className: String(describing: type(of: view)),
                             frameInWindow: frame,
                             depth: depth,
