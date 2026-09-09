@@ -150,7 +150,7 @@ that box, preserving its aspect ratio, so a full-screen view costs the same as a
 | Case | Behaviour |
 | --- | --- |
 | No key window | The menu row reports it rather than appearing to work. |
-| A view's `UIView` has been deallocated since the snapshot | The row shows as unavailable; the detail says so instead of rendering. |
+| A view's `UIView` has been deallocated since the snapshot | The **detail page** says so instead of rendering. Tree rows do not mark it, deliberately: doing so means re-resolving every visible row's weak reference on every render — the hot path this feature is built to avoid — to report a state that clears on the next pull-to-refresh and that the detail page already reports honestly on tap. |
 | Hidden or zero-size view | No thumbnail; the page says which of the two it is. The position map still draws the frame. |
 | View entirely off-screen | Thumbnail renders normally; the position map draws the frame outside the screen outline so the offset is visible. |
 | Very deep hierarchy | Visual indentation stops increasing after eight levels, so a deep node keeps its label readable on a phone; the row still carries its true depth, and the ancestor path in search shows the full chain. |
