@@ -22,6 +22,16 @@ import UIKit
 /// Fields whose value can only come from the live view are **omitted** when that view has been
 /// deallocated since the walk, rather than shown blank. A row reading `Bounds —` says the view
 /// has no bounds; no row at all says nobody asked, which is the truth.
+///
+/// ## Two moments, and which field belongs to which
+///
+/// `Frame` and `Text content` come from the ``ViewNode``, so they are what the walk recorded;
+/// everything else is read from the live view when the page opens. The two differ whenever a
+/// layout pass has run in between, and that is the right way round rather than an oversight:
+/// the window-space frame is only reconstructible during the walk, and it is the frame the tree
+/// was searched and drawn by, so re-reading it would make this page disagree with the row that
+/// got the reader here. Nothing is read twice, so within each of the two moments the page is
+/// consistent.
 @MainActor
 final class ViewDetailViewModel: ViewModel {
     /// One labelled value on the page.
@@ -49,16 +59,16 @@ final class ViewDetailViewModel: ViewModel {
     /// The snapshot the node came from, holding the weak bridge back to the live view.
     private let snapshot: ViewHierarchySnapshot
 
-    /// What there is to show for the view, decided once in ``onFirstAppear()``.
-    @Published private(set) var thumbnail: ViewThumbnailRenderer.Thumbnail = .unavailable
-
-    /// Whether ``onFirstAppear()`` has run.
+    /// What there is to show for the view, decided once in ``onFirstAppear()``, or `nil` until
+    /// it has been asked.
     ///
-    /// ``thumbnail`` has to start somewhere, and every case of
-    /// ``ViewThumbnailRenderer/Thumbnail`` is a claim about the view. Rendering the page before
-    /// the answer exists would flash "This view no longer exists" for a frame at a view that is
-    /// perfectly alive, so the page shows nothing in that slot until this is `true`.
-    @Published private(set) var isLoaded: Bool = false
+    /// Optional because every case of ``ViewThumbnailRenderer/Thumbnail`` is a positive claim
+    /// about the view, and there is no honest one to start with. `.onFirstAppear` is a `.task`,
+    /// which runs *after* the first render, so a non-optional property defaulting to
+    /// `.unavailable` would flash "This view no longer exists" for a frame at a view that is
+    /// perfectly alive. `nil` says only that nobody has asked yet — one property, so the answer
+    /// and whether there is an answer cannot come to disagree.
+    @Published private(set) var thumbnail: ViewThumbnailRenderer.Thumbnail?
 
     /// Frame, bounds, centre and the insets around them.
     @Published private(set) var geometry: [DetailField] = []
@@ -96,8 +106,11 @@ final class ViewDetailViewModel: ViewModel {
 
     /// Reads everything the page shows, once.
     ///
-    /// The live view is resolved a single time and handed to each section, so the whole page
-    /// describes one moment even if the view is deallocated part-way through the method.
+    /// The live view is resolved a single time and handed to each section, so every field that
+    /// comes from the live view describes the same moment even if the view is deallocated
+    /// part-way through the method. `Frame` and `Text content` come from the node instead, and
+    /// so describe the walk — see the type's own documentation for why that is the right way
+    /// round.
     override func onFirstAppear() async {
         await super.onFirstAppear()
 
@@ -113,7 +126,6 @@ final class ViewDetailViewModel: ViewModel {
         appearance = appearanceFields(for: view)
         context = contextFields(for: view)
         behaviour = behaviourFields(for: view)
-        isLoaded = true
     }
 
     // MARK: - Sections
@@ -186,12 +198,13 @@ final class ViewDetailViewModel: ViewModel {
         fields.append(DetailField(id: "contentMode",
                                   label: localized("Content mode"),
                                   value: Self.describe(view.contentMode)))
-        if let font = Self.font(of: view) {
+        let textCarrying = TextCarryingView(view)
+        if let font = textCarrying?.font {
             fields.append(DetailField(id: "font",
                                       label: localized("Font"),
                                       value: Self.describe(font)))
         }
-        if let colour = Self.textColour(of: view) {
+        if let colour = textCarrying?.textColour {
             fields.append(DetailField(id: "textColour",
                                       label: localized("Text colour"),
                                       value: Self.describe(colour)))
@@ -291,13 +304,19 @@ final class ViewDetailViewModel: ViewModel {
         flag ? localized("Yes") : localized("No")
     }
 
-    /// A colour, as `#RRGGBBAA`.
+    /// A colour, as `#RRGGBBAA`, clamped to sRGB.
     ///
     /// `getRed(_:green:blue:alpha:)` rather than ``UIKit/UIColor/hexCode(withAlpha:)``, which
     /// reads `cgColor.components` and so returns `nil` for a colour in a grayscale space —
     /// `.white` and `.black`, two of the commonest backgrounds there are. A colour that resolves
     /// to no RGB at all, such as a pattern, falls back to its own description, which at least
     /// names it.
+    ///
+    /// The components are **clamped**, because `getRed` reports a wide-gamut colour in *extended*
+    /// sRGB, where a component may be negative or above one. `#RRGGBBAA` cannot express that at
+    /// all, so clamping is the honest rendering of it; leaving it unclamped is not, because
+    /// `%02lX` prints a negative `Int` as a sixteen-digit two's-complement word and the row then
+    /// reads `#116FFFFFFFFFFFFFFEBFF…` instead of a colour.
     ///
     /// - Parameter colour: The colour.
     /// - Returns: Its rendering.
@@ -310,10 +329,15 @@ final class ViewDetailViewModel: ViewModel {
             return String(describing: colour)
         }
         return String(format: "#%02lX%02lX%02lX%02lX",
-                      Int((red * 255).rounded()),
-                      Int((green * 255).rounded()),
-                      Int((blue * 255).rounded()),
-                      Int((alpha * 255).rounded()))
+                      byte(red), byte(green), byte(blue), byte(alpha))
+    }
+
+    /// One colour component as an sRGB byte.
+    ///
+    /// - Parameter component: The component, possibly outside `0...1` for a wide-gamut colour.
+    /// - Returns: The component clamped to `0...1` and scaled to `0...255`.
+    private static func byte(_ component: CGFloat) -> Int {
+        Int((min(max(component, 0), 1) * 255).rounded())
     }
 
     /// A font, as its PostScript name and point size.
@@ -348,35 +372,6 @@ final class ViewDetailViewModel: ViewModel {
         case .bottomLeft: return "bottomLeft"
         case .bottomRight: return "bottomRight"
         @unknown default: return String(mode.rawValue)
-        }
-    }
-
-    /// The font a text-carrying view draws with, if it has one.
-    ///
-    /// The same three concrete types ``ViewHierarchyWalker`` reads text from, so a view with a
-    /// `Text content` row is exactly a view that can have a `Font` row.
-    ///
-    /// - Parameter view: The view to read.
-    /// - Returns: Its font, or `nil`.
-    private static func font(of view: UIView) -> UIFont? {
-        switch view {
-        case let label as UILabel: return label.font
-        case let button as UIButton: return button.titleLabel?.font
-        case let field as UITextField: return field.font
-        default: return nil
-        }
-    }
-
-    /// The colour a text-carrying view draws its text with, if it has one.
-    ///
-    /// - Parameter view: The view to read.
-    /// - Returns: Its text colour, or `nil`.
-    private static func textColour(of view: UIView) -> UIColor? {
-        switch view {
-        case let label as UILabel: return label.textColor
-        case let button as UIButton: return button.titleColor(for: .normal)
-        case let field as UITextField: return field.textColor
-        default: return nil
         }
     }
 }

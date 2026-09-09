@@ -70,10 +70,33 @@ struct ViewDetailView: View {
         if !fields.isEmpty {
             Section(title) {
                 ForEach(fields) { field in
-                    LabeledContent(field.label, value: field.value)
+                    row(field)
                 }
             }
         }
+    }
+
+    /// One labelled value.
+    ///
+    /// `LabeledContent`'s value truncates to a single line by default, which is wrong for the
+    /// longest thing on this page: a responder chain in a real navigation stack is eight class
+    /// names joined by arrows, and it is the answer to "which screen is this from" — the reason
+    /// the `Context` section exists at all. `LabeledContent`'s builder form takes a `Text` whose
+    /// line limit this controls, so the value wraps instead of being cut off with no way to read
+    /// the rest. Selection is on for the same reason: a class name or a hex colour read off this
+    /// page is usually on its way into a search field.
+    ///
+    /// - Parameter field: The field to draw.
+    /// - Returns: The row.
+    private func row(_ field: ViewDetailViewModel.DetailField) -> some View {
+        LabeledContent {
+            Text(field.value)
+                .lineLimit(nil)
+                .multilineTextAlignment(.trailing)
+        } label: {
+            Text(field.label)
+        }
+        .textSelection(.enabled)
     }
 
     /// The rendered view, or the reason there is no picture of it.
@@ -81,12 +104,14 @@ struct ViewDetailView: View {
     /// Decorative, and hidden from VoiceOver: a rasterised view carries no information a screen
     /// reader can use, and the same facts are in the rows below in a form it can.
     ///
-    /// Nothing is drawn until ``ViewDetailViewModel/isLoaded`` is `true`, so the page never
-    /// briefly claims a live view no longer exists.
+    /// Until the model has an answer the slot is a clear placeholder rather than nothing, for two
+    /// reasons: the page must not flash "This view no longer exists" at a view that is perfectly
+    /// alive, and an empty view contributes no width, which would draw the position map at full
+    /// width for one frame and then shunt it to half.
     @ViewBuilder
     private var thumbnail: some View {
-        if viewModel.isLoaded {
-            switch viewModel.thumbnail {
+        if let thumbnail = viewModel.thumbnail {
+            switch thumbnail {
             case .image(let image):
                 Image(uiImage: image)
                     .resizable()
@@ -98,6 +123,8 @@ struct ViewDetailView: View {
             case .unavailable:
                 thumbnailMessage(localized("This view no longer exists"))
             }
+        } else {
+            Color.clear
         }
     }
 
@@ -115,9 +142,12 @@ struct ViewDetailView: View {
     /// Where the view sits on the screen: its frame, filled, on an outline of the window.
     ///
     /// A frame outside the window is drawn outside the outline rather than clamped to its edge,
-    /// which is ``ViewPositionMap``'s decision and the reason this drawing is worth having.
+    /// which is ``ViewPositionMap``'s decision and the reason this drawing is worth having. The
+    /// outline does not fill the canvas, so a frame just past the fold has somewhere to be drawn
+    /// — see ``ViewPositionMap/outlineInset``.
     ///
-    /// A drawing reads as nothing to VoiceOver, so the frame it depicts is spoken instead.
+    /// A drawing reads as nothing to VoiceOver, so the frame it depicts is spoken instead. Its
+    /// label is not the section's own heading, which VoiceOver has just read out.
     private var positionMap: some View {
         Canvas { context, size in
             let outline = ViewPositionMap.outlineRect(forWindowBounds: viewModel.windowBounds,
@@ -131,23 +161,38 @@ struct ViewDetailView: View {
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement()
-        .accessibilityLabel(localized("Where it is"))
+        .accessibilityLabel(localized("Position on screen"))
         .accessibilityValue(viewModel.frameSummary)
     }
 }
 
-#Preview {
-    let root = UIView(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
-    let label = UILabel(frame: CGRect(x: 16, y: 120, width: 220, height: 44))
-    label.text = "Preview label" // scyther:unlocalised sample content for the preview
-    label.backgroundColor = .systemBlue
-    root.addSubview(label)
+/// A hierarchy for the preview to describe, held for the life of the process.
+///
+/// The snapshot's side table is weak by design, so a root built inside the `#Preview` closure
+/// would be gone before `StateObject`'s autoclosure ran at first render, and the preview would
+/// demonstrate "This view no longer exists" instead of the page. The same lifetime trap this
+/// feature's test fixtures have to step around.
+@MainActor
+private enum ViewDetailPreviewFixture {
+    /// The previewed hierarchy's root.
+    static let root: UIView = {
+        let root = UIView(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        let label = UILabel(frame: CGRect(x: 16, y: 120, width: 220, height: 44))
+        label.text = "Preview label" // scyther:unlocalised sample content for the preview
+        label.backgroundColor = .systemBlue
+        root.addSubview(label)
+        return root
+    }()
 
-    let snapshot = ViewHierarchyWalker.snapshot(of: root, windowBounds: root.bounds)
-    return NavigationStack {
-        ViewDetailView(node: snapshot.root.children[0],
-                       snapshot: snapshot,
-                       windowBounds: root.bounds)
+    /// The walk of it.
+    static let snapshot = ViewHierarchyWalker.snapshot(of: root, windowBounds: root.bounds)
+}
+
+#Preview {
+    NavigationStack {
+        ViewDetailView(node: ViewDetailPreviewFixture.snapshot.root.children[0],
+                       snapshot: ViewDetailPreviewFixture.snapshot,
+                       windowBounds: ViewDetailPreviewFixture.root.bounds)
     }
 }
 #endif

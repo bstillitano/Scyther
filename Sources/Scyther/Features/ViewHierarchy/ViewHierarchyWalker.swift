@@ -9,7 +9,7 @@ import UIKit
 /// Builds a ``ViewHierarchySnapshot`` from a live view hierarchy.
 ///
 /// **Everything this reads is a cheap stored property**: `subviews`, `frame`, `isHidden`,
-/// `alpha`, and a text property on three concrete types (`UILabel`, `UIButton`, `UITextField`).
+/// `alpha`, and a text property on the three concrete types ``TextCarryingView`` whitelists.
 /// It must never touch the accessibility tree. Asking a `UIView` for its accessibility children
 /// forces `UIAccessibility` to compute a subtree recursively, which is what hung this app in
 /// 4.3.0 — and a hierarchy walk is that mistake's natural home.
@@ -86,7 +86,7 @@ enum ViewHierarchyWalker {
                             className: String(describing: type(of: view)),
                             frameInWindow: frame,
                             depth: depth,
-                            text: text(of: view),
+                            text: TextCarryingView(view)?.text,
                             isHidden: hidden,
                             isZeroSize: frame.width == 0 || frame.height == 0,
                             isOffScreen: !frame.intersects(windowBounds),
@@ -95,22 +95,6 @@ enum ViewHierarchyWalker {
 
         let tree = node(for: root, depth: 0, ancestorsHidden: false)
         return ViewHierarchySnapshot(root: tree, views: views)
-    }
-
-    /// Text the view carries itself.
-    ///
-    /// Read from concrete types only. An accessibility label would be a richer answer and is
-    /// exactly the property this walk must not touch.
-    ///
-    /// - Parameter view: The view to read.
-    /// - Returns: Its text, or `nil`.
-    private static func text(of view: UIView) -> String? {
-        switch view {
-        case let label as UILabel: return label.text
-        case let button as UIButton: return button.currentTitle
-        case let field as UITextField: return field.text
-        default: return nil
-        }
     }
 }
 #endif

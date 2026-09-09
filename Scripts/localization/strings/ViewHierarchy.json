@@ -134,6 +134,21 @@
     "ru": "Расположение",
     "ar": "الموقع"
   },
+  "Position on screen": {
+    "comment": "VoiceOver label for the drawing showing where the view sits on screen",
+    "fr": "Position à l'écran",
+    "de": "Position auf dem Bildschirm",
+    "es": "Posición en pantalla",
+    "it": "Posizione sullo schermo",
+    "pt-BR": "Posição na tela",
+    "nl": "Positie op het scherm",
+    "ja": "画面上の位置",
+    "zh-Hans": "屏幕上的位置",
+    "zh-Hant": "螢幕上的位置",
+    "ko": "화면상 위치",
+    "ru": "Положение на экране",
+    "ar": "الموضع على الشاشة"
+  },
   "Geometry": {
     "comment": "Detail page section holding frame, bounds, centre and insets",
     "fr": "Géométrie",

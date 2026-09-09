@@ -131,6 +131,49 @@ final class ViewDetailViewModelTests: XCTestCase {
         XCTAssertEqual(model.context.first { $0.id == "controller" }?.value, "UIViewController")
     }
 
+    /// `nil` is not a fourth reason there is no picture — it is the absence of the question.
+    /// `.onFirstAppear` runs after the first render, so a model that started at `.unavailable`
+    /// would show "This view no longer exists" for a frame at a view that is perfectly alive.
+    func testTheThumbnailIsUnaskedUntilTheViewAppears() async {
+        let model = makeModel()
+        XCTAssertNil(model.thumbnail, "nothing has asked yet, so there is no answer to give")
+
+        await model.onFirstAppear()
+
+        XCTAssertNotNil(model.thumbnail)
+    }
+
+    /// What VoiceOver reads out for the position map, which is a drawing and so says nothing on
+    /// its own. Available before `onFirstAppear()`, because the drawing is too.
+    func testTheFrameSummaryDescribesTheFrameForTheMap() {
+        let model = makeModel()
+        XCTAssertEqual(model.frameSummary, "16, 100, 200 × 44")
+    }
+
+    // MARK: - Colours
+
+    /// `getRed(_:green:blue:alpha:)` reports a Display P3 colour in *extended* sRGB, where a
+    /// component can be negative or above one. Unclamped, `%02lX` prints a negative `Int` as a
+    /// sixteen-digit two's-complement word and the row reads as 37 characters of garbage.
+    func testAWideGamutColourStillFormatsAsAHexTriplet() async {
+        let model = makeModel { $0.backgroundColor = UIColor(displayP3Red: 1, green: 0.2, blue: 0, alpha: 1) }
+        await model.onFirstAppear()
+
+        let value = model.appearance.first { $0.id == "background" }?.value
+        XCTAssertEqual(value?.count, 9, "#RRGGBBAA is nine characters")
+        XCTAssertEqual(value?.first, "#")
+        XCTAssertEqual(value?.dropFirst().allSatisfy(\.isHexDigit), true)
+    }
+
+    /// The case that motivated not reusing `UIColor.hexCode(withAlpha:)`: `.white` lives in a
+    /// grayscale space, whose `cgColor.components` is two long, and that helper returns `nil`.
+    func testAGrayscaleColourFormatsAsAHexTriplet() async {
+        let model = makeModel { $0.backgroundColor = .white }
+        await model.onFirstAppear()
+
+        XCTAssertEqual(model.appearance.first { $0.id == "background" }?.value, "#FFFFFFFF")
+    }
+
     func testEveryFieldCarriesADistinctIdentity() async {
         let model = makeModel()
         await model.onFirstAppear()
