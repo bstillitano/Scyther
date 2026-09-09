@@ -282,20 +282,20 @@
     "ru": "Это представление больше не существует",
     "ar": "لم يعد هذا العرض موجودًا"
   },
-  "Frame": {
-    "comment": "Field label for the view's frame in window space",
-    "fr": "Cadre",
-    "de": "Rahmen",
-    "es": "Marco",
-    "it": "Cornice",
-    "pt-BR": "Quadro",
-    "nl": "Kader",
-    "ja": "フレーム",
-    "zh-Hans": "框架",
-    "zh-Hant": "框架",
-    "ko": "프레임",
-    "ru": "Рамка",
-    "ar": "الإطار"
+  "Frame (in window)": {
+    "comment": "Field label for the view's frame, stated in window space rather than in its superview's",
+    "fr": "Cadre (dans la fenêtre)",
+    "de": "Rahmen (im Fenster)",
+    "es": "Marco (en la ventana)",
+    "it": "Cornice (nella finestra)",
+    "pt-BR": "Quadro (na janela)",
+    "nl": "Kader (in venster)",
+    "ja": "フレーム（ウインドウ座標）",
+    "zh-Hans": "框架（窗口坐标）",
+    "zh-Hant": "框架（視窗座標）",
+    "ko": "프레임(윈도우 기준)",
+    "ru": "Рамка (в окне)",
+    "ar": "الإطار (في النافذة)"
   },
   "Bounds": {
     "comment": "Field label for the view's bounds",

@@ -27368,79 +27368,79 @@
         }
       }
     },
-    "Frame": {
-      "comment": "Field label for the view's frame in window space",
+    "Frame (in window)": {
+      "comment": "Field label for the view's frame, stated in window space rather than in its superview's",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "الإطار"
+            "value": "الإطار (في النافذة)"
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Rahmen"
+            "value": "Rahmen (im Fenster)"
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Marco"
+            "value": "Marco (en la ventana)"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Cadre"
+            "value": "Cadre (dans la fenêtre)"
           }
         },
         "it": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Cornice"
+            "value": "Cornice (nella finestra)"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "フレーム"
+            "value": "フレーム（ウインドウ座標）"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "프레임"
+            "value": "프레임(윈도우 기준)"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Kader"
+            "value": "Kader (in venster)"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Quadro"
+            "value": "Quadro (na janela)"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Рамка"
+            "value": "Рамка (в окне)"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "框架"
+            "value": "框架（窗口坐标）"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "框架"
+            "value": "框架（視窗座標）"
           }
         }
       }

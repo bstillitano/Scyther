@@ -25,8 +25,8 @@ import UIKit
 ///
 /// ## Two moments, and which field belongs to which
 ///
-/// `Frame` and `Text content` come from the ``ViewNode``, so they are what the walk recorded;
-/// everything else is read from the live view when the page opens. The two differ whenever a
+/// `Frame (in window)` and `Text content` come from the ``ViewNode``, so they are what the walk
+/// recorded; everything else is read from the live view when the page opens. The two differ when a
 /// layout pass has run in between, and that is the right way round rather than an oversight:
 /// the window-space frame is only reconstructible during the walk, and it is the frame the tree
 /// was searched and drawn by, so re-reading it would make this page disagree with the row that
@@ -139,8 +139,11 @@ final class ViewDetailViewModel: ViewModel {
     /// - Parameter view: The live view, or `nil`.
     /// - Returns: The section's fields, in reading order.
     private func geometryFields(for view: UIView?) -> [DetailField] {
+        // Labelled *in window*, not simply "Frame": `UIView.frame` is stated in the superview's
+        // coordinate space, so a bare "Frame" beside a nested view's window-space rect asserts
+        // something false about every view but a window's own children.
         var fields = [DetailField(id: "frame",
-                                  label: localized("Frame"),
+                                  label: localized("Frame (in window)"),
                                   value: Self.describe(node.frameInWindow))]
         guard let view else { return fields }
 
