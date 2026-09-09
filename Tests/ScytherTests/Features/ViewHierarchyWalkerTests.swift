@@ -75,6 +75,38 @@ final class ViewHierarchyWalkerTests: XCTestCase {
                        "the leaf's own frame is in its parent's space; the node's is in the window's")
     }
 
+    /// The reason the walk converts `bounds` and never `frame`.
+    ///
+    /// Apple documents `frame` as undefined when `transform` is not the identity, so the old
+    /// `superview.convert(view.frame, to: root)` form reported a view mid-animation, a scaled
+    /// view, or a scroll view's content view under `zoomScale` at coordinates UIKit does not
+    /// define — in the one tool built to answer "where is this view".
+    ///
+    /// The setup is the cheapest arrangement where the two forms actually disagree, because
+    /// `frame` only loses information under rotation: a container rotated one way holding a
+    /// subject rotated back the other. The composed transform is the identity, so the subject
+    /// really is an axis-aligned 100 × 100 square 150 points in from each edge, and that is what
+    /// `root.convert(bounds, from:)` reports. The `frame` form takes an axis-aligned bounding box
+    /// at the subject (141 × 141), rotates *that box* through the container and boxes it again,
+    /// and reports a 200 × 200 square at (100, 100) — twice the area, in the wrong place.
+    func testAFrameIsMeasuredFromBoundsSoATransformDoesNotMakeItUndefined() throws {
+        let root = makeRoot()
+        let container = UIView(frame: CGRect(x: 100, y: 100, width: 200, height: 200))
+        let subject = UIView(frame: CGRect(x: 50, y: 50, width: 100, height: 100))
+        container.addSubview(subject)
+        root.addSubview(container)
+        container.transform = CGAffineTransform(rotationAngle: -.pi / 4)
+        subject.transform = CGAffineTransform(rotationAngle: .pi / 4)
+
+        let snapshot = ViewHierarchyWalker.snapshot(of: root, windowBounds: windowBounds)
+        let subjectNode = try XCTUnwrap(snapshot.root.children.first?.children.first)
+
+        XCTAssertEqual(subjectNode.frameInWindow.origin.x, 150, accuracy: 0.001)
+        XCTAssertEqual(subjectNode.frameInWindow.origin.y, 150, accuracy: 0.001)
+        XCTAssertEqual(subjectNode.frameInWindow.width, 100, accuracy: 0.001)
+        XCTAssertEqual(subjectNode.frameInWindow.height, 100, accuracy: 0.001)
+    }
+
     func testAHiddenViewIsFlagged() {
         let root = makeRoot()
         let hidden = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
@@ -356,6 +388,21 @@ private final class AccessibilitySpyView: UIView {
 private final class AccessibilityLabelSpy: UILabel {
     var accessibilityReads = 0
 
+    override var accessibilityElements: [Any]? {
+        get { accessibilityReads += 1; return super.accessibilityElements }
+        set { super.accessibilityElements = newValue }
+    }
+
+    override func accessibilityElementCount() -> Int {
+        accessibilityReads += 1
+        return super.accessibilityElementCount()
+    }
+
+    override func accessibilityElement(at index: Int) -> Any? {
+        accessibilityReads += 1
+        return super.accessibilityElement(at: index)
+    }
+
     override var isAccessibilityElement: Bool {
         get { accessibilityReads += 1; return super.isAccessibilityElement }
         set { super.isAccessibilityElement = newValue }
@@ -386,6 +433,21 @@ private final class AccessibilityLabelSpy: UILabel {
 /// `text(of:)` matches for its `currentTitle` branch.
 private final class AccessibilityButtonSpy: UIButton {
     var accessibilityReads = 0
+
+    override var accessibilityElements: [Any]? {
+        get { accessibilityReads += 1; return super.accessibilityElements }
+        set { super.accessibilityElements = newValue }
+    }
+
+    override func accessibilityElementCount() -> Int {
+        accessibilityReads += 1
+        return super.accessibilityElementCount()
+    }
+
+    override func accessibilityElement(at index: Int) -> Any? {
+        accessibilityReads += 1
+        return super.accessibilityElement(at: index)
+    }
 
     override var isAccessibilityElement: Bool {
         get { accessibilityReads += 1; return super.isAccessibilityElement }

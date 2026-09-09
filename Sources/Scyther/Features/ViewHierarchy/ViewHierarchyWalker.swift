@@ -8,7 +8,7 @@ import UIKit
 
 /// Builds a ``ViewHierarchySnapshot`` from a live view hierarchy.
 ///
-/// **Everything this reads is a cheap stored property**: `subviews`, `frame`, `isHidden`,
+/// **Everything this reads is a cheap stored property**: `subviews`, `bounds`, `isHidden`,
 /// `alpha`, and a text property on the three concrete types ``TextCarryingView`` whitelists.
 /// It must never touch the accessibility tree. Asking a `UIView` for its accessibility children
 /// forces `UIAccessibility` to compute a subtree recursively, which is what hung this app in
@@ -56,16 +56,15 @@ enum ViewHierarchyWalker {
         var views: [ObjectIdentifier: UIView] = [:]
 
         func node(for view: UIView, depth: Int, ancestorsHidden: Bool) -> ViewNode {
-            // Every node's frame is converted into `root`'s own coordinate space, so the whole
-            // tree is measured in one space. `root` itself is the one view with nowhere to
-            // convert *from* in that space other than itself: when it has a superview, this
-            // converts its own `frame` — defined in that superview's space — back into its own
-            // space, which is its bounds' size at its own origin, not the `frame` value literally
-            // unconverted. That is correct, not merely tolerated: the root defines the space
-            // everything else is measured in, so its own frame in that space *is* its bounds.
-            // `snapshot(of: UIWindow)`, the only production entry point, never hits this case —
-            // a window has no superview — so this only matters for a synthetic root in a test.
-            let frame = view.superview.map { $0.convert(view.frame, to: root) } ?? view.frame
+            // `bounds`, never `frame`: Apple documents `frame` as undefined when `transform` is
+            // not the identity, so a view mid-animation, a scaled view, or a scroll view's
+            // content view under `zoomScale` would be reported at coordinates UIKit does not
+            // define — in the one tool built to say where a view is. `convert(bounds, from:)` is
+            // defined in every case and identical to the `frame` form whenever no transform is
+            // involved, which is why both ``AuditNode/frameInWindow`` and `LayoutRuler` already
+            // convert bounds. The root falls out of the same expression rather than needing a
+            // case of its own: converting a view's bounds from itself to itself is its bounds.
+            let frame = root.convert(view.bounds, from: view)
             let hidden = ancestorsHidden || view.isHidden || view.alpha <= 0.01
             let identity = ObjectIdentifier(view)
 
