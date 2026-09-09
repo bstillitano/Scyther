@@ -102,6 +102,11 @@ final class ViewNodeSearchTests: XCTestCase {
                             isZeroSize: true,
                             isOffScreen: false,
                             children: [])
-        XCTAssertEqual(deep.depth, 40)
+
+        XCTAssertEqual(ViewNode.indentationLevel(forDepth: deep.depth), 8,
+                       "the row is drawn at the cap")
+        XCTAssertEqual(deep.depth, 40,
+                       "and the node still knows how deep it really is, which is what the search "
+                       + "path relies on")
     }
 }
