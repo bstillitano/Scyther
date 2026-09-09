@@ -402,6 +402,7 @@ public struct MenuView: View {
         case .interfaceComponents: InterfacePreviewsView()
         case .gridOverlay: GridOverlaySettingsView()
         case .fpsCounter: FPSCounterSettingsView()
+        case .viewHierarchy: ViewHierarchyView()
         case .touchVisualiser: TouchVisualiserView()
         case .accessibilityAudit: AccessibilityAuditView()
         case .appearance: AppearanceOverridesView()
@@ -589,6 +590,8 @@ public struct MenuView: View {
                 .disabled(!viewModel.canShowLayoutGuides)
         case .layoutRuler:
             actionRow(for: item) { viewModel.activateLayoutRuler() }
+        case .viewHierarchy:
+            navigationRow(for: item)
         case .fpsCounter:
             navigationRow(for: item)
         case .touchVisualiser:

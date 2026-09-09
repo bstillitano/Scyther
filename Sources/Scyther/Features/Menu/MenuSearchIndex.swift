@@ -126,6 +126,7 @@ enum MenuSearchIndex {
         .gridOverlay: ["alignment", "layout grid"],
         .layoutGuides: ["safe area", "layout margins", "insets"],
         .layoutRuler: ["ruler", "measure", "distance", "gap", "spacing", "points", "pt", "snap"],
+        .viewHierarchy: ["views", "tree", "inspector", "subviews", "hierarchy", "frames"],
         .fpsCounter: ["frame rate", "performance", "hitches"],
         .touchVisualiser: ["touches", "taps", "gestures"],
         .accessibilityAudit: ["a11y", "voiceover", "contrast", "labels", "touch targets"],

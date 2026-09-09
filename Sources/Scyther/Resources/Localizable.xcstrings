@@ -60056,6 +60056,83 @@
         }
       }
     },
+    "There is no key window to inspect right now.": {
+      "comment": "Shown in place of the tree when the app has no key window to walk",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "لا توجد نافذة رئيسية لفحصها في الوقت الحالي."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Derzeit gibt es kein Schlüsselfenster zum Untersuchen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ahora mismo no hay ninguna ventana principal que inspeccionar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aucune fenêtre principale à inspecter pour le moment."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Al momento non c'è nessuna finestra principale da ispezionare."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "現在、検査できるキーウィンドウがありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "지금은 검사할 키 윈도우가 없습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Er is op dit moment geen hoofdvenster om te inspecteren."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No momento não há janela principal para inspecionar."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Сейчас нет ключевого окна для проверки."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "当前没有可检查的主窗口。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "目前沒有可檢查的主視窗。"
+          }
+        }
+      }
+    },
     "This URL cannot be opened": {
       "comment": "Deep link error: no installed app handles the URL",
       "localizations": {

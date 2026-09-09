@@ -523,5 +523,20 @@
     "ko": "태그",
     "ru": "Тег",
     "ar": "الوسم"
+  },
+  "There is no key window to inspect right now.": {
+    "comment": "Shown in place of the tree when the app has no key window to walk",
+    "fr": "Aucune fenêtre principale à inspecter pour le moment.",
+    "de": "Derzeit gibt es kein Schlüsselfenster zum Untersuchen.",
+    "es": "Ahora mismo no hay ninguna ventana principal que inspeccionar.",
+    "it": "Al momento non c'è nessuna finestra principale da ispezionare.",
+    "pt-BR": "No momento não há janela principal para inspecionar.",
+    "nl": "Er is op dit moment geen hoofdvenster om te inspecteren.",
+    "ja": "現在、検査できるキーウィンドウがありません。",
+    "zh-Hans": "当前没有可检查的主窗口。",
+    "zh-Hant": "目前沒有可檢查的主視窗。",
+    "ko": "지금은 검사할 키 윈도우가 없습니다.",
+    "ru": "Сейчас нет ключевого окна для проверки.",
+    "ar": "لا توجد نافذة رئيسية لفحصها في الوقت الحالي."
   }
 }
