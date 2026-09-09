@@ -40,8 +40,15 @@ enum ViewThumbnailRenderer {
     ///
     /// - Parameters:
     ///   - view: The live view, or `nil` when the snapshot's weak reference has gone.
-    ///   - isHidden: The node's hidden flag.
+    ///   - isHidden: The node's hidden flag. **Pass ``ViewNode/isHidden``, not `view.isHidden`** —
+    ///     the node's flag already accounts for an effective alpha at or below `0.01` and for
+    ///     invisibility inherited from an ancestor, and a view that is transparent rather than
+    ///     hidden would otherwise render as a blank image reported as a successful thumbnail.
     ///   - isZeroSize: The node's zero-size flag.
+    ///
+    /// Zero size takes precedence over hidden when both hold: it is the more specific answer, since
+    /// "this view has no area" says something about the layout where "this view is invisible" would
+    /// leave the reader wondering whether unhiding it would show anything.
     /// - Returns: The image, or the reason there is not one.
     static func thumbnail(of view: UIView?, isHidden: Bool, isZeroSize: Bool) -> Thumbnail {
         guard let view else { return .unavailable }
