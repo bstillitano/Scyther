@@ -493,16 +493,9 @@ internal final class AccessibilityAudit: Sendable {
         return result
     }
 
-    /// The app's key window, resolved the same way `InterfaceToolkit` and `Scyther` itself do.
-    ///
-    /// Repeated in each of those types rather than shared, matching how they already each keep
-    /// their own private copy — there is no existing shared accessor to reuse, and one is not
-    /// worth introducing for a single-expression lookup.
+    /// The app's key window.
     private static var keyWindow: UIWindow? {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap { $0.windows }
-            .first { $0.isKeyWindow }
+        UIApplication.scytherKeyWindow
     }
 }
 

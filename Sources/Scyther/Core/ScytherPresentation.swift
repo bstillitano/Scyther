@@ -294,17 +294,9 @@ internal enum ScytherPresentation {
         return controller.children.contains(where: containsScytherUI)
     }
 
-    /// The app's key window, resolved the same way `Scyther`, `InterfaceToolkit` and
-    /// ``AccessibilityAudit`` each already resolve it.
-    ///
-    /// Repeated here rather than shared for the same reason they repeat it between themselves:
-    /// there is no existing shared accessor, `Scyther`'s own is private, and a single-expression
-    /// lookup is not worth introducing one for.
+    /// The app's key window.
     private static var keyWindow: UIWindow? {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap { $0.windows }
-            .first { $0.isKeyWindow }
+        UIApplication.scytherKeyWindow
     }
 }
 #endif

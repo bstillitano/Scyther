@@ -91,3 +91,25 @@ public extension UIApplication {
         return Bundle.main.infoDictionary?["CFBundleVersion"] as? String
     }
 }
+
+/// Scyther's own view of the host app's windows.
+internal extension UIApplication {
+    /// The app's key window, looked for across every connected window scene.
+    ///
+    /// One definition, because there were seven. `Scyther`, `ScytherPresentation`,
+    /// `InterfaceToolkit`, `AccessibilityAudit`, `TouchVisualiser`, `FPSCounterView` and the view
+    /// hierarchy inspector each kept a private copy of this expression, three of them still
+    /// carrying a pre-iOS-15 `UIApplication.shared.windows` fallback that this package's iOS 16
+    /// floor makes unreachable. A single-expression lookup is cheap to repeat and free to get
+    /// subtly wrong in one copy, and at seven the accessor pays for itself.
+    ///
+    /// - Returns: The key window, or `nil` when the app has none — during a scene transition, or
+    ///   before the first scene has connected.
+    @MainActor
+    static var scytherKeyWindow: UIWindow? {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }
+    }
+}
