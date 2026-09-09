@@ -329,7 +329,7 @@ enum ViewNodeSearch {
 
 Run: `xcodebuild test -scheme Scyther -destination 'platform=iOS Simulator,OS=latest,name=iPhone 17 Pro' -configuration Debug CODE_SIGNING_ALLOWED=NO -only-testing:ScytherTests/ViewNodeSearchTests`
 
-Expected: 11 tests, 0 failures.
+Expected: 10 tests, 0 failures.
 
 - [ ] **Step 6: Run the full suite**
 
@@ -499,7 +499,7 @@ final class ViewHierarchyWalkerTests: XCTestCase {
         XCTAssertEqual(snapshot.root.children[0].text, "GraphQL Demo")
     }
 
-    func testAButtonsTitleIsCarried() {
+    func testAButtonsTitleIsCarried() throws {
         let root = makeRoot()
         let button = UIButton(type: .system)
         button.frame = CGRect(x: 0, y: 0, width: 100, height: 44)
@@ -507,9 +507,9 @@ final class ViewHierarchyWalkerTests: XCTestCase {
         root.addSubview(button)
 
         let snapshot = ViewHierarchyWalker.snapshot(of: root, windowBounds: windowBounds)
-        let buttonNode = try? XCTUnwrap(snapshot.root.children.first)
+        let buttonNode = try XCTUnwrap(snapshot.root.children.first)
 
-        XCTAssertEqual(buttonNode?.text, "Run GraphQL Query")
+        XCTAssertEqual(buttonNode.text, "Run GraphQL Query")
     }
 
     func testAPlainViewCarriesNoText() {
@@ -522,18 +522,35 @@ final class ViewHierarchyWalkerTests: XCTestCase {
     }
 
     /// The first thing you would otherwise find in the tree is the inspector itself.
+    ///
+    /// The ownership test is injected here rather than overridden on a subclass: `isScytherOwned`
+    /// is a computed property on an `extension UIView: AuditNode`, and Swift does not allow a
+    /// subclass to override a member declared in an extension. Production call sites use the
+    /// default and therefore the real rule.
     func testScytherOwnedSubtreesAreSkipped() {
         let root = makeRoot()
-        let ours = ScytherOwnedProbeView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+        let ours = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
         ours.addSubview(UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10)))
         root.addSubview(ours)
         root.addSubview(UIView(frame: CGRect(x: 0, y: 200, width: 10, height: 10)))
 
-        let snapshot = ViewHierarchyWalker.snapshot(of: root, windowBounds: windowBounds)
+        let snapshot = ViewHierarchyWalker.snapshot(of: root,
+                                                    windowBounds: windowBounds,
+                                                    isOwned: { $0 === ours })
 
         XCTAssertEqual(snapshot.root.children.count, 1,
-                       "the Scyther-owned view and everything beneath it is gone, the host view stays")
+                       "the owned view and everything beneath it is gone, the host view stays")
         XCTAssertEqual(snapshot.nodeCount, 2)
+    }
+
+    /// The default really is the shared rule, not a stub that only the tests exercise.
+    func testTheDefaultOwnershipTestIsScytherOwn() {
+        let root = makeRoot()
+        root.addSubview(UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10)))
+
+        let snapshot = ViewHierarchyWalker.snapshot(of: root, windowBounds: windowBounds)
+
+        XCTAssertEqual(snapshot.nodeCount, 2, "a plain UIView is not Scyther's, so nothing is skipped")
     }
 
     func testTheSideTableResolvesANodeBackToItsView() {
@@ -574,12 +591,6 @@ final class ViewHierarchyWalkerTests: XCTestCase {
     }
 }
 
-/// A view that reports itself as Scyther's own, so the skip rule can be tested without
-/// standing up Scyther's real interface.
-private final class ScytherOwnedProbeView: UIView {
-    override var isScytherOwned: Bool { true }
-}
-
 /// Counts every accessibility member the walk could reach through the container protocol.
 private final class AccessibilitySpyView: UIView {
     var accessibilityReads = 0
@@ -606,7 +617,15 @@ private final class AccessibilitySpyView: UIView {
 }
 ```
 
-**If `isScytherOwned` cannot be overridden** because it is declared in a protocol extension rather than on `UIView` itself, do not fight it: instead give `ViewHierarchyWalker.snapshot(of:windowBounds:)` an internal parameter `isOwned: (UIView) -> Bool = { $0.isScytherOwned }`, pass a stub in this one test, and leave every production call site using the default. Say which route you took in your report.
+**Confirmed while writing this plan:** `isScytherOwned` is a computed property on `extension UIView: AuditNode` (`Sources/Scyther/Features/AccessibilityAudit/AuditNode.swift:836` and `:932`), and Swift does not permit a subclass to override a member declared in an extension. So the walker takes the test as a parameter:
+
+```swift
+static func snapshot(of root: UIView,
+                     windowBounds: CGRect,
+                     isOwned: (UIView) -> Bool = { $0.isScytherOwned }) -> ViewHierarchySnapshot
+```
+
+Only the one test passes a stub; every production call site uses the default, and `testTheDefaultOwnershipTestIsScytherOwn` proves the default is wired to the real rule rather than to something permissive.
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
@@ -720,7 +739,12 @@ enum ViewHierarchyWalker {
     ///   - root: The view to walk.
     ///   - windowBounds: The bounds every frame is converted into and measured against.
     /// - Returns: The snapshot.
-    static func snapshot(of root: UIView, windowBounds: CGRect) -> ViewHierarchySnapshot {
+    ///   - isOwned: The ownership test. Defaults to the shared ``AuditNode/isScytherOwned`` rule;
+    ///     injectable only because that property lives on an extension and cannot be overridden
+    ///     by a test subclass.
+    static func snapshot(of root: UIView,
+                         windowBounds: CGRect,
+                         isOwned: (UIView) -> Bool = { $0.isScytherOwned }) -> ViewHierarchySnapshot {
         var views: [ObjectIdentifier: UIView] = [:]
 
         func node(for view: UIView, depth: Int, ancestorsHidden: Bool) -> ViewNode {
@@ -728,7 +752,7 @@ enum ViewHierarchyWalker {
             let hidden = ancestorsHidden || view.isHidden || view.alpha <= 0.01
 
             let children = view.subviews
-                .filter { !$0.isScytherOwned }
+                .filter { !isOwned($0) }
                 .map { node(for: $0, depth: depth + 1, ancestorsHidden: hidden) }
 
             views[ObjectIdentifier(view)] = view
@@ -774,7 +798,7 @@ Two details that matter and are easy to get wrong:
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
-Run with `-only-testing:ScytherTests/ViewHierarchyWalkerTests`. Expected: 15 tests, 0 failures.
+Run with `-only-testing:ScytherTests/ViewHierarchyWalkerTests`. Expected: 16 tests, 0 failures.
 
 - [ ] **Step 6: Run the full suite**
 
@@ -1374,7 +1398,7 @@ Requirements, each of which has a test above:
 
 - `DetailField` carries a **stable, distinct `id`** — `"frame"`, `"bounds"`, `"alpha"`, `"controller"`, and so on — because duplicate ids collapse rows in a `List`.
 - `geometry` reports `frame` as `"16, 100, 200 × 44"` (origin x, origin y, width × height, using `×` not `x`), plus `bounds`, `centre`, safe-area insets and layout margins read from the live view when it still exists.
-- `appearance` reports `alpha`, `hidden`, `background`, `corner radius`, `clips to bounds`, `content mode`, and for a view carrying text, its `text`, `font` and `text colour`.
+- `appearance` reports `alpha`, `hidden`, `background`, `corner radius`, `clips to bounds`, `content mode`, and for a view carrying text, its `text`, `font` and `text colour`. **Alpha is formatted with `String(format: "%g", alpha)`** — `"0.5"`, `"1"`, `"0.05"` — so the value has no trailing zeros and Task 4's test asserts against a stated format rather than a guessed one.
 - `context` reports the owning controller's class name via `ViewContext.owningController(of:)`, the responder chain via `ViewContext.responderChain(from:)`, and first-responder status.
 - `behaviour` reports `isUserInteractionEnabled` and `tag`.
 - `thumbnail` is produced **once**, in `onFirstAppear()`, by `ViewThumbnailRenderer.thumbnail(of:isHidden:isZeroSize:)`, passing `snapshot.view(for: node.id)`. Never in a computed property, which would re-rasterise on every SwiftUI re-render.
