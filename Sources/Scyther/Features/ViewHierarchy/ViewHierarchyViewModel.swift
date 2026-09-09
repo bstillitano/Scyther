@@ -24,8 +24,8 @@ import UIKit
 ///   wrote, and a fully expanded tree opens onto a screen of it. See ``defaultExpansionDepth``.
 /// - **The window is injected.** ``init(keyWindow:)`` takes the lookup as a closure, so the
 ///   no-key-window path — the spec's own edge case — is testable without standing up a scene.
-///   Production uses the default, which resolves the key window exactly the way `InterfaceToolkit`,
-///   `AccessibilityAudit` and `Scyther` itself each already do.
+///   Production uses the default, which is the package's shared
+///   ``UIKit/UIApplication/scytherKeyWindow``.
 @MainActor
 final class ViewHierarchyViewModel: ViewModel {
     /// One of the three states that make a view interesting enough to mark on its row.
@@ -33,7 +33,7 @@ final class ViewHierarchyViewModel: ViewModel {
     /// Modelled rather than left as loose strings so a badge's word has one definition: the page
     /// draws it, ``accessibilityLabel(for:)`` speaks it, and the two can never disagree — which is
     /// the whole failure mode a purely visual badge has under VoiceOver.
-    enum Badge: String, Identifiable, CaseIterable, Sendable {
+    enum Badge: String, Identifiable, Sendable {
         /// `isHidden`, or an effective alpha at or below 0.01 anywhere in the view's ancestry.
         case hidden
 
@@ -56,12 +56,19 @@ final class ViewHierarchyViewModel: ViewModel {
         }
     }
 
-    /// One row of the drawn tree: what the row shows, and the node it opens.
+    /// The line one view is drawn as, wherever it is drawn: what the label shows, what VoiceOver
+    /// reads, and the node the row opens.
     ///
-    /// The tree page draws from these rather than from ``ViewNode`` directly. A `ViewNode` carries
-    /// its whole subtree, so a row built straight from the root's node held four hundred nodes to
-    /// draw one line of text, and every field the row shows — the size string, the badge list —
-    /// was worked out again on each redraw. A row is worked out once, when the visible set changes.
+    /// The page draws from these rather than from ``ViewNode`` directly. A `ViewNode` carries its
+    /// whole subtree, so a row built straight from the root's node held four hundred nodes to draw
+    /// one line of text, and every field the row shows — the size string, the badge list — was
+    /// worked out again on each redraw. A row is worked out once, when the visible set changes.
+    ///
+    /// It carries **only what both of the page's two lists draw**. The tree's own three fields —
+    /// indentation, whether there is a subtree, whether it is open — live on ``TreeRow`` instead,
+    /// because a search result is a flat list with no disclosure control and no place in a tree,
+    /// and a row type carrying fields that are meaningless in one of its two contexts invites the
+    /// page to read one of them there.
     ///
     /// ``node`` is still the full node, because ``ViewDetailView`` takes one; it is read only when
     /// the row is tapped.
@@ -78,6 +85,21 @@ final class ViewHierarchyViewModel: ViewModel {
         /// The badges the row wears.
         let badges: [Badge]
 
+        /// What VoiceOver reads: the class name, the size, then any badge words.
+        let accessibilityLabel: String
+
+        /// The node the row opens. Read only when the row is tapped.
+        let node: ViewNode
+    }
+
+    /// One row of the drawn tree: the line, and where in the tree it sits.
+    struct TreeRow: Identifiable, Equatable {
+        /// The described view's identity, which is also the row's identity in the `List`.
+        var id: ObjectIdentifier { row.id }
+
+        /// The line the row draws.
+        let row: Row
+
         /// How far the row is indented, already capped by ``ViewNode/indentationLevel(forDepth:)``.
         let indentationLevel: Int
 
@@ -86,20 +108,14 @@ final class ViewHierarchyViewModel: ViewModel {
 
         /// Whether the row's subtree is currently showing.
         let isExpanded: Bool
-
-        /// What VoiceOver reads: the class name, the size, then any badge words.
-        let accessibilityLabel: String
-
-        /// The node the row opens. Read only when the row is tapped.
-        let node: ViewNode
     }
 
-    /// One search result: the row that draws the hit, and the chain of ancestors above it.
+    /// One search result: the line that draws the hit, and the chain of ancestors above it.
     struct MatchRow: Identifiable, Equatable {
         /// The matched view's identity.
         var id: ObjectIdentifier { row.id }
 
-        /// The row drawing the matched node.
+        /// The line drawing the matched node.
         let row: Row
 
         /// The class names of the node's ancestors, root first, excluding the node itself.
@@ -115,20 +131,18 @@ final class ViewHierarchyViewModel: ViewModel {
 
     /// The current search query, bound to the page's `.searchable` field.
     ///
-    /// ``matches`` is recomputed the moment this changes rather than on every read: search walks
+    /// ``matchRows`` is recomputed the moment this changes rather than on every read: search walks
     /// the whole tree, and SwiftUI reads a view model's properties far more often than the user
     /// types into it.
     @Published var searchText: String = "" {
-        didSet { recomputeMatches() }
+        didSet { recomputeMatchRows() }
     }
 
-    /// What ``searchText`` currently matches, in tree order, each with its ancestor path.
+    /// What ``searchText`` currently matches, in tree order, each with its ancestor path. What the
+    /// page iterates while searching.
     ///
     /// Empty while ``isSearching`` is `false` — a blank field means "not searching", not
     /// "everything".
-    @Published private(set) var matches: [ViewNodeSearch.Match] = []
-
-    /// ``matches``, each turned into the row that draws it. What the page iterates while searching.
     @Published private(set) var matchRows: [MatchRow] = []
 
     /// The root of the loaded snapshot, or `nil` before the first load and after a load that
@@ -136,13 +150,16 @@ final class ViewHierarchyViewModel: ViewModel {
     @Published private(set) var snapshotRoot: ViewNode?
 
     /// The rows the tree draws: every open node's subtree, flattened, parents before children.
+    /// What the page iterates.
     ///
     /// A closed node's children are absent from this list rather than merely hidden, so the page
     /// draws only what it shows.
-    @Published private(set) var visibleNodes: [ViewNode] = []
-
-    /// ``visibleNodes``, each turned into the row that draws it. What the page iterates.
-    @Published private(set) var visibleRows: [Row] = []
+    ///
+    /// This is the **only** published form of the visible tree. An earlier draft published the
+    /// flattened `[ViewNode]` beside it, and the two came apart at the first branch that had to
+    /// maintain them by hand — see ``loadFromKeyWindow()``. One representation cannot disagree
+    /// with itself.
+    @Published private(set) var visibleRows: [TreeRow] = []
 
     /// How many views the snapshot holds, including the root. `0` when nothing is loaded.
     @Published private(set) var nodeCount: Int = 0
@@ -203,15 +220,19 @@ final class ViewHierarchyViewModel: ViewModel {
     ///
     /// Also the pull-to-refresh action. When there is no key window this loads nothing and raises
     /// ``hasNoKeyWindow`` instead, leaving the page to say so.
+    ///
+    /// It clears the page through the same two functions a successful load rebuilds it with,
+    /// rather than by assigning each published property by hand: every one of them then has
+    /// exactly one place it is written, and this branch cannot forget one.
     func loadFromKeyWindow() {
         guard let window = keyWindow() else {
             snapshot = nil
             snapshotRoot = nil
-            visibleNodes = []
             nodeCount = 0
             takenAt = nil
             expandedNodes = []
-            recomputeMatches()
+            recomputeVisibleRows()
+            recomputeMatchRows()
             hasNoKeyWindow = true
             return
         }
@@ -249,8 +270,8 @@ final class ViewHierarchyViewModel: ViewModel {
             expandedNodes = expandedNodes.intersection(Self.identities(in: snapshot.root, toDepth: .max))
         }
 
-        recomputeVisibleNodes()
-        recomputeMatches()
+        recomputeVisibleRows()
+        recomputeMatchRows()
     }
 
     /// Whether a node's children are showing.
@@ -275,7 +296,7 @@ final class ViewHierarchyViewModel: ViewModel {
         // in a position to animate them, and without this the chevron turns while the rows appear
         // instantly.
         withAnimation {
-            recomputeVisibleNodes()
+            recomputeVisibleRows()
         }
     }
 
@@ -318,26 +339,24 @@ final class ViewHierarchyViewModel: ViewModel {
 
     // MARK: - Private
 
-    /// Rebuilds ``visibleNodes`` and ``visibleRows`` from the snapshot and the open set.
-    private func recomputeVisibleNodes() {
+    /// Rebuilds ``visibleRows`` from the snapshot and the open set.
+    private func recomputeVisibleRows() {
         guard let root = snapshotRoot else {
-            visibleNodes = []
             visibleRows = []
             return
         }
 
-        var nodes: [ViewNode] = []
+        var rows: [TreeRow] = []
         func append(_ node: ViewNode) {
-            nodes.append(node)
+            rows.append(treeRow(for: node))
             guard isExpanded(node) else { return }
             for child in node.children { append(child) }
         }
         append(root)
-        visibleNodes = nodes
-        visibleRows = nodes.map(row(for:))
+        visibleRows = rows
     }
 
-    /// Builds the row that draws a node.
+    /// Builds the line that draws a node.
     ///
     /// - Parameter node: The node to draw.
     /// - Returns: Its row.
@@ -346,22 +365,29 @@ final class ViewHierarchyViewModel: ViewModel {
             className: node.className,
             size: sizeDescription(for: node),
             badges: badges(for: node),
-            indentationLevel: ViewNode.indentationLevel(forDepth: node.depth),
-            hasChildren: !node.children.isEmpty,
-            isExpanded: isExpanded(node),
             accessibilityLabel: accessibilityLabel(for: node),
             node: node)
     }
 
-    /// Rebuilds ``matches`` from the snapshot and the current query.
-    private func recomputeMatches() {
+    /// Builds the tree row that draws a node, with its place in the tree.
+    ///
+    /// - Parameter node: The node to draw.
+    /// - Returns: Its tree row.
+    private func treeRow(for node: ViewNode) -> TreeRow {
+        TreeRow(row: row(for: node),
+                indentationLevel: ViewNode.indentationLevel(forDepth: node.depth),
+                hasChildren: !node.children.isEmpty,
+                isExpanded: isExpanded(node))
+    }
+
+    /// Rebuilds ``matchRows`` from the snapshot and the current query.
+    private func recomputeMatchRows() {
         guard let root = snapshotRoot else {
-            matches = []
             matchRows = []
             return
         }
-        matches = ViewNodeSearch.matches(for: searchText, in: root)
-        matchRows = matches.map { MatchRow(row: row(for: $0.node), path: $0.path) }
+        matchRows = ViewNodeSearch.matches(for: searchText, in: root)
+            .map { MatchRow(row: row(for: $0.node), path: $0.path) }
     }
 
     /// Every node identity at or above `depth`.
@@ -385,17 +411,9 @@ final class ViewHierarchyViewModel: ViewModel {
         return identities
     }
 
-    /// The app's key window, resolved the same way `InterfaceToolkit`, `AccessibilityAudit` and
-    /// `Scyther` itself each do.
-    ///
-    /// Repeated rather than shared, matching how those three already each keep their own private
-    /// copy — there is no existing shared accessor to reuse, and one is not worth introducing for
-    /// a single-expression lookup.
+    /// The app's key window, through the package's one shared lookup.
     private static var applicationKeyWindow: UIWindow? {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap { $0.windows }
-            .first { $0.isKeyWindow }
+        UIApplication.scytherKeyWindow
     }
 }
 #endif

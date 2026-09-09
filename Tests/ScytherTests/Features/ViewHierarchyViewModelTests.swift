@@ -43,23 +43,20 @@ final class ViewHierarchyViewModelTests: XCTestCase {
                        "the third level starts collapsed")
     }
 
-    func testSearchingProducesMatchesWithTheirPaths() {
+    /// Searching publishes rows, each carrying the ancestor path that says which `UILabel` a hit
+    /// is, and clearing the field goes back to the tree rather than to a list of everything.
+    func testSearchingPublishesRowsWithTheirPathsAndClearingEmptiesThem() {
         let model = ViewHierarchyViewModel()
         model.load(from: makeTree(), windowBounds: windowBounds)
         model.searchText = "GraphQL"
 
-        XCTAssertEqual(model.matches.count, 1)
-        XCTAssertEqual(model.matches[0].node.className, "UILabel")
-        XCTAssertEqual(model.matches[0].path, ["UIView", "UIScrollView"])
-    }
+        XCTAssertEqual(model.matchRows.count, 1)
+        XCTAssertEqual(model.matchRows[0].row.className, "UILabel")
+        XCTAssertEqual(model.matchRows[0].path, ["UIView", "UIScrollView"])
 
-    func testClearingTheSearchReturnsToTheTree() {
-        let model = ViewHierarchyViewModel()
-        model.load(from: makeTree(), windowBounds: windowBounds)
-        model.searchText = "GraphQL"
         model.searchText = ""
 
-        XCTAssertTrue(model.matches.isEmpty)
+        XCTAssertTrue(model.matchRows.isEmpty)
         XCTAssertFalse(model.isSearching)
     }
 
@@ -75,16 +72,6 @@ final class ViewHierarchyViewModelTests: XCTestCase {
         XCTAssertEqual(model.nodeCount, firstCount + 1)
     }
 
-    func testTogglingExpansionFlipsIt() {
-        let model = ViewHierarchyViewModel()
-        model.load(from: makeTree(), windowBounds: windowBounds)
-        let deep = model.snapshotRoot!.children[0].children[0]
-
-        model.toggleExpansion(deep)
-
-        XCTAssertTrue(model.isExpanded(deep))
-    }
-
     /// The tree the page draws: the expanded part of the hierarchy, flattened, parents first.
     ///
     /// A collapsed node's children are not merely hidden — they are not in the list at all, which
@@ -93,16 +80,17 @@ final class ViewHierarchyViewModelTests: XCTestCase {
         let model = ViewHierarchyViewModel()
         model.load(from: makeTree(), windowBounds: windowBounds)
 
-        XCTAssertEqual(model.visibleNodes.map(\.className), ["UIView", "UIScrollView", "UILabel"])
+        XCTAssertEqual(model.visibleRows.map(\.row.className),
+                       ["UIView", "UIScrollView", "UILabel"])
 
         model.toggleExpansion(model.snapshotRoot!.children[0])
 
-        XCTAssertEqual(model.visibleNodes.map(\.className), ["UIView", "UIScrollView"],
+        XCTAssertEqual(model.visibleRows.map(\.row.className), ["UIView", "UIScrollView"],
                        "a closed node keeps its own row and drops its subtree")
 
         model.toggleExpansion(model.snapshotRoot!)
 
-        XCTAssertEqual(model.visibleNodes.map(\.className), ["UIView"])
+        XCTAssertEqual(model.visibleRows.map(\.row.className), ["UIView"])
     }
 
     /// Toggling is the whole state machine the tree's disclosure button drives, so it is worth
@@ -115,10 +103,11 @@ final class ViewHierarchyViewModelTests: XCTestCase {
         XCTAssertTrue(model.isExpanded(root))
         model.toggleExpansion(root)
         XCTAssertFalse(model.isExpanded(root))
-        XCTAssertEqual(model.visibleNodes.count, 1, "a closed root shows only itself")
+        XCTAssertEqual(model.visibleRows.count, 1, "a closed root shows only itself")
         model.toggleExpansion(root)
         XCTAssertTrue(model.isExpanded(root))
-        XCTAssertEqual(model.visibleNodes.map(\.className), ["UIView", "UIScrollView", "UILabel"])
+        XCTAssertEqual(model.visibleRows.map(\.row.className),
+                       ["UIView", "UIScrollView", "UILabel"])
     }
 
     /// Pull to refresh answers "what is on screen now"; it is not a request to close everything the
@@ -134,11 +123,14 @@ final class ViewHierarchyViewModelTests: XCTestCase {
         XCTAssertTrue(model.isExpanded(model.snapshotRoot!), "the root was left open")
         XCTAssertFalse(model.isExpanded(model.snapshotRoot!.children[0]),
                        "the node closed before the refresh is still closed after it")
-        XCTAssertEqual(model.visibleNodes.map(\.className), ["UIView", "UIScrollView"])
+        XCTAssertEqual(model.visibleRows.map(\.row.className), ["UIView", "UIScrollView"])
     }
 
-    /// The rows the page draws, worked out once per change rather than per redraw.
-    func testARowCarriesWhatItsLineDraws() {
+    /// The rows the page draws, worked out once per change rather than per redraw — and what
+    /// VoiceOver reads from one, which is asserted against the literal rather than against the
+    /// function that built it. A badge that is only a coloured lozenge tells a sighted developer
+    /// a view is hidden and tells everyone else nothing, so the words belong in the spoken label.
+    func testARowCarriesWhatItsLineDrawsAndSpeaks() {
         let root = UIView(frame: windowBounds)
         let flagged = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: 44))
         flagged.isHidden = true
@@ -148,7 +140,7 @@ final class ViewHierarchyViewModelTests: XCTestCase {
         let model = ViewHierarchyViewModel()
         model.load(from: root, windowBounds: windowBounds)
 
-        XCTAssertEqual(model.visibleRows.map(\.className), ["UIView", "UIView"])
+        XCTAssertEqual(model.visibleRows.map(\.row.className), ["UIView", "UIView"])
         let rootRow = model.visibleRows[0]
         XCTAssertTrue(rootRow.hasChildren)
         XCTAssertTrue(rootRow.isExpanded)
@@ -157,44 +149,9 @@ final class ViewHierarchyViewModelTests: XCTestCase {
         let childRow = model.visibleRows[1]
         XCTAssertFalse(childRow.hasChildren)
         XCTAssertEqual(childRow.indentationLevel, 1)
-        XCTAssertEqual(childRow.size, "0 × 44")
-        XCTAssertEqual(childRow.badges, [.hidden, .zeroSize])
-        XCTAssertEqual(childRow.accessibilityLabel, model.accessibilityLabel(for: childRow.node))
-    }
-
-    /// Searching draws from rows too, and each carries the ancestor path that says which
-    /// `UILabel` a hit is.
-    func testASearchRowCarriesItsPath() {
-        let model = ViewHierarchyViewModel()
-        model.load(from: makeTree(), windowBounds: windowBounds)
-        model.searchText = "GraphQL"
-
-        XCTAssertEqual(model.matchRows.count, 1)
-        XCTAssertEqual(model.matchRows[0].row.className, "UILabel")
-        XCTAssertEqual(model.matchRows[0].path, ["UIView", "UIScrollView"])
-
-        model.searchText = ""
-
-        XCTAssertTrue(model.matchRows.isEmpty)
-    }
-
-    /// A badge that is only a coloured lozenge tells a sighted developer a view is hidden and
-    /// tells everyone else nothing, so the words belong in the row's spoken label too.
-    func testARowsAccessibilityLabelSpeaksItsBadges() {
-        let root = UIView(frame: windowBounds)
-        let flagged = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: 44))
-        flagged.isHidden = true
-        root.addSubview(flagged)
-        hierarchyRoot = root
-
-        let model = ViewHierarchyViewModel()
-        model.load(from: root, windowBounds: windowBounds)
-        let label = model.accessibilityLabel(for: model.snapshotRoot!.children[0])
-
-        XCTAssertTrue(label.contains("UIView"), label)
-        XCTAssertTrue(label.contains("0 × 44"), label)
-        XCTAssertTrue(label.contains("hidden"), label)
-        XCTAssertTrue(label.contains("zero size"), label)
+        XCTAssertEqual(childRow.row.size, "0 × 44")
+        XCTAssertEqual(childRow.row.badges, [.hidden, .zeroSize])
+        XCTAssertEqual(childRow.row.accessibilityLabel, "UIView, 0 × 44, hidden, zero size")
     }
 
     func testLoadingWithNoKeyWindowReportsItRatherThanShowingAnEmptyTree() {
@@ -205,6 +162,33 @@ final class ViewHierarchyViewModelTests: XCTestCase {
         XCTAssertTrue(model.hasNoKeyWindow)
         XCTAssertNil(model.snapshotRoot)
         XCTAssertEqual(model.nodeCount, 0)
+        XCTAssertTrue(model.visibleRows.isEmpty)
+    }
+
+    /// A refresh that loses the key window must clear the rows the page draws, not only the state
+    /// beside them.
+    ///
+    /// Starting from a *loaded* model is the whole point: a model that never loaded has nothing to
+    /// leave behind, so a test that starts there cannot see the previous tree's rows survive.
+    func testLosingTheKeyWindowClearsTheRowsThePageDraws() {
+        let window = UIWindow(frame: windowBounds)
+        window.addSubview(UIView(frame: windowBounds))
+        self.window = window
+        var available: UIWindow? = window
+        let model = ViewHierarchyViewModel(keyWindow: { available })
+
+        model.loadFromKeyWindow()
+        model.searchText = "UIWindow"
+        XCTAssertFalse(model.visibleRows.isEmpty, "the premise: something was drawn")
+        XCTAssertFalse(model.matchRows.isEmpty)
+
+        available = nil
+        model.loadFromKeyWindow()
+
+        XCTAssertTrue(model.hasNoKeyWindow)
+        XCTAssertTrue(model.visibleRows.isEmpty,
+                      "the page draws visibleRows, so a lost window has to clear them")
+        XCTAssertTrue(model.matchRows.isEmpty)
     }
 
     func testLoadingFromTheKeyWindowWalksIt() {

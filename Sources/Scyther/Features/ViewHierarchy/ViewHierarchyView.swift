@@ -95,11 +95,11 @@ struct ViewHierarchyView: View {
 
     /// One row of the tree: its disclosure control when it has children, then its link, indented to
     /// its capped depth.
-    private func treeRow(_ row: ViewHierarchyViewModel.Row,
+    private func treeRow(_ treeRow: ViewHierarchyViewModel.TreeRow,
                          in snapshot: ViewHierarchySnapshot) -> some View {
         HStack(spacing: 0) {
-            if row.hasChildren {
-                disclosure(for: row)
+            if treeRow.hasChildren {
+                disclosure(for: treeRow)
             } else {
                 // Keeps a leaf's class name in the same column as its siblings'. Blank rather than
                 // a dimmed chevron: a leaf has nothing to open, and drawing a disabled control
@@ -108,9 +108,9 @@ struct ViewHierarchyView: View {
                     .frame(width: Self.disclosureWidth, height: 1)
                     .accessibilityHidden(true)
             }
-            link(row, in: snapshot)
+            link(treeRow.row, in: snapshot)
         }
-        .padding(.leading, CGFloat(row.indentationLevel) * Self.indentationStep)
+        .padding(.leading, CGFloat(treeRow.indentationLevel) * Self.indentationStep)
     }
 
     /// The control that opens and closes a row's subtree.
@@ -120,20 +120,20 @@ struct ViewHierarchyView: View {
     /// rotation is what distinguishes an open row from a closed one and both from a leaf; the
     /// animation comes from ``ViewHierarchyViewModel/toggleExpansion(_:)``, which animates the rows
     /// the toggle reveals in the same transaction.
-    private func disclosure(for row: ViewHierarchyViewModel.Row) -> some View {
+    private func disclosure(for treeRow: ViewHierarchyViewModel.TreeRow) -> some View {
         Button {
-            viewModel.toggleExpansion(row.node)
+            viewModel.toggleExpansion(treeRow.row.node)
         } label: {
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .rotationEffect(.degrees(row.isExpanded ? 90 : 0))
+                .rotationEffect(.degrees(treeRow.isExpanded ? 90 : 0))
                 .frame(width: Self.disclosureWidth, height: 44)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(row.isExpanded ? localized("Collapse") : localized("Expand"))
-        .accessibilityValue(row.className)
+        .accessibilityLabel(treeRow.isExpanded ? localized("Collapse") : localized("Expand"))
+        .accessibilityValue(treeRow.row.className)
     }
 
     /// The search results, or a line naming the query when nothing matched.
@@ -152,8 +152,10 @@ struct ViewHierarchyView: View {
     ///
     /// Without the path a hit is a class name with no address — `UILabel` says nothing about which
     /// `UILabel`. The path is truncated at its head, so the ancestors nearest the match, which are
-    /// the ones that identify it, survive on a narrow screen. Results are a flat list, so no row
-    /// here carries a disclosure control.
+    /// the ones that identify it, survive on a narrow screen. Results are a flat list, and a
+    /// ``ViewHierarchyViewModel/MatchRow`` carries no indentation, no child count and no expansion
+    /// state to draw one from — those live on ``ViewHierarchyViewModel/TreeRow``, which is the
+    /// tree's row type and not this one.
     private func searchRow(_ match: ViewHierarchyViewModel.MatchRow,
                            in snapshot: ViewHierarchySnapshot) -> some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -189,7 +191,14 @@ struct ViewHierarchyView: View {
     private func label(for row: ViewHierarchyViewModel.Row) -> some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
+                // A generic SwiftUI class name is long enough to wrap a row to four lines and
+                // reduce a phone screen to five rows. Two lines truncated in the middle keeps the
+                // head, which names the family, and the tail, which is the part that differs; the
+                // whole name is one tap away as the detail page's title. The same idiom
+                // `searchRow` already applies to an ancestor path.
                 Text(row.className)
+                    .lineLimit(2)
+                    .truncationMode(.middle)
                 Text(row.size)
                     .font(.caption)
                     .foregroundStyle(.secondary)
