@@ -217,6 +217,71 @@ InterfaceToolkit.showViewSizes = true
 
 This shows width and height labels, helping you verify views are sized correctly.
 
+## View Hierarchy
+
+Browse a snapshot of the key window's view hierarchy — every view's class, its size, and why it
+might be invisible — without adding anything to your code. Open **View Hierarchy** under **UI/UX**
+in the Scyther menu.
+
+### The Tree
+
+The page opens on the key window's hierarchy, collapsed to the first two levels. Each row carries
+the view's class name, its size in points, and a badge for **hidden**, **zero-size**, or
+**off-screen** — the three states that make a view interesting and that nothing else in the
+toolkit reports. A row has two separate controls: a leading chevron that expands or collapses it
+(absent on a leaf), and the row itself, which pushes the view's detail page.
+
+A `.searchable` field matches a view's class name and any text it carries itself — a `UILabel`'s
+`text`, a `UIButton`'s current title — and lists each hit with its ancestor path, so a result reads
+`UIWindow › … › UIButton` before you tap it.
+
+Pull to refresh walks the window again; expansion is preserved for rows that still exist. The
+header states the node count and when the snapshot was taken.
+
+### The Detail Page
+
+Selecting a row pushes a page carrying, in order: a rendered thumbnail beside a position map
+showing where the view sits on a scaled outline of the screen; **Geometry** (`frame`, `bounds`,
+`center`, safe-area insets, layout margins); **Appearance** (`alpha`, `isHidden`, background
+colour, corner radius, `clipsToBounds`, content mode, and — for views that carry text — the
+string, font and text colour); **Context** (the owning view controller, the view's position in the
+responder chain, and whether it is first responder); and **Behaviour**
+(`isUserInteractionEnabled`, `tag`).
+
+### Read-Only, and a Snapshot Rather Than a Live Tree
+
+The inspector never changes a frame, a flag, or a colour, and it skips Scyther's own views, so the
+tree it shows is the host app's hierarchy and nothing else.
+
+It also never updates itself on its own. Keeping the tree in step with the hierarchy needs a
+change signal, and UIKit has no clean one: the alternatives are polling on a timer or swizzling
+layout methods, and a full walk on every layout pass is precisely the hot-path mistake the
+accessibility audit taught this project in 4.3.0 — see <doc:AccessibilityAuditing>. So the page
+opens on a snapshot, states its own age in the header, and only re-walks the window when you pull
+to refresh. A developer who assumes the tree tracks the running app live will misread a stale
+snapshot as a bug in their own layout; it isn't one — it's an old picture, and pulling to refresh
+takes a new one.
+
+### Why `ViewNode` Holds No View
+
+`ViewNode` is a value type with no reference to the `UIView` it describes. A tree that strongly
+held views would keep an entire screen alive for as long as the inspector's page was open. The
+thumbnail still needs the real view, so `ViewHierarchySnapshot` keeps a separate side table
+mapping each node's identity to its view, kept **weak** — so a snapshot left open on a screen you
+have since navigated away from does not keep that screen alive. A node whose view has gone
+resolves to nothing, and the detail page says so rather than rendering an empty box.
+
+### Why the Ownership Check Carries a Boundary
+
+`ViewHierarchyWalker` skips views owned by Scyther, reusing the same
+`AuditNode.isScytherOwned(below:)` rule the accessibility audit uses rather than inventing a
+second answer that can drift from the first. It calls the `below:` form, passing the parent's own
+identity, rather than climbing the whole responder chain from scratch for every view in the tree:
+on a 1,663-node tree, re-climbing per node measured 8.73 ms against 3.01 ms with the boundary
+passed through — 69% of the walk spent re-answering a question a parent had already answered. This
+mirrors the fix the accessibility audit made for the same reason; the reasoning is at
+`Sources/Scyther/Features/AccessibilityAudit/AuditNode.swift:220-234`.
+
 ## Slow Animations
 
 Reduce animation speed to debug timing issues:
@@ -302,4 +367,5 @@ All UI debugging tools are automatically disabled in App Store builds.
 - ``GridOverlay``
 - <doc:UIDebuggingTools#Layout-Guides>
 - <doc:UIDebuggingTools#Layout-Ruler>
+- <doc:UIDebuggingTools#View-Hierarchy>
 
