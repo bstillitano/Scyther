@@ -112,10 +112,15 @@ final class TextCarryingViewTests: XCTestCase {
         let fieldSpy = AccessibilitySpyTextField()
 
         for view in [labelSpy as UIView, buttonSpy, fieldSpy] {
-            let carrying = TextCarryingView(view)
-            _ = carrying?.text
-            _ = carrying?.font
-            _ = carrying?.textColour
+            // Unwrapped rather than optional-chained: a `TextCarryingView(_:)` that stopped
+            // recognising these types would read nothing, and a test that only counted zero
+            // accessibility reads would call that a pass.
+            guard let carrying = TextCarryingView(view) else {
+                return XCTFail("\(type(of: view)) should be recognised as carrying text")
+            }
+            _ = carrying.text
+            _ = carrying.font
+            _ = carrying.textColour
         }
 
         XCTAssertEqual(labelSpy.accessibilityReads, 0)
