@@ -91,18 +91,61 @@
   },
   "%lld views": {
     "comment": "How many views the snapshot holds. %lld is the count",
-    "fr": "%lld vues",
-    "de": "%lld Views",
-    "es": "%lld vistas",
-    "it": "%lld viste",
-    "pt-BR": "%lld views",
-    "nl": "%lld weergaven",
-    "ja": "%lld 個のビュー",
-    "zh-Hans": "%lld 个视图",
-    "zh-Hant": "%lld 個視圖",
-    "ko": "뷰 %lld개",
-    "ru": "Представлений: %lld",
-    "ar": "%lld عرض"
+    "plural": true,
+    "en": {
+      "one": "%lld view",
+      "other": "%lld views"
+    },
+    "fr": {
+      "one": "%lld vue",
+      "other": "%lld vues"
+    },
+    "de": {
+      "one": "%lld View",
+      "other": "%lld Views"
+    },
+    "es": {
+      "one": "%lld vista",
+      "other": "%lld vistas"
+    },
+    "it": {
+      "one": "%lld vista",
+      "other": "%lld viste"
+    },
+    "pt-BR": {
+      "one": "%lld view",
+      "other": "%lld views"
+    },
+    "nl": {
+      "one": "%lld weergave",
+      "other": "%lld weergaven"
+    },
+    "ja": {
+      "other": "%lld 個のビュー"
+    },
+    "zh-Hans": {
+      "other": "%lld 个视图"
+    },
+    "zh-Hant": {
+      "other": "%lld 個視圖"
+    },
+    "ko": {
+      "other": "뷰 %lld개"
+    },
+    "ru": {
+      "one": "%lld представление",
+      "few": "%lld представления",
+      "many": "%lld представлений",
+      "other": "%lld представлений"
+    },
+    "ar": {
+      "zero": "%lld عرض",
+      "one": "%lld عرض",
+      "two": "%lld عرضان",
+      "few": "%lld عروض",
+      "many": "%lld عرضًا",
+      "other": "%lld عرض"
+    }
   },
   "Snapshot taken %@": {
     "comment": "When the hierarchy was walked. %@ is a formatted time",
@@ -538,5 +581,35 @@
     "ko": "지금은 검사할 키 윈도우가 없습니다.",
     "ru": "Сейчас нет ключевого окна для проверки.",
     "ar": "لا توجد نافذة رئيسية لفحصها في الوقت الحالي."
+  },
+  "Expand": {
+    "comment": "Accessibility label for the control that opens a tree row's subtree",
+    "fr": "Développer",
+    "de": "Aufklappen",
+    "es": "Expandir",
+    "it": "Espandi",
+    "pt-BR": "Expandir",
+    "nl": "Uitvouwen",
+    "ja": "展開",
+    "zh-Hans": "展开",
+    "zh-Hant": "展開",
+    "ko": "펼치기",
+    "ru": "Развернуть",
+    "ar": "توسيع"
+  },
+  "Collapse": {
+    "comment": "Accessibility label for the control that closes a tree row's subtree",
+    "fr": "Réduire",
+    "de": "Zuklappen",
+    "es": "Contraer",
+    "it": "Riduci",
+    "pt-BR": "Recolher",
+    "nl": "Samenvouwen",
+    "ja": "折りたたむ",
+    "zh-Hans": "折叠",
+    "zh-Hant": "收合",
+    "ko": "접기",
+    "ru": "Свернуть",
+    "ar": "طي"
   }
 }

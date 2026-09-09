@@ -56,6 +56,56 @@ final class ViewHierarchyViewModel: ViewModel {
         }
     }
 
+    /// One row of the drawn tree: what the row shows, and the node it opens.
+    ///
+    /// The tree page draws from these rather than from ``ViewNode`` directly. A `ViewNode` carries
+    /// its whole subtree, so a row built straight from the root's node held four hundred nodes to
+    /// draw one line of text, and every field the row shows — the size string, the badge list —
+    /// was worked out again on each redraw. A row is worked out once, when the visible set changes.
+    ///
+    /// ``node`` is still the full node, because ``ViewDetailView`` takes one; it is read only when
+    /// the row is tapped.
+    struct Row: Identifiable, Equatable {
+        /// The described view's identity, which is also the row's identity in the `List`.
+        let id: ObjectIdentifier
+
+        /// The class name the row shows.
+        let className: String
+
+        /// The row's size text, e.g. `"200 × 20"`.
+        let size: String
+
+        /// The badges the row wears.
+        let badges: [Badge]
+
+        /// How far the row is indented, already capped by ``ViewNode/indentationLevel(forDepth:)``.
+        let indentationLevel: Int
+
+        /// Whether the row has a subtree to open. Rows without one carry no disclosure control.
+        let hasChildren: Bool
+
+        /// Whether the row's subtree is currently showing.
+        let isExpanded: Bool
+
+        /// What VoiceOver reads: the class name, the size, then any badge words.
+        let accessibilityLabel: String
+
+        /// The node the row opens. Read only when the row is tapped.
+        let node: ViewNode
+    }
+
+    /// One search result: the row that draws the hit, and the chain of ancestors above it.
+    struct MatchRow: Identifiable, Equatable {
+        /// The matched view's identity.
+        var id: ObjectIdentifier { row.id }
+
+        /// The row drawing the matched node.
+        let row: Row
+
+        /// The class names of the node's ancestors, root first, excluding the node itself.
+        let path: [String]
+    }
+
     /// The deepest level opened when a snapshot is loaded.
     ///
     /// `1` means the root and its immediate children are open and the third level is closed —
@@ -78,6 +128,9 @@ final class ViewHierarchyViewModel: ViewModel {
     /// "everything".
     @Published private(set) var matches: [ViewNodeSearch.Match] = []
 
+    /// ``matches``, each turned into the row that draws it. What the page iterates while searching.
+    @Published private(set) var matchRows: [MatchRow] = []
+
     /// The root of the loaded snapshot, or `nil` before the first load and after a load that
     /// found no key window.
     @Published private(set) var snapshotRoot: ViewNode?
@@ -87,6 +140,9 @@ final class ViewHierarchyViewModel: ViewModel {
     /// A closed node's children are absent from this list rather than merely hidden, so the page
     /// draws only what it shows.
     @Published private(set) var visibleNodes: [ViewNode] = []
+
+    /// ``visibleNodes``, each turned into the row that draws it. What the page iterates.
+    @Published private(set) var visibleRows: [Row] = []
 
     /// How many views the snapshot holds, including the root. `0` when nothing is loaded.
     @Published private(set) var nodeCount: Int = 0
@@ -110,9 +166,15 @@ final class ViewHierarchyViewModel: ViewModel {
 
     /// The identities of the open nodes.
     ///
-    /// Keyed by identity rather than by index path so expansion survives a refresh: a view still
-    /// on screen after a re-walk keeps its open state, and one that has gone simply never comes
-    /// up again.
+    /// Keyed by identity rather than by index path so expansion survives a refresh: a view still on
+    /// screen after a re-walk keeps its open state, and one that has gone drops out — see
+    /// ``load(from:windowBounds:)``. Somebody who pulls to refresh after changing something on
+    /// screen has asked for a newer tree, not for their place in a four-hundred-row one to be lost.
+    ///
+    /// The identity is a `UIView`'s address, so an address freed between two walks and handed to a
+    /// different view would carry that view's open state onto an unrelated row. That is the whole
+    /// cost of being wrong here — one row drawn open that the developer did not open — and it is
+    /// worth less than resetting a tree the developer has arranged.
     private var expandedNodes: Set<ObjectIdentifier> = []
 
     /// Resolves the window to walk. Injected — see the type-level documentation.
@@ -162,15 +224,18 @@ final class ViewHierarchyViewModel: ViewModel {
     /// is split from its window entry point, so the page's behaviour can be exercised against a
     /// synthetic hierarchy.
     ///
-    /// Expansion is reset to ``defaultExpansionDepth`` on every load, including a refresh: a
-    /// refresh is a new answer to the same question, and carrying forward the open state of a tree
-    /// the developer has since navigated away from would open a scattering of unrelated rows.
+    /// The **first** load opens the tree to ``defaultExpansionDepth``. A later one — pull to
+    /// refresh — keeps whatever the developer has opened, minus the nodes the new walk no longer
+    /// found: a refresh answers "what is on screen now", not "please close everything I opened".
+    /// Nodes that have gone drop out rather than accumulating, so the set stays the size of the
+    /// tree. See ``expandedNodes`` for the one way this can be wrong and why that is acceptable.
     ///
     /// - Parameters:
     ///   - root: The view to walk.
     ///   - windowBounds: The window space every frame is converted into.
     func load(from root: UIView, windowBounds: CGRect) {
         let snapshot = ViewHierarchyWalker.snapshot(of: root, windowBounds: windowBounds)
+        let isFirstLoad = snapshotRoot == nil
 
         self.snapshot = snapshot
         self.windowBounds = windowBounds
@@ -178,7 +243,11 @@ final class ViewHierarchyViewModel: ViewModel {
         snapshotRoot = snapshot.root
         nodeCount = snapshot.nodeCount
         takenAt = snapshot.takenAt
-        expandedNodes = Self.identities(in: snapshot.root, toDepth: Self.defaultExpansionDepth)
+        if isFirstLoad {
+            expandedNodes = Self.identities(in: snapshot.root, toDepth: Self.defaultExpansionDepth)
+        } else {
+            expandedNodes = expandedNodes.intersection(Self.identities(in: snapshot.root, toDepth: .max))
+        }
 
         recomputeVisibleNodes()
         recomputeMatches()
@@ -201,7 +270,13 @@ final class ViewHierarchyViewModel: ViewModel {
         } else {
             expandedNodes.insert(node.id)
         }
-        recomputeVisibleNodes()
+        // Animated here rather than at the button, because the rows a toggle reveals are siblings
+        // in the same `List` — not content nested inside a disclosure group — so nothing else is
+        // in a position to animate them, and without this the chevron turns while the rows appear
+        // instantly.
+        withAnimation {
+            recomputeVisibleNodes()
+        }
     }
 
     /// The badges a node's row wears, in the order the row draws them.
@@ -241,50 +316,59 @@ final class ViewHierarchyViewModel: ViewModel {
             .joined(separator: ", ")
     }
 
-    /// A binding a stock `DisclosureGroup` can drive, so the chevron reads and writes the same
-    /// expansion state the rest of the page does.
-    ///
-    /// - Parameter node: The node the group draws.
-    /// - Returns: A binding onto that node's open state.
-    func expansionBinding(for node: ViewNode) -> Binding<Bool> {
-        Binding(
-            get: { [weak self] in self?.isExpanded(node) ?? false },
-            set: { [weak self] shouldExpand in
-                guard let self, self.isExpanded(node) != shouldExpand else { return }
-                self.toggleExpansion(node)
-            }
-        )
-    }
-
     // MARK: - Private
 
-    /// Rebuilds ``visibleNodes`` from the snapshot and the open set.
+    /// Rebuilds ``visibleNodes`` and ``visibleRows`` from the snapshot and the open set.
     private func recomputeVisibleNodes() {
         guard let root = snapshotRoot else {
             visibleNodes = []
+            visibleRows = []
             return
         }
 
-        var rows: [ViewNode] = []
+        var nodes: [ViewNode] = []
         func append(_ node: ViewNode) {
-            rows.append(node)
+            nodes.append(node)
             guard isExpanded(node) else { return }
             for child in node.children { append(child) }
         }
         append(root)
-        visibleNodes = rows
+        visibleNodes = nodes
+        visibleRows = nodes.map(row(for:))
+    }
+
+    /// Builds the row that draws a node.
+    ///
+    /// - Parameter node: The node to draw.
+    /// - Returns: Its row.
+    private func row(for node: ViewNode) -> Row {
+        Row(id: node.id,
+            className: node.className,
+            size: sizeDescription(for: node),
+            badges: badges(for: node),
+            indentationLevel: ViewNode.indentationLevel(forDepth: node.depth),
+            hasChildren: !node.children.isEmpty,
+            isExpanded: isExpanded(node),
+            accessibilityLabel: accessibilityLabel(for: node),
+            node: node)
     }
 
     /// Rebuilds ``matches`` from the snapshot and the current query.
     private func recomputeMatches() {
         guard let root = snapshotRoot else {
             matches = []
+            matchRows = []
             return
         }
         matches = ViewNodeSearch.matches(for: searchText, in: root)
+        matchRows = matches.map { MatchRow(row: row(for: $0.node), path: $0.path) }
     }
 
-    /// Every node identity at or above `depth`, so a fresh snapshot opens on its first levels.
+    /// Every node identity at or above `depth`.
+    ///
+    /// Called with ``defaultExpansionDepth`` to open a fresh snapshot on its first levels, and with
+    /// `.max` to collect the whole tree's identities, which is what a refresh intersects the open
+    /// set against.
     ///
     /// - Parameters:
     ///   - root: The tree to collect from.

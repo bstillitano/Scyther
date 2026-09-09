@@ -9,22 +9,33 @@ import UIKit
 
 /// The view hierarchy inspector's tree page.
 ///
-/// One snapshot of the key window, opened to its first two levels, with a `.searchable` field
-/// over class names and the text views carry. Selecting any row pushes ``ViewDetailView``.
+/// One snapshot of the key window, opened to its first two levels, with a `.searchable` field over
+/// class names and the text views carry. Selecting any row pushes ``ViewDetailView``.
 ///
 /// The tree is drawn as a **flat list of the currently visible rows** rather than as nested
 /// `DisclosureGroup`s. Nesting would hand SwiftUI the indentation for free, but its indent grows
 /// without limit, and a view forty levels down a real screen would have its class name pushed off
-/// the right of a phone. Indenting each row explicitly is what lets ``ViewNode/indentationLevel(forDepth:)``
-/// cap the indent at eight levels while the row keeps its true depth. Each parent row is still a
-/// stock `DisclosureGroup` driven by ``ViewHierarchyViewModel/expansionBinding(for:)``, so the
-/// chevron, its animation and its accessibility come from the framework; only where the children
-/// are drawn differs.
+/// the right of a phone. Indenting each row explicitly is what lets
+/// ``ViewNode/indentationLevel(forDepth:)`` cap the indent at eight levels while the row keeps its
+/// true depth.
+///
+/// **Each row carries two separate controls, side by side, rather than one inside the other.** A
+/// `DisclosureGroup` whose label was the row's `NavigationLink` drew the collapsed state as a
+/// right-pointing chevron identical to the link's own navigation accessory: one glyph with two
+/// meanings, and a collapsed parent indistinguishable from a leaf, on a page whose whole job is
+/// telling you what is under something. So the disclosure is a plain leading `Button` carrying a
+/// chevron that rotates as it opens, navigation keeps the link's trailing accessory, and a leaf has
+/// no leading control at all. Two unambiguous targets, two unambiguous glyphs, and two distinct
+/// accessibility labels, so a screen reader is not left with the ambiguity either.
 struct ViewHierarchyView: View {
     @StateObject private var viewModel = ViewHierarchyViewModel()
 
     /// How far one level of depth indents a row.
     private static let indentationStep: CGFloat = 14
+
+    /// The width the disclosure control occupies, and the width a leaf row leaves blank in its
+    /// place so that class names line up down the tree.
+    private static let disclosureWidth: CGFloat = 30
 
     var body: some View {
         List {
@@ -34,22 +45,17 @@ struct ViewHierarchyView: View {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
-            } else if viewModel.isSearching {
+            } else if let snapshot = viewModel.snapshot {
+                // Every row is built from a snapshot that already exists, so no row can push a page
+                // with nothing on it. Guarding inside a `NavigationLink`'s destination instead
+                // would leave the row tappable and land on a back button and blank space.
                 Section {
-                    if viewModel.matches.isEmpty {
-                        noSearchResults
+                    if viewModel.isSearching {
+                        searchResults(in: snapshot)
                     } else {
-                        ForEach(viewModel.matches, id: \.node.id) { match in
-                            searchRow(for: match)
+                        ForEach(viewModel.visibleRows) { row in
+                            treeRow(row, in: snapshot)
                         }
-                    }
-                } header: {
-                    header
-                }
-            } else {
-                Section {
-                    ForEach(viewModel.visibleNodes) { node in
-                        treeRow(for: node)
                     }
                 } header: {
                     header
@@ -57,6 +63,8 @@ struct ViewHierarchyView: View {
             }
         }
         .searchable(text: $viewModel.searchText, prompt: localized("Search classes and text"))
+        .textInputAutocapitalization(.never)
+        .autocorrectionDisabled()
         .refreshable {
             viewModel.loadFromKeyWindow()
         }
@@ -85,32 +93,69 @@ struct ViewHierarchyView: View {
 
     // MARK: - Tree
 
-    /// One row of the tree: a `DisclosureGroup` when the node has children, a plain link when it
-    /// does not, indented to its capped depth.
-    @ViewBuilder
-    private func treeRow(for node: ViewNode) -> some View {
-        Group {
-            if node.children.isEmpty {
-                link(to: node)
+    /// One row of the tree: its disclosure control when it has children, then its link, indented to
+    /// its capped depth.
+    private func treeRow(_ row: ViewHierarchyViewModel.Row,
+                         in snapshot: ViewHierarchySnapshot) -> some View {
+        HStack(spacing: 0) {
+            if row.hasChildren {
+                disclosure(for: row)
             } else {
-                DisclosureGroup(isExpanded: viewModel.expansionBinding(for: node)) {
-                    // The children are rows of this same list, not content nested inside the
-                    // group — see the type's own documentation for why the tree is flat.
-                    EmptyView()
-                } label: {
-                    link(to: node)
-                }
+                // Keeps a leaf's class name in the same column as its siblings'. Blank rather than
+                // a dimmed chevron: a leaf has nothing to open, and drawing a disabled control
+                // where there is no control is how the old construction misled in the first place.
+                Color.clear
+                    .frame(width: Self.disclosureWidth, height: 1)
+                    .accessibilityHidden(true)
+            }
+            link(row, in: snapshot)
+        }
+        .padding(.leading, CGFloat(row.indentationLevel) * Self.indentationStep)
+    }
+
+    /// The control that opens and closes a row's subtree.
+    ///
+    /// Its own button, beside the link rather than wrapped around it, with a 44 pt tap target and
+    /// an explicit content shape so the whole target is hittable and not only the glyph. The
+    /// rotation is what distinguishes an open row from a closed one and both from a leaf; the
+    /// animation comes from ``ViewHierarchyViewModel/toggleExpansion(_:)``, which animates the rows
+    /// the toggle reveals in the same transaction.
+    private func disclosure(for row: ViewHierarchyViewModel.Row) -> some View {
+        Button {
+            viewModel.toggleExpansion(row.node)
+        } label: {
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .rotationEffect(.degrees(row.isExpanded ? 90 : 0))
+                .frame(width: Self.disclosureWidth, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(row.isExpanded ? localized("Collapse") : localized("Expand"))
+        .accessibilityValue(row.className)
+    }
+
+    /// The search results, or a line naming the query when nothing matched.
+    @ViewBuilder
+    private func searchResults(in snapshot: ViewHierarchySnapshot) -> some View {
+        if viewModel.matchRows.isEmpty {
+            noSearchResults
+        } else {
+            ForEach(viewModel.matchRows) { match in
+                searchRow(match, in: snapshot)
             }
         }
-        .padding(.leading, indentation(for: node))
     }
 
     /// One search result: the ancestor path above the row it found.
     ///
-    /// Without the path a hit is a class name with no address — `UILabel` says nothing about
-    /// which `UILabel`. The path is truncated at its head, so the ancestors nearest the match,
-    /// which are the ones that identify it, survive on a narrow screen.
-    private func searchRow(for match: ViewNodeSearch.Match) -> some View {
+    /// Without the path a hit is a class name with no address — `UILabel` says nothing about which
+    /// `UILabel`. The path is truncated at its head, so the ancestors nearest the match, which are
+    /// the ones that identify it, survive on a narrow screen. Results are a flat list, so no row
+    /// here carries a disclosure control.
+    private func searchRow(_ match: ViewHierarchyViewModel.MatchRow,
+                           in snapshot: ViewHierarchySnapshot) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             if !match.path.isEmpty {
                 Text(match.path.joined(separator: " › "))
@@ -119,43 +164,43 @@ struct ViewHierarchyView: View {
                     .lineLimit(1)
                     .truncationMode(.head)
             }
-            link(to: match.node)
+            link(match.row, in: snapshot)
         }
     }
 
     /// A row that pushes the node's detail page.
-    private func link(to node: ViewNode) -> some View {
+    private func link(_ row: ViewHierarchyViewModel.Row,
+                      in snapshot: ViewHierarchySnapshot) -> some View {
         NavigationLink {
-            if let snapshot = viewModel.snapshot {
-                ViewDetailView(node: node,
-                               snapshot: snapshot,
-                               windowBounds: viewModel.windowBounds)
-            }
+            ViewDetailView(node: row.node,
+                           snapshot: snapshot,
+                           windowBounds: viewModel.windowBounds)
         } label: {
-            label(for: node)
+            label(for: row)
         }
     }
 
     /// A row's contents: the class name, its size, and its badges.
     ///
     /// The badge words are folded into one accessibility label rather than left as separate
-    /// elements, so the row reads as "UILabel, 200 × 20, hidden" in a single pass instead of
-    /// making VoiceOver walk three lozenges.
-    private func label(for node: ViewNode) -> some View {
+    /// elements, so the row reads as "UILabel, 200 × 20, hidden" in a single pass instead of making
+    /// VoiceOver walk three lozenges. The label is the link's, and is deliberately nothing like the
+    /// disclosure button's "Expand" / "Collapse".
+    private func label(for row: ViewHierarchyViewModel.Row) -> some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(node.className)
-                Text(viewModel.sizeDescription(for: node))
+                Text(row.className)
+                Text(row.size)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
-            ForEach(viewModel.badges(for: node)) { badge in
+            ForEach(row.badges) { badge in
                 lozenge(badge)
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(viewModel.accessibilityLabel(for: node))
+        .accessibilityLabel(row.accessibilityLabel)
     }
 
     /// The small lozenge one badge is drawn as, matching the network log's own badges.
@@ -175,11 +220,6 @@ struct ViewHierarchyView: View {
         case .zeroSize: return .orange
         case .offScreen: return .purple
         }
-    }
-
-    /// How far a row is indented, capped at ``ViewNode/maximumIndentationDepth``.
-    private func indentation(for node: ViewNode) -> CGFloat {
-        CGFloat(ViewNode.indentationLevel(forDepth: node.depth)) * Self.indentationStep
     }
 
     /// Shown when a search matches nothing.

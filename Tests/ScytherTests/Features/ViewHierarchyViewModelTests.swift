@@ -105,6 +105,79 @@ final class ViewHierarchyViewModelTests: XCTestCase {
         XCTAssertEqual(model.visibleNodes.map(\.className), ["UIView"])
     }
 
+    /// Toggling is the whole state machine the tree's disclosure button drives, so it is worth
+    /// asserting it survives being driven both ways rather than only once.
+    func testTogglingTwiceReturnsANodeToWhereItStarted() {
+        let model = ViewHierarchyViewModel()
+        model.load(from: makeTree(), windowBounds: windowBounds)
+        let root = model.snapshotRoot!
+
+        XCTAssertTrue(model.isExpanded(root))
+        model.toggleExpansion(root)
+        XCTAssertFalse(model.isExpanded(root))
+        XCTAssertEqual(model.visibleNodes.count, 1, "a closed root shows only itself")
+        model.toggleExpansion(root)
+        XCTAssertTrue(model.isExpanded(root))
+        XCTAssertEqual(model.visibleNodes.map(\.className), ["UIView", "UIScrollView", "UILabel"])
+    }
+
+    /// Pull to refresh answers "what is on screen now"; it is not a request to close everything the
+    /// developer has opened in a four-hundred-row tree.
+    func testARefreshKeepsWhatTheDeveloperOpened() {
+        let root = makeTree()
+        let model = ViewHierarchyViewModel()
+        model.load(from: root, windowBounds: windowBounds)
+        model.toggleExpansion(model.snapshotRoot!.children[0])
+
+        model.load(from: root, windowBounds: windowBounds)
+
+        XCTAssertTrue(model.isExpanded(model.snapshotRoot!), "the root was left open")
+        XCTAssertFalse(model.isExpanded(model.snapshotRoot!.children[0]),
+                       "the node closed before the refresh is still closed after it")
+        XCTAssertEqual(model.visibleNodes.map(\.className), ["UIView", "UIScrollView"])
+    }
+
+    /// The rows the page draws, worked out once per change rather than per redraw.
+    func testARowCarriesWhatItsLineDraws() {
+        let root = UIView(frame: windowBounds)
+        let flagged = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: 44))
+        flagged.isHidden = true
+        root.addSubview(flagged)
+        hierarchyRoot = root
+
+        let model = ViewHierarchyViewModel()
+        model.load(from: root, windowBounds: windowBounds)
+
+        XCTAssertEqual(model.visibleRows.map(\.className), ["UIView", "UIView"])
+        let rootRow = model.visibleRows[0]
+        XCTAssertTrue(rootRow.hasChildren)
+        XCTAssertTrue(rootRow.isExpanded)
+        XCTAssertEqual(rootRow.indentationLevel, 0)
+
+        let childRow = model.visibleRows[1]
+        XCTAssertFalse(childRow.hasChildren)
+        XCTAssertEqual(childRow.indentationLevel, 1)
+        XCTAssertEqual(childRow.size, "0 × 44")
+        XCTAssertEqual(childRow.badges, [.hidden, .zeroSize])
+        XCTAssertEqual(childRow.accessibilityLabel, model.accessibilityLabel(for: childRow.node))
+    }
+
+    /// Searching draws from rows too, and each carries the ancestor path that says which
+    /// `UILabel` a hit is.
+    func testASearchRowCarriesItsPath() {
+        let model = ViewHierarchyViewModel()
+        model.load(from: makeTree(), windowBounds: windowBounds)
+        model.searchText = "GraphQL"
+
+        XCTAssertEqual(model.matchRows.count, 1)
+        XCTAssertEqual(model.matchRows[0].row.className, "UILabel")
+        XCTAssertEqual(model.matchRows[0].path, ["UIView", "UIScrollView"])
+
+        model.searchText = ""
+
+        XCTAssertTrue(model.matchRows.isEmpty)
+    }
+
     /// A badge that is only a coloured lozenge tells a sighted developer a view is hidden and
     /// tells everyone else nothing, so the words belong in the row's spoken label too.
     func testARowsAccessibilityLabelSpeaksItsBadges() {
