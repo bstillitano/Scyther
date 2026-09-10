@@ -581,6 +581,25 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
     /// on the main actor. `.onFirstAppear` starts during the navigation push, so a pass that runs
     /// straight through holds the main thread until it finishes and the push never animates. A
     /// competing main-actor task standing in for that transition has to get its turn first.
+    ///
+    /// ## Why it is written this way
+    ///
+    /// This suite is `@MainActor`, so both tasks are enqueued *from* the main actor, in this
+    /// order, with no `await` between them: the actor is held for the whole of that, so the pass
+    /// is queued ahead of the transition and neither can run until both are queued. Main-actor jobs of equal priority — and both of
+    /// these inherit this test's — take their turns in the order they were enqueued, so the pass
+    /// gets the first turn and the whole of the behaviour under test falls out of what it does
+    /// with it. A pass that yields hands the actor to the transition already waiting behind it and
+    /// appends `"walk"` a turn later; a pass that does not yield finishes its walk inside that
+    /// first turn and appends `"walk"` first. One property, two orders, no clock.
+    ///
+    /// It was written as a pair of `async let` bindings, which is the shape this must never go
+    /// back to. Those are child tasks on the concurrent pool, and each has to hop to the main
+    /// actor before it can do anything; nothing orders those hops, and on a busy machine the
+    /// transition's child task had not started at all — so its job was not yet queued when the
+    /// pass took its turn, the yield found an empty queue and resumed straight away, and the walk
+    /// finished first. `["walk", "transition"]` from a `load()` that yields exactly as it should:
+    /// a red suite that said nothing about the code. Both orders were legal, which is the tell.
     func testThePassYieldsTheMainActorBeforeItWalks() async {
         let order = Recorder()
         let viewModel = viewModel {
@@ -588,9 +607,10 @@ final class AccessibilityAuditViewModelTests: XCTestCase {
             return self.result([])
         }
 
-        async let loaded: Void = viewModel.load()
-        async let transitioned: Void = Task { @MainActor in order.steps.append("transition") }.value
-        _ = await (loaded, transitioned)
+        let pass = Task { @MainActor in await viewModel.load() }
+        let transition = Task { @MainActor in order.steps.append("transition") }
+        await pass.value
+        await transition.value
 
         XCTAssertEqual(order.steps, ["transition", "walk"],
                        "the transition must get the main actor before the walk takes it")
