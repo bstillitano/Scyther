@@ -217,18 +217,44 @@ final class BreakpointInterceptorTests: XCTestCase {
         interceptor.stopLoading()
     }
 
-    /// A blocked pause could not be cancelled, which is half the reason nothing blocks.
+    /// A blocked pause could not be cancelled, which is half the reason nothing blocks. And a
+    /// pause's timeout outlives the cancellation, so a cancelled exchange has to survive that as
+    /// well: a client that has gone away is handed nothing, and a deadline nobody is waiting on
+    /// any more must not put the request on the wire behind its back.
+    ///
+    /// ## Why it is written this way
+    ///
+    /// The timeout is fired by hand, after the cancellation has provably landed, rather than
+    /// armed short and raced against it. Arming 0.3 seconds and cancelling "quickly" is what made
+    /// this test flaky: on a loaded machine more than that can pass between the hold and the
+    /// `stopLoading()`, and a hold nobody cancelled in time is *supposed* to continue its request
+    /// — see ``testTimingOutSendsTheRequestUnmodified``. The premise went false and the test
+    /// failed on correct behaviour.
+    ///
+    /// `resolve(id:with:)` and the armed work item both reach `BreakpointCoordinator`'s
+    /// `deliver(_:to:)` on the coordinator's own serial queue, and `.timedOut` is the resolution
+    /// that work item carries — so delivering it by hand *is* the timeout firing, at a moment
+    /// this test picks. Waiting for the editor to empty first is what orders the two: the row is
+    /// taken away from inside the same block that drops the continuation, so an empty `pending`
+    /// means the cancellation has already run on that queue and this delivery is queued behind
+    /// it. The interceptor's own timeout stays at the helper's default, far longer than the test,
+    /// so the only timeout that arrives is the one asked for here. Do not put a short timeout
+    /// back — that is the race, not the test.
     @MainActor
     func testCancellingAHeldRequestDeliversNothing() throws {
         let client = RecordingClient()
-        let interceptor = interceptor(stage: .request, timeout: 0.3, client: client)
+        let interceptor = interceptor(stage: .request, client: client)
         interceptor.startLoading()
-        _ = heldPause()
+        let pause = try XCTUnwrap(heldPause())
 
         interceptor.stopLoading()
 
         XCTAssertTrue(waitUntil { self.coordinator.pending.isEmpty },
                       "the editor stops showing a request nobody wants")
+
+        /// The deadline the cancelled pause was holding, arriving too late to matter.
+        coordinator.resolve(id: pause.id, with: .timedOut)
+
         XCTAssertFalse(waitUntil(1) { !client.received.isEmpty },
                        "a cancelled request delivers nothing, not even when its timeout fires")
         XCTAssertFalse(interceptor.hasStartedTask, "and never reaches the network")
@@ -368,16 +394,25 @@ final class BreakpointInterceptorTests: XCTestCase {
         XCTAssertTrue(harness.client.body.isEmpty, "an aborted response hands the app no bytes")
     }
 
+    /// The response stage's half of ``testCancellingAHeldRequestDeliversNothing``, and written
+    /// the same way for the same reason: the timeout is fired by hand once the cancellation has
+    /// landed, because racing a short one against `stopLoading()` tests the machine's load rather
+    /// than the code. See that test for the full reasoning.
     @MainActor
     func testCancellingAHeldResponseDeliversNothing() throws {
-        let harness = try responseHarness(timeout: 0.3)
+        let harness = try responseHarness()
         deliver(harness, body: Data("{}".utf8))
-        _ = heldPause()
+        let pause = try XCTUnwrap(heldPause())
 
         harness.interceptor.stopLoading()
 
         XCTAssertTrue(waitUntil { self.coordinator.pending.isEmpty })
-        XCTAssertFalse(waitUntil(1) { !harness.client.received.isEmpty })
+
+        /// The deadline the cancelled pause was holding, arriving too late to matter.
+        coordinator.resolve(id: pause.id, with: .timedOut)
+
+        XCTAssertFalse(waitUntil(1) { !harness.client.received.isEmpty },
+                       "a cancelled response delivers nothing, not even when its timeout fires")
     }
 
     /// A failed load has no response to edit, so it is not held at all — and the bytes that were

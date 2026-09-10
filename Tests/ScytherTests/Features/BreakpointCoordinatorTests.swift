@@ -200,19 +200,31 @@ final class BreakpointCoordinatorTests: XCTestCase {
     /// `stopLoading()` calls this. A client that has gone away must be handed nothing at all —
     /// not a continue, not a timeout — because delivering to a cancelled client is something the
     /// `URLProtocol` contract forbids.
+    ///
+    /// The timeout is long enough that none can fire inside this test, which is deliberate: this
+    /// asserts that cancelling delivers nothing, and racing a short deadline against the
+    /// cancellation asserted instead that the machine got to `cancel(id:)` inside 0.3 seconds —
+    /// which a loaded runner does not promise, and a pause nobody cancelled in time is *supposed*
+    /// to time out. What happens when a timeout does arrive after a cancellation is
+    /// ``testResolvingAfterCancellingDeliversNothing``, which delivers one by hand rather than
+    /// waiting on the clock for it.
     @MainActor
     func testACancelledPauseNeverResumes() throws {
         let recorder = Recorder()
-        let id = coordinator.pause(draft(), name: "cart", stage: .request, timeout: 0.3, resume: recorder.resume)
+        let id = coordinator.pause(draft(), name: "cart", stage: .request, timeout: 60, resume: recorder.resume)
         _ = pendingID()
 
         coordinator.cancel(id: id)
 
         XCTAssertFalse(waitUntil(1) { !recorder.resolutions.isEmpty },
-                       "a cancelled pause delivers nothing, including when its timeout fires")
+                       "a cancelled pause delivers nothing")
         XCTAssertTrue(coordinator.pending.isEmpty, "and it leaves no row behind either")
     }
 
+    /// Every late decision, the timeout included: ``pause(_:name:stage:timeout:resume:)``'s work
+    /// item and `resolve(id:with:)` reach the same delivery on the same queue, so a `.timedOut`
+    /// handed over after a cancellation is the armed timeout arriving late — at a moment this
+    /// test chooses, rather than one it has to wait out.
     @MainActor
     func testResolvingAfterCancellingDeliversNothing() throws {
         let recorder = Recorder()
@@ -221,6 +233,7 @@ final class BreakpointCoordinatorTests: XCTestCase {
 
         coordinator.cancel(id: id)
         coordinator.resolve(id: id, with: .continue(draft()))
+        coordinator.resolve(id: id, with: .timedOut)
 
         XCTAssertFalse(waitUntil(0.5) { !recorder.resolutions.isEmpty })
     }
