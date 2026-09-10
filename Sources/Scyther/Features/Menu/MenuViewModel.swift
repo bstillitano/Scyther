@@ -8,6 +8,7 @@
 import Combine
 import Foundation
 import SwiftUI
+import UIKit
 
 /// View model for the main menu interface.
 ///
@@ -88,6 +89,7 @@ import SwiftUI
 /// - ``slowAnimationsEnabled``
 /// - ``layoutGuidesEnabled``
 /// - ``canShowLayoutGuides``
+/// - ``canShowViewHierarchy``
 /// - ``activateLayoutRuler()``
 /// - ``showsLayoutRulerUnavailableAlert``
 /// - ``showViewFrames``
@@ -439,6 +441,18 @@ class MenuViewModel: ViewModel {
     /// still find the guides as the developer left them.
     var canShowLayoutGuides: Bool {
         InterfaceToolkit.instance.canShowLayoutGuides
+    }
+
+    /// Whether there is a key window for the view hierarchy inspector to walk, so ``MenuView`` can
+    /// disable the row when there is not.
+    ///
+    /// The spec's first edge case — "no key window: the menu row reports it rather than appearing
+    /// to work" — answered the same way the layout guides row answers it, because a row that
+    /// pushes a page saying there was nothing to inspect *is* a row that appeared to work. The
+    /// page keeps its own report as well: the check that matters is the one taken at walk time,
+    /// and a window can go between the menu being drawn and the row being tapped.
+    var canShowViewHierarchy: Bool {
+        UIApplication.scytherKeyWindow != nil
     }
 
     /// Dismisses the menu and puts the layout ruler on screen.

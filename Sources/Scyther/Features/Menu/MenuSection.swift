@@ -96,8 +96,8 @@ struct MenuSection: Identifiable {
                 .notificationLogger, .notificationTester, .apnsToken, .fcmToken
             ]),
             MenuSection(id: MenuSectionID.uiux, title: localized("UI/UX"), items: [
-                .fonts, .interfaceComponents, .gridOverlay, .layoutGuides, .layoutRuler, .fpsCounter,
-                .touchVisualiser, .accessibilityAudit, .appearance, .language, .pseudoLocalization,
+                .fonts, .interfaceComponents, .gridOverlay, .layoutGuides, .layoutRuler, .viewHierarchy,
+                .fpsCounter, .touchVisualiser, .accessibilityAudit, .appearance, .language, .pseudoLocalization,
                 .slowAnimations, .showViewFrames, .showViewSizes
             ])
         ])

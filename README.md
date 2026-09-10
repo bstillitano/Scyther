@@ -98,6 +98,7 @@ A comprehensive iOS debugging toolkit that helps you cut through bugs in your iO
 - **Accessibility Audit**: Walk the live accessibility tree for missing VoiceOver labels, undersized touch targets, and low-contrast text, with a live on-screen overlay for the two checks that cost nothing
 - **View Frames**: Highlight view boundaries with colored borders
 - **View Sizes**: Display view dimensions as labels
+- **View Hierarchy**: Browse a **snapshot** of the key window's view hierarchy — every view's class name, size, and badges for hidden, zero-size, and off-screen — searchable by class name or the text a view carries, with each view's geometry, appearance, owning controller, and responder-chain context a tap away. It is **read-only** and only ever shows what pulling to refresh last captured, not the app as it is right now, and it skips Scyther's own views, so the tree is the host app's hierarchy and nothing else. Text search reaches UIKit-backed text only: SwiftUI draws a `Text` rather than holding it in a label, so a navigation bar title matches and body text does not
 - **Slow Animations**: Reduce animation speed for debugging
 - **Appearance Overrides**: Force dark/light mode, high contrast, and Dynamic Type sizes
 - **Font Browser**: View all available system fonts

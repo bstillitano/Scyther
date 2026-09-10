@@ -86,8 +86,8 @@ enum MenuItem: Hashable, Identifiable {
     case notificationLogger, notificationTester, apnsToken, fcmToken
 
     // UI/UX
-    case fonts, interfaceComponents, gridOverlay, layoutGuides, layoutRuler, fpsCounter
-    case touchVisualiser, accessibilityAudit, appearance, language, pseudoLocalization
+    case fonts, interfaceComponents, gridOverlay, layoutGuides, layoutRuler, viewHierarchy
+    case fpsCounter, touchVisualiser, accessibilityAudit, appearance, language, pseudoLocalization
     case slowAnimations, showViewFrames, showViewSizes
 
     /// The identifier prefix distinguishing host-supplied rows from built-in ones.
@@ -107,8 +107,8 @@ enum MenuItem: Hashable, Identifiable {
         .keychainBrowser,
         .locationSpoofer, .consoleLogs, .deepLinkTester, .crashLogs,
         .notificationLogger, .notificationTester, .apnsToken, .fcmToken,
-        .fonts, .interfaceComponents, .gridOverlay, .layoutGuides, .layoutRuler, .fpsCounter,
-        .touchVisualiser, .accessibilityAudit, .appearance, .language, .pseudoLocalization,
+        .fonts, .interfaceComponents, .gridOverlay, .layoutGuides, .layoutRuler, .viewHierarchy,
+        .fpsCounter, .touchVisualiser, .accessibilityAudit, .appearance, .language, .pseudoLocalization,
         .slowAnimations, .showViewFrames, .showViewSizes
     ]
 
@@ -154,6 +154,7 @@ enum MenuItem: Hashable, Identifiable {
         case .gridOverlay: return "gridOverlay"
         case .layoutGuides: return "layoutGuides"
         case .layoutRuler: return "layoutRuler"
+        case .viewHierarchy: return "viewHierarchy"
         case .fpsCounter: return "fpsCounter"
         case .touchVisualiser: return "touchVisualiser"
         case .accessibilityAudit: return "accessibilityAudit"
@@ -239,6 +240,7 @@ enum MenuItem: Hashable, Identifiable {
         case .gridOverlay: return localized("Grid Overlay")
         case .layoutGuides: return localized("Layout Guides")
         case .layoutRuler: return localized("Layout Ruler")
+        case .viewHierarchy: return localized("View Hierarchy")
         case .fpsCounter: return localized("FPS Counter")
         case .touchVisualiser: return localized("Touch Visualiser")
         case .accessibilityAudit: return localized("Accessibility Audit")
@@ -299,6 +301,7 @@ enum MenuItem: Hashable, Identifiable {
         case .gridOverlay: return "rectangle.split.3x3"
         case .layoutGuides: return "rectangle.inset.filled"
         case .layoutRuler: return "arrow.left.and.right"
+        case .viewHierarchy: return "list.bullet.indent"
         case .fpsCounter: return "speedometer"
         case .touchVisualiser: return "hand.point.up"
         case .accessibilityAudit: return "figure.stand"

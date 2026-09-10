@@ -175,6 +175,12 @@ public struct MenuView: View {
             case .layoutGuides:
                 Toggle(isOn: $viewModel.layoutGuidesEnabled) { searchResultLabel(for: entry) }
                     .disabled(!viewModel.canShowLayoutGuides)
+            case .viewHierarchy:
+                // A case of its own only so the search hit carries the same gate its row does; a
+                // result that pushed a page saying there was nothing to inspect would be the row
+                // appearing to work by another route.
+                navigationResult(for: entry)
+                    .disabled(!viewModel.canShowViewHierarchy)
             case .layoutRuler:
                 // An action, not a destination: without a case of its own this would fall
                 // through to `navigationResult(for:)`, whose `destination(for:)` has nothing to
@@ -402,6 +408,7 @@ public struct MenuView: View {
         case .interfaceComponents: InterfacePreviewsView()
         case .gridOverlay: GridOverlaySettingsView()
         case .fpsCounter: FPSCounterSettingsView()
+        case .viewHierarchy: ViewHierarchyView()
         case .touchVisualiser: TouchVisualiserView()
         case .accessibilityAudit: AccessibilityAuditView()
         case .appearance: AppearanceOverridesView()
@@ -589,6 +596,11 @@ public struct MenuView: View {
                 .disabled(!viewModel.canShowLayoutGuides)
         case .layoutRuler:
             actionRow(for: item) { viewModel.activateLayoutRuler() }
+        case .viewHierarchy:
+            // Disabled with no key window to walk, the same shape the layout guides row uses for
+            // the same condition — see ``MenuViewModel/canShowViewHierarchy``.
+            navigationRow(for: item)
+                .disabled(!viewModel.canShowViewHierarchy)
         case .fpsCounter:
             navigationRow(for: item)
         case .touchVisualiser:

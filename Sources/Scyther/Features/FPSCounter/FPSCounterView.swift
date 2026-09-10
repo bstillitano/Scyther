@@ -131,15 +131,7 @@ internal class FPSCounterView: TopLevelView {
 
     /// Gets the safe area insets from the key window.
     private func safeAreaInsetsFromWindow() -> UIEdgeInsets {
-        if #available(iOS 15.0, *) {
-            return UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap { $0.windows }
-                .first { $0.isKeyWindow }?
-                .safeAreaInsets ?? .zero
-        } else {
-            return UIApplication.shared.windows.first { $0.isKeyWindow }?.safeAreaInsets ?? .zero
-        }
+        UIApplication.scytherKeyWindow?.safeAreaInsets ?? .zero
     }
 
     // MARK: - FPS Updates
