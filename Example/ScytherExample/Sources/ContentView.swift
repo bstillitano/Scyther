@@ -166,7 +166,7 @@ struct HomeView: View {
                 } header: {
                     Text("Accessibility Audit Demo")
                 } footer: {
-                    Text("These three controls are deliberately broken so Scyther's accessibility audit has something to find. Open Scyther → UI/UX → Accessibility Audit, or turn on Live Mode, to see them flagged.")
+                    Text("These three controls are deliberately broken so Scyther's accessibility audit has something to find. Open Scyther → UI/UX → Accessibility Audit, or turn on Show Issues On Screen, to see them flagged.")
                 }
 
                 Section {

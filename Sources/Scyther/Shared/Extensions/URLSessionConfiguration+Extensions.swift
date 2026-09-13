@@ -99,9 +99,23 @@ internal extension URLSessionConfiguration {
     /// - `background(withIdentifier:)` method
     /// - `init()` initializer
     ///
-    /// Called once during Scyther initialization to enable network monitoring.
+    /// Called during Scyther initialization to enable network monitoring. Only the first call
+    /// installs anything; later calls do nothing.
+    ///
+    /// The guard matters because `method_exchangeImplementations` is its own inverse: a second
+    /// exchange would put the original implementations back, and every configuration created after
+    /// it would silently lose `HTTPInterceptorURLProtocol`. ``Scyther/start(allowProductionBuilds:)``
+    /// only runs once, but tests reset its started flag, so the hook defends itself as well.
     class func swizzleDefaultSessionConfiguration() {
         guard self == URLSessionConfiguration.self else { return }
+        _ = installSessionConfigurationSwizzles
+    }
+
+    /// Exchanges the configuration initializers for their swizzled versions, exactly once per process.
+    ///
+    /// A `static let` is initialised lazily and atomically, which gives a thread-safe run-once
+    /// without a separate flag and lock.
+    private static let installSessionConfigurationSwizzles: Void = {
 
         let defaultSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(getter: URLSessionConfiguration.default))
         let swizzledDefaultSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(URLSessionConfiguration.swizzledDefaultSessionConfiguration))
@@ -122,7 +136,7 @@ internal extension URLSessionConfiguration {
         let initSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(URLSessionConfiguration.init))
         let swizzledInitSessionConfiguration = class_getClassMethod(URLSessionConfiguration.self, #selector(URLSessionConfiguration.swizzledInit))
         method_exchangeImplementations(initSessionConfiguration!, swizzledInitSessionConfiguration!)
-    }
+    }()
 
     /// Swizzled version of the default configuration getter.
     ///
