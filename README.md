@@ -433,6 +433,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 }
 ```
 
+`Scyther.start()` only does anything the first time it is allowed to run. Later calls are ignored,
+so calling it from more than one place is safe. A call refused on an App Store build does not
+count, so a later `Scyther.start(allowProductionBuilds: true)` still starts Scyther.
+
 ### Opening the Menu
 
 Once started, **shake your device** (or press `Cmd + Ctrl + Z` in the simulator) to open the Scyther debug menu.
@@ -2203,7 +2207,7 @@ in one, use **UI/UX → Language**. See [Localisation](#localisation).
 
 | Property/Method | Type | Description |
 |----------------|------|-------------|
-| `start(allowProductionBuilds:)` | `@MainActor static func` | Initializes Scyther |
+| `start(allowProductionBuilds:)` | `@MainActor static func` | Initializes Scyther. Later calls are ignored |
 | `showMenu(from:)` | `static func` | Presents the debug menu |
 | `hideMenu(animated:completion:)` | `static func` | Dismisses the debug menu |
 | `isStarted` | `Bool` | Whether Scyther has been started |

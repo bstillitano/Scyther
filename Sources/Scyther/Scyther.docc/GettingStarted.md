@@ -68,6 +68,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 }
 ```
 
+Only the first call to ``Scyther/start(allowProductionBuilds:)`` that is allowed to run does
+anything. Later calls are ignored, so calling it from more than one place is safe.
+
 ## Opening the Debug Menu
 
 Once Scyther is started, you have several ways to open the debug menu:

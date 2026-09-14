@@ -116,6 +116,10 @@ public enum Scyther {
     private static var _presented = false
 
     /// Whether Scyther has been started.
+    ///
+    /// Becomes `true` the first time ``start(allowProductionBuilds:)`` runs its setup, and stays
+    /// `true` for the life of the process. A call that is refused on an App Store build leaves it
+    /// `false`.
     public nonisolated static var isStarted: Bool { _started }
 
     /// Whether the menu is currently presented.
@@ -189,9 +193,23 @@ public enum Scyther {
     ///
     /// Call this early in your app's lifecycle, typically in `application(_:didFinishLaunchingWithOptions:)`.
     ///
+    /// Only the first call that is allowed to start Scyther does anything. Every later call returns
+    /// immediately, whatever `allowProductionBuilds` it passes, so it is safe to call from more than
+    /// one place. Running the setup twice was not harmless: the `URLSessionConfiguration` hooks are
+    /// installed by exchanging method implementations, so a second exchange put the originals back
+    /// and stopped network logging for every session created afterwards, and several subsystems
+    /// registered their notification observers a second time.
+    ///
+    /// A call refused on an App Store build does not count as the first call: ``isStarted`` stays
+    /// `false`, and a later call with `allowProductionBuilds: true` still starts Scyther.
+    ///
     /// - Parameter allowProductionBuilds: If `true`, Scyther will run on App Store builds. Default is `false`.
     public static func start(allowProductionBuilds: Bool = false) {
         guard !AppEnvironment.isAppStore || allowProductionBuilds else {
+            return
+        }
+
+        guard !_started else {
             return
         }
 
